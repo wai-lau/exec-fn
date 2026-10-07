@@ -337,13 +337,14 @@ const TOWER_SPEED = { acid: 75, chain: 15, reaper: 6, slower: 55 }; // ACD 120 -
 const TOWER_REACH = { slower: 400, acid: 350, chain: 350, reaper: 180 }; // SOL: its travel halved (owner; was 250 - a slot sits ~110 out)
 const SLIDE_K_HALF = 0.5, SLIDE_MAX = 2;
 const SLIDE_KIND = { acid: 1, slower: 1, chain: SLIDE_K_HALF, reaper: SLIDE_K_HALF };
-const TOWER_IN_KIND = { acid: 0.89, slower: 0.89 }; // the rest: TOWER_IN
+// towers may slide 50% further IN toward the core (owner, 2026-10-06; were 0.89 / 0.945)
+const TOWER_IN_KIND = { acid: 0.835, slower: 0.835 }; // the rest: TOWER_IN
 const moveSpeed = t => TOWER_SPEED[t.kind] * towerStats(t, true).speed;
 // the innermost a tower slides: this share of its slot's distance from the core.
 // 0.945 = half the old 0.89's slide in (owner); the old 0.89 kept a 13.6 gap
 // between ring neighbours at max level slid fully in with TOWER_K 0.94, so
 // the gap only grows
-const TOWER_IN = 0.945;
+const TOWER_IN = 0.9175;
 // a slot's own inner limit (the corner slots carry one, CORNER_IN) else TOWER_IN of its distance
 const innerR = (c, r0, slide = 1, kind = null) => c.minR ?? r0 * (1 - (1 - (TOWER_IN_KIND[kind] ?? TOWER_IN)) * Math.min(slide, SLIDE_MAX));
 // how far out a kind slides from a slot r0 from the core (slide = the tier's multiplier)
@@ -430,7 +431,7 @@ function drawSpokes() {
 
 // A tower is its cell's hexagon, inset a little; its label at the centroid.
 // Level shows as concentric rings OUTSIDE it (drawTower).
-const TOWER_K = 0.94; // the size of the slot hexes drawn while placing (owner, 2026-10-05; was 0.88, then 0.66)
+const TOWER_K = 0.705; // a tower's (and slot's) hex size in cell sizes - 25% SMALLER (owner, 2026-10-06; was 0.94; before that 0.88, then 0.66)
 function towerHex(c, k) {
   ctx.beginPath();
   c.pts.forEach((p, i) => {
@@ -443,4 +444,4 @@ function towerHex(c, k) {
 // and each level past L1 adds a BOLD ring OUTSIDE it, LEVEL_GAP further out
 // each (the cells are two tiles apart, so there is room), under a glow that
 // grows with the level.
-const TOWER_GLOW = [8, 20, 34, 52], LEVEL_GAP = 0.18; // rings 25% tighter with the smaller towers (was 0.24) // glow: shadow blur per level, world px
+const TOWER_GLOW = [8, 20, 34, 52], LEVEL_GAP = 0.135; // (0.18 before the 25% shrink, owner 2026-10-06) // rings 25% tighter with the smaller towers (was 0.24) // glow: shadow blur per level, world px
