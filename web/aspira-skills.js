@@ -335,15 +335,18 @@ function frzStep(t, dt) {
   }
 }
 // UI: the aura discs, the moons and the Rime rings (aspira-effects.js drawTethers)
+const MOON_TRI = 11; // a moon's triangle, corner to centre
 function drawFrzSkill(t, st) {
   const col = COL[TOWERS.slower.color];
-  for (const s of frzSources(t, st)) {
+  frzSources(t, st).forEach((s, i) => {
     gradDisc(s.x, s.y, st.range * s.k, col, 0.8);
     // Frost (owner): a FROSTED RIM, thicker the colder the aura (its slow)
     ctx.strokeStyle = col; ctx.globalAlpha = 0.45; ctx.lineWidth = FRZ_RIM_W * st.aura * s.k;
     ctx.beginPath(); ctx.arc(s.x, s.y, st.range * s.k, 0, 6.283); ctx.stroke();
-    if (s.k < 1) { ctx.fillStyle = col; ctx.globalAlpha = 0.95; ctx.beginPath(); ctx.arc(s.x, s.y, 8, 0, 6.283); ctx.fill(); }
-  }
+    // a MOON (every source after the tower; Moons III's are full strength, so
+    // not "k < 1" - owner: they went missing) is a TRIANGLE pointing at the tower
+    if (i) { ctx.fillStyle = col; ctx.globalAlpha = 0.95; poly(s.x, s.y, MOON_TRI, 3, Math.atan2(t.y - s.y, t.x - s.x), false); ctx.fill(); }
+  });
   // Rime (owner): a THIN expanding ring with a GLOW
   ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.shadowColor = col; ctx.shadowBlur = 12 * cam.k;
   for (const p of t.pulses || []) {
