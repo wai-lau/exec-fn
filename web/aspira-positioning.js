@@ -13,7 +13,10 @@
 // The tower heads for the best spot, and only switches for a spot POS_SWITCH
 // times better than the one it is heading to. With nothing reachable in time,
 // or no enemy alive, it RESTS at the OUTER end of its spoke (owner).
-const POS_EVERY = 0.25, POS_HORIZON = 3, POS_DT = 0.5, POS_STEP = 10, POS_SWITCH = 1.1;
+// POS_HORIZON 3 -> 5 (2026-10-06): ARC and SOL now move so slowly that within
+// 3 s no other spot was reachable, so staying put always won
+let POS_EVERY = 0.25, POS_HORIZON = 5, POS_DT = 0.5, POS_STEP = 10, POS_SWITCH = 1.1;
+const POS_HORIZON_SET = h => { POS_HORIZON = h; }; // (the simulator sweeps it)
 const POS_STALE = 0.2; // Fresh: what a debuffed enemy's hits are still worth
 let POS_URGENCY = 6, POS_MODE_MIX = 1; // FULL targeting (owner: 0.3 barely counted); urgency 6 keeps the lives - swept u 3/6/10/20 x mix 0.3/1. let: the simulator sweeps both
 let posPred = null, posPredAt = -1;
@@ -80,8 +83,18 @@ function bestSpot(t, k, range) {
       if (sc > bestScore || (sc === bestScore && sc > 0 && near > bestNear)) { bestScore = sc; best = oi; bestNear = near; }
     }
   }
-  // nothing reachable in time: REST outermost (owner) - enemies enter at the rim
-  if (!bestScore) return k.max;
+  // nothing in range in time: head for the spot CLOSEST to the action (the
+  // nearest predicted point of an enemy it targets) - owner, 2026-10-06: with
+  // the halved ranges "they just slide to the edge and stay there" (they used
+  // to REST outermost here); only with no enemy at all does it rest outermost
+  if (!bestScore) {
+    let bd = Infinity, bo = steps;
+    for (let oi = first; oi <= steps; oi++) {
+      const o = oi * POS_STEP, x = k.c.x + k.ux * o, y = k.c.y + k.uy * o;
+      pred.forEach(({ pts }, i) => { if (f[i] > 0) for (const p of pts) { const d2 = (p.x - x) ** 2 + (p.y - y) ** 2; if (d2 < bd) { bd = d2; bo = oi; } } });
+    }
+    return bo * POS_STEP;
+  }
   // stay with the current mark unless the new one is clearly better
   const cur = t.want != null ? Math.round(t.want / POS_STEP) : null;
   // (on an exact tie in hits it follows the nearer spot, no threshold)
