@@ -380,7 +380,10 @@ const TOWER_ACCEL = 240;
 function moveTower(t, dt) {
   const k = spokeOf(t), { c, ux, uy, max } = k, off = t.off || 0;
   t.posT = (t.posT || 0) - dt;
-  if (t.posT <= 0) { t.posT = POS_EVERY; t.want = bestSpot(t, k, towerStats(t).range); }
+  // a new mark within POS_DEADBAND of the one it is heading for is ignored, so a
+  // tower does not twitch after every small shift of the action (owner, 2026-10-06:
+  // "tower positions jitter too much")
+  if (t.posT <= 0) { t.posT = POS_EVERY; const w = bestSpot(t, k, towerStats(t).range); if (t.want == null || w == null || Math.abs(w - t.want) > POS_DEADBAND) t.want = w; }
   const want = Math.max(k.min, Math.min(max, t.want ?? max)); // nothing alive: rest OUTERMOST (owner)
   // eased: aim for the speed that still stops on the mark, then ramp to it
   const gap = want - off, vWant = Math.sign(gap) * Math.min(moveSpeed(t), Math.sqrt(2 * TOWER_ACCEL * Math.abs(gap)));
