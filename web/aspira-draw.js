@@ -327,7 +327,7 @@ function drawFx(pass) {
     const k = 1 - f.t / f.life;
     ctx.globalAlpha = Math.min(1, k * 2);
     if (f.k === "beam") {
-      ctx.globalAlpha *= f.alpha ?? 1; // ARC: an arc's beam is as opaque as the share of damage it still carries
+      ctx.globalAlpha = Math.min(1, ctx.globalAlpha * (f.alpha ?? 1) * BEAM_BRIGHT); // ARC: an arc as opaque as its damage share; x BEAM_BRIGHT (owner)
       // glow underlay + core, both widening with the damage behind the shot
       ctx.strokeStyle = COL[f.color]; ctx.lineCap = "round";
       // a following beam reads its endpoints live from the tower/enemy it joins
@@ -352,10 +352,10 @@ function drawFx(pass) {
           // GRADIENT - densest at the core, fading out by twice its width.
           // Four nested strokes, widest first, stack into that falloff.
           for (let i = 4; i >= 1; i--) {
-            ctx.globalAlpha = a * 0.3; ctx.lineWidth = core * 0.5 * (1 + i * 0.25); ctx.stroke(); // SOL: a slim beam, half the width
+            ctx.globalAlpha = Math.min(1, a * 0.3 * BEAM_BRIGHT); ctx.lineWidth = core * 0.5 * (1 + i * 0.25); ctx.stroke(); // SOL: a slim beam, half the width
           }
         } else {
-          ctx.globalAlpha = a * 0.22; ctx.lineWidth = core * 3; ctx.stroke();
+          ctx.globalAlpha = Math.min(1, a * 0.22 * BEAM_BRIGHT); ctx.lineWidth = core * 3; ctx.stroke();
         }
         ctx.globalAlpha = a;
       }

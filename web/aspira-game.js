@@ -320,8 +320,11 @@ const dmgMag = d => (d > 0 ? Math.min(3, 0.5 + Math.sqrt(d) / 5) : 0);
 // 10 -> 2.0, 100 -> 3.6, 1k -> 5.2, 10k -> 6.8, 100k -> 8.4, capped at BEAM_MAX
 const BEAM_MIN = 0.4, BEAM_PER_DECADE = 1.6, BEAM_MAX = 10;
 const beamWidth = d => Math.min(BEAM_MAX, BEAM_MIN + BEAM_PER_DECADE * Math.log10(1 + Math.max(0, d)));
+// every beam lasts BEAM_LIFE_MUL x its asked life and draws BEAM_BRIGHT x as
+// bright (owner, 2026-10-06: "twice as long and twice as bright"; drawFx)
+const BEAM_LIFE_MUL = 2, BEAM_BRIGHT = 2;
 function beam(a, b, color, life, w = 1.5, dmg = 0, slim = false, follow = true) {
-  fx.push({ k: "beam", x1: a.x, y1: a.y, x2: b.x, y2: b.y, color, t: 0, life, w, d: dmg, m: dmgMag(dmg), slim,
+  fx.push({ k: "beam", x1: a.x, y1: a.y, x2: b.x, y2: b.y, color, t: 0, life: life * BEAM_LIFE_MUL, w, d: dmg, m: dmgMag(dmg), slim,
     a: follow ? a : null, b: follow ? b : null });
 }
 function ring(x, y, r, color, life = 0.12, grad = false, outline = true) { fx.push({ k: "ring", x, y, r, color, t: 0, life, grad, outline }); }
