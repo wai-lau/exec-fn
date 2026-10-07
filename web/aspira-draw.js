@@ -144,7 +144,7 @@ function drawGraticuleLive() {
 function drawBoard() {
   drawGraticule();
   drawLanes();
-  drawCells(); // free slots always show a faint outline (owner); bright while placing
+  drawCells(); if (!G.towers.length && !ui.build) drawSlotArrow(); // slot outlines (owner); before the first tower an arrow points at one (aspira-chooser.js)
 }
 
 // the core: a solid white hexagon (gently pulsing), lives in black on it -
