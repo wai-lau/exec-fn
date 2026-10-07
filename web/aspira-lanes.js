@@ -101,7 +101,7 @@ function drawLaneStrokes(live) {
   const camSig = [cv.width, cv.height, cam.k, cam.ox, cam.oy].join();
   const sig = camSig + "|" +
     live.map(u => u.pi + ":" + u.ang.toFixed(3) + ":" + u.color + ":" + (u.star ? 1 : 0) + ":" + Math.round(u.a * LIT_STEPS)).join(",");
-  if (sig === S.litKey || (camSig === S.litCam && now - S.litAt < LIT_MIN_MS)) { blit(glowCv); blit(laneCv); return; }
+  if (sig === S.litKey || (camSig === S.litCam && now - S.litAt < LIT_MIN_MS)) { if (!lowQ) blit(glowCv); blit(laneCv); return; } // low quality: no glow layer
   S.litKey = sig; S.litCam = camSig; S.litAt = now;
   // each lane IN USE lit in its rider's colour - drawn rotated when a split
   // wave rides a rotated copy of it (u.ang)
@@ -117,15 +117,14 @@ function drawLaneStrokes(live) {
     lctx.strokeStyle = gctx.strokeStyle = COL[u.color];
     // a wide GLOW that grows in intensity toward the core (owner), on its own
     // layer with a much steeper fade outward (owner: "stronger gradient")
-    gctx.globalAlpha = Math.min(1, 0.22 * k * u.a); gctx.lineWidth = 32 * w; gctx.stroke(PATHS[u.pi].glow2d); // thicker at the core (owner; was 0.18, 20)
+    if (!lowQ) { gctx.globalAlpha = Math.min(1, 0.22 * k * u.a); gctx.lineWidth = 32 * w; gctx.stroke(PATHS[u.pi].glow2d); } // thicker at the core (owner; was 0.18, 20)
     gctx.restore();
     lctx.globalAlpha = 0.03 * k * u.a; lctx.lineWidth = 6 * w; lctx.stroke(PATHS[u.pi].lit2d);
     if (u.star) { lctx.shadowColor = COL[u.color]; lctx.shadowBlur = BOSS_LANE_BLUR * cam.k; }
     lctx.globalAlpha = 0.3 * k * u.a; lctx.lineWidth = 1.4 * w; lctx.stroke(PATHS[u.pi].lit2d);
     lctx.restore();
   }
-  applyMask(gctx, GLOW_FALLOFF);
-  blit(glowCv);
+  if (!lowQ) { applyMask(gctx, GLOW_FALLOFF); blit(glowCv); }
   applyMask(lctx, 1);
   blit(laneCv);
 }

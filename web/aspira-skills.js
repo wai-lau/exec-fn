@@ -405,6 +405,7 @@ const SOL_CONE_LIFE = 0.6; // game seconds (1x runs 2 game s a real s): long eno
 // tower - full at the source, gone by SOL_CONE_FADE of its length (owner)
 const SOL_CONE_FADE = 0.8;
 function drawCone(f, k) {
+  if (lowQ) return; // low quality: no light cones (aspira-quality.js)
   const g = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, f.len * SOL_CONE_FADE);
   g.addColorStop(0, COL[f.color]); g.addColorStop(1, "transparent");
   ctx.fillStyle = g; ctx.globalAlpha = 0.5 * k * k * k;
@@ -468,6 +469,7 @@ const PUDDLE_BUBBLES = 5, BUBBLE_T = 0.6, BUBBLE_POP = 0.15;
 function drawPuddles(t) {
   const now = performance.now() / 1000;
   ctx.strokeStyle = ctx.fillStyle = COL.chatsubo; ctx.lineWidth = 1.2;
+  if (lowQ) { for (const p of t.puddles || []) { ctx.globalAlpha = 0.5 * (1 - p.age / p.life); ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 0.6, 0, 6.283); ctx.stroke(); } ctx.globalAlpha = 1; return; } // low quality: one ring, no bubbles
   for (const p of t.puddles || []) {
     const fade = 1 - p.age / p.life, seed = p.seed ||= 1 + Math.floor(Math.random() * 1e6);
     for (let i = 0; i < PUDDLE_BUBBLES; i++) {
