@@ -467,7 +467,7 @@ function drawScene([sx, sy], clipR) {
   drawAims();
   drawFx("shots");
   drawCoreFx(); // the core's struts and beams, under the towers (aspira-core.js)
-  ownColours(() => { drawSpokes(); for (const t of G.towers) drawTower(t); }); // towers keep their colours on a boss sky (owner)
+  ownColours(() => { drawSpokes(); for (const t of G.towers) drawTower(t); drawUpDots(); }); // towers keep their colours on a boss sky (owner)
   drawSlotFlash(); // a corner slot that just opened (aspira-waves.js)
   if (ui.build && ui.hover) drawPlacement();
   drawCore();
