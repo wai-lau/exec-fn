@@ -178,9 +178,9 @@ function drawCredits() {
   // just the NUMBER, centred on the core (owner: the CREDITS word is gone),
   // full with separators - counts run past 10k (owner)
   const n = Math.floor(fxOn ? G.money - creditsFx.gain : G.money).toLocaleString("en-US");
-  // a little "c" UNDER it (owner, 2026-10-06; was after it on the same line)
+  // a little "CRED" UNDER it (owner, 2026-10-06; was a "c", first after it on the same line)
   text(n, CX, CY - 4, 22, "bg", "white"); // BLACK with a white halo (owner)
-  text("c", CX, CY + 13, 14, "bg", "white");
+  text("CRED", CX, CY + 13, 11, "bg", "white");
   if (!fxOn || G.enemies.some(e => e.arcana && !e.dead)) return; // a boss's name takes this spot (drawBossBar)
   const parts = [["+" + creditsFx.gain + "c", "green"], [" (+" + creditsFx.pct.toFixed(1) + "%)", "green"]];
   ctx.font = "20px " + CANVAS_FONT;
