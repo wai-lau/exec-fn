@@ -129,7 +129,8 @@ function chooseBuild(i) {
 const ARROW_GAP = 26, ARROW_BOB = 10, ARROW_W = 16, ARROW_H = 20;
 function drawSlotArrow() {
   let c = null;
-  CELLS.forEach((cell, ci) => { if (cellOpen(ci) && canPlace(ci) && (!c || cell.y < c.y)) c = cell; });
+  // the TOP-LEFT free slot (owner): topmost, then leftmost
+  CELLS.forEach((cell, ci) => { if (cellOpen(ci) && canPlace(ci) && (!c || cell.y < c.y - 1 || (Math.abs(cell.y - c.y) <= 1 && cell.x < c.x))) c = cell; });
   if (!c) return;
   const tip = c.y - ARROW_GAP + ARROW_BOB * Math.sin(performance.now() / 220);
   ctx.fillStyle = COL.white; ctx.globalAlpha = 1;
