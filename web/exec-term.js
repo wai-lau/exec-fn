@@ -83,11 +83,26 @@ function execAttachChoices(div, choices, cardId) {
                      function (t) { execAddMsg('sys', t); }, choices.clean);
 }
 
+/** An action Exec took on a card: ONE dense line (`.msg.act`, exec-term.css),
+ *  one per call, so a turn shows what it did rather than a count of rounds. */
+function execAddActMsg(text) {
+  const stick = execAtBottom();
+  const div = document.createElement('div');
+  div.className = 'msg sys act';
+  const body = document.createElement('div');
+  body.className = 'msg-body';
+  body.textContent = text;
+  div.appendChild(body);
+  execTermEl.appendChild(div);
+  if (stick) execTermEl.scrollTop = execTermEl.scrollHeight;
+  return div;
+}
+
 /** A tool call: ONE line, its output folded under it (exec-toolout.js). */
 function execAddToolMsg(name, arg) {
   const stick = execAtBottom();
   const div = document.createElement('div');
-  div.className = 'msg tool';
+  div.className = 'msg tool act';
   const body = document.createElement('div');
   body.className = 'msg-body';
   const b = document.createElement('b');
@@ -141,8 +156,8 @@ async function execAnnounceState() {
 /** Replay the conversation: the sidecar thread with nudges and monitor
  *  comments interleaved by time (GET /api/cc/exec-history, api/exec_panel.py).
  *  Returns {monitorTotal}, or null when there is nothing to replay or the fetch
- *  failed -- the panel must still open. Tool calls are live-only: the sidecar
- *  transcript keeps text. */
+ *  failed -- the panel must still open. Tool calls replay as `action` rows,
+ *  one line each, exactly as they rendered live (execReplayAction). */
 async function execLoadHistory() {
   try {
     const r = await fetch('/api/cc/exec-history', { cache: 'no-store' });
@@ -150,6 +165,7 @@ async function execLoadHistory() {
     const h = await r.json();
     for (const m of h.messages || []) {
       if (m.role === 'monitor') execAddMsg('probe', m.text, { cardId: m.card_id });
+      else if (m.role === 'action') execReplayAction(m);
       else if (m.role === 'user') execAddMsg('user', execTsChip(m.ts) + m.text, { images: m.images });
       else execAddMsg('assistant', m.text);
     }

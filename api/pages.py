@@ -261,7 +261,7 @@ def _build_nav(active=None, guest=False):
                   '<script src="/exec-choices.js?v=7"></script>'
                   '<script src="/voice-input.js?v=3"></script>'
                   '<script src="/exec-mic.js?v=2"></script>'
-                  '<script src="/exec-bubble-assets.js?v=29"></script>'
+                  '<script src="/exec-bubble-assets.js?v=30"></script>'
                   '<script src="/chat-dom.js?v=1"></script>'
                   '<script src="/exec-bubble-msg.js?v=3"></script>'
                   # The agent transcript (the /cc page until it folded in, 2026-09-29):
@@ -270,13 +270,13 @@ def _build_nav(active=None, guest=False):
                   '<script src="/exec-svg.js?v=1"></script>'
                   '<script src="/exec-zoom.js?v=1"></script>'
                   '<script src="/exec-attach.js?v=1"></script>'
-                  '<script src="/exec-toolout.js?v=1"></script>'
+                  '<script src="/exec-toolout.js?v=2"></script>'
                   '<script src="/exec-status.js?v=2"></script>'
                   '<script src="/exec-sessions.js?v=2"></script>'
                   '<script src="/exec-commands.js?v=1"></script>'
                   '<script src="/exec-interrupt.js?v=1"></script>'
-                  '<script src="/exec-term.js?v=2"></script>'
-                  '<script src="/exec-stream.js?v=4"></script>'
+                  '<script src="/exec-term.js?v=3"></script>'
+                  '<script src="/exec-stream.js?v=5"></script>'
                   '<script src="/exec-bubble.js?v=81"></script>')
     else:
         # Same #exec-bubble as the planning pages — same look (exec-bubble.css,

@@ -90,12 +90,11 @@ async function* execFrames(body) {
   }
 }
 
-/** The turn/time footnote -- only when a tool ran or the wait wants explaining. */
+/** The time footnote -- only when the wait wants explaining. No turn count:
+ *  each action already has its own line above the reply. */
 function execDoneLine(data) {
-  const bits = [];
-  if (data.turns > 1) bits.push(data.turns + ' turns');
-  if (data.ms != null && data.ms >= 15000) bits.push((data.ms / 1000).toFixed(1) + 's');
-  return bits.length ? '[ ' + bits.join(' · ') + ' ]' : null;
+  if (data.ms == null || data.ms < 15000) return null;
+  return '[ ' + (data.ms / 1000).toFixed(1) + 's ]';
 }
 
 /** Hang the footnote on the END of the reply, not on a row of its own. */

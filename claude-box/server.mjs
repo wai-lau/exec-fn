@@ -439,8 +439,15 @@ function normalize(msg) {
  * Slash-command turns are stored as user messages carrying <command-name> tags;
  * they are machinery, not things Wai typed, so they never reach the transcript.
  * An unreadable or vanished session is an EMPTY history, never an error -- the
- * page must still open and accept a new message. */
-async function historyFor(sessionId) {
+ * page must still open and accept a new message.
+ *
+ * `actions` adds one `{role:"action", name, input, result, isError, ts}` row per
+ * tool call, after the text of the turn that made it, with its result paired by
+ * tool_use_id -- so a reload shows what Exec DID, not only what it said. Off for
+ * the archive: that file is the conversation, and its format is fixed. */
+const REPLAY_RESULT_MAX = 4000;
+
+async function historyFor(sessionId, { actions = false } = {}) {
   if (!sessionId) return [];
   let msgs;
   try {
@@ -449,12 +456,15 @@ async function historyFor(sessionId) {
     return [];
   }
   const out = [];
+  const calls = new Map();   // tool_use_id -> its action row, awaiting a result
   for (const m of msgs || []) {
     const role = m.message?.role ?? m.role;
     if (role !== "user" && role !== "assistant") continue;
     const blocks = m.message?.content ?? m.content;
+    const ts = typeof m.timestamp === "string" ? m.timestamp : "";
     let text = "";
     const images = [];
+    const acts = [];
     if (typeof blocks === "string") text = blocks;
     else if (Array.isArray(blocks)) {
       for (const b of blocks) {
@@ -463,14 +473,23 @@ async function historyFor(sessionId) {
         // silently drops the picture they were about, which reads as corruption.
         else if (b?.type === "image" && b.source?.type === "base64") {
           images.push({ media_type: b.source.media_type, data: b.source.data });
+        } else if (actions && b?.type === "tool_use" && role === "assistant") {
+          const row = { role: "action", name: b.name, input: b.input ?? null, result: null, isError: false, ts };
+          calls.set(b.id, row);
+          acts.push(row);
+        } else if (actions && b?.type === "tool_result" && calls.has(b.tool_use_id)) {
+          const row = calls.get(b.tool_use_id);
+          row.result = resultText(b.content).slice(0, REPLAY_RESULT_MAX);
+          row.isError = Boolean(b.is_error);
         }
       }
     }
     if (role === "user") text = stripExecContext(text);
     text = text.trim();
-    if ((!text && !images.length) || text.startsWith("<command-name>")) continue;
-    const ts = typeof m.timestamp === "string" ? m.timestamp : "";
-    out.push(images.length ? { role, text, images, ts } : { role, text, ts });
+    if ((text || images.length) && !text.startsWith("<command-name>")) {
+      out.push(images.length ? { role, text, images, ts } : { role, text, ts });
+    }
+    out.push(...acts);
   }
   return out;
 }
@@ -868,7 +887,7 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === "GET" && req.url === "/history") {
     const id = currentSession();
-    const messages = await historyFor(id);
+    const messages = await historyFor(id, { actions: true });
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify({ sessionId: id, messages }));
     return;
