@@ -259,7 +259,7 @@ function drawCells() {
     if (!cellOpen(ci)) return; // a corner slot shows once its wave opens it
     const free = canPlace(ci);
     // before the first tower the free slots FLASH (owner; the build buttons used to)
-    if (!ui.build) { if (free) { cellPath(c, 0.94); ctx.strokeStyle = COL.white; ctx.lineWidth = 3.5; ctx.globalAlpha = G.towers.length ? 0.55 : 0.6 + 0.4 * Math.sin(performance.now() / 250); ctx.stroke(); ctx.lineWidth = 2; } return; } // thicker, more opaque (owner)
+    if (!ui.build) { if (free) { cellPath(c, 0.94); ctx.strokeStyle = COL.white; ctx.lineWidth = 3.5; ctx.globalAlpha = G.towers.length ? 0.55 : 0.6 + 0.4 * Math.sin(performance.now() / 250); ctx.stroke(); ctx.lineWidth = 2; ctx.globalAlpha = 0.9; text(towerCost("chain") + "c", c.x, c.y, 14, "white"); } return; } // thicker, more opaque; the build price inside (owner)
     cellPath(c, 0.94);
     const col = COL[TOWERS[ui.build].color];
     if (free) { ctx.fillStyle = col; ctx.globalAlpha = 0.15; ctx.fill(); }
