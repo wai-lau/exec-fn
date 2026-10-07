@@ -24,18 +24,22 @@ export function runPool(taskUrl, jobs, { out = null, workers = WORKERS, quiet = 
   if (!todo.length) return Promise.resolve(results);
   const n = Math.min(workers, todo.length), t0 = Date.now();
   let next = 0, finished = 0;
+  const pool = [];
   return new Promise((resolve, reject) => {
     const spawn = () => {
       // the entry is its own file: a task module imports pool.mjs, and a worker
       // whose entry awaited that same module would deadlock on the cycle (exit 13)
       const w = new Worker(new URL("./pool-worker.mjs", import.meta.url), { workerData: { task: taskUrl.href || String(taskUrl) } });
+      pool.push(w);
       const feed = () => { if (next < todo.length) w.postMessage({ i: todo[next++], args: jobs[todo[next - 1]] }); else { w.finished = true; w.terminate(); } };
       w.on("message", ({ i, res, err }) => {
         if (err) { reject(new Error(err)); return; }
         results[i] = res; finished++;
         if (out) fs.appendFileSync(out, JSON.stringify({ args: jobs[i], res }) + "\n");
         if (!quiet) console.error(`pool: ${finished}/${todo.length} ${((Date.now() - t0) / 1000).toFixed(0)}s`);
-        if (finished === todo.length) resolve(results); else feed();
+        // the worker that answered LAST is still alive: terminate every one, or
+        // the process never exits (and sat at 100% on one core, 2026-10-07)
+        if (finished === todo.length) { for (const x of pool) { x.finished = true; x.terminate(); } resolve(results); } else feed();
       });
       w.on("error", reject);
       w.on("exit", code => { if (code !== 0 && !w.finished) reject(new Error("worker exited " + code)); }); // terminate() exits 1
