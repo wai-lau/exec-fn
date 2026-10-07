@@ -35,7 +35,12 @@ const ARCANA = [
 // on closest approach, against every open slot filled. Was star 4, strength 2,
 // lovers 2, temperance 5, justice 1.5, judgement 1.5, death 3. Death's fit
 // (1.8) sits on the edge of leaking - a boss leak ends the game - so 1.6.
-const BOSS_HP = { star: 3.4, empress: 2, strength: 0.9, chariot: 4, lovers: 3.1, temperance: 3, devil: 0.75, justice: 4.4, judgement: 1.7, death: 1.6 };
+// REFIT 2026-10-07 (bossbal.mjs tune, 2 seeds, after the free core, the chart-axis
+// refit and the fast refit): Chariot 40 and Temperance 60 breached the reference
+// team, Lovers 50 got to 47 of the core (target 168). Was star 3.4, empress 2,
+// strength 0.9, chariot 4, lovers 3.1, temperance 3, devil 0.75, justice 4.4,
+// judgement 1.7. Death not refitted (the run was stopped for memory): kept 1.6.
+const BOSS_HP = { star: 2.7, empress: 3.4, strength: 1.1, chariot: 1.7, lovers: 1.2, temperance: 0.61, devil: 0.38, justice: 3.2, judgement: 1.7, death: 1.6 };
 const BOSS_INTRO = 2.5; // s between a boss wave starting and its boss arriving (its warning plays)
 let EMPRESS_BROOD = 12; // fitted 2026-10-05 (was 30): her HP was never the lever, her brood is; let: the boss balance test (scripts/aspira-sim/bossbal.mjs, BB_BROOD) tries other broods
 const CHARIOT_EVERY = 4, CHARIOT_T = 1, CHARIOT_SPD = 3, LOVERS_SPD = 1.5;
