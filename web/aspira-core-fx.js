@@ -39,7 +39,7 @@ function drawCoreFx() {
     ctx.globalAlpha = pulse; ctx.lineWidth = 14; ctx.stroke(); // thick (owner)
     ctx.shadowBlur = 0;
   }
-  if (ui.drag && ui.drag.at) {
+  if (ui.drag && ui.drag.at && ui.drag.drop) { // only a drag that can land (a held core with Overcharge cooling shows none)
     ctx.strokeStyle = COL.white; ctx.lineWidth = 4; ctx.globalAlpha = 0.9; ctx.setLineDash([12, 8]);
     ctx.beginPath(); ctx.moveTo(ui.drag.from.x, ui.drag.from.y); ctx.lineTo(ui.drag.at.x, ui.drag.at.y); ctx.stroke(); ctx.setLineDash([]);
     ctx.beginPath(); ctx.arc(ui.drag.at.x, ui.drag.at.y, CELL_S, 0, 6.283); ctx.stroke();
