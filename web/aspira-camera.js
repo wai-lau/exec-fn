@@ -23,14 +23,17 @@ let holdTimer = 0, holdFired = false, holdMoved = false;
 function grabPower(ev) {
   if (!G.core) return null; // a power is owned only once a boss handed it out (pickPower), so the levels below are the gate
   const w = toWorld(ev), onCore = Math.hypot(w.x - CX, w.y - CY) <= CORE_R * CORE_GRAB;
-  if (onCore && (powerLvl("temporal") || powerLvl("overcharge"))) {
-    if (powerLvl("temporal")) holdTimer = setTimeout(() => {
+  // only a power that is READY grabs (owner, 2026-10-07: no drag line for an
+  // Overcharge still cooling down); otherwise the press pans and taps as ever
+  const ready = id => powerLvl(id) && !cooldownLeft(id), over = ready("overcharge");
+  if (onCore && (ready("temporal") || over)) {
+    if (ready("temporal")) holdTimer = setTimeout(() => {
       if (ui.drag && ui.drag.kind === "core" && !holdMoved && temporalFreeze()) { holdFired = true; ui.drag = null; refreshPanels(); }
     }, HOLD_MS);
-    return { kind: "core", from: { x: CX, y: CY }, at: null };
+    return { kind: "core", from: { x: CX, y: CY }, at: null, drop: over }; // drop: the drag line shows (drawCoreFx)
   }
-  const t = !onCore && powerLvl("relay") && towerAt(w);
-  return t ? { kind: "tower", t, from: { x: t.x, y: t.y }, at: null } : null;
+  const t = !onCore && ready("relay") && towerAt(w);
+  return t ? { kind: "tower", t, from: { x: t.x, y: t.y }, at: null, drop: true } : null;
 }
 // a power drag let go: Empower the tower under it, or Fortify from the tower dropped on the core
 function dropPower(d) {
