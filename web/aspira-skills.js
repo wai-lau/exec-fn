@@ -27,7 +27,7 @@ const SKILL_TREES = {
       { name: "Vaporize", desc: "Every jump keeps full damage. Most range." },
     ] },
     { id: "capacitance", name: "Capacitance", tiers: [
-      { name: "Static", desc: "Hits charge enemies for 1s; the biggest hit they take in it bursts. Slides further." },
+      { name: "Static", desc: "Hits charge enemies; their next hit or death bursts. Slides further." },
       { name: "Charge", desc: "Bigger bursts. Slides further." },
       { name: "Overload", desc: "Biggest bursts; they briefly slow what they hit. Slides further." },
     ] },
@@ -181,15 +181,13 @@ const withSkill = (t, id) => ({ ...t.skills, [id]: skillOf(t, id) + 1 });
 // forks st.branch ways, st.layers jumps deep. A bolt NEVER hits the same
 // enemy twice (owner) - so it can never strike more enemies than are in
 // reach - and each jump hits ARC_FALL as hard and reaches ARC_SHRINK as far.
-// Static (owner, reworked 2026-10-07; was stacking charges set off by the next
-// hit): an ARC hit opens a CHARGE WINDOW on the enemy for STATIC_WINDOW s. The
-// window remembers the BIGGEST hit the enemy takes in it from ANY tower - the
-// ARC hit that opened it counts too (owner: "which could be the original") -
-// and when it closes, that hit SPLASHES as one blast around the enemy, worth
-// st.blast.frac of it. An ARC hit while a window is open does not extend it
-// (only widens its blast to the hitter's tier); its DEATH closes it early.
-// A blast never feeds a window, and an enemy a blast kills does not explode
-// (no chain reaction - staticQuiet).
+// Static (owner, reworked 2026-10-05): an ARC hit does NO blast - it leaves a
+// CHARGE on the enemy it struck, worth st.blast.frac of the hit. Charges STACK.
+// The next hit on that enemy from ANY tower - the ARC that charged it too
+// (owner: it procs itself) - discharges them all at once as ONE blast around
+// it before the new charge lands, and they are gone; so
+// does its DEATH (owner). A discharge never sets off other charges, and an
+// enemy a blast kills does not explode (no chain reaction - staticQuiet).
 function fireSkillChain(t, st, e, seen) {
   if (seen && seen.has(e.id)) return; // a second strike never re-hits what the first took
   const col = TOWERS[t.kind].color, d = shotDamage(t, st, e, st.dmg);
@@ -209,13 +207,8 @@ function skillHit(c, e, d) {
   damage(e, d, c.t, false, false, c.st); onHit(e, c.t, c.st, d); // (discharges e's own charges, if any)
   const b = c.st.blast;
   if (!b || e.dead) return;
-  const ch = e.charge || (e.charge = { big: d, frac: 0, r: 0, t: c.t, left: STATIC_WINDOW });
-  ch.frac = Math.max(ch.frac, b.frac); ch.r = Math.max(ch.r, b.r); ch.slow = Math.max(ch.slow || 0, c.st.statSlow || 0);
-}
-const STATIC_WINDOW = 1; // s (1x is real time)
-// damage(): every landed hit on an enemy with an open window bids for the biggest
-function staticBid(e, amt) {
-  if (amt > e.charge.big) e.charge.big = amt;
+  const ch = e.charge || (e.charge = { dmg: 0, n: 0, r: 0, t: c.t });
+  ch.dmg += d * b.frac; ch.n++; ch.r = Math.max(ch.r, b.r); ch.t = c.t; ch.slow = Math.max(ch.slow || 0, c.st.statSlow || 0);
 }
 let staticQuiet = false;
 // Capacitance III (Overload) rings SLOW what they hit (owner, 2026-10-06, the
@@ -229,11 +222,10 @@ const STATIC_RING_T = 0.25;
 function dischargeStatic(e) {
   const ch = e.charge;
   e.charge = null;
-  (G.staticRings ||= []).push({ x: e.x, y: e.y, R: ch.r, dmg: ch.big * ch.frac, t: ch.t, slow: ch.slow || 0, age: 0, hit: new Set() });
+  (G.staticRings ||= []).push({ x: e.x, y: e.y, R: ch.r, dmg: ch.dmg, t: ch.t, slow: ch.slow || 0, age: 0, hit: new Set() });
 }
-// every step (stepChains): close the spent windows, grow the rings and land their damage
+// every step (stepChains): grow the rings and land their damage
 function stepStaticRings(dt) {
-  for (const e of G.enemies) if (e.charge && !e.dead && (e.charge.left -= dt) <= 0) dischargeStatic(e);
   if (!G.staticRings || !G.staticRings.length) return;
   staticQuiet = true;
   try {
