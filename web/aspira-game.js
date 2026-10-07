@@ -139,7 +139,6 @@ function dmgNumber(e, label, size, color) {
 const BLEED_CRIT_MUL = 2;
 function damage(e, amt, t, quiet = false, crit = false, st = null) {
   if (e.dead) return;
-  if (e.charge && !staticQuiet && t) dischargeStatic(e); // ARC Static: ANY tower's hit sets the charges off, the charging ARC's too (aspira-skills.js)
   // a shield eats one whole HIT, whatever its size (poison/splash just bounce) -
   // SOL's included (owner: stripping shields is ACD's job, its ticks pop them)
   if (e.shield > 0 && !(st && st.ignoreShield)) {
@@ -166,6 +165,7 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
   // per-tower tally: damage counts only up to the HP the enemy had left
   if (t) t.dealt = (t.dealt || 0) + Math.min(amt, Math.max(0, e.hp));
   amt = bossHitCap(e, amt); // Justice / Death cap a single hit (aspira-bosses.js)
+  if (e.charge && !staticQuiet && t) staticBid(e, amt); // ARC Static: the biggest hit in the window splashes (aspira-skills.js)
   e.hp -= amt;
   if (!quiet) {
     // impact flash sized and lit by the damage; big hits also throw sparks
@@ -281,7 +281,7 @@ function kill(e, t) {
   if (e.type === "bonus") { if (bossPays(e)) bonusDrop(e); bossKilled(e); } // the last Devil pays; a Lover's mate enrages (aspira-bosses.js)
   if (e.shatter && e.slowT > 0 && !shattering) shatterAt(e); // FRZ's Shatter
   if (e.charged) staticDischarge(e); // ARC's Static (the old path)
-  // the chart ARC's Static: a charged enemy that DIES lets its charges go too
+  // the chart ARC's Static: a charged enemy that DIES closes its window early
   // (owner) - unless a Static blast killed it (no chain reaction)
   if (e.charge && !staticQuiet) dischargeStatic(e);
 }
