@@ -285,6 +285,13 @@ conversation forever. The route ends the sidecar thread after
 `build_morning()`; the sidecar archives before it drops the pointer and
 refuses (500) if the archive fails, which surfaces as `errors.cc_new`.
 
+Any entry in `errors` — a step's failure, `cc_new`, or a crash of
+`build_morning()` itself — is then posted to the Exec chat by
+`routes_api._post_morning_errors`: written to the fresh `chat.json` as a
+`monitor` message and pushed as `{comment}`, so the panel replays it and the
+Discord bridge DMs it. A clean morning posts nothing. Before this, a failing
+step (gcal `invalid_grant`, 2026-10-06) was visible only in `/debug`'s cron log.
+
 ### rd.json concurrency — `helpers._RD_LOCK`
 
 rd.json writers run on genuinely parallel OS threads: the nudge loop's scans
