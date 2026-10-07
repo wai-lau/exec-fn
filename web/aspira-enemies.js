@@ -40,7 +40,7 @@ function drawEnemy(e) {
   if (e.dead) return;
   // a boss shrinks all the way with its HP, to nothing at 0% (owner); others keep 45%
   const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max), size = d.size * (e.arcana ? f : 0.45 + 0.55 * f) * (e.sizeMul || 1);
-  if (TRAIL[e.type]) {
+  if (TRAIL[e.type] && !lowQ) { // low quality: no tracers
     drawStarTrail(e, size);
     // the body is see-through, so blank its shape first: the tracer must not
     // show through the enemy it trails (owner)

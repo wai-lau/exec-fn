@@ -130,6 +130,7 @@ const autoWaiting = () => {
     try { localStorage.setItem("spire.autowait", autoWait ? "1" : "0"); } catch (e) { /* not remembered */ }
   }, "asp-autowait");
   btn.setAttribute("role", "checkbox");
+  qualityBox(row); // the visual quality toggle beside it (aspira-quality.js)
 })();
 // the checkbox as an SVG, not a font glyph (owner: the glyph sat off-centre
 // from its label); centred against the words by the button's flex row

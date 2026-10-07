@@ -19,7 +19,7 @@ const cam = { k: 1, ox: 0, oy: 0, fit: 1 };
 // more perf"): a phone at 3x drew 3.4 million pixels a frame; 2x is 2.25x fewer
 // for a barely softer line. EVERY dpr use in the game reads canvasDpr().
 const RES_CAP = 2;
-const canvasDpr = () => Math.min(window.devicePixelRatio || 1, RES_CAP);
+const canvasDpr = () => Math.min(window.devicePixelRatio || 1, RES_CAP) * (lowQ ? LOW_RES : 1); // low quality: far fewer pixels (aspira-quality.js)
 function resize() {
   const r = cv.getBoundingClientRect(), dpr = canvasDpr();
   cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
@@ -63,7 +63,7 @@ const TEXT_BLUR_MIN = 30, TEXT_BLUR_MAX = 8, TEXT_STROKE_MAX = 5;
 function text(str, x, y, size, color, outline = false, bold = false) {
   ctx.font = (bold ? "bold " : "") + size + "px " + CANVAS_FONT;
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  if (outline) {
+  if (outline && !(lowQ && size < TEXT_BLUR_MIN)) { // low quality: small text unoutlined
     ctx.save();
     const oc = COL[outline === true ? "bg" : outline];
     // the soft shadow only on BIG text (titles, banners): on the hundreds of
@@ -279,6 +279,7 @@ function drawBlocked(x, y, r) {
 // Every tower's reach is always drawn faintly; the selected tower (and the
 // build ghost) draws at full strength. dim = the faint pass.
 function drawRange(x, y, r, color, dim = false) {
+  if (dim && lowQ) return; // low quality: no faint rings
   ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283);
   // only the SELECTED tower's disc is filled: a dim one's 2.5% fill was all
   // but invisible, and nine big discs (three a moon tower) were the costliest
@@ -307,6 +308,7 @@ function drawTowerRange(t, dim) {
 // to GRAD_EDGE (10%) at the outline - Plague/Bloom, Contagion, Whiteout, Shatter, Supernova
 const GRAD_EDGE = 0.1; // owner: 50% -> 10%
 function gradDisc(x, y, r, col, a = 1) {
+  if (lowQ) return; // low quality: no gradient discs
   const g = ctx.createRadialGradient(x, y, 0, x, y, r);
   g.addColorStop(0, "transparent"); g.addColorStop(1, col);
   ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283);
@@ -322,7 +324,7 @@ const TWIN_GAP = 3.5; // Charge's parallel beams sit 2 x this apart
 function drawFx(pass) {
   for (const f of fx) {
     const kind = f.k !== "text" ? "shots" : f.under ? "dmg" : "text";
-    if (kind !== pass || f.t >= f.life) continue; // a retired damage number (dmgNumber) is not drawn
+    if (kind !== pass || f.t >= f.life || (lowQ && (kind === "dmg" || LOW_SKIP_FX[f.k]))) continue; // a retired damage number (dmgNumber) is not drawn; low quality skips the decoration
     // full strength for the first half of the effect's life, then fade out
     const k = 1 - f.t / f.life;
     ctx.globalAlpha = Math.min(1, k * 2);
@@ -345,7 +347,7 @@ function drawFx(pass) {
       // the core's width is the DAMAGE of this hit (owner: every tower) - a
       // multi-beam shot's beams each carry the whole hit (rayHit)
       const core = beamWidth(f.d || 0);
-      if (f.m) {
+      if (f.m && !lowQ) { // low quality: the beam's core only, no glow passes
         const a = ctx.globalAlpha;
         if (f.slim) {
           // RPR (owner): a super-bright WHITE core in a pink glow that is a
@@ -442,7 +444,7 @@ function shakeOffset() {
 function render() {
   bossSkyStep(); // the sky's state: phase, radius, full (aspira-bosses.js)
   const shake = shakeOffset(), sky = bossInv.phase !== "off";
-  if (sky && bossInv.full) { withPalette(() => drawScene(shake, 0)); return; }
+  if (sky && (bossInv.full || (lowQ && bossInv.r > 1))) { withPalette(() => drawScene(shake, 0)); return; } // low quality: the sky snaps, one draw
   drawScene(shake, 0);
   if (sky && bossInv.r > 1) withPalette(() => drawScene(shake, bossInv.r));
 }
@@ -458,7 +460,7 @@ function drawScene([sx, sy], clipR) {
   for (const t of G.towers) if (t !== sel) drawTowerRange(t, true);
   if (sel) drawTowerRange(sel, false);
   // stars go on top of lanes and range fills, which would otherwise tint them
-  drawStars();
+  if (!lowQ) drawStars(); // low quality: no star field
   drawTethers();
   drawAcd();
   drawStaticRings(); // ARC Static's discharge rings (aspira-skills.js)
