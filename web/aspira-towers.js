@@ -413,7 +413,7 @@ function spokeTrack(c, reach, slide = 1, kind = null) {
 function drawSpokes() {
   // solid, from the core out to the limit, in the TOWER'S colour and a little
   // thicker (owner; was bright white)
-  ctx.lineCap = "round"; ctx.lineWidth = 3;
+  ctx.lineCap = "round"; ctx.lineWidth = 2; // thinner (owner, 2026-10-06; was 3)
   for (const t of G.towers) {
     const k = spokeOf(t);
     ctx.strokeStyle = COL[TOWERS[t.kind].color]; ctx.globalAlpha = t.id === ui.sel ? 0.95 : 0.6;
