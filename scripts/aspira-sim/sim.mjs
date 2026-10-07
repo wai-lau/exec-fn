@@ -8,7 +8,10 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buyNext, usePowers } from "./corepower.mjs";
-const WEB = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "web") + "/";
+// ASPIRA_WEB=<dir> pins a run to a SNAPSHOT of the game files: every game
+// re-reads them, so a balance commit landing mid-run would otherwise mix two
+// versions (2026-10-07)
+const WEB = (process.env.ASPIRA_WEB || path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "web")) + "/";
 const FILES = ["aspira-defs.js", "aspira-upgrades.js", "aspira-game.js", "aspira-waves.js", "aspira-bosses.js", "aspira-towers.js", "aspira-acid.js", "aspira-skills.js", "aspira-positioning.js", "aspira-core.js"];
 
 export function makeGame(seed, patch = "") {

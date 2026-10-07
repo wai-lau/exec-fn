@@ -25,6 +25,9 @@ caps it) and the single-threaded ones can run side by side.
 | `wavebal.mjs` / `typebal.mjs` / `bossbal.mjs` / `arcfit.mjs` | the fits (wave counts, type counts, boss HP, ARC tiers) - headers say how |
 | `buildsearch.mjs` | hill-climb the build plan that banks the most by wave 30 |
 
+`ASPIRA_WEB=<dir>` pins a run to a snapshot of the game files (`cp web/aspira-*.js`
+somewhere first): every game re-reads them, so a balance commit landing mid-run
+would otherwise mix two versions.
 `pool.mjs` runs a task module over a job list on a worker pool (`pool-worker.mjs`
 is the entry); with an `out.jsonl` a run resumes where it stopped.
 `formvalue.mjs` and `latesearch.mjs` are the pre-chart versions (path/form
