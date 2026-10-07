@@ -11,12 +11,12 @@ let fails = 0;
 for (let i = 0; i < K.length; i++) for (let j = i; j < K.length; j++) {
   const lost = [];
   for (let seed = 1; seed <= SEEDS; seed++) {
-    const g = makeGame(seed, patch); g.reset();
+    const g = makeGame(seed, patch); g.reset(); const lives0 = g.G.lives;
     g.place(K[i], cells[K[i]][0]);
     g.place(K[j], cells[K[j]][K[i] === K[j] ? 1 : 0] === cells[K[i]][0] ? cells[K[j]][1] : cells[K[j]][0]);
     let t = 0;
     while (g.G.wave === 1 && !g.G.over && t < 300) { g.step(0.02); g.clearFx(); t += 0.02; }
-    lost.push(20 - g.G.lives);
+    lost.push(lives0 - g.G.lives);
   }
   const bad = lost.some(x => x > 0); if (bad) fails++;
   console.log((K[i] + "+" + K[j]).padEnd(16), "lives lost", lost.join(","), bad ? "  <-- FAIL" : "");
