@@ -15,7 +15,8 @@
 // or no enemy alive, it RESTS at the OUTER end of its spoke (owner).
 // POS_HORIZON 3 -> 5 (2026-10-06): ARC and SOL now move so slowly that within
 // 3 s no other spot was reachable, so staying put always won
-let POS_EVERY = 0.25, POS_HORIZON = 5, POS_DT = 0.5, POS_STEP = 10, POS_SWITCH = 1.1;
+// re-planned every POS_EVERY 0.5 s (was 0.25 - jittery, owner) with a POS_DEADBAND (moveTower)
+let POS_DEADBAND = 30, POS_EVERY = 0.5, POS_HORIZON = 5, POS_DT = 0.5, POS_STEP = 10, POS_SWITCH = 1.1;
 const POS_HORIZON_SET = h => { POS_HORIZON = h; }; // (the simulator sweeps it)
 const POS_STALE = 0.2; // Fresh: what a debuffed enemy's hits are still worth
 let POS_URGENCY = 6, POS_MODE_MIX = 1; // FULL targeting (owner: 0.3 barely counted); urgency 6 keeps the lives - swept u 3/6/10/20 x mix 0.3/1. let: the simulator sweeps both
