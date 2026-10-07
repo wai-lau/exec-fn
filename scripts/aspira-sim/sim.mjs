@@ -167,7 +167,8 @@ export function play(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
     const ups = G.towers.filter(t => t.lvl < g.maxLvl(t)).sort((a, b) => g.upCost(a) - g.upCost(b));
     const full = G.towers.length >= (strategy.maxTowers || 99);
     const opening = strategy.opening || [];
-    const coreLeft = strategy.core && g.run("coreOpen() && coreLvl() < CORE_POINTS") && strategy.core.length > g.run("coreLvl()");
+    const cl = strategy.core ? g.run("coreLvl()") : 0; // the next power in the order must be OPEN (Overcharge is from wave 1, the rest from 31)
+    const coreLeft = strategy.core && cl < strategy.core.length && g.run(`coreLvl() < CORE_POINTS && powerOpen(${JSON.stringify(strategy.core[cl])})`);
     if (G.towers.length < opening.length) next = { kind: opening[G.towers.length] };
     else if (coreLeft && rnd() < (strategy.coreP ?? 0.5)) next = { core: true };
     else if (ups.length && (full || rnd() < (strategy.up ?? 0.5))) next = { up: ups[0] };

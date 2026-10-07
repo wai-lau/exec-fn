@@ -173,7 +173,7 @@ function drawCore() {
     }
     ctx.shadowBlur = 0; ctx.globalAlpha = 1;
   }
-  if (coreOpen() && coreLvl() < CORE_POINTS) {
+  if (coreForSale()) {
     poly(CX, CY, CORE_R * (1 + out + LEVEL_GAP * (lvl + 1) + 0.08 * Math.sin(performance.now() / 400)), 6, Math.PI / 6, false);
     ctx.strokeStyle = cw; ctx.globalAlpha = 0.6; ctx.lineWidth = 2.5; ctx.stroke(); ctx.globalAlpha = 1;
   }

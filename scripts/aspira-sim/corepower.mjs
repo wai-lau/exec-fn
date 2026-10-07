@@ -11,11 +11,10 @@ const CROWD_R = 320, CROWD_N = 6, BOSS_R = 420;
 
 // buy the next power in `order` that is still below tier 3; returns true on a buy
 export function buyNext(g, order, reserve = 0) {
-  if (!g.run("coreOpen()")) return false;
   const lv = g.run("G.core && G.core.pw ? {...G.core.pw} : {}");
   const bought = Object.values(lv).reduce((a, b) => a + b, 0);
   const id = order[bought];
-  if (!id) return false;
+  if (!id || !g.run(`powerOpen(${JSON.stringify(id)})`)) return false; // each power has its own opening wave (Overcharge: the first)
   if (g.G.money - g.run("coreCost()") < reserve) return false;
   return g.run(`buyPower(${JSON.stringify(id)})`);
 }
