@@ -59,7 +59,7 @@ function openChooser(t) {
   const row = el.querySelector(".asp-cards");
   // (a chart tower's Stand chart is on its TOWER card, not here - owner)
   opts.forEach((o, i) => button(row, "asp-card", upgradeCard(t, o, i), () => chooseUpgrade(i)));
-  button(el, "asp-cancel", "cancel", closeChooser); // the same as clicking off the cards (owner)
+  showSpend(upCost(t), "cancel", closeChooser); // the spend bar's cancel: the same as clicking off the cards (owner)
   // ONE line (owner): side by side if they all fit across, else one column
   el.hidden = false;
   // measured once shown (a hidden element has no width)
@@ -77,6 +77,7 @@ function closeChooser() {
   chooser.t = null; chooser.ci = null;
   $("asp-chooser").hidden = true; ui.paused = chooser.wasPaused;
   $("asp").classList.remove("asp-choosing");
+  hideSpend(); refreshPanels(); // the card under it (if any) takes the spend bar back
 }
 function chooseUpgrade(i) {
   if (chooser.ci != null) { chooseBuild(i); return; } // the BUILD cards
@@ -108,7 +109,7 @@ function openBuildChooser(ci) {
     const c = button(row, "asp-card", buildCard(k, i), () => chooseBuild(i));
     c.dataset.kind = k; c.dataset.cost = towerCost(k);
   });
-  button(el, "asp-cancel", "cancel", closeChooser);
+  showSpend(towerCost(kinds[0]), "cancel", closeChooser); // every kind costs the same (towerCost counts towers)
   el.hidden = false;
   row.classList.toggle("asp-cards-col", kinds.length * CARD_W + (kinds.length - 1) * 16 > el.clientWidth - 32);
   el.style.paddingBottom = cardLift(row.offsetWidth).lift + "px";
@@ -123,15 +124,33 @@ function chooseBuild(i) {
   ui.build = k; placeTower({ x: CELLS[ci].x, y: CELLS[ci].y }); refreshPanels();
 }
 
-// FIRST LOAD (owner): until the first tower stands, a bobbing white ARROW points
-// down at the topmost free slot - "tap here to build"
-const ARROW_LEN = 60, ARROW_GAP = 30, ARROW_BOB = 10;
+// FIRST LOAD (owner): until the first tower stands, a bobbing white TRIANGLE
+// points down at the topmost free slot - "tap here to build" (was an arrow)
+const ARROW_GAP = 26, ARROW_BOB = 10, ARROW_W = 16, ARROW_H = 20;
 function drawSlotArrow() {
   let c = null;
   CELLS.forEach((cell, ci) => { if (cellOpen(ci) && canPlace(ci) && (!c || cell.y < c.y)) c = cell; });
   if (!c) return;
-  const bob = ARROW_BOB * Math.sin(performance.now() / 220), tip = c.y - ARROW_GAP + bob, tail = tip - ARROW_LEN;
-  ctx.strokeStyle = COL.white; ctx.fillStyle = COL.white; ctx.lineWidth = 5; ctx.lineCap = "round"; ctx.globalAlpha = 1;
-  ctx.beginPath(); ctx.moveTo(c.x, tail); ctx.lineTo(c.x, tip - 12); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(c.x, tip); ctx.lineTo(c.x - 14, tip - 18); ctx.lineTo(c.x + 14, tip - 18); ctx.closePath(); ctx.fill();
+  const tip = c.y - ARROW_GAP + ARROW_BOB * Math.sin(performance.now() / 220);
+  ctx.fillStyle = COL.white; ctx.globalAlpha = 1;
+  ctx.beginPath(); ctx.moveTo(c.x, tip); ctx.lineTo(c.x - ARROW_W, tip - ARROW_H); ctx.lineTo(c.x + ARROW_W, tip - ARROW_H); ctx.closePath(); ctx.fill();
+}
+
+// THE SPEND BAR (owner, 2026-10-06): on EVERY screen that spends money - the
+// build cards, the upgrade cards, the tower card, the core's card - the same
+// spot (bottom right, where the build buttons were) shows the credits and,
+// beside them, "-Xc" for what is on offer (pink when it is more than you
+// have), above the ONE cancel / close button. The HUD tick keeps it current.
+const spend = { cost: null, onClose: null };
+function showSpend(cost, label, onClose) {
+  spend.cost = cost; spend.onClose = onClose;
+  $("asp-spend").hidden = false; $("asp-spend-btn").textContent = label;
+  $("asp").classList.add("asp-spending");
+  updateSpend();
+}
+function hideSpend() { $("asp-spend").hidden = true; $("asp").classList.remove("asp-spending"); spend.cost = null; spend.onClose = null; }
+function updateSpend() {
+  if ($("asp-spend").hidden) return;
+  $("asp-spend-cred").innerHTML = cr(Math.floor(G.money).toLocaleString("en-US")) +
+    (spend.cost != null ? ' <span class="asp-spend-cost' + (G.money < spend.cost ? " asp-spend-short" : "") + '">−' + cr(spend.cost) + "</span>" : "");
 }

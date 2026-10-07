@@ -261,8 +261,7 @@ function inspectTower(el, t) {
     '<dl class="asp-spec">' + SPEC[t.kind](st, t).filter(r => r[1] !== "—").map(r => statRow(r[0], r[1], null)).join("") + "</dl></div>" +
     // upgrade, then sell, then the targeting - SMALL, under sell (owner)
     '<div class="asp-row" id="asp-upbox"></div><div class="asp-row" id="asp-acts"></div>' +
-    '<div class="asp-prio">Priority:</div><div class="asp-row asp-modes" id="asp-modes"></div>' + CLOSE_ROW;
-  closeButton();
+    '<div class="asp-prio">Priority:</div><div class="asp-row asp-modes" id="asp-modes"></div>';
   MODES.forEach(([m, label]) => {
     button($("asp-modes"), t.mode === m ? "on" : "", label, () => { t.mode = m; refreshPanels(); });
   });
@@ -282,10 +281,8 @@ function inspectTower(el, t) {
   });
 }
 const SELL_ARM_MS = 2000;
-// a CLOSE button at the card's foot, centred where the chooser's cancel sits
-// (owner) - the same as tapping off the card
-const CLOSE_ROW = '<div class="asp-row asp-close-row" id="asp-close"></div>';
-function closeButton() { button($("asp-close"), "asp-cancel", "close", () => { ui.sel = null; refreshPanels(); }); }
+// the card's CLOSE is the spend bar's button (owner; aspira-chooser.js showSpend)
+const closeCard = () => { ui.sel = null; refreshPanels(); };
 // a tap on something the credits cannot cover flashes its cost red and shakes
 // it (owner), instead of the button just sitting greyed out
 function noFunds(btn) {
@@ -320,6 +317,12 @@ function refreshPanels() {
   pop.dataset.kind = core ? "core" : t ? t.kind : ""; // the card takes the tower's colour (aspira.css)
   if (t) { inspectTower(pop, t); placePop(); }
   if (core) { inspectCore(pop); placePop(); }
+  // the spend bar: the chooser owns it while open, else the open card's next buy
+  if (!chooser.t) {
+    if (t) showSpend(t.lvl >= maxLvl(t) ? null : upCost(t), "close", closeCard);
+    else if (core) showSpend(coreOpen() && coreLvl() < CORE_POINTS ? coreCost() : null, "close", closeCard);
+    else hideSpend();
+  }
   // while placing, a small card above the credits (owner): the tower's name,
   // cost and TAGLINE only - no stats
   placing.hidden = !ui.build;
@@ -333,6 +336,7 @@ function refreshPanels() {
 
 let lastNote = "", waveListAt = 0, hudAt = 0;
 function updateHud() {
+  updateSpend(); // the spend bar's credits (aspira-chooser.js)
   setText($("asp-lives"), G.lives);
   setText($("asp-int"), (G.interest * 100).toFixed(1) + "%");
   setText($("asp-wave"), G.wave); // the HUD keeps Arabic numerals (owner); the upcoming-wave list is Roman
@@ -402,6 +406,7 @@ function showOverlay(title, body, btn) {
   setText($("asp-ov-title"), title); setText($("asp-ov-text"), body); setText($("asp-ov-btn"), btn);
   $("asp-ov").hidden = false;
 }
+$("asp-spend-btn").onclick = () => { if (spend.onClose) spend.onClose(); }; // the spend bar's cancel / close (aspira-chooser.js)
 $("asp-ov-btn").onclick = () => {
   if (G.over) { G = newGame(); fx = []; dmgLive = []; ui.sel = null; ui.build = null; refreshPanels(); }
   // no intro (owner): the overlay is only the game-over card; the first tower starts wave 1
