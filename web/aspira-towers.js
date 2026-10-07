@@ -336,9 +336,10 @@ const TOWER_SPEED = { acid: 75, chain: 15, reaper: 6, slower: 55 }; // ACD 120 -
 
 const TOWER_REACH = { slower: 400, acid: 350, chain: 350, reaper: 180 }; // SOL: its travel halved (owner; was 250 - a slot sits ~110 out)
 const SLIDE_K_HALF = 0.5, SLIDE_MAX = 2;
-const SLIDE_KIND = { acid: 1, slower: 1, chain: SLIDE_K_HALF, reaper: SLIDE_K_HALF };
+// FRZ's slide HALVED (owner, 2026-10-06; Rime tiers buy it back, III = the old extent)
+const SLIDE_KIND = { acid: 1, slower: 0.5, chain: SLIDE_K_HALF, reaper: SLIDE_K_HALF };
 // towers may slide 50% further IN toward the core (owner, 2026-10-06; were 0.89 / 0.945)
-const TOWER_IN_KIND = { acid: 0.835, slower: 0.835 }; // the rest: TOWER_IN
+const TOWER_IN_KIND = { acid: 0.835, slower: 0.9175 }; // the rest: TOWER_IN (FRZ halved too)
 const moveSpeed = t => TOWER_SPEED[t.kind] * towerStats(t, true).speed;
 // the innermost a tower slides: this share of its slot's distance from the core.
 // 0.945 = half the old 0.89's slide in (owner); the old 0.89 kept a 13.6 gap
