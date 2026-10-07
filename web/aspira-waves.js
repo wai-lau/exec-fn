@@ -39,7 +39,7 @@ function fixedRand(n, salt) {
 // fitted 2026-10-04 (typebal.mjs, 2 seeds, waves 3-29 vs one L1 of each
 // tower, on ENEMY-SECONDS - the first fit, on closest approach, piled on slow
 // armor and shields); used for EVERY wave (owner: no upgrades in the test)
-const TYPE_COUNT_MUL = { swarm: 0.52, shield: 0.99, armor: 1.07, fast: 1.47 }, WAVE_TYPE_FORCE = {};
+const TYPE_COUNT_MUL = { swarm: 0.52, shield: 0.99, armor: 1.07, fast: 2 /* 2026-10-07: the early fit wanted 1.99 (was 1.47) - fast put the least early pressure of any type */ }, WAVE_TYPE_FORCE = {};
 // swarms are DOUBLED on waves 11-60 and x1.5 after (owner, 2026-10-06): a
 // SOL-heavy build must find a swarm answer; x2 past 60 cost ARC+SOL+FRZ teams 20 waves
 const SWARM_MID_MUL = 2, SWARM_MID = [11, 60], SWARM_LATE_MUL = 1.5;
