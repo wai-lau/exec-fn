@@ -261,10 +261,14 @@ function inspectTower(el, t) {
     '<dl class="asp-spec">' + SPEC[t.kind](st, t).filter(r => r[1] !== "—").map(r => statRow(r[0], r[1], null)).join("") + "</dl></div>" +
     // upgrade, then sell, then the targeting - SMALL, under sell (owner)
     '<div class="asp-row" id="asp-upbox"></div><div class="asp-row" id="asp-acts"></div>' +
-    '<div class="asp-prio">Priority:</div><div class="asp-row asp-modes" id="asp-modes"></div>';
-  MODES.forEach(([m, label]) => {
-    button($("asp-modes"), t.mode === m ? "on" : "", label, () => { t.mode = m; refreshPanels(); });
-  });
+    // TARGETING PRIORITY (owner, 2026-10-06): a SLIDER that snaps to its three
+    // stops, labelled under it (the labels are tappable too); was three buttons
+    '<div class="asp-prio"><b>Targeting priority:</b></div>' +
+    '<input type="range" class="asp-prio-slider" id="asp-prio" min="0" max="' + (MODES.length - 1) + '" step="1" value="' + Math.max(0, MODES.findIndex(m => m[0] === t.mode)) + '">' +
+    '<div class="asp-prio-labels">' + MODES.map(([m, label], i) => '<span data-i="' + i + '"' + (t.mode === m ? ' class="on"' : "") + ">" + label + "</span>").join("") + "</div>";
+  const setMode = i => { t.mode = MODES[i][0]; refreshPanels(); };
+  $("asp-prio").oninput = ev => setMode(Number(ev.target.value));
+  el.querySelectorAll(".asp-prio-labels span").forEach(s => { s.onclick = () => setMode(Number(s.dataset.i)); });
   // the upgrade button opens the card chooser
   button($("asp-upbox"), "asp-primary asp-up-big",
     maxed ? "max level" : "upgrade → L" + (t.lvl + 1) + " · " + cr(upCost(t)), () => openChooser(t), "asp-up").disabled = maxed;

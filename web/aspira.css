@@ -397,21 +397,24 @@
   cursor: pointer;
 }
 
-#asp-vol::-webkit-slider-runnable-track {
+#asp-vol::-webkit-slider-runnable-track,
+.asp-prio-slider::-webkit-slider-runnable-track {
   height: var(--space-2);
   background: hsl(var(--bg-hsl) / 0.45);
   border: 1px solid hsl(var(--green-hsl) / 0.45);
   border-radius: var(--radius-2);
 }
 
-#asp-vol::-moz-range-track {
+#asp-vol::-moz-range-track,
+.asp-prio-slider::-moz-range-track {
   height: var(--space-2);
   background: hsl(var(--bg-hsl) / 0.45);
   border: 1px solid hsl(var(--green-hsl) / 0.45);
   border-radius: var(--radius-2);
 }
 
-#asp-vol::-webkit-slider-thumb {
+#asp-vol::-webkit-slider-thumb,
+.asp-prio-slider::-webkit-slider-thumb {
   width: var(--space-4);
   height: var(--space-5);
   margin-top: calc(var(--space-2) / 2 - var(--space-5) / 2 - 1px);
@@ -421,7 +424,8 @@
   border-radius: var(--radius-2);
 }
 
-#asp-vol::-moz-range-thumb {
+#asp-vol::-moz-range-thumb,
+.asp-prio-slider::-moz-range-thumb {
   width: var(--space-4);
   height: var(--space-5);
   background: hsl(var(--bg-hsl));
@@ -592,6 +596,21 @@
 
 /* the targeting buttons sit SMALL under sell (owner) */
 #asp .asp-modes button { padding: var(--space-1) var(--space-2); font-size: var(--fs-2xs); }
+
+/* the targeting-priority SLIDER (owner): three snapping stops, labels under it */
+.asp-prio-slider { width: 100%; height: var(--space-8); margin: 0; appearance: none; background: transparent; cursor: pointer; } /* the volume slider's track and knob */
+
+.asp-prio-labels { display: flex; justify-content: space-between; font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.45); cursor: pointer; }
+
+.asp-prio-labels .on { color: hsl(var(--green-hsl)); font-weight: var(--fw-bold); }
+
+/* the card's UPGRADE button wears the CARD's colour (owner), not orange */
+#asp .asp-pop button.asp-primary { border-color: hsl(var(--green-hsl)); color: hsl(var(--green-hsl)); }
+
+#asp .asp-pop button.asp-up-big { background: hsl(var(--green-hsl) / 0.12); }
+
+/* the BUILD cards keep their towers' own colours on a boss sky (owner) */
+#asp.asp-boss .asp-chooser.asp-building { filter: none; }
 
 /* "Priority:" centred over the targeting row (owner) */
 .asp-prio { margin-bottom: calc(-1 * var(--space-2)); text-align: center; font-size: var(--fs-2xs); color: hsl(var(--green-hsl)); }
