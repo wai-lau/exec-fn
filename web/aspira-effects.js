@@ -9,10 +9,17 @@ function drawAims() {
   for (const t of [...G.towers, ...coreTowers()]) { // the core's Fortifications copy fires too (aspira-core.js)
     if (t.kind !== "reaper" || !t.locks || !t.period) continue;
     ctx.strokeStyle = COL[TOWERS[t.kind].color];
-    const n = towerStats(t).beams || 1; // as many lines as the shot has BEAMS (owner)
+    const st = towerStats(t), n = st.beams || 1; // as many lines as the shot has BEAMS (owner)
     for (const l of t.locks) { // each lock's line brightens on its own charge
       if (l.e.dead) continue;
       const p = Math.min(1, Math.max(0, 1 - l.cd / t.period));
+      // Refraction's light CONE builds while it CHARGES (owner, 2026-10-06), then
+      // the shot's own cone flashes as before
+      if (st.refraction || st.refract) {
+        const d = Math.hypot(l.e.x - t.x, l.e.y - t.y);
+        drawCone({ x: t.x, y: t.y, a: Math.atan2(l.e.y - t.y, l.e.x - t.x), half: SOL_CONE * Math.PI / 180, len: d * 1.6, color: TOWERS[t.kind].color }, Math.cbrt(p)); // up to half opacity at full charge
+        ctx.strokeStyle = COL[TOWERS[t.kind].color];
+      }
       ctx.globalAlpha = 0.32 + 0.32 * p * p; // never below half its full strength (owner)
       const len = Math.hypot(l.e.x - t.x, l.e.y - t.y) || 1, px = -(l.e.y - t.y) / len, py = (l.e.x - t.x) / len;
       ctx.beginPath();
