@@ -202,7 +202,8 @@ const SPEC = {
     ...(st.contagion ? [["Puddles", "1 / " + st.contagion.every + "s · " + st.contagion.life + "s · r" + st.contagion.r]] : [])],
   sol: st => [["Crit", Math.round(st.crit * 100) + "%"], ["Crit ×", st.critMul], ["Locks", st.targets],
     ["Beams", st.beams || 1], ...(st.skill ? [["Refract", st.refraction ? "+" + st.refraction + " in a " + SOL_CONE * 2 + "° cone" : "—"]] : []),
-    [st.skill ? "Breach" : "Bleed", st.bleedArmor ? (st.breach ? st.breach + " × (" : "") + "−" + st.bleedArmor + " armor, +" + Math.round(st.bleedCrit * 100) + "% crit" + (st.breach ? ")" : "") + " / hit" : "—"],
+    // short enough for the card's right column (owner, 2026-10-07: "1 × (−1.5 armor, +1% crit) / hit" ran off it)
+    [st.skill ? "Breach" : "Bleed", st.bleedArmor ? "−" + st.bleedArmor + " armor, +" + Math.round(st.bleedCrit * 100) + "% crit" + (st.breach > 1 ? " ×" + st.breach : "") + "/hit" : "—"],
     ["Armor", "ignored"], ["Form", rayForm(st)]],
 };
 
