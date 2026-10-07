@@ -12,6 +12,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 
 from routers import public, protected
 from morning import build_morning
+import cc_client
 from card_llm import classify_card, parse_date_natural
 from gcal import gcal_start_auth, gcal_complete_auth
 from helpers import (
@@ -31,6 +32,11 @@ async def api_morning():
         result = await asyncio.to_thread(build_morning)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    # The Exec panel's thread lives in the cc sidecar, not chat.json — end it
+    # too, or the panel never starts a fresh day. Sidecar /new archives first.
+    cc = await cc_client.new_conversation()
+    if not cc.get("ok", True):
+        result.setdefault("errors", {})["cc_new"] = cc.get("detail", "failed")
     # Tell any open board to refresh (rollover re-laid the day).
     await push_to_monitor({"cards_changed": True})
     return result
