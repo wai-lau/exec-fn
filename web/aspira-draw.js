@@ -7,13 +7,13 @@ let ctx = cv.getContext("2d"); // let: tower sprites and other offscreen draws b
 // band between the header and the bottom build bar. cam is in device pixels.
 // The default view sits 25% closer than the whole-chart fit (owner, 2026-10-02);
 // cam.fit keeps that whole-chart scale, the furthest you can zoom out.
-const DEFAULT_ZOOM = 1.5625; // 25% closer (owner, 2026-10-04; was 1.25)
+const DEFAULT_ZOOM = 1.953; // +25% (owner, 2026-10-06; was 1.5625) // 25% closer (owner, 2026-10-04; was 1.25)
 // on a PHONE (a portrait band, width the limit) the default view instead fits
 // PHONE_HALF units either side of the core across the width (owner, 2026-10-05)
 // CORE_TOP: world units from the BOTTOM OF THE STATS ROW down to the core
 // (owner, 2026-10-06, from a phone screenshot: was 400 from the top of the
 // canvas, which on an iPhone sits under the status bar, so the core rode high)
-const PHONE_HALF = 400, CORE_TOP = 520;
+const PHONE_HALF = 320, CORE_TOP = 416; // zoom +25% (owner, 2026-10-06; were 400 / 520 - the core keeps its spot on screen)
 const cam = { k: 1, ox: 0, oy: 0, fit: 1 };
 // the canvas draws at most RES_CAP device pixels per CSS pixel (owner: "need
 // more perf"): a phone at 3x drew 3.4 million pixels a frame; 2x is 2.25x fewer
@@ -180,7 +180,7 @@ function drawCore() {
   poly(CX, CY, CORE_R * pulse, 6, Math.PI / 6, false);
   ctx.fillStyle = cw; ctx.globalAlpha = 1; ctx.fill();
 }
-const LIFE_RINGS = 5, LIFE_GAP = 5; // room kept for 5 rings of life segments (20 lives fill 3 and a bit)
+const LIFE_RINGS = 5, LIFE_GAP = 3.75; // (5 before the 25% shrink) // room kept for 5 rings of life segments (20 lives fill 3 and a bit)
 
 function drawTower(t, ghost) {
   // drawn where the tower IS (it slides along its spoke), its slot's hex moved with it
@@ -202,7 +202,7 @@ function drawTower(t, ghost) {
 }
 // one sprite per kind + level + colours + zoom + the hex's turn (Horizon orbits
 // the slots), drawn exactly as the tower used to be drawn each frame
-const TOWER_LINE = 2.6, towerSprites = new Map(), TOWER_LABEL_PX = 23, MAX_SPOKE_PAST = 0.22; // a max-level spoke's reach past the outer ring, in cell sizes
+const TOWER_LINE = 2.6, towerSprites = new Map(), TOWER_LABEL_PX = 23, MAX_SPOKE_PAST = 0.165; // a max-level spoke's reach past the outer ring, in cell sizes
 function towerSprite(kind, lvl, c0) {
   const b = TOWERS[kind], turn = Math.round(Math.atan2(c0.pts[0].y - c0.y, c0.pts[0].x - c0.x) * 90 / Math.PI); // 2-degree steps
   const key = [kind, lvl, COL[b.color], COL.bg, cam.k.toFixed(4), turn].join("|");
@@ -259,8 +259,8 @@ function drawCells() {
     if (!cellOpen(ci)) return; // a corner slot shows once its wave opens it
     const free = canPlace(ci);
     // before the first tower the free slots FLASH (owner; the build buttons used to)
-    if (!ui.build) { if (free) { cellPath(c, 0.94); ctx.strokeStyle = COL.white; ctx.lineWidth = 3.5; ctx.globalAlpha = G.towers.length ? 0.55 : 0.6 + 0.4 * Math.sin(performance.now() / 250); ctx.stroke(); ctx.lineWidth = 2; ctx.globalAlpha = 0.9; text(towerCost("chain") + "c", c.x, c.y, 14, "white"); } return; } // thicker, more opaque; the build price inside (owner)
-    cellPath(c, 0.94);
+    if (!ui.build) { if (free) { cellPath(c, TOWER_K); ctx.strokeStyle = COL.white; ctx.lineWidth = 3.5; ctx.globalAlpha = G.towers.length ? 0.55 : 0.6 + 0.4 * Math.sin(performance.now() / 250); ctx.stroke(); ctx.lineWidth = 2; ctx.globalAlpha = 0.9; text(towerCost("chain") + "c", c.x, c.y, 14, "white"); } return; } // thicker, more opaque; the build price inside (owner)
+    cellPath(c, TOWER_K);
     const col = COL[TOWERS[ui.build].color];
     if (free) { ctx.fillStyle = col; ctx.globalAlpha = 0.15; ctx.fill(); }
     ctx.strokeStyle = free ? col : COL.grid; ctx.globalAlpha = free ? 0.8 : 0.4; ctx.stroke();
@@ -417,7 +417,7 @@ function drawPlacement() {
     drawTower({ kind: ui.build, cell: hc, lvl: 1 }, true);
     return;
   }
-  cellPath(c, 0.94); ctx.fillStyle = COL.pink; ctx.globalAlpha = 0.25; ctx.fill(); ctx.globalAlpha = 1;
+  cellPath(c, TOWER_K); ctx.fillStyle = COL.pink; ctx.globalAlpha = 0.25; ctx.fill(); ctx.globalAlpha = 1;
   drawBlocked(c.x, c.y, 14);
 }
 
