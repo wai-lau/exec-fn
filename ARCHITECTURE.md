@@ -252,6 +252,7 @@ sequenceDiagram
   participant GC as gcal.import_gcal_cards
   participant S as scheduler
   participant FS as data/*.json
+  participant CC as cc sidecar
 
   cron->>API: POST /api/morning (Bearer API_KEY)
   API->>P: build_morning()
@@ -274,7 +275,15 @@ sequenceDiagram
   P->>LLM: _dedupe_context
   P->>FS: rewrite profile.json
   P-->>API: summary
+  API->>CC: cc_client.new_conversation() (sidecar POST /new)
+  CC-->>API: archive current thread, drop session pointer
 ```
+
+The Exec panel's thread lives in the cc sidecar since phase 3 (§7f), not in
+`chat.json`, so deleting `chat.json` alone left the panel on yesterday's
+conversation forever. The route ends the sidecar thread after
+`build_morning()`; the sidecar archives before it drops the pointer and
+refuses (500) if the archive fails, which surfaces as `errors.cc_new`.
 
 ### rd.json concurrency — `helpers._RD_LOCK`
 
