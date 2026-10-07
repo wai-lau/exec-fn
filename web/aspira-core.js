@@ -1,10 +1,9 @@
 // /aspira — the CORE's POWERS (owner, 2026-10-06; replaced the Zen / Space
-// path tree and the repeatables). From wave CORE_UNLOCK the core buys up to
-// CORE_POINTS levels across three powers, CORE_TIERS each (all of them, owner),
-// or take all three and level one:
+// path tree and the repeatables). Three powers, each owned at its top tier
+// (CORE_TIERS), won from bosses (below):
 //   Fortifications  drag a TOWER onto the core: for a while the core becomes a
 //                   full-strength COPY of it, chart picks included (owner: temporary,
-//                   like the others; cooldown) (L2: the copy gets +1 tier on every axis)
+//                   like the others; cooldown) (+2 tiers on every axis at III)
 //   Temporal        press and HOLD the core: a ring spreads from it and stops
 //                   every enemy dead for a while; cooldown
 //   Empower         drag the CORE onto a tower: for a while it fights as if
@@ -12,47 +11,49 @@
 // The gestures live in aspira-camera.js; this file holds the rules, the core's
 // copy firing, and its card and drawing. Loaded after aspira-towers.js /
 // aspira-skills.js (the simulator loads it too).
-// every power can be bought to its top, THREE tiers each (owner, 2026-10-06;
-// was 4 buys across 2-tier powers): the price is by how many you already own
-// a FLATTER ladder (owner, 2026-10-06; was 1000 .. 20000, 76.5k in all - tiers
-// 6-9 were out of reach in 100 waves): 27k in all, +500 a buy
-const CORE_UNLOCK = 30, CORE_TIERS = 3, CORE_COST = [1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000], CORE_POINTS = CORE_COST.length;
-// the card lists them in this order: the one for sale from the start first
+// NO PRICE (owner, 2026-10-07; was 1000 .. 5000 credits a level, 27k in all):
+// 0 of 192 scripted games won while saving for it, and the same players won 76%
+// without it. Bosses are the reward instead: the falls of CORE_PICKS (Strength
+// 30, Lovers 50, Devil 70) each hand the player ONE power, chosen from the ones
+// not yet owned, at its TOP tier at once; the corner slots open in between (20,
+// 40, 60 - CORNER_SLOTS in aspira-defs.js). The last power left is simply given.
+const CORE_UNLOCK = 30, CORE_TIERS = 3, CORE_PICKS = [30, 50, 70], CORE_POINTS = CORE_TIERS * CORE_PICKS.length;
 const CORE_POWERS = [
-  { id: "overcharge", name: "Overcharge Uplink", /* (was Empower) */ how: "drag the core onto a tower",
-    lv: ["For a while, a tower fights as if every axis were maxed.", "Longer, with a shorter cooldown.", "The longest, with the shortest cooldown."] },
   { id: "relay", name: "Orbital Relay", /* planetary defence names (owner, 2026-10-06; was Fortifications) */ how: "drag a tower onto the core",
-    lv: ["For a while, the core becomes a full copy of a tower you drag onto it.", "The copy gains a tier on every axis.", "The copy gains another tier on every axis."] },
+    desc: "For a while, the core becomes a copy of a tower you drag onto it, two tiers stronger on every axis." },
   { id: "temporal", name: "Temporal Drive", /* (owner; was Temporal Manipulation) */ how: "press and hold the core",
-    lv: ["A ring spreads from the core and stops every enemy dead, briefly.", "A longer stop, a shorter cooldown.", "The longest stop, the shortest cooldown."] },
+    desc: "A ring spreads from the core and stops every enemy dead, briefly." },
+  { id: "overcharge", name: "Overcharge Uplink", /* (was Empower) */ how: "drag the core onto a tower",
+    desc: "For a while, a tower fights as if every axis were maxed." },
 ];
 const TEMPORAL = [null, { dur: 5, cd: 60 }, { dur: 8, cd: 45 }, { dur: 12, cd: 35 }], /* owner 2026-10-06: longer stop, longer cooldown (was 2 / 30, 4 / 20) */ TEMPORAL_GROW = 0.6, TEMPORAL_R = 560;
 // 3x longer (owner, 2026-10-06; were 6 / 12 and 15 s); their cooldowns now
 // count from when the effect ENDS, or Empower II (36 s on, 30 s cooldown)
 // would never switch off
 const OVERCHARGE = [null, { dur: 18, cd: 45 }, { dur: 36, cd: 30 }, { dur: 54, cd: 20 }];
-const RELAY = [null, { dur: 45, cd: 40 }, { dur: 45, cd: 40 }, { dur: 45, cd: 40 }]; // L2 / L3 buy a stronger copy, not more time
+const RELAY = [null, { dur: 45, cd: 40 }, { dur: 45, cd: 40 }, { dur: 45, cd: 40 }]; // (per tier: a higher tier is a stronger copy, not more time; only III is owned now)
 
 const powerLvl = id => (G.core && G.core.pw ? G.core.pw[id] || 0 : 0);
 const coreLvl = () => (G.core && G.core.pw ? Object.values(G.core.pw).reduce((a, b) => a + b, 0) : 0);
-const coreCost = () => CORE_COST[coreLvl()];
-// open once STRENGTH (the wave-30 boss) is beaten (owner) - a boss that gets
-// through ends the game, so being past wave 30 means it fell
-const coreOpen = () => G.wave > CORE_UNLOCK;
-// OVERCHARGE is for sale from the first wave (owner, 2026-10-07: something to
-// DO during a wave long before Strength falls); Relay and Temporal still wait
-const EARLY_POWERS = ["overcharge"];
-const powerOpen = id => EARLY_POWERS.includes(id) || coreOpen();
-// the core has something to SELL: a point left, and an open power below its top
-const coreForSale = () => coreLvl() < CORE_POINTS && CORE_POWERS.some(p => powerOpen(p.id) && powerLvl(p.id) < CORE_TIERS);
-const coreState = () => (G.core ||= { pw: {}, cd: {}, clock: 0 });
-function buyPower(id) {
-  if (!powerOpen(id) || coreLvl() >= CORE_POINTS || powerLvl(id) >= CORE_TIERS || G.money < coreCost()) return false;
-  G.money -= coreCost();
+const corePicks = () => (G.core && G.core.picks) || 0; // powers won but not yet chosen
+// open once a power is owned or waiting to be chosen (Strength, wave 30, first)
+const coreOpen = () => coreLvl() > 0 || corePicks() > 0;
+const coreState = () => (G.core ||= { pw: {}, cd: {}, clock: 0, picks: 0 });
+const powersLeft = () => CORE_POWERS.filter(p => !powerLvl(p.id));
+function pickPower(id) {
+  if (corePicks() <= 0 || powerLvl(id) || !CORE_POWERS.some(p => p.id === id)) return false;
   const c = coreState();
-  c.pw[id] = powerLvl(id) + 1;
-  if (id === "relay" && c.tower) c.tower = coreCopy(c.copy); // a copy already out grows at once
+  c.picks--; c.pw = { ...c.pw, [id]: CORE_TIERS }; // a fresh object: the simulator's stat cache keys on it
   return true;
+}
+// from bossKilled, the last boss of a CORE_PICKS wave down: one power to choose
+// (the only one left is given outright)
+function grantPick() {
+  const c = coreState();
+  c.picks = (c.picks || 0) + 1;
+  const left = powersLeft();
+  if (left.length === 1) pickPower(left[0].id);
+  return left.length === 1 ? left[0] : null;
 }
 const cooldownLeft = id => Math.max(0, (G.core && G.core.cd[id]) || 0);
 
@@ -154,16 +155,18 @@ const coreCopyColor = () => (G.core && G.core.tower ? COL[TOWERS[G.core.tower.ki
 // ---------- the core's card (UI only) ----------
 function coreBought() { sfx("coreup"); ring(CX, CY, 80, "white"); refreshPanels(); }
 function inspectCore(el) {
-  const lvl = coreLvl(), copy = G.core && G.core.tower;
-  el.innerHTML = '<div class="name">Core · ' + lvl + " of " + CORE_POINTS + (copy ? " · copying " + TOWERS[copy.kind].name + " · " + Math.ceil(G.core.copyUntil - G.core.clock) + "s" : "") + "</div>" +
-    '<p class="asp-hint">' + (coreOpen() ? "Three powers, " + CORE_TIERS + " levels each." : "The heart of the chart. Overcharge is for sale now; the other powers unlock when Strength, the wave-" + CORE_UNLOCK + " boss, falls.") + "</p>" +
+  const lvl = coreLvl(), copy = G.core && G.core.tower, picks = corePicks();
+  el.innerHTML = '<div class="name">Core · ' + (lvl / CORE_TIERS) + " of " + CORE_POWERS.length + (copy ? " · copying " + TOWERS[copy.kind].name + " · " + Math.ceil(G.core.copyUntil - G.core.clock) + "s" : "") + "</div>" +
+    '<p class="asp-hint">' + (picks ? "Choose a power. The others come with later bosses." : coreOpen() ? "Each power arrives at full strength. More come with later bosses." : "The heart of the chart. Its first power comes when Strength, the wave-" + CORE_UNLOCK + " boss, falls.") + "</p>" +
     '<div id="asp-upbox"></div>'; // (its close is the spend bar's button)
   const box = $("asp-upbox");
-  CORE_POWERS.forEach(p => { // a power still locked shows as a dead row, so the ladder is in view from the start
-    const l = powerLvl(p.id), maxed = l >= CORE_TIERS, locked = !powerOpen(p.id);
-    const cd = cooldownLeft(p.id), state = l ? " · L" + l + (cd ? " · " + Math.ceil(cd) + "s" : "") : "";
-    const b = button(box, "asp-primary asp-choice", "<b>" + p.name + state + (maxed || locked ? "" : " · " + cr(coreCost())) + "</b><span>" +
-      (locked ? "unlocks when Strength falls (wave " + CORE_UNLOCK + ")" : p.lv[Math.min(l, CORE_TIERS - 1)] + " (" + p.how + ")") + "</span>", () => { if (!maxed && !locked && buyPower(p.id)) coreBought(); });
-    if (maxed || locked) b.disabled = true; else b.dataset.cost = coreCost();
+  if (!coreOpen()) { button(box, "asp-primary asp-up-big", "unlocks when Strength falls (wave " + CORE_UNLOCK + ")", () => {}); return; }
+  CORE_POWERS.forEach(p => {
+    const owned = !!powerLvl(p.id);
+    if (!owned && !picks) return; // not yet won: nothing to show
+    const cd = cooldownLeft(p.id), state = owned ? (cd ? " · " + Math.ceil(cd) + "s" : " · ready") : " · choose";
+    const b = button(box, "asp-primary asp-choice", "<b>" + p.name + state + "</b><span>" +
+      p.desc + " (" + p.how + ")</span>", () => { if (!owned && pickPower(p.id)) coreBought(); });
+    if (owned) b.disabled = true;
   });
 }

@@ -1,7 +1,7 @@
 // Late game (owner, 2026-10-07; replaces latesearch.mjs, which climbed the old
 // path/form tree): start at wave START with MONEY credits, fill every slot open
-// at that wave (the corners whose boss has fallen) with a MAXED tower, buy
-// every core power to III and use them (corepower.mjs), then play until the
+// at that wave (the corners whose boss has fallen) with a MAXED tower, grant
+// every core power and use them (corepower.mjs), then play until the
 // core falls or the 10th boss does. A build is one (kind, 6-point chart spend)
 // per slot. Ten independent hill-climbs run in parallel (one per worker), from
 // the four mono builds, an even mix and random starts; each reports its start
@@ -11,7 +11,7 @@
 import { isMainThread } from "node:worker_threads";
 import { makeGame, cellScores } from "./sim.mjs";
 import { runPool } from "./pool.mjs";
-import { usePowers, ALL_T3 } from "./corepower.mjs";
+import { usePowers, grantAll } from "./corepower.mjs";
 import { DISTS } from "./chartvalue.mjs";
 
 const KINDS = ["arc", "frz", "sol", "acd"];
@@ -31,7 +31,7 @@ function run(build, seed) {
     DISTS[b.d].forEach((n, k) => { if (n) sk[axes[k]] = n; });
     t.skills = sk; t.lvl = 1 + 6;
   });
-  for (const id of ALL_T3) g.run(`buyPower(${JSON.stringify(id)})`);
+  grantAll(g); // every power (the picks come at 30 / 50 / 70; START is past most of them)
   g.run("G.nextIn = 0;");
   const mem = {}; let t = 0, tick = 0;
   while (!g.G.over && g.G.wave <= MAX_WAVE && t < 7200) {
@@ -67,7 +67,7 @@ if (isMainThread && process.argv[1] && process.argv[1].endsWith("late.mjs")) {
   const jobs = starts.map((start, i) => ({ start, evals: EVALS, seeds: SEEDS, rng: 100 + i }));
   const res = await runPool(new URL(import.meta.url), jobs, { out: OUT });
   const fmt = rs => rs.map(x => x.wave + (x.won ? "W" : "") + "/" + x.lives).join(" ");
-  console.log(`from wave ${START} with ${MONEY}, every open slot maxed, core all III; ${EVALS} evals x ${SEEDS} seeds per climb\n`);
+  console.log(`from wave ${START} with ${MONEY}, every open slot maxed, every core power; ${EVALS} evals x ${SEEDS} seeds per climb\n`);
   for (const c of res) console.log("start " + c.start.padEnd(40) + " -> " + fmt(c.startRes));
   console.log("\nCLIMBS (best per climb, ranked)");
   for (const c of [...res].sort((a, b) => b.bestV - a.bestV)) console.log((c.bestV / 100).toFixed(2).padStart(7), c.best.padEnd(40), fmt(c.bestRes));

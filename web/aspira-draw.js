@@ -153,11 +153,11 @@ function drawCore() {
   const pulse = 1 + 0.04 * Math.sin(performance.now() / 300);
   // Fortifications: the core takes on the copied tower's colour, every ring of it (owner)
   const cw = coreCopyColor() || COL.white;
-  // a core upgrade is open: a slow white ring breathes around it, so it reads
-  // as something to click (owner: show the unlock)
+  // a core power waits to be chosen: a slow white ring breathes around it, so it
+  // reads as something to click (owner: show the unlock)
   // the core's LEVEL shows like a tower's (owner): a bold white ring outside
   // it per level, LEVEL_GAP apart, under a glow that grows with the level
-  const lvl = Math.ceil(coreLvl() * 4 / CORE_POINTS); // nine core levels drawn as at most four rings, like a tower
+  const lvl = Math.round(coreLvl() / CORE_TIERS); // one ring per power owned
   // LIVES drawn like an enemy's shield (owner): SEGMENTS of the core's own hex,
   // one per life, no number (aspira-enemies.js syncSegs / drawSegs)
   G.lifeFlash = G.lifeFlash || [];
@@ -173,7 +173,7 @@ function drawCore() {
     }
     ctx.shadowBlur = 0; ctx.globalAlpha = 1;
   }
-  if (coreForSale()) {
+  if (corePicks() > 0) {
     poly(CX, CY, CORE_R * (1 + out + LEVEL_GAP * (lvl + 1) + 0.08 * Math.sin(performance.now() / 400)), 6, Math.PI / 6, false);
     ctx.strokeStyle = cw; ctx.globalAlpha = 0.6; ctx.lineWidth = 2.5; ctx.stroke(); ctx.globalAlpha = 1;
   }

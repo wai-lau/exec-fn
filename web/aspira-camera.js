@@ -21,7 +21,7 @@ let fitK = 0, dragged = false, downAt = null, pinch = null;
 const HOLD_MS = 400, CORE_GRAB = 1.8, HOLD_SLOP = 18; // the core grabs within CORE_GRAB x its radius
 let holdTimer = 0, holdFired = false, holdMoved = false;
 function grabPower(ev) {
-  if (!G.core) return null; // a power is owned only once it was open (buyPower), so the levels below are the gate
+  if (!G.core) return null; // a power is owned only once a boss handed it out (pickPower), so the levels below are the gate
   const w = toWorld(ev), onCore = Math.hypot(w.x - CX, w.y - CY) <= CORE_R * CORE_GRAB;
   if (onCore && (powerLvl("temporal") || powerLvl("overcharge"))) {
     if (powerLvl("temporal")) holdTimer = setTimeout(() => {

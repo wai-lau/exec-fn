@@ -107,13 +107,15 @@ function bossRise(e) {
 }
 // from kill(): a Lover left alone heals to full and runs faster
 function bossKilled(e) {
-  // Strength's fall opens the core's upgrades, announced where its name was (owner)
-  // ...with an arrow down at the core (owner)
-  if (isA(e, "strength")) { float(CX, CY - 80, "core upgrades unlocked", "white", 28, 4, 1, 3); float(CX, CY - 48, "↓", "white", 28, 4, 1, 3); }
   // the LAST boss of its wave down: that wave's corner slot opens (owner: unlocks
-  // come AFTER the boss, never during its wave) - announced like the core's
-  // upgrades, the slot flashing meanwhile (aspira-waves.js)
+  // come AFTER the boss, never during its wave), the slot flashing meanwhile
+  // (aspira-waves.js) - or, on a CORE_PICKS wave, a core power is won (aspira-core.js),
+  // announced where the boss's name was, with an arrow down at the core (owner)
   if (!G.enemies.some(o => o !== e && !o.dead && o.arcana && o.n === e.n)) {
+    if (CORE_PICKS.includes(e.n)) {
+      const given = grantPick();
+      float(CX, CY - 80, given ? given.name + " online" : "choose a core power", "white", 28, 4, 1, 3); float(CX, CY - 48, "↓", "white", 28, 4, 1, 3);
+    }
     CELLS.forEach((c, ci) => {
       if (c.unlock !== e.n || (G.opened ||= {})[ci]) return;
       G.opened[ci] = true;
