@@ -1,19 +1,19 @@
 // The difficulty curve (owner, 2026-10-07: "where does a sane player die?"):
-// a ladder of scripted players - four styles x four openings, all buying and
+// a ladder of scripted players - four styles x four openings, all picking and
 // using the core powers - over many seeds, full games. Prints the death-wave
 // distribution, lives lost by wave band, the first wave to take a life, leaks
 // by type and the waves that took the most lives.
 // usage: node curve.mjs [seeds=20] [out.jsonl]   env CURVE_CORE=all (default, every
-// player buys all nine points) | none (nobody touches the core)
+// player takes every boss pick) | none (nobody touches the core)
 import { isMainThread } from "node:worker_threads";
 import { play } from "./sim.mjs";
 import { runPool } from "./pool.mjs";
-import { ALL_T3 } from "./corepower.mjs";
+import { ALL } from "./corepower.mjs";
 
 export const STYLES = { greedy: { up: 0.8 }, balanced: { up: 0.5 }, saver: { up: 0.3, reserve: 10 }, threat: { up: 0.5, threat: 150 } };
 export const OPENINGS = { "arc arc": ["arc", "arc"], "sol sol": ["sol", "sol"], "arc frz": ["arc", "frz"], "acd acd": ["acd", "acd"] };
 const MIX = { arc: 1, frz: 1, sol: 1, acd: 1 };
-const CORE = process.env.CURVE_CORE === "none" ? null : ALL_T3;
+const CORE = process.env.CURVE_CORE === "none" ? null : ALL;
 
 export default async function task({ style, opening, seed }) {
   const r = play({ ...STYLES[style], maxTowers: 9, opening: OPENINGS[opening], mix: MIX, core: CORE, useCore: !!CORE }, seed, 100);
@@ -27,7 +27,7 @@ if (isMainThread && process.argv[1] && process.argv[1].endsWith("curve.mjs")) {
   const jobs = [];
   for (const style of Object.keys(STYLES)) for (const opening of Object.keys(OPENINGS)) for (let seed = 1; seed <= SEEDS; seed++) jobs.push({ style, opening, seed });
   const res = await runPool(new URL(import.meta.url), jobs, { out: OUT });
-  console.log(`${Object.keys(STYLES).length} styles x ${Object.keys(OPENINGS).length} openings x ${SEEDS} seeds, core ${CORE ? "all III" : "none"}\n`);
+  console.log(`${Object.keys(STYLES).length} styles x ${Object.keys(OPENINGS).length} openings x ${SEEDS} seeds, core ${CORE ? "picked at every boss pick" : "none"}\n`);
   console.log("player".padEnd(22) + "  p10  p50  p90  won   first leak p50");
   const firstLeak = r => { const ws = Object.keys(r.leakWave).map(Number); return ws.length ? Math.min(...ws) : 101; };
   for (const style of Object.keys(STYLES)) for (const opening of Object.keys(OPENINGS)) {

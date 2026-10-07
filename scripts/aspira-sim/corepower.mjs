@@ -1,22 +1,24 @@
-// The scripted CORE player: buys powers in a given order as the core opens and
-// money allows, and USES them the way a sane player would -
+// The scripted CORE player: picks powers in a given order as bosses hand them
+// out (free, top tier - aspira-core.js), and USES them the way a sane player would -
 //   Temporal Drive  when a boss is up or a crowd is near the core,
 //   Overcharge      on the tower that has dealt the most damage lately,
 //   Orbital Relay   a copy of that same tower.
 // Shared by sim.mjs's play() (strategy.core / strategy.useCore), corevalue.mjs,
 // late.mjs and curve.mjs so every script plays the core the same way.
 export const POWERS = ["relay", "temporal", "overcharge"];
-export const ALL_T3 = ["temporal", "overcharge", "relay", "temporal", "overcharge", "relay", "temporal", "overcharge", "relay"];
+export const ALL = ["temporal", "overcharge", "relay"];
 const CROWD_R = 320, CROWD_N = 6, BOSS_R = 420;
 
-// buy the next power in `order` that is still below tier 3; returns true on a buy
-export function buyNext(g, order, reserve = 0) {
-  const lv = g.run("G.core && G.core.pw ? {...G.core.pw} : {}");
-  const bought = Object.values(lv).reduce((a, b) => a + b, 0);
-  const id = order[bought];
-  if (!id || !g.run(`powerOpen(${JSON.stringify(id)})`)) return false; // each power has its own opening wave (Overcharge: the first)
-  if (g.G.money - g.run("coreCost()") < reserve) return false;
-  return g.run(`buyPower(${JSON.stringify(id)})`);
+// a boss handed out a pick: take the first power in `order` not yet owned
+// (a power missing from `order` is never chosen); returns true on a pick
+export function pickNext(g, order) {
+  if (!g.run("corePicks()")) return false;
+  const id = order.find(p => !g.run(`powerLvl(${JSON.stringify(p)})`));
+  return id ? g.run(`pickPower(${JSON.stringify(id)})`) : false;
+}
+// every power at once (late.mjs: a run that starts past wave 70)
+export function grantAll(g) {
+  for (const id of ALL) g.run(`coreState().picks++; pickPower(${JSON.stringify(id)});`);
 }
 
 // the tower that dealt the most since the last call (falls back to total)

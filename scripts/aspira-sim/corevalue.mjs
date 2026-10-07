@@ -1,16 +1,16 @@
 // Core-power value (owner, 2026-10-07): the balanced all-four player plays a
-// full game buying ONE power up to a tier (or none, or all three to III) and
-// USING it (corepower.mjs) - so the core's cost competes with tower upgrades
-// in the same economy a real game has. Prints the waves reached per config.
+// full game taking ONE power at its first boss pick (or none, or all three as
+// the picks come) and USING it (corepower.mjs). The powers are free since
+// 2026-10-07, so this measures the power alone. Prints the waves reached per config.
 // usage: node corevalue.mjs [seeds=6] [out.jsonl]
 import { isMainThread } from "node:worker_threads";
 import { play } from "./sim.mjs";
 import { runPool } from "./pool.mjs";
-import { ALL_T3 } from "./corepower.mjs";
+import { ALL } from "./corepower.mjs";
 
 export const CONFIGS = { none: null };
-for (const p of ["temporal", "overcharge", "relay"]) for (let t = 1; t <= 3; t++) CONFIGS[p + " " + "I".repeat(t)] = Array(t).fill(p);
-CONFIGS["all III"] = ALL_T3;
+for (const p of ALL) CONFIGS[p] = [p];
+CONFIGS.all = ALL;
 const BASE = { up: 0.5, maxTowers: 9, opening: ["arc", "arc"], mix: { arc: 1, frz: 1, sol: 1, acd: 1 } };
 
 export default async function task({ config, seed }) {

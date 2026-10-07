@@ -27,7 +27,7 @@ const CELL_S = 32, CELL_PITCH = 2;
 // (solved on the max-level hexes at TOWER_K 0.94; 145 with the smaller towers).
 // They rest there, so they only slide OUT.
 // they open TOP-LEFT first, then clockwise (owner, 2026-10-06; was upper right first)
-const CORNER_SLOTS = [[-150, 40], [-30, 50], [90, 60]], CORNER_IN = 171, TILE_R = CORNER_IN;
+const CORNER_SLOTS = [[-150, 20], [-30, 40], [90, 60]] /* owner, 2026-10-07: 20 / 40 / 60, the core powers between (30 / 50 / 70, aspira-core.js); was 40 / 50 / 60 */, CORNER_IN = 171, TILE_R = CORNER_IN;
 const BUILD_R = RIM_R - 6;
 // the graticule spokes and the star field start out here (no longer tied to
 // the build area, which now spans the whole chart)
@@ -55,7 +55,7 @@ const CELLS = (function buildCells() {
   }
   // THREE MORE slots (owner, 2026-10-05) out of the core's CORNERS, a little way
   // past the ring, a TOP-HEAVY triangle: upper left, upper right, then straight
-  // down (clockwise); each opens when the boss of its wave (40, 50, 60) falls, hidden till then
+  // down (clockwise); each opens when the boss of its wave (20, 40, 60) falls, hidden till then
   CORNER_SLOTS.forEach(([deg, unlock]) => {
     const a = deg * Math.PI / 180, x = CX + Math.cos(a) * TILE_R, y = CY + Math.sin(a) * TILE_R, pts = [];
     for (let k = 0; k < 6; k++) { const b = Math.PI / 6 + k * Math.PI / 3; pts.push({ x: x + CELL_S * Math.cos(b), y: y + CELL_S * Math.sin(b) }); }

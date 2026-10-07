@@ -7,7 +7,7 @@ import vm from "node:vm";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { buyNext, usePowers } from "./corepower.mjs";
+import { pickNext, usePowers } from "./corepower.mjs";
 // ASPIRA_WEB=<dir> pins a run to a SNAPSHOT of the game files: every game
 // re-reads them, so a balance commit landing mid-run would otherwise mix two
 // versions (2026-10-07)
@@ -36,7 +36,7 @@ export function makeGame(seed, patch = "") {
     // the key covers EVERYTHING stats read: chart picks (t.skills - two towers
     // of one kind and level can differ), Overcharge, and the core's powers.
     // The skills / powers strings are rebuilt only when the OBJECT changes
-    // (withSkill and buyPower replace them), not stringified per call - the
+    // (withSkill and pickPower replace them), not stringified per call - the
     // stringify was 13% of a game (profiled 2026-10-07).
     let __pwObj = null, __pwStr = "";
     towerStats = function (t, noAura) {
@@ -48,8 +48,7 @@ export function makeGame(seed, patch = "") {
       if (!s) { s = __ts(t, true); __cache.set(k, s); }
       return s;
     };
-    // buyPower mutates G.core.pw in place: give the cache a fresh object to notice
-    const __buy = buyPower; buyPower = function (id) { const ok = __buy(id); if (ok) G.core.pw = { ...G.core.pw }; return ok; };`, ctx);
+    // (pickPower gives G.core.pw a fresh object itself, so the cache notices)`, ctx);
   // strip visual effects: nothing draws, so floats / rings / bursts are
   // no-ops and the fx list is emptied every tick. A beam still leaves a tiny
   // object, because ARC's tree keeps references to its beams (keepLit).
@@ -141,9 +140,8 @@ export function cellScores(g, kind) {
 }
 
 // strategy: { mix: {kind: weight}, paths: {kind: [path, form]}, up: 0..1 (how
-// eager to upgrade vs build), maxTowers, threat, core: [power ids in buy
-// order] (the player saves for the next one like any other action, picked
-// with probability coreP, default 0.5), useCore: true (corepower.mjs fires them) }
+// eager to upgrade vs build), maxTowers, threat, core: [power ids in pick
+// order] (each boss pick is taken at once - the core is free), useCore: true (corepower.mjs fires them) }
 // threat (owner, 2026-10-02: "measure the nearest an enemy got; upgrade or
 // build when units get a bit too close"): the player SAVES (earning interest)
 // and only spends once a live enemy comes within \`threat\` of the core.
@@ -167,10 +165,7 @@ export function play(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
     const ups = G.towers.filter(t => t.lvl < g.maxLvl(t)).sort((a, b) => g.upCost(a) - g.upCost(b));
     const full = G.towers.length >= (strategy.maxTowers || 99);
     const opening = strategy.opening || [];
-    const cl = strategy.core ? g.run("coreLvl()") : 0; // the next power in the order must be OPEN (Overcharge is from wave 1, the rest from 31)
-    const coreLeft = strategy.core && cl < strategy.core.length && g.run(`coreLvl() < CORE_POINTS && powerOpen(${JSON.stringify(strategy.core[cl])})`);
     if (G.towers.length < opening.length) next = { kind: opening[G.towers.length] };
-    else if (coreLeft && rnd() < (strategy.coreP ?? 0.5)) next = { core: true };
     else if (ups.length && (full || rnd() < (strategy.up ?? 0.5))) next = { up: ups[0] };
     else if (!full) next = { kind: pick() };
     else next = null;
@@ -180,10 +175,6 @@ export function play(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
     for (let guard = 0; guard < 20; guard++) {
       if (!next || (next.up && (next.up.lvl >= g.maxLvl(next.up) || !G.towers.includes(next.up)))) choose();
       if (!next) return;
-      if (next.core) {
-        if (G.money - g.run("coreCost()") < (strategy.reserve || 0) * G.wave) return;
-        buyNext(g, strategy.core); next = null; continue;
-      }
       if (next.up) {
         const t = next.up, [p, f] = (strategy.paths || {})[t.kind] || [0, 0];
         if (G.money - g.upCost(t) < (strategy.reserve || 0) * G.wave) return;
@@ -205,6 +196,7 @@ export function play(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
     const alive = g.G.enemies.filter(e => !e.dead);
     g.step(dt); g.clearFx(); time += dt;
     for (const e of alive) if (e.dead && e.gone && e.hp > 0) { leaks[e.type] = (leaks[e.type] || 0) + 1; leakWave[g.G.wave] = (leakWave[g.G.wave] || 0) + 1; }
+    if (strategy.core && Math.round(time / dt) % 25 === 0) pickNext(g, strategy.core); // a boss's pick costs nothing: take it at once
     if (strategy.useCore && Math.round(time / dt) % 25 === 0) usePowers(g, coreMem);
     if (Math.round(time / dt) % 10 === 0) {
       if (!strategy.threat || g.G.towers.length < (strategy.opening || []).length) act();
