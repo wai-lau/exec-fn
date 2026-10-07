@@ -62,7 +62,9 @@ function renderCard(c, dayIso) {
   const reminder = c.is_reminder ? '<span style="opacity:0.35;font-size:0.6rem"> [rem]</span>' : '';
   const recur = c.recur_type ? `<span style="opacity:0.45">${RECUR_LABEL[c.recur_type]||'↺'}</span>` : '';
   const dueC = (dayIso && isOverdue(c, dayIso)) ? 'hsl(var(--orange-glow-hsl) / 1)' : metaC;
-  const due = c.due_date ? `<span class="hq-due" style="color:${dueC}">${c.due_date.slice(5).replace('T',' ')}</span>` : '';
+  // on its own day the date is the row's label already: show the time alone
+  const dueTxt = !c.due_date ? '' : (dayIso && c.due_date.startsWith(dayIso)) ? c.due_date.slice(11) : c.due_date.slice(5).replace('T',' ');
+  const due = dueTxt ? `<span class="hq-due" style="color:${dueC}">${dueTxt}</span>` : '';
   const metaHtml = (recur || due) ? `<div class="hq-card-meta" style="color:${metaC}">${recur}${due}</div>` : '';
   const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const notesHtml = c.notes ? `<div class="hq-card-notes" style="color:${metaC}">${esc(c.notes)}</div>` : '';

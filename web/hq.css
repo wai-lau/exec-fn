@@ -276,19 +276,27 @@ body.hq-dragging .hq-unschedule.drag-over {
 .hq-list-row .hq-card {
   flex: 0 0 calc((100% - var(--space-1-5) * 2) / 3); max-width: 150px;
   min-width: 0; height: 100%; margin: 0;
-
-  /* anchor the due line to the bottom (see .hq-card-due below) */
-  padding-bottom: var(--space-5);
 }
 
 /* card text down to the timeline's size (--fs-2xs) — title + notes were --fs-sm */
 .hq-list-row .hq-card-title,
 .hq-list-row .hq-card-notes { font-size: var(--fs-2xs); }
 
-/* due date pinned to the card bottom: no "due" word, one line, small + bold */
+/* A long title shrinks and clamps before it can push the due line out of the
+   card (a six-line title did, 2026-10-06). */
+.hq-list-row .hq-card-title {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4;
+  overflow: hidden; flex: 0 1 auto; min-height: 0;
+}
+
+/* Notes get ONE line here and give way first: the card is the row's height, so
+   anything that does not fit is clipped, never drawn over the due line. */
+.hq-list-row .hq-card-notes { -webkit-line-clamp: 1; flex: 0 1 auto; min-height: 0; }
+
+/* due date at the card bottom, IN FLOW (margin-top:auto), not absolutely
+   positioned: pinned out of flow it sat on top of the notes (2026-10-06). */
 .hq-list-row .hq-card-meta {
-  position: absolute; left: var(--space-3); right: var(--space-3); bottom: var(--space-2);
-  margin: 0;
+  order: 1; margin-top: auto; padding-top: var(--space-1); flex-shrink: 0;
 }
 
 .hq-list-row .hq-due {
