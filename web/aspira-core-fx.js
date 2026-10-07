@@ -11,7 +11,8 @@
 //                 halo round it and its seconds left above it
 //   RELAY       the core itself takes on the copied tower's colour (drawCore);
 //                 its dial label reads "ARC 12s"
-// drawCoreFx goes under the towers (beams), drawCoreHud over the enemies.
+// drawCoreFx goes under the towers (beams), drawCoreHud over the enemies, and
+// the dial (drawCoreDial) under everything, pop-up text included.
 // sized for a PHONE (the board shows at ~0.54 css px per unit there): text
 // 26 units reads as ~14px
 // closer and thinner (owner): just outside a level-4 core's outermost ring (~75)
@@ -46,7 +47,7 @@ function drawCoreFx() {
   ctx.globalAlpha = 1;
 }
 
-// over everything but the banner: the freeze, the copy, Empower's halos, the dial
+// over everything but the banner: the freeze, the copy, Empower's halos
 function drawCoreHud() {
   if (!G.core) return;
   const c = G.core, now = performance.now();
@@ -61,7 +62,14 @@ function drawCoreHud() {
     ctx.shadowBlur = 0; ctx.globalAlpha = 1;
     text("OVERCHARGE " + Math.ceil(left) + "s", t.x, t.y - CELL_S * 2.4, OVERCHARGE_TEXT, "white", true, true);
   }
-  drawDial(c, now);
+  ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+}
+// the cooldown dial goes UNDER every pop-up text, damage numbers included
+// (owner, 2026-10-07): render draws it first, right over the background
+function drawCoreDial() {
+  if (!G.core) return;
+  ctx.lineCap = "round";
+  drawDial(G.core, performance.now());
   ctx.globalAlpha = 1; ctx.shadowBlur = 0;
 }
 function drawTimeStop(c) { // the ring sweeping out (owner: the plain ring is enough)
