@@ -2,9 +2,9 @@
 // effects need to be extremely more visible"). Loaded after aspira-core.js.
 //   the DIAL      three thick arcs round the core, one per owned power, each
 //                 in its own colour and named: a dim track that fills as the
-//                 power recharges, a pulsing glow when it is up (and a "TIME
-//                 READY" pop-up floats off it the moment it comes up, like the
-//                 interest's - owner), and
+//                 power recharges, a pulsing glow when it is up (and a
+//                 "TEMPORAL DRIVE READY" pop-up where the interest's pops up the
+//                 moment it comes up - owner; the dial carries no labels), and
 //                 while the power RUNS a white-hot arc draining with its time
 //   TIME STOP     the plain cyan ring sweeping out (owner: enough as it was)
 //   EMPOWER       a THICK pulsing beam from the core to the tower, a glowing
@@ -15,9 +15,10 @@
 // sized for a PHONE (the board shows at ~0.54 css px per unit there): text
 // 26 units reads as ~14px
 // closer and thinner (owner): just outside a level-4 core's outermost ring (~75)
-const DIAL_R = 90, DIAL_W = 11, DIAL_GAP = 0.2, DIAL_TEXT = 26, READY_POP = 32;
+// hugging the core (owner: "much closer to the credit count"; was 90, then 118)
+const DIAL_R = 62, DIAL_W = 7, DIAL_GAP = 0.2, READY_POP = 22, EMPOWER_TEXT = 26;
 const DIAL = [ // clockwise from the top-left; colours are palette keys
-  { id: "temporal", label: "TIME", color: "cyan", mid: -Math.PI * 0.833, tab: () => TEMPORAL, active: c => c.freezeUntil - c.clock },
+  { id: "temporal", label: "TEMPORAL DRIVE", color: "cyan", mid: -Math.PI * 0.833, tab: () => TEMPORAL, active: c => c.freezeUntil - c.clock },
   { id: "empower", label: "EMPOWER", color: "white", mid: -Math.PI * 0.167, tab: () => EMPOWER, active: () => empowerLeft() },
   { id: "fortify", label: "FORTIFY", color: "orange", mid: Math.PI / 2, tab: () => FORTIFY, active: c => (c.tower ? c.copyUntil - c.clock : 0) },
 ];
@@ -58,7 +59,7 @@ function drawCoreHud() {
     ctx.globalAlpha = 0.7 + 0.3 * Math.sin(now / 400);
     ctx.beginPath(); ctx.arc(t.x, t.y, CELL_S * 1.7, 0, 6.283); ctx.stroke();
     ctx.shadowBlur = 0; ctx.globalAlpha = 1;
-    text("EMPOWER " + Math.ceil(left) + "s", t.x, t.y - CELL_S * 2.4, DIAL_TEXT, "white", true, true);
+    text("EMPOWER " + Math.ceil(left) + "s", t.x, t.y - CELL_S * 2.4, EMPOWER_TEXT, "white", true, true);
   }
   drawDial(c, now);
   ctx.globalAlpha = 1; ctx.shadowBlur = 0;
@@ -91,12 +92,10 @@ function drawDial(c, now) {
       ctx.beginPath(); ctx.arc(CX, CY, DIAL_R, a0, a0 + seg); ctx.stroke();
     }
     ctx.shadowBlur = 0; ctx.globalAlpha = 1;
-    const lx = CX + Math.cos(d.mid) * DIAL_R, ly = CY + Math.sin(d.mid) * DIAL_R; // ON the segment (owner)
-    const name = d.id === "fortify" && c.tower ? TOWERS[c.tower.kind].ab : d.label;
-    text(run > 0 ? name + " " + Math.ceil(run) + "s" : cd > 0 ? d.label + " " + Math.ceil(cd) + "s" : d.label, lx, ly, DIAL_TEXT, run > 0 ? "white" : d.color, true, true);
-    // READY pops up as it comes off cooldown (owner: like the interest pop-up)
+    // NO labels on the dial (owner): a power coming off cooldown pops up
+    // "<NAME> READY" in its colour WHERE THE INTEREST POPS UP, under the core
     const was = (c.cdSeen ||= {})[d.id];
-    if (was > 0 && cd <= 0) float(lx, ly - DIAL_TEXT, d.label + " READY", d.color, READY_POP, 1.6, 1, 40);
+    if (was > 0 && cd <= 0) float(CX, CY + CORE_R + LIFE_GAP * LIFE_RINGS + 20, d.label + " READY", d.color, READY_POP, 1.6, 1, 30);
     c.cdSeen[d.id] = cd;
   }
 }
