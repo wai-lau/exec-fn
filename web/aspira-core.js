@@ -14,7 +14,9 @@
 // aspira-skills.js (the simulator loads it too).
 // every power can be bought to its top, THREE tiers each (owner, 2026-10-06;
 // was 4 buys across 2-tier powers): the price is by how many you already own
-const CORE_UNLOCK = 30, CORE_TIERS = 3, CORE_COST = [1000, 2000, 3500, 5000, 7000, 9500, 12500, 16000, 20000], CORE_POINTS = CORE_COST.length;
+// a FLATTER ladder (owner, 2026-10-06; was 1000 .. 20000, 76.5k in all - tiers
+// 6-9 were out of reach in 100 waves): 27k in all, +500 a buy
+const CORE_UNLOCK = 30, CORE_TIERS = 3, CORE_COST = [1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000], CORE_POINTS = CORE_COST.length;
 const CORE_POWERS = [
   { id: "fortify", name: "Orbital Relay", /* planetary defence names (owner, 2026-10-06; was Fortifications) */ how: "drag a tower onto the core",
     lv: ["For a while, the core becomes a full copy of a tower you drag onto it.", "The copy gains a tier on every axis.", "The copy gains another tier on every axis."] },
