@@ -100,9 +100,11 @@ function chooseUpgrade(i) {
 // loop and the keys test it); chooser.ci is the slot.
 function buildCard(k, i) {
   const b = TOWERS[k], st = towerStats({ kind: k, lvl: 1, skills: {} }), cost = towerCost(k);
-  const rows = [["Damage", Math.round(st.dmg)], ["Range", Math.round(st.range)], ["Rate", st.rate.toFixed(2) + "/s"], ["Good vs", GOOD_VS[k]]];
-  return '<div class="name">' + (i + 1) + " · " + b.name + " · " + cr(cost) + "</div>" + '<p class="asp-hint">' + b.blurb + "</p>" +
-    '<div class="asp-cols"><dl>' + rows.map(r => statRow(r[0], r[1], null)).join("") + "</dl></div>";
+  // "good vs" right under the title (owner); the base stats on ONE line so all
+  // four cards fit on a phone above the spend bar (owner: everything fits)
+  return '<div class="name">' + (i + 1) + " · " + b.name + " · " + cr(cost) + "</div>" + '<div class="asp-goodvs">good vs ' + GOOD_VS[k] + "</div>" +
+    '<p class="asp-hint">' + b.blurb + "</p>" +
+    '<div class="asp-goodvs">' + Math.round(st.dmg) + " dmg · " + Math.round(st.range) + " range · " + st.rate.toFixed(2) + "/s</div>";
 }
 function openBuildChooser(ci) {
   const el = chooserEl(), kinds = Object.keys(TOWERS);
