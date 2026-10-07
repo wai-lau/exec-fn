@@ -269,7 +269,19 @@
 .asp-spend-cred { font-size: var(--fs-lg); color: hsl(var(--white-hsl)); white-space: nowrap; text-shadow: 0 0 var(--blur-sm) hsl(var(--bg-hsl)); } /* credits WHITE (owner) */
 .asp-spend-cost { color: hsl(var(--pink-hsl)); } /* "(-40c)" in the palette's red (owner) */
 
-#asp .asp-spend button { width: 12ch; } /* "cancel" and "close" the same width: the button never shifts */
+#asp .asp-spend button { width: 12ch; }
+
+/* the button wears the colour of the card it closes (owner) */
+.asp-spend[data-kind="chain"] { --green-hsl: var(--orange-hsl); }
+.asp-spend[data-kind="slower"] { --green-hsl: var(--cyan-hsl); }
+.asp-spend[data-kind="reaper"] { --green-hsl: var(--pink-hsl); }
+.asp-spend[data-kind="acid"] { --green-hsl: var(--cat-social-h) var(--cat-social-s) var(--cat-social-l); }
+.asp-spend[data-kind="core"] { --green-hsl: var(--white-hsl); }
+
+/* the boss's haiku, above the title (owner; was on the board under the core) */
+.asp-bosshint { max-width: 22ch; text-align: right; font-size: var(--fs-xs); line-height: var(--lh-snug); color: hsl(var(--pink-hsl)); white-space: pre-line; }
+
+.asp-bosshint:empty { display: none; } /* "cancel" and "close" the same width: the button never shifts */
 
 /* over the chooser's blurred overlay while something is on offer */
 #asp.asp-spending .asp-bottom { z-index: var(--z-overlay); }

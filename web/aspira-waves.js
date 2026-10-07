@@ -186,12 +186,12 @@ function drawCredits() {
   // full with separators - counts run past 10k (owner)
   const n = Math.floor(fxOn ? G.money - creditsFx.gain : G.money).toLocaleString("en-US");
   // a little "CRED" UNDER it (owner, 2026-10-06; was a "c", first after it on the same line)
-  text(n, CX, CY - 4, 22, "bg", "white"); // BLACK with a white halo (owner)
-  text("CRED", CX, CY + 13, 11, "bg", "white");
+  text(n, CX, CY - 3, 15, "bg", "white"); // BLACK with a white halo (owner); smaller (owner, 2026-10-06; was 22)
+  text("CRED", CX, CY + 9, 8, "bg", "white");
   if (!fxOn || G.enemies.some(e => e.arcana && !e.dead)) return; // a boss's name takes this spot (drawBossBar)
   const parts = [["+" + creditsFx.gain + "c", "green"], [" (+" + creditsFx.pct.toFixed(1) + "%)", "green"]];
-  ctx.font = "20px " + CANVAS_FONT;
+  ctx.font = "14px " + CANVAS_FONT; // the interest pop-up, smaller (owner; was 20)
   const ws = parts.map(p => ctx.measureText(p[0]).width);
   let x = CX - ws.reduce((a, w) => a + w, 0) / 2;
-  parts.forEach((p, i) => { text(p[0], x + ws[i] / 2, CY + CORE_R + LIFE_GAP * LIFE_RINGS + 20, 20, p[1], true); x += ws[i]; });
+  parts.forEach((p, i) => { text(p[0], x + ws[i] / 2, CY + CORE_R + LIFE_GAP * LIFE_RINGS + 16, 14, p[1], true); x += ws[i]; });
 }

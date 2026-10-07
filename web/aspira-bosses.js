@@ -183,6 +183,8 @@ const BOSS_BAR_R = 400, BOSS_BAR_W = 21, BOSS_BAR_TRACK = 0.3; // 3x thicker (ow
 // towers (owner) - so after the inverted sky, and in the colour the sky would
 // have given it: the boss red inside the inversion's circle, its own outside
 const BOSS_TITLE_PX = 22, BOSS_SUB_PX = 22; // the credits' size (owner, 2026-10-06; were 46 / 30)
+// the live boss's haiku for the HTML above the title (updateHud), or ""
+const bossHint = () => { const b = G.enemies.find(e => e.arcana && !e.dead); return b ? arcanaOf(b.n).hint.join("\n") : ""; };
 function drawBossTitle() {
   const bosses = G.enemies.filter(e => e.arcana && !e.dead);
   if (!bosses.length) return;
@@ -192,10 +194,7 @@ function drawBossTitle() {
   // drawn in its own colours with a dark halo: inside the inverted sky the
   // inverted palette turns that red on a white halo (render, withPalette)
   text(arc.name, CX, CY - off - BOSS_TITLE_PX * 0.5, BOSS_TITLE_PX, col, true, true); // BOLD and bigger (owner); just the name, no "x2" (owner)
-  // the haiku, much bigger (owner; was 12, 15, 19), its three lines stacked
-  ctx.globalAlpha = 0.85;
-  arc.hint.forEach((l, i) => text(l, CX, CY + off + BOSS_SUB_PX * (0.5 + 1.15 * i), BOSS_SUB_PX, col, true));
-  ctx.globalAlpha = 1;
+  // (the haiku sits ABOVE THE SPIRE title now, owner - bossHint, the HUD tick)
 }
 function drawBossBar() {
   const bosses = G.enemies.filter(e => e.arcana && !e.dead);
