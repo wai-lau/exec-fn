@@ -27,7 +27,10 @@ const CELL_S = 32, CELL_PITCH = 2;
 // (solved on the max-level hexes at TOWER_K 0.94; 145 with the smaller towers).
 // They rest there, so they only slide OUT.
 // they open TOP-LEFT first, then clockwise (owner, 2026-10-06; was upper right first)
-const CORNER_SLOTS = [[-150, 20], [-30, 40], [90, 60]] /* owner, 2026-10-07: 20 / 40 / 60, the core powers between (30 / 50 / 70, aspira-core.js); was 40 / 50 / 60 */, CORNER_IN = 171, TILE_R = CORNER_IN;
+// SIX towers only (owner, 2026-10-07): the three corner slots are gone - they were
+// [[-150, 20], [-30, 40], [90, 60]] (angle, the wave whose boss opened it); the code
+// that builds and opens them runs over an empty list, so nothing else changed
+const CORNER_SLOTS = [], CORNER_IN = 171, TILE_R = CORNER_IN;
 const BUILD_R = RIM_R - 6;
 // the graticule spokes and the star field start out here (no longer tied to
 // the build area, which now spans the whole chart)
@@ -259,8 +262,8 @@ const RANGE_BONUS = 1.035; // +15% across the board (owner, 2026-10-06; was 0.9)
 // targeting (owner, 2026-10-03): Fresh = no debuffs yet, Biggest = most HP,
 // Near = nearest the core (aspira-game.js MODE_KEY; the key stays "close", the
 // label is Near so it does not read as "close this card" - owner)
-// Tagged = taking extra damage right now (aspira-game.js tagged; owner, 2026-10-07)
-const MODES = [["fresh", "Fresh"], ["biggest", "Biggest"], ["close", "Near"], ["tagged", "Tagged"]];
+// (Tagged - taking extra damage right now - came and went on 2026-10-07, owner)
+const MODES = [["fresh", "Fresh"], ["biggest", "Biggest"], ["close", "Near"]];
 
 // Each special enemy had ONE counter tower: swarm -> CHN, fast -> SLW,
 // armor -> RPR; shield's counter was RPD, removed (owner: three towers only).

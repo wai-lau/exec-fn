@@ -37,23 +37,14 @@ function boardChart(t, x, y, alpha, c0) {
   path(axes.map(ax => skillOf(t, ax.id)));
   ctx.globalAlpha = 0.6 * alpha; ctx.fill();
   ctx.globalAlpha = alpha; ctx.lineWidth = 2; ctx.stroke();
-}
-function skillChart(t, next) {
-  const axes = SKILL_TREES[t.kind], R = 46, C = 60, pt = (i, k) => {
-    const a = -Math.PI / 2 + i * 2 * Math.PI / axes.length, r = 8 + (R - 8) * k / SKILL_TIERS;
-    return (C + Math.cos(a) * r).toFixed(1) + "," + (C + Math.sin(a) * r).toFixed(1);
-  };
-  const shape = sk => axes.map((ax, i) => pt(i, (sk && sk[ax.id]) || 0)).join(" ");
-  let svg = '<svg class="asp-chart" viewBox="0 0 120 120">';
-  for (let k = 1; k <= SKILL_TIERS; k++) svg += '<polygon class="grid" points="' + axes.map((_, i) => pt(i, k)).join(" ") + '"/>';
+  // each axis's TIER just outside its corner, I / II / III (owner, 2026-10-07: nine
+  // points need reading at a glance); a tier-0 corner stays bare
   axes.forEach((ax, i) => {
-    svg += '<line class="grid" x1="' + C + '" y1="' + C + '" x2="' + pt(i, SKILL_TIERS).replace(",", '" y2="') + '"/>';
+    const k = skillOf(t, ax.id);
+    if (!k) return;
+    const [px, py] = pt(i, SKILL_TIERS);
+    text(roman(k), x + (px - x) * CORNER_NUMERAL_OUT, y + (py - y) * CORNER_NUMERAL_OUT, CORNER_NUMERAL_PX, "white", true, true);
   });
-  if (next) svg += '<polygon class="next" points="' + shape(next) + '"/>';
-  svg += '<polygon class="now" points="' + shape(t.skills) + '"/>';
-  axes.forEach((ax, i) => {
-    const [x, y] = pt(i, SKILL_TIERS + 0.9).split(",");
-    svg += '<text x="' + x + '" y="' + y + '">' + ax.name.slice(0, 4).toUpperCase() + " " + skillOf(t, ax.id) + "</text>";
-  });
-  return svg + "</svg>";
 }
+const CORNER_NUMERAL_OUT = 1.32, CORNER_NUMERAL_PX = 10; // the numeral sits just OUTSIDE its corner of the hex (owner)
+// the chart on the TOWER CARD is a control now - aspira-sliders.js (sliderChart)

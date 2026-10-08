@@ -62,15 +62,38 @@ function openChooser(t) {
   showSpend(upCost(t), "cancel", closeChooser, t.kind); // the spend bar's cancel: the same as clicking off the cards (owner)
   // ONE line (owner): side by side if they all fit across, else one column
   el.hidden = false;
-  // measured once shown (a hidden element has no width)
-  row.classList.toggle("asp-cards-col", opts.length * CARD_W + (opts.length - 1) * 16 > el.clientWidth - 32);
   // at the bottom, lifted exactly like the tower card (cardLift), and never up
   // into the HUD: the top stops below the speed row (the cards scroll instead)
   el.style.paddingBottom = spendRoom() + "px";
   el.style.paddingTop = Math.max(8, document.querySelector(".asp-head").getBoundingClientRect().bottom - el.getBoundingClientRect().top + 8 + CRED_ROOM) + "px"; // room for the credits ABOVE the cards
+  layoutCards(el, row); // the grid by the screen's shape, measured once shown (a hidden element has no size)
   $("asp").classList.add("asp-choosing"); placeCred(); // now the cards have their places // the board blurs and darkens beneath (aspira.css)
 }
-const CARD_W = 380; // .asp-card's width (aspira.css)
+const CARD_W = 380, CARD_MIN = 240, CARD_FLOOR = 180, CARD_GAP_PX = 16; // .asp-card's full width, its comfortable and its hard minimum, the grid's gap (aspira.css)
+// the cards' GRID by the screen's shape (owner, 2026-10-07: a wide screen stacked
+// the four build cards in one column and the last ran off the bottom): landscape
+// wants them side by side, portrait stacked, and every card AND the cancel under
+// them must fit between the HUD and the bar. Landscape tries the widest grid
+// first, portrait the tallest; a grid counts only if its rows fit the height.
+// Cards narrower than CARD_MIN are tried only once no wider grid fits (down to
+// CARD_FLOOR); if nothing fits at all, the grid with the most columns stands
+// (the shortest stack) and the overlay scrolls
+function layoutCards(el, row) {
+  const n = row.children.length, cs = getComputedStyle(el), landscape = el.clientWidth > el.clientHeight;
+  const availW = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const availH = el.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - el.firstElementChild.offsetHeight - CARD_GAP_PX;
+  const width = cols => Math.min(CARD_W, (availW - CARD_GAP_PX * (cols - 1)) / cols);
+  const apply = cols => { row.style.setProperty("--cols", cols); row.style.setProperty("--card-w", Math.floor(width(cols)) + "px"); };
+  const tries = Array.from({ length: n }, (_, k) => (landscape ? n - k : k + 1));
+  for (const min of [CARD_MIN, CARD_FLOOR]) {
+    for (const cols of tries) {
+      if (cols > 1 && width(cols) < min) continue;
+      apply(cols);
+      if (row.getBoundingClientRect().height <= availH) return;
+    }
+  }
+  apply(Math.max(1, ...tries.filter(c => c === 1 || width(c) >= CARD_FLOOR)));
+}
 // the cards sit clear of the SPEND BAR too (owner: on a wide screen the centred
 // bar landed on the middle card): above whichever is higher, the bar or the lift
 // the cards are CENTRED in the space between the HUD (plus the credits' room)
@@ -118,9 +141,9 @@ function openBuildChooser(ci) {
   });
   showSpend(towerCost(kinds[0]), "cancel", closeChooser); // every kind costs the same (towerCost counts towers)
   el.hidden = false;
-  row.classList.toggle("asp-cards-col", kinds.length * CARD_W + (kinds.length - 1) * 16 > el.clientWidth - 32);
   el.style.paddingBottom = spendRoom() + "px";
   el.style.paddingTop = Math.max(8, document.querySelector(".asp-head").getBoundingClientRect().bottom - el.getBoundingClientRect().top + 8 + CRED_ROOM) + "px"; // room for the credits ABOVE the cards
+  layoutCards(el, row); // the grid by the screen's shape, measured once shown (a hidden element has no size)
   $("asp").classList.add("asp-choosing"); placeCred(); // now the cards have their places
 }
 function chooseBuild(i) {

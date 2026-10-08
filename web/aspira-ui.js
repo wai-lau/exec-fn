@@ -227,7 +227,8 @@ function statRow(label, now, next) {
 
 // choice: the path (at level 5) or final form (at level 10) being bought;
 // those two upgrades cannot happen without one
-function upgradeTower(t, choice = null) {
+// quiet: no sound, ring or refresh - the sliders' lock-in buys several and plays once
+function upgradeTower(t, choice = null, quiet = false) {
   if (!t || t.lvl >= maxLvl(t) || G.money < upCost(t)) return;
   const need = pendingChoice(t);
   if (need && choice == null) return;
@@ -236,6 +237,7 @@ function upgradeTower(t, choice = null) {
   if (need === "form") { t.form = choice; t.mode = UPGRADES[t.kind][t.path].finals[choice].mode || t.mode; } // a form may set targeting (Residue)
   const c = upCost(t);
   G.money -= c; t.spent += c; t.lvl++;
+  if (quiet) return;
   sfxFor("up", t.kind);
   ring(t.x, t.y, 64, TOWERS[t.kind].color); refreshPanels();
 }
@@ -247,45 +249,7 @@ function nextTower(t, choice) {
   return { ...t, lvl: t.lvl + 1, path: need === "path" ? choice : t.path, form: need === "form" ? choice : t.form,
     skills: need === "skill" ? withSkill(t, choice) : t.skills };
 }
-function inspectTower(el, t) {
-  const b = TOWERS[t.kind], maxed = t.lvl >= maxLvl(t), st = towerStats(t);
-  el.innerHTML =
-    '<div class="name">' + towerTitle(t) + " · L" + t.lvl + " of " + maxLvl(t) + "</div>" +
-    '<p class="asp-hint">' + towerTagline(t) + "</p>" + // the CURRENT upgrade's tagline under the title (owner)
-    (hasSkills(t) ? skillChart(t, null) : "") + // a chart tower's Stand chart, on its own card (owner)
-    // two columns (owner): what every tower has | what only this type has
-    '<div class="asp-cols"><dl>' + (b.dmg ? statRow("Damage", Math.round(st.dmg), null) : "") +
-    statRow("Range", Math.round(st.range), null) + statRow("Rate", st.rate.toFixed(2) + "/s", null) +
-    statRow("Slide", slideSpan(t), null) + statRow("Speed", Math.round(moveSpeed(t)), null) + // movement (owner, 2026-10-06: tiers buy it back)
-    // compact for the phone (owner): kills and damage dealt share ONE row, and
-    // stats this tower does not have yet ("—") are left out
-    '<dt>Kills</dt><dd id="asp-kills"></dd></dl>' +
-    '<dl class="asp-spec">' + SPEC[t.kind](st, t).filter(r => r[1] !== "—").map(r => statRow(r[0], r[1], null)).join("") + "</dl></div>" +
-    // upgrade, then sell, then the targeting - SMALL, under sell (owner)
-    '<div class="asp-row" id="asp-upbox"></div><div class="asp-row" id="asp-acts"></div>' +
-    // TARGETING PRIORITY (owner, 2026-10-06): a SLIDER that snaps to its three
-    // stops, labelled under it (the labels are tappable too); was three buttons
-    '<div class="asp-prio"><b>Targeting priority:</b></div>' +
-    '<input type="range" class="asp-prio-slider" id="asp-prio" min="0" max="' + (MODES.length - 1) + '" step="1" value="' + Math.max(0, MODES.findIndex(m => m[0] === t.mode)) + '">' +
-    '<div class="asp-prio-labels">' + MODES.map(([m, label], i) => '<span data-i="' + i + '"' + (t.mode === m ? ' class="on"' : "") + ">" + label + "</span>").join("") + "</div>";
-  const setMode = i => { t.mode = MODES[i][0]; refreshPanels(); };
-  $("asp-prio").oninput = ev => setMode(Number(ev.target.value));
-  el.querySelectorAll(".asp-prio-labels span").forEach(s => { s.onclick = () => setMode(Number(s.dataset.i)); });
-  // the upgrade button opens the card chooser
-  button($("asp-upbox"), "asp-primary asp-up-big",
-    maxed ? "max level" : "upgrade → L" + (t.lvl + 1) + " · " + cr(upCost(t)), () => openChooser(t), "asp-up").disabled = maxed;
-  // SELL sits last, away from the often-tapped rows, and takes TWO taps (owner):
-  // the first arms it for SELL_ARM_MS, the second sells
-  const label = "sell · " + cr(sellValue(t)), sell = button($("asp-acts"), "asp-sell", label, () => {
-    if (!sell.classList.contains("armed")) {
-      sell.classList.add("armed"); sell.innerHTML = "tap again to sell · " + cr(sellValue(t));
-      setTimeout(() => { if (sell.isConnected) { sell.classList.remove("armed"); sell.innerHTML = label; } }, SELL_ARM_MS);
-      return;
-    }
-    G.money += sellValue(t); G.towers = G.towers.filter(x => x !== t); ui.sel = null;
-    sfx("sell"); refreshPanels();
-  });
-}
+// the tower card itself (inspectTower) lives in aspira-sliders.js with its upgrade control
 const SELL_ARM_MS = 2000;
 // the card's CLOSE is the spend bar's button (owner; aspira-chooser.js showSpend)
 const closeCard = () => { ui.sel = null; refreshPanels(); };
@@ -328,11 +292,12 @@ function refreshPanels() {
   const t = ui.sel && G.towers.find(x => x.id === ui.sel), core = ui.sel === "core";
   pop.hidden = !t && !core;
   pop.dataset.kind = core ? "core" : t ? t.kind : ""; // the card takes the tower's colour (aspira.css)
-  if (t) { inspectTower(pop, t); placePop(); }
+  pop.classList.toggle("asp-tower", !!t); $("asp").classList.toggle("asp-towercard", !!t); // the two-half tower card, and its wide-screen width (aspira.css)
+  if (t) { inspectTower(pop, t); pop.__fitDirty = true; placePop(); }
   if (core) { inspectCore(pop); placePop(); }
   // the spend bar: the chooser owns it while open, else the open card's next buy
   if (!chooser.t) {
-    if (t) showSpend(t.lvl >= maxLvl(t) ? null : upCost(t), "close", closeCard, t.kind);
+    if (t) showSpend(hasSkills(t) ? (basketPoints(t) ? basketCost(t) : null) : t.lvl >= maxLvl(t) ? null : upCost(t), "close", closeCard, t.kind); // a chart tower offers its basket
     else if (core) showSpend(null, "close", closeCard, "core") // the core is never bought (aspira-core.js);
     else hideSpend();
   }
@@ -378,7 +343,8 @@ function updateHud() {
   }
   for (const v of SPEEDS) $(speedId(v)).classList.toggle("on", !ui.paused && ui.speed === v);
   const up = $("asp-up"), t = ui.sel && G.towers.find(x => x.id === ui.sel);
-  if (up && t) up.classList.toggle("poor", t.lvl < maxLvl(t) && G.money < upCost(t));
+  if (up && t) up.classList.toggle("poor", hasSkills(t) ? basketPoints(t) > 0 && G.money < basketCost(t) : t.lvl < maxLvl(t) && G.money < upCost(t));
+  if (t && hasSkills(t)) refreshHandleFlash(t); // the sliders flash while the bank covers a point (aspira-sliders.js)
   // the core's one-click options follow the money too (aspira-core.js)
   for (const btn of document.querySelectorAll("#asp-pop [data-cost]")) btn.disabled = G.money < Number(btn.dataset.cost);
   for (const c of document.querySelectorAll(".asp-build-cards .asp-card")) c.classList.toggle("poor", G.money < Number(c.dataset.cost)); // faint red (aspira.css)
@@ -404,20 +370,46 @@ function cardLift(w) {
   }
   return { x, lift };
 }
+const POP_MIN_H = 160, CHART_MIN = 96, TOWER_CARD_H = 520;
+const towerWide = () => matchMedia("(orientation: landscape) and (min-width: 700px)").matches; // the two-half card (aspira.css)
+// fit the card to `room` WITHOUT scrolling (owner): wide, the chart fills its
+// half's height (aspira.css) and the card stands TOWER_CARD_H tall when the room
+// allows; stacked, the chart is shrunk until the card fits, and at the chart's
+// floor the card grows past the bar rather than clip. Runs when the content or
+// the room changed, not every frame
+function fitPop(pop, room) {
+  pop.__fitRoom = room; pop.__fitDirty = false;
+  pop.style.maxHeight = room + "px";
+  const chart = pop.querySelector(".asp-chart");
+  pop.style.minHeight = chart && towerWide() ? Math.min(TOWER_CARD_H, room) + "px" : "";
+  if (!chart) return;
+  chart.style.width = "";
+  if (towerWide()) return;
+  const over = pop.scrollHeight - pop.clientHeight;
+  if (over <= 0) return;
+  chart.style.width = Math.max(CHART_MIN, chart.getBoundingClientRect().width - over) + "px";
+  const still = pop.scrollHeight - pop.clientHeight;
+  if (still > 0) pop.style.maxHeight = (room + still) + "px";
+}
 function placePop() {
   const pop = $("asp-pop");
   if (pop.hidden) return;
-  const h = pop.offsetHeight, { x } = cardLift(pop.offsetWidth);
+  const { x } = cardLift(pop.offsetWidth);
   // ...but never up over the speed row (a short phone: it then sits over the wave list)
   const cr = cv.getBoundingClientRect(), top = document.querySelector(".asp-head").getBoundingClientRect().bottom - cr.top + CARD_GAP + CRED_ROOM; // room for the credits above
   // CENTRED between that and the bottom bar less the close button's room (owner, 2026-10-07)
   const bottom = cr.height - spendRoom();
-  pop.style.left = x + "px"; pop.style.top = Math.max(top, (top + bottom - h) / 2) + "px";
+  // a short screen: the card is CAPPED to that room and NEVER scrolls (owner,
+  // 2026-10-07) - the chart gives way instead (fitPop), so the buttons stay on screen
+  const room = Math.max(POP_MIN_H, bottom - top);
+  if (pop.__fitRoom !== room || pop.__fitDirty) fitPop(pop, room);
+  const h2 = pop.offsetHeight; // after the fit
+  pop.style.left = x + "px"; pop.style.top = Math.max(top, (top + bottom - h2) / 2) + "px";
   placeCred(); // the credits ride above the card (aspira-chooser.js)
 }
 
-// U: open the upgrade chooser for the selected tower
-function keyUpgrade(t) { openChooser(t); }
+// U: lock the pulled points in (a chart tower) or open the upgrade chooser
+function keyUpgrade(t) { if (!t) return; if (hasSkills(t)) lockIn(t); else openChooser(t); }
 
 // ---------- overlay ----------
 function showOverlay(title, body, btn) {

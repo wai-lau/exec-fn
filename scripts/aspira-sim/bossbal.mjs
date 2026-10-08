@@ -22,7 +22,7 @@ function closest(n, lvl, hp, seed) {
     const k = kinds[j % 4], i = ci;
     const t = g.place(k, i);
     // a chart tower (ARC) has 7 levels for the others' 4: its level `lvl` is 1 + 2 x (lvl - 1)
-    const want = g.maxLvl(t) > g.MAX_LVL ? 1 + 2 * (lvl - 1) : lvl;
+    const want = g.maxLvl(t) > g.MAX_LVL ? 1 + 3 * (lvl - 1) : lvl; // a chart tower's 1 / 4 / 7 / 10 (nine points)
     while (t.lvl < want) {
       const need = g.pendingChoice(t);
       const choice = need === "path" ? Object.keys(g.UPGRADES[k])[0] : need === "form" ? 0 : undefined;

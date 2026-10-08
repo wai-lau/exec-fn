@@ -17,7 +17,7 @@
 // owned, at its TOP tier at once; the corner slots open in between (20, 40, 60
 // - CORNER_SLOTS in aspira-defs.js). The last power left is simply given.
 // (two powers since the Relay merge, so two picks: the Devil's wave hands out nothing)
-const CORE_UNLOCK = 30, CORE_TIERS = 3, CORE_PICKS = [30, 50], CORE_POINTS = CORE_TIERS * CORE_PICKS.length;
+const CORE_UNLOCK = 30, CORE_TIERS = 3, CORE_PICKS = [30, 60] /* Strength, Temperance (owner, 2026-10-07; was 30 / 50) */, CORE_POINTS = CORE_TIERS * CORE_PICKS.length;
 const CORE_POWERS = [
   { id: "relay", name: "Orbital Relay", /* planetary defence names (owner, 2026-10-06; was Fortifications) */ how: "drag the core onto a tower",
     desc: "For a while, a tower acts as three: every bolt, ray, burn line and moon, three times over." },

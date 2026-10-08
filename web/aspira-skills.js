@@ -4,12 +4,21 @@
 // is a named step. The other towers keep the path / form tree
 // (aspira-upgrades.js). Loaded after aspira-towers.js (the simulator too):
 // this file also holds ARC's skill-chart FIRING, kept out of towers.js (cap).
-const SKILL_POINTS = 6, SKILL_TIERS = 3;
+// NINE points (owner, 2026-10-07; was 6): every axis can be maxed. Points are bought
+// by DRAGGING the axes of the chart on the tower card (aspira-sliders.js), any
+// number at once; each still costs its own step of the ladder below
+const SKILL_POINTS = 9, SKILL_TIERS = 3;
 // cost of each of the six small upgrades, x the build cost (about the old
 // three-step total, spread over six; balance later). DEARER (owner, 2026-10-06:
 // "make the levels more expensive and more powerful"): was 2 / 3.5 / 5.5 / 8 / 10.5 / 13,
 // a full chart 42.5 builds; now 62.5 (the first points stay near their old price, the last ones cost nearly double) - and every tier hits harder to match (below)
-const SKILL_STEP_COST = [2.5, 4, 7, 11, 16, 22];
+// ...and on, for the three points past the sixth (owner, 2026-10-07: "keep increasing
+// the prices"): the step grows by one more each time, a full chart 174.5 builds (6,980c)
+const SKILL_STEP_COST = [2.5, 4, 7, 11, 16, 22, 29, 37, 46];
+// Every tier's `desc` (owner, 2026-10-07): ONE sentence per axis whose words barely
+// change from tier to tier, so the card's track changes (aspira-sliders.js) show
+// only the gain; no bare stat talk ("slides further", "more range") unless that
+// IS the upgrade - the reach each tier buys is in SKILL_MOVE below
 const SKILL_TREES = {
   // ARC (owner): Conductivity = ALL the branching (owner, 2026-10-05) - how
   // many times the chain jumps AND how many ways each jump forks; Voltage =
@@ -17,19 +26,19 @@ const SKILL_TREES = {
   // what it catches. Base: one jump forking two ways, three enemies.
   arc: [
     { id: "conductivity", name: "Conductivity", tiers: [
-      { name: "Transfer", desc: "Jumps once more. More range." },
-      { name: "Conduit", desc: "Wider forks. More range." },
-      { name: "Superconductor", desc: "Fires two bolts at once. More range." },
+      { name: "Transfer", desc: "One bolt jumps twice, forking two ways." },
+      { name: "Conduit", desc: "One bolt jumps twice, forking three ways." },
+      { name: "Superconductor", desc: "Two bolts jump twice, forking three ways." },
     ] },
     { id: "voltage", name: "Voltage", tiers: [
-      { name: "Spark", desc: "Jumps lose less damage. More range." },
-      { name: "Fry", desc: "Jumps lose even less. More range." },
-      { name: "Vaporize", desc: "Every jump keeps full damage. Most range." },
+      { name: "Spark", desc: "Hits harder; each jump keeps most of the hit before it." },
+      { name: "Fry", desc: "Hits much harder; each jump keeps nearly all of the hit before it." },
+      { name: "Vaporize", desc: "Hits hardest; each jump keeps all of the hit before it." },
     ] },
     { id: "capacitance", name: "Capacitance", tiers: [
-      { name: "Static", desc: "Hits charge enemies; their next hit or death bursts. Slides further." },
-      { name: "Charge", desc: "Bigger bursts. Slides further." },
-      { name: "Overload", desc: "Biggest bursts; they briefly slow what they hit. Slides further." },
+      { name: "Static", desc: "Each hit stores a share of itself on the enemy; the next hit from any tower bursts it around them." },
+      { name: "Charge", desc: "Each hit stores a bigger share of itself on the enemy; the next hit from any tower bursts it around them." },
+      { name: "Overload", desc: "Each hit stores the biggest share of itself on the enemy; the next hit from any tower bursts it around them, slowing them." },
     ] },
   ],
 };
@@ -40,19 +49,19 @@ const SKILL_TREES = {
 // tower at half of everything.
 SKILL_TREES.frz = [
   { id: "temp", name: "Temp", tiers: [
-    { name: "Chill", desc: "Stronger aura slow (only while inside). Wider aura." },
-    { name: "Freeze", desc: "Stronger aura slow. Wider aura." },
-    { name: "Absolute Zero", desc: "Strongest aura slow. Widest aura. Slowed enemies take 15% more from every tower." },
+    { name: "Chill", desc: "A colder, wider aura." },
+    { name: "Freeze", desc: "A much colder, wider aura." },
+    { name: "Absolute Zero", desc: "The coldest, widest aura; what it chills takes more from every tower." },
   ] },
   { id: "rime", name: "Rime", tiers: [
-    { name: "Frost", desc: "Pulses add a permanent slow that stacks. Slides further." },
-    { name: "Glacier", desc: "Stronger, faster pulses. Slides further." },
-    { name: "Cryosphere", desc: "Strongest, fastest pulses. Slides furthest." },
+    { name: "Frost", desc: "Pulses leave a slow that stacks and never fades." },
+    { name: "Glacier", desc: "Faster pulses leave a deeper slow that stacks and never fades." },
+    { name: "Cryosphere", desc: "The fastest pulses leave the deepest slow that stacks and never fades." },
   ] },
   { id: "moons", name: "Moons", tiers: [
-    { name: "Moon", desc: "One orbiting moon: a weaker copy of the tower." },
-    { name: "Twin Moons", desc: "Two stronger moons." },
-    { name: "Desolation", desc: "Three full-strength moons." },
+    { name: "Moon", desc: "One orbiting moon, a weaker copy of the tower." },
+    { name: "Twin Moons", desc: "Two orbiting moons, near copies of the tower." },
+    { name: "Desolation", desc: "Three orbiting moons, full copies of the tower." },
   ] },
 ];
 // SOL (owner, 2026-10-05): Focus = more beams (the old Quad look: side by
@@ -65,19 +74,19 @@ SKILL_TREES.frz = [
 // 4 beams x 6 = 24 Breaches a volley on one target.
 SKILL_TREES.sol = [
   { id: "focus", name: "Focus", tiers: [
-    { name: "Convergence", desc: "2 beams per shot. More range." },
-    { name: "Crux", desc: "3 beams per shot. More range." },
-    { name: "Disintegration", desc: "4 beams per shot. More range." },
+    { name: "Convergence", desc: "Two beams per shot, each a full hit." },
+    { name: "Crux", desc: "Three beams per shot, each a full hit." },
+    { name: "Disintegration", desc: "Four beams per shot, each a full hit." },
   ] },
   { id: "refraction", name: "Refraction", tiers: [
-    { name: "Lens", desc: "Shots bounce to 2 more enemies ahead. More range." },
-    { name: "Prism", desc: "Bounce to 5 more. Harder shots. More range." },
-    { name: "Spectrum", desc: "Bounce to 9 more. Hardest shots. More range." },
+    { name: "Lens", desc: "Each shot bounces on to two more enemies ahead." },
+    { name: "Prism", desc: "Each shot bounces harder on to five more enemies ahead." },
+    { name: "Spectrum", desc: "Each shot bounces hardest on to nine more enemies ahead." },
   ] },
   { id: "breach", name: "Breach", tiers: [
-    { name: "Scorch", desc: "Hits strip armor and add crit chance for all towers, for good. Slides further." },
-    { name: "Sear", desc: "More per hit; harder crits. Slides further." },
-    { name: "Flare", desc: "Most per hit; hardest crits. Slides further." },
+    { name: "Scorch", desc: "Each hit breaches once: armor stripped, and every tower crits it more, for good." },
+    { name: "Sear", desc: "Each hit breaches twice: armor stripped, and every tower crits it more, for good." },
+    { name: "Flare", desc: "Each hit breaches six times: armor stripped, and every tower crits it more, for good." },
   ] },
 ];
 // ACD (owner, 2026-10-05): its lines DRIP burning PUDDLES onto the lane by
@@ -86,19 +95,19 @@ SKILL_TREES.sol = [
 // the next); Pour = 2 / 3 / 5 lines at once; Seep = more, longer, bigger puddles.
 SKILL_TREES.acd = [
   { id: "corrosion", name: "Corrosion", tiers: [
-    { name: "Etch", desc: "Keeps full heat when a line moves to a new target." },
-    { name: "Corrode", desc: "Burns hotter." },
-    { name: "Dissolve", desc: "Burns hottest." },
+    { name: "Etch", desc: "A line keeps its full heat when it moves to a new target." },
+    { name: "Corrode", desc: "A hotter line keeps its full heat when it moves to a new target." },
+    { name: "Dissolve", desc: "The hottest line keeps its full heat when it moves to a new target." },
   ] },
   { id: "spray", name: "Spray", tiers: [
-    { name: "Mist", desc: "One more burn line, each on a different enemy. More range." },
-    { name: "Downpour", desc: "Another line. More range." },
-    { name: "Torrent", desc: "Two more lines. More range." },
+    { name: "Mist", desc: "Three burn lines at once, each on its own enemy." },
+    { name: "Downpour", desc: "Four burn lines at once, each on its own enemy." },
+    { name: "Torrent", desc: "Six burn lines at once, each on its own enemy." },
   ] },
   { id: "contagion", name: "Contagion", tiers: [
-    { name: "Blister", desc: "Hotter, more frequent puddles. Roams further and faster." },
-    { name: "Plague", desc: "Bigger, longer puddles. Roams further and faster." },
-    { name: "Pandemic", desc: "Biggest puddles; they slow enemies standing in them. Roams further and faster." },
+    { name: "Blister", desc: "Lines drip hotter puddles, more often." },
+    { name: "Plague", desc: "Lines drip hotter, bigger puddles, more often." },
+    { name: "Pandemic", desc: "Lines drip the hottest, biggest puddles, more often, slowing what stands in them." },
   ] },
 ];
 const hasSkills = t => !!SKILL_TREES[t.kind];
@@ -106,7 +115,7 @@ const maxLvl = t => (hasSkills(t) ? 1 + SKILL_POINTS : MAX_LVL);
 const skillOf = (t, id) => (t.skills && t.skills[id]) || 0;
 // the level the TOWER'S LOOK shows (its rings, max-level spokes): a chart
 // tower's 7 levels fold onto the 4 drawn ones
-const shownLvl = t => (!hasSkills(t) ? t.lvl : t.lvl >= maxLvl(t) ? MAX_LVL : 1 + Math.floor((t.lvl - 1) / 2));
+const shownLvl = t => (!hasSkills(t) ? t.lvl : t.lvl >= maxLvl(t) ? MAX_LVL : 1 + Math.floor((t.lvl - 1) / 3)); // nine points, three a look
 
 // REACH BY TIER (owner, 2026-10-06: ranges and movement were HALVED, and "no upgrade
 // causes any stat to go down - balance by playing around with ranges and movement
@@ -175,6 +184,10 @@ function skillOptions(t) {
   });
 }
 const withSkill = (t, id) => ({ ...t.skills, [id]: skillOf(t, id) + 1 });
+// the sliders' BASKET (aspira-sliders.js): the price of the tower's NEXT n points, each
+// at its own step of the ladder, and its chart with `add` (axis -> points) pulled on
+const skillPointsCost = (t, n) => { let c = 0; for (let i = 0; i < n; i++) c += Math.round(TOWERS[t.kind].cost * SKILL_STEP_COST[t.lvl - 1 + i]); return c; };
+const withSkills = (t, add) => { const s = { ...t.skills }; for (const [id, n] of Object.entries(add)) if (n) s[id] = (s[id] || 0) + n; return s; };
 
 // ---------- ARC's chart firing ----------
 // A bolt is a TREE grown a generation per hop: the strike, then every hit
