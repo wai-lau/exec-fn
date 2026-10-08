@@ -425,7 +425,7 @@ function tickFps(now) {
 
 // while the TEMPORAL DRIVE's freeze runs the game plays at 1x, whatever the speed setting (owner,
 // 2026-10-08: "during time freeze, temporarily set speed to 1x"); the setting itself is kept
-const freezing = () => !!G.core && G.core.freezeUntil > G.core.clock;
+const freezing = () => timeStopped();
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
