@@ -25,7 +25,7 @@ const SPEC = {
       ["Delay", hopDelay(st).toFixed(2) + "s"]];
   },
   frz: st => st.skill ? [["Aura slow", Math.round(st.aura * 100) + "%"], ["Aura dmg", dmgUnits(st.dmg * st.rate) + "/s"],
-    ["Rime", st.rime ? "every " + st.rimeEvery + "s, +" + Math.round(st.rime * 100) + "% forever" : "—"], ["Moons", st.moonN ? st.moonN + " at " + Math.round(st.moonK * 100) + "%" : "—"]]
+    ["Rime", st.rime ? "every " + st.rimeEvery + "s, +" + Math.round(st.rime * 100) + "% forever" : "—"], ["Moons", st.moonN ? st.moonN + " at " + Math.round(st.moonK * 100) + "%" + (st.subN ? " +" + st.subN + " small each" : "") : "—"]]
     : [["Slow", Math.round(st.slow * 100) + "%"], ["Lasts", st.permafrost ? "forever" : SLOW_TIME.toFixed(1) + "s"],
     ["Targets", st.all ? "all" : st.targets], ["Shields", "−1 / pulse"],
     ["Shatter", st.shatter ? dmgUnits(st.dmg * st.shatter.mul) + " r" + st.shatter.r : "—"],
