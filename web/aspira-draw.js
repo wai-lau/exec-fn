@@ -202,7 +202,7 @@ function drawTower(t, ghost) {
 }
 // one sprite per kind + level + colours + zoom + the hex's turn (Horizon orbits
 // the slots), drawn exactly as the tower used to be drawn each frame
-const SOL_BEAM_W = 0.9, TOWER_LINE = 2.6, towerSprites = new Map(), TOWER_LABEL_PX = 23;
+const SOL_BEAM_W = 1.2 /* bolder (owner, 2026-10-07; was 0.9) */, SOL_GLOW_A = 0.7 /* was 0.45 */, TOWER_LINE = 2.6, towerSprites = new Map(), TOWER_LABEL_PX = 23;
 function towerSprite(kind, lvl, c0) {
   const b = TOWERS[kind], turn = Math.round(Math.atan2(c0.pts[0].y - c0.y, c0.pts[0].x - c0.x) * 90 / Math.PI); // 2-degree steps
   const key = [kind, lvl, COL[b.color], COL.bg, cam.k.toFixed(4), turn].join("|");
@@ -343,7 +343,7 @@ function drawFx(pass) {
           // GRADIENT - densest at the core, fading out by twice its width.
           // Four nested strokes, widest first, stack into that falloff.
           for (let i = 4; i >= 1; i--) {
-            ctx.globalAlpha = Math.min(1, a * 0.45 * BEAM_BRIGHT); ctx.lineWidth = core * SOL_BEAM_W * (1 + i * 0.25); ctx.stroke(); // SOL: thicker, more opaque (owner, 2026-10-06; was 0.5 wide, 0.3)
+            ctx.globalAlpha = Math.min(1, a * SOL_GLOW_A * BEAM_BRIGHT); ctx.lineWidth = core * SOL_BEAM_W * (1 + i * 0.25); ctx.stroke(); // SOL: thicker, more opaque (owner, 2026-10-06; was 0.5 wide, 0.3)
           }
         } else {
           ctx.globalAlpha = Math.min(1, a * 0.22 * BEAM_BRIGHT); ctx.lineWidth = core * 3; ctx.stroke();

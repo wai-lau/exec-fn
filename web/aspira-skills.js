@@ -358,12 +358,13 @@ function frzStep(t, dt) {
 }
 // UI: the aura discs, the moons and the Rime rings (aspira-effects.js drawTethers)
 const MOON_TRI = 11; // a moon's triangle, corner to centre
+const FRZ_AURA_A = 0.4, FRZ_RIM_A = 0.25; // the aura's disc and rim, toned down (owner, 2026-10-07; were 0.8 / 0.45)
 function drawFrzSkill(t, st) {
   const col = COL[TOWERS.frz.color];
   frzSources(t, st).forEach((s, i) => {
-    gradDisc(s.x, s.y, st.range * s.k, col, 0.8);
+    gradDisc(s.x, s.y, st.range * s.k, col, FRZ_AURA_A); // fainter (owner, 2026-10-07; was 0.8)
     // Frost (owner): a FROSTED RIM, thicker the colder the aura (its slow)
-    ctx.strokeStyle = col; ctx.globalAlpha = 0.45; ctx.lineWidth = FRZ_RIM_W * st.aura * s.k;
+    ctx.strokeStyle = col; ctx.globalAlpha = FRZ_RIM_A; ctx.lineWidth = FRZ_RIM_W * st.aura * s.k;
     ctx.beginPath(); ctx.arc(s.x, s.y, st.range * s.k, 0, 6.283); ctx.stroke();
     // a MOON (every source after the tower; Moons III's are full strength, so
     // not "k < 1" - owner: they went missing) is a TRIANGLE pointing at the tower

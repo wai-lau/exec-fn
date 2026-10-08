@@ -144,12 +144,16 @@ function stepPuddles(t, st, dt) {
 // size over BUBBLE_T real seconds, then POPPING (a brief widening ring) and
 // starting again elsewhere; the whole cluster fades as the puddle dries
 const PUDDLE_BUBBLES = 5, BUBBLE_T = 0.6, BUBBLE_POP = 0.15;
+// a puddle's bubbles are as INTENSE as its damage (owner, 2026-10-07): brighter and
+// bolder the more it burns, 0.6x for a faint puddle up to 1.8x for a deadly one
+const puddleGlow = p => Math.max(0.6, Math.min(1.8, 0.6 + 0.3 * Math.log2(1 + (p.dps || 0) / 60)));
 function drawPuddles(t) {
   const now = performance.now() / 1000;
   ctx.strokeStyle = ctx.fillStyle = COL.chatsubo; ctx.lineWidth = 1.2;
   if (lowQ) { for (const p of t.puddles || []) { ctx.globalAlpha = 0.5 * (1 - p.age / p.life); ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 0.6, 0, 6.283); ctx.stroke(); } ctx.globalAlpha = 1; return; } // low quality: one ring, no bubbles
   for (const p of t.puddles || []) {
-    const fade = 1 - p.age / p.life, seed = p.seed ||= 1 + Math.floor(Math.random() * 1e6);
+    const I = puddleGlow(p), fade = Math.min(1, (1 - p.age / p.life) * I), seed = p.seed ||= 1 + Math.floor(Math.random() * 1e6);
+    ctx.lineWidth = 1.2 * I;
     for (let i = 0; i < PUDDLE_BUBBLES; i++) {
       const ph = now / BUBBLE_T + i / PUDDLE_BUBBLES + (seed % 97) / 97, cyc = Math.floor(ph), f = ph - cyc;
       const h = k => fixedRand(cyc * 13 + i * 3 + k, seed); // this bubble's own jitter, fixed for its life
@@ -158,8 +162,8 @@ function drawPuddles(t) {
       ctx.beginPath();
       if (f < 1 - BUBBLE_POP) {
         ctx.arc(x, y, max * f / (1 - BUBBLE_POP), 0, 6.283);
-        ctx.globalAlpha = 0.2 * fade; ctx.fill();
-        ctx.globalAlpha = 0.75 * fade; ctx.stroke();
+        ctx.globalAlpha = Math.min(1, 0.3 * fade); ctx.fill();
+        ctx.globalAlpha = Math.min(1, 0.9 * fade); ctx.stroke();
       } else {
         const q = (f - 1 + BUBBLE_POP) / BUBBLE_POP; // the pop: a ring widening and gone
         ctx.arc(x, y, max * (1 + 0.5 * q), 0, 6.283);
