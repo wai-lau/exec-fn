@@ -31,6 +31,12 @@ function axisPt(i, k, n) {
   return [SL_C + Math.cos(a) * r, SL_C + Math.sin(a) * r];
 }
 const tierTxt = k => (k ? roman(k) : "0");
+// a tier's tick across the rail: TICK_HALF either side of the tier point
+const TICK_HALF = 2.5;
+function tick(i, k, n) {
+  const [x, y] = axisPt(i, k, n), a = axisAngle(i, n), px = -Math.sin(a) * TICK_HALF, py = Math.cos(a) * TICK_HALF;
+  return [[x - px, y - py], [x + px, y + py]];
+}
 const tierSpan = (lock, at) => (at > lock ? tierTxt(lock) + "→" + tierTxt(at) : tierTxt(lock));
 // the HANDLE is a TRIANGLE pointing out along its axis (owner): its tip HANDLE_TIP
 // past the tier point, its base HANDLE_BACK behind it and HANDLE_HALF wide
@@ -56,14 +62,18 @@ function sliderChart(t) {
   let svg = '<div class="asp-chart-box"><svg class="asp-chart asp-sliders" viewBox="0 0 120 120">';
   for (let k = 1; k <= SKILL_TIERS; k++) svg += '<polygon class="grid" points="' + axes.map((_, i) => P(i, k)).join(" ") + '"/>';
   svg += '<polygon class="next" points="' + shape(pv.skills) + '"/><polygon class="now" points="' + shape(t.skills) + '"/>';
+  // each axis is a LITERAL SLIDER (owner): a rail from the centre to the corner with
+  // a tick per tier, the run to the locked tier filled, the pulled run dashed, and
+  // the triangular knob on it
+  const L = (cls, a, b, extra = "") => '<line class="' + cls + '"' + extra + ' x1="' + a[0].toFixed(1) + '" y1="' + a[1].toFixed(1) + '" x2="' + b[0].toFixed(1) + '" y2="' + b[1].toFixed(1) + '"/>';
   axes.forEach((ax, i) => {
-    const lock = skillOf(t, ax.id), at = lock + (add[ax.id] || 0);
-    const [ex, ey] = axisPt(i, SKILL_TIERS, n), [lx, ly] = axisPt(i, lock, n);
-    svg += '<line class="grid" x1="' + SL_C + '" y1="' + SL_C + '" x2="' + ex.toFixed(1) + '" y2="' + ey.toFixed(1) + '"/>';
-    for (let k = 1; k <= SKILL_TIERS; k++) { const [sx, sy] = axisPt(i, k, n); svg += '<circle class="stop" cx="' + sx.toFixed(1) + '" cy="' + sy.toFixed(1) + '" r="1.6"/>'; }
-    // the wide invisible TRACK is what a finger drags on; the handle rides the axis
-    svg += '<line class="track" data-axis="' + i + '" x1="' + SL_C + '" y1="' + SL_C + '" x2="' + ex.toFixed(1) + '" y2="' + ey.toFixed(1) + '"/>';
-    svg += '<circle class="lock" cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="2"/>';
+    const lock = skillOf(t, ax.id), at = lock + (add[ax.id] || 0), c = [SL_C, SL_C];
+    const end = axisPt(i, SKILL_TIERS, n), lk = axisPt(i, lock, n), pt = axisPt(i, at, n);
+    svg += L("rail", axisPt(i, 0, n), end);
+    for (let k = 1; k <= SKILL_TIERS; k++) svg += L("stop", ...tick(i, k, n));
+    svg += L("fill", axisPt(i, 0, n), lk) + L("pull", lk, pt);
+    // the wide invisible TRACK is what a finger drags on; the knob rides the axis
+    svg += L("track", c, end, ' data-axis="' + i + '"');
     svg += '<polygon class="handle' + (canPull(t, ax) ? " can" : "") + '" data-axis="' + i + '" points="' + handlePts(i, at, n) + '"/>';
     svg += axisLabel(ax, lock, at, i, n);
   });
@@ -73,10 +83,11 @@ function sliderChart(t) {
 function updateSliderChart(t, svg) {
   const axes = SKILL_TREES[t.kind], n = axes.length, add = basketFor(t), pv = previewTower(t);
   svg.querySelector(".next").setAttribute("points", axes.map((ax, i) => axisPt(i, pv.skills[ax.id] || 0, n).map(v => v.toFixed(1)).join(",")).join(" "));
-  const handles = svg.querySelectorAll(".handle"), labels = svg.querySelectorAll("text");
+  const handles = svg.querySelectorAll(".handle"), labels = svg.querySelectorAll("text"), pulls = svg.querySelectorAll(".pull");
   axes.forEach((ax, i) => {
-    const lock = skillOf(t, ax.id), at = lock + (add[ax.id] || 0);
+    const lock = skillOf(t, ax.id), at = lock + (add[ax.id] || 0), [px, py] = axisPt(i, at, n);
     handles[i].setAttribute("points", handlePts(i, at, n)); handles[i].classList.toggle("can", canPull(t, ax));
+    pulls[i].setAttribute("x2", px.toFixed(1)); pulls[i].setAttribute("y2", py.toFixed(1));
     labels[i].querySelectorAll("tspan")[1].textContent = tierSpan(lock, at);
   });
 }
@@ -166,11 +177,13 @@ function cardStats(t, pv) {
 // the description: ONE evolving sentence per axis (its `base` at tier 0, the
 // tier's `desc` above it - aspira-skills.js) and, while points are pulled, the
 // change from the locked tier's sentence to the pulled one in TRACK CHANGES
-// (an axis whose tier 0 does nothing has an empty base: its line stays BLANK, a line tall, until a point is pulled)
+// The sentences run one after another, wrapping as they need, in a box of FIXED
+// height (owner, 2026-10-07; was a line per axis); an axis whose tier 0 does
+// nothing has an empty base and adds nothing until a point is pulled
 const axisSentence = (ax, k) => (k ? ax.tiers[k - 1].desc : ax.base);
 const words = s => (s ? s.split(" ") : []);
 function skillDesc(t, pv) {
-  return '<div class="asp-desc">' + SKILL_TREES[t.kind].map(ax => "<p>" + (wordDiff(words(axisSentence(ax, skillOf(t, ax.id))), words(axisSentence(ax, skillOf(pv, ax.id)))) || "&nbsp;") + "</p>").join("") + "</div>";
+  return '<div class="asp-desc">' + SKILL_TREES[t.kind].map(ax => wordDiff(words(axisSentence(ax, skillOf(t, ax.id))), words(axisSentence(ax, skillOf(pv, ax.id))))).filter(Boolean).map(h => "<span>" + h + "</span>").join(" ") + "</div>";
 }
 // a word-level diff (longest common subsequence): removed words in <del>, added in <ins>
 function wordDiff(a, b) {
