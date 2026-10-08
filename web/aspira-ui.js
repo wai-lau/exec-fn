@@ -299,7 +299,7 @@ function updateHud() {
     mute.dataset.muted = String(muted); mute.innerHTML = muted ? ICON_MUTED : ICON_SOUND;
     mute.setAttribute("aria-label", muted ? "sound off" : "sound on"); mute.title = mute.getAttribute("aria-label");
   }
-  for (const v of SPEEDS) $(speedId(v)).classList.toggle("on", !ui.paused && ui.speed === v);
+  for (const v of SPEEDS) $(speedId(v)).classList.toggle("on", !ui.paused && (freezing() ? 1 : ui.speed) === v); // a freeze lights 1x while it holds
   const up = $("asp-up"), t = ui.sel && G.towers.find(x => x.id === ui.sel);
   if (up && t) { const poor = hasSkills(t) ? basketPoints(t) > 0 && G.money < basketCost(t) : t.lvl < maxLvl(t) && G.money < upCost(t); up.classList.toggle("poor", poor); if (hasSkills(t)) up.disabled = poor || !basketPoints(t); } // income may bring a pulled basket within reach; greyed with nothing pulled
   if (t && hasSkills(t)) refreshHandleFlash(t); // the sliders flash while the bank covers a point (aspira-sliders.js)
@@ -423,12 +423,15 @@ function tickFps(now) {
   }
 }
 
+// while the TEMPORAL DRIVE's freeze runs the game plays at 1x, whatever the speed setting (owner,
+// 2026-10-08: "during time freeze, temporarily set speed to 1x"); the setting itself is kept
+const freezing = () => !!G.core && G.core.freezeUntil > G.core.clock;
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   if (!ui.paused) {
-    let left = dt * SPEED_MULT[Math.min(autoWaiting() || Infinity, ui.speed)]; // auto-wait only ever SLOWS
+    let left = dt * SPEED_MULT[freezing() ? 1 : Math.min(autoWaiting() || Infinity, ui.speed)]; // auto-wait only ever SLOWS; a time freeze runs at 1x
     while (left > 0) { const h = Math.min(0.02, left); step(h); stepFx(h); left -= h; }
     stepFloats(dt); // real time: unaffected by the game speed
   }
