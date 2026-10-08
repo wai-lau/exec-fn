@@ -17,12 +17,15 @@
 //   with every idea untried: the burst of fast leaks came after the checkpoint.)
 // MODE=instinct: each idea fires on its trigger, no lookahead.
 // MODE=static: the theory as written, never a pivot.
+// ECON=smart (default) | balanced (the old player: spends whenever it can afford its next action) |
+//   hoard (the saver that opens the bank only when hurt or at 6 lives - never for a boss or a near enemy);
+//   THREAT=220 the saver's proximity radius.
 // usage: node players.mjs [seeds=3] [out.jsonl]   env PLAYERS=capacitor,nofrz  MODE=search|instinct|static  LOOK=10
 import { isMainThread } from "node:worker_threads";
 import { makePlayer } from "./sim.mjs";
 import { runPool } from "./pool.mjs";
 
-const MODE = process.env.MODE || "search", LOOK = Number(process.env.LOOK || 10);
+const MODE = process.env.MODE || "search", LOOK = Number(process.env.LOOK || 10), ECON = process.env.ECON || "smart", THREAT = Number(process.env.THREAT || 220);
 const CHECKS = [5, 15, 25, 35, 45, 55, 65, 75, 85, 95]; // each LOOK-wave window holds one boss
 const r3 = (a, b, c) => [a, a, a, b, b, b, c, c, c].filter(Boolean);
 
@@ -54,13 +57,12 @@ export const PLAYERS = {
     ],
   },
   capacitor: {
-    belief: "Capacitance ARC opens a charge window, SOL on Tagged lands the biggest hit in it, and the window bursts.",
+    belief: "Capacitance ARC stores a share of its hit on the enemy, SOL's big shot on the Biggest bursts it.",
     opening: ["arc", "sol"], mix: { arc: 2, sol: 2, frz: 1 }, upPrio: ["arc", "sol"], relayKind: "sol", core: ["relay", "temporal"],
     skills: { arc: r3("capacitance", "conductivity"), sol: r3("focus", "breach"), frz: r3("temp", "rime") },
-    modes: { arc: "close", sol: "tagged" },
+    modes: { arc: "close", sol: "biggest" },
     ideas: [
-      idea("ARC hunts the tagged too", after(15), mode("arc", "tagged")),
-      idea("SOL hits biggest instead", o => (o.share.sol || 0) < 0.35, mode("sol", "biggest")),
+      idea("SOL hits near instead", o => (o.share.sol || 0) < 0.35, mode("sol", "close")),
       idea("conductivity first", o => (o.share.arc || 0) < 0.3, order("arc", ...r3("conductivity", "capacitance"))),
       idea("a freezer", o => leak(o, "fast", 2), weight("frz", 2), prio("frz", "arc", "sol")),
       idea("breach for the bosses", o => bossClose(o), order("sol", ...r3("breach", "focus"))),
@@ -159,7 +161,6 @@ export const PLAYERS = {
     skills: { arc: r3("conductivity", "capacitance"), sol: r3("focus", "breach"), frz: r3("temp", "rime"), acd: r3("spray", "contagion") },
     ideas: [
       idea("capacitance first", after(15), order("arc", ...r3("capacitance", "conductivity"))),
-      idea("SOL tagged", o => o.wave >= 25 && (o.towers.sol || 0) > 0, mode("sol", "tagged")),
       idea("breach for the bosses", o => bossClose(o), order("sol", ...r3("breach", "focus")), prio("sol", "arc")),
       idea("more freeze", o => leak(o, "fast", 2), weight("frz", 2)),
       idea("more acid", o => leak(o, "shield", 2), weight("acd", 2)),
@@ -172,11 +173,16 @@ for (const p of Object.values(PLAYERS)) p.ideas.push(idea("spread the upgrades",
 
 // a lookahead's worth: alive = lives, then wealth (banked + built); dead = the wave it died
 const score = r => (r.over ? r.wave * 1000 + r.lives * 10 : 1e6 + r.lives * 1000 + (r.money + r.spent) / 100);
+// a pivot is adopted only for a MATERIAL gain over staying: a later death, a life, or 2% more wealth
+// (without the bar the capacitor retargeted its SOL at wave 15 for a 90-credit edge, 2026-10-07)
+const material = (best, stay) => (stay.over ? score(best) > score(stay) : !best.over && (best.lives > stay.lives || best.money + best.spent >= 1.02 * (stay.money + stay.spent)));
 
 export default async function task({ player, seed, mode = MODE }) {
   const p = PLAYERS[player];
-  const s = { up: 0.5, maxTowers: 9, threat: 220, useCore: true, econ: "smart", ...p };
+  const s = { up: 0.5, maxTowers: 6, useCore: true, ...p }; // six slots (2026-10-07)
   delete s.belief; delete s.ideas;
+  if (ECON === "smart") { s.econ = "smart"; s.threat = THREAT; }
+  else if (ECON === "hoard") { s.econ = "smart"; s.threat = 0; s.noBossPrep = true; }
   if (mode === "instinct") s.pivots = p.ideas;
   const pl = makePlayer(s, seed, 100);
   const chosen = [], used = new Set();
@@ -186,10 +192,12 @@ export default async function task({ player, seed, mode = MODE }) {
     const ideas = p.ideas.filter(i => !used.has(i.name));
     if (!ideas.length) continue;
     const snap = pl.snapshot(), end = Math.min(W + LOOK, 101);
-    const trial = apply => { pl.restore(snap); if (apply) apply(pl.strategy, obs, pl.game); pl.runTo(end); return score(pl.result()); };
-    const scores = { stay: trial(null) };
-    for (const i of ideas) scores[i.name] = trial(i.do);
-    const best = Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0];
+    const trial = apply => { pl.restore(snap); if (apply) apply(pl.strategy, obs, pl.game); pl.runTo(end); return pl.result(); };
+    const outs = { stay: trial(null) };
+    for (const i of ideas) outs[i.name] = trial(i.do);
+    const scores = Object.fromEntries(Object.entries(outs).map(([k, r]) => [k, score(r)]));
+    let best = Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0];
+    if (!material(outs[best], outs.stay)) best = "stay";
     pl.restore(snap);
     if (best !== "stay") { ideas.find(i => i.name === best).do(pl.strategy, obs, pl.game); used.add(best); }
     // gain over staying: credits of wealth while both live (score counts them /100), else score points
@@ -211,7 +219,7 @@ if (isMainThread && process.argv[1] && process.argv[1].endsWith("players.mjs")) 
   for (const player of names) for (let seed = 1; seed <= SEEDS; seed++) jobs.push({ player, seed, mode: MODE });
   const res = await runPool(new URL(import.meta.url), jobs, { out: OUT });
   const mean = (a, f = x => x) => a.reduce((s, x) => s + f(x), 0) / a.length;
-  console.log(`${names.length} players x ${SEEDS} seeds, full games to wave 100, mode ${MODE}${MODE === "search" ? " (look " + LOOK + ")" : ""}, smart saver, every boss pick, both powers used\n`);
+  console.log(`${names.length} players x ${SEEDS} seeds, full games to wave 100, mode ${MODE}${MODE === "search" ? " (look " + LOOK + ")" : ""}, econ ${ECON}${ECON === "smart" ? " (threat " + THREAT + ")" : ""}, every boss pick, both powers used\n`);
   console.log("player".padEnd(14) + "  avg  won  waves".padEnd(36) + "lives  dmg share                 leaks/game                fires/game");
   const rows = [];
   for (const player of names) {
