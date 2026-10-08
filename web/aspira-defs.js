@@ -281,7 +281,7 @@ const ENEMIES = {
   fast:   { sides: 3, hp: 1.3,  speed: 135, /* 2026-10-08 (owner): just a bit faster than swarm (125), with a bit more HP (was 1.0 / 150) - SOL's slow heavy shot catches them.  2026-10-07: 187 -> 150 with x2 bodies (TYPE_COUNT_MUL): the top late leaker; still faster than swarm (125). 2026-10-06: 220 -> 187 */ bounty: 0.8, size: 12, color: "green" }, // owner 2026-10-02: hp 0.6 -> 1.0; green (was orange)
   // swarms: twice as many again and faster (owner, 2026-10-02: 95 -> 125), the
   // bounty halved so a swarm wave pays what it did
-  swarm:  { sides: 4, hp: 0.14, speed: 125, bounty: 0.09, size: 6, color: "white" },
+  swarm:  { sides: 4, hp: 0.14, speed: 125, bounty: 0.18, size: 6, color: "white" },
   shield: { sides: 5, hp: 0.6,  speed: 37.5, bounty: 1.6, size: 13, color: "cyan", shield: 8 }, // owner 2026-10-02: less HP (0.9), more shield (5)
   armor:  { sides: 7, hp: 1.0,  speed: 30, bounty: 2,   size: 15, color: "pink", armor: 24 }, // owner: 6 -> 15; 2026-10-02 less HP (1.6), more armor (15)
   // the rare BOSS (owner, 2026-10-02): every 10th wave, ALONE; an octagon,
