@@ -47,11 +47,11 @@ const SKILL_TREES = {
       { name: "Plasma", desc: "Each jump carries far more than the hit." },
     ] },
     { id: "capacitance", name: "Capacitance", base: "", tiers: [
-      { name: "Static", desc: "Hits charge the target, charged targets arc once when hit by anything." },
-      { name: "Charge", desc: "Hits charge the target, charged targets arc twice when hit by anything." },
-      { name: "Overload", desc: "Hits charge the target, charged targets arc three times when hit by anything, slowing what they hit." },
-      { name: "Discharge", desc: "Hits charge the target, charged targets arc four times when hit by anything, slowing what they hit." },
-      { name: "Tempest", desc: "Hits charge the target, charged targets arc five times when hit by anything, slowing what they hit." },
+      { name: "Static", desc: "Hits charge the target, charged targets arc twice when hit by anything." },
+      { name: "Charge", desc: "Hits charge the target, charged targets arc three times when hit by anything." },
+      { name: "Overload", desc: "Hits charge the target, charged targets arc four times when hit by anything, slowing what they hit." },
+      { name: "Discharge", desc: "Hits charge the target, charged targets arc six times when hit by anything, slowing what they hit." },
+      { name: "Tempest", desc: "Hits charge the target, charged targets arc eight times when hit by anything, slowing what they hit." },
     ] },
   ],
 };
