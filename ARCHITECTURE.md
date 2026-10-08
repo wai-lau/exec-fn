@@ -3963,7 +3963,7 @@ must never fail because of a rate limit (owner).
 
 ## 22. /aspira — spiral tower defence
 
-**ACD's RAMP CAP HALVED (owner, 2026-10-08):** `ACD_BASE_MAX` 32 -> 16 - a jet held on a long-lived boss reached x32 and out-bossed SOL. Puddles compensate: they keep the old x32 ceiling (`ACD_PUDDLE_CAP`), so they burn as hard as before.
+**ACD's RAMP CAP HALVED (owner, 2026-10-08):** `ACD_BASE_MAX` 32 -> 16 - a jet held on a long-lived boss reached x32 and out-bossed SOL. Puddles compensate: they keep the old x32 ceiling (`ACD_PUDDLE_CAP`), so they burn as hard as before; and every tier's pools are bigger (x1.25) and longer (x1.3): I 2.4s r28 .. V 6.5s r65.
 
 **BREACH IS SOL'S OWN (owner, 2026-10-08):** every SOL hit strips `SOL_BREACH_ARMOR[0]` 2 armor for good (below zero too); the Breach axis raises the strip massively (5 / 9 / 14 / 20 / 28) and adds crit chance for every tower (`SOL_BREACH_CRIT` 1..5% a hit, none at base). `SOL_BREACH` stack counts are gone (`st.breach` is 1). Prose: "...; each beam weakens its target's armor for good.", Breach I+ inserts *greatly* and "and pierces it so every tower crits it more" (owner, 2026-10-08: was "scorches"; the Breach I tier is named Pierce, was Scorch).
 

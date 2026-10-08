@@ -101,7 +101,7 @@ const ACD_DOUBLE = [0.5, 0.39, 0.3, 0.12, 0.12, 0.12], ACD_LINES = [2, 3, 4, 6, 
 // s per line, lasting `life` s, radius r; each burns at ACD_PUDDLE_HEAT of its
 // line's heat when it fell, by Seep tier
 // index 0 = NO puddles (owner, 2026-10-07: "ACD shouldn't have puddles at level 0"; was a default drip { every: 1.4, life: 1.5, r: 20 })
-const ACD_CONTAGION = [null, { every: 1.2, life: 1.8, r: 22 }, { every: 1, life: 2.4, r: 26 }, { every: 0.9, life: 3.2, r: 34 }, { every: 0.8, life: 3.8, r: 40 }, { every: 0.7, life: 5, r: 52 }]; // III+ bigger and longer, V the capstone (owner, 2026-10-08; were 2.7 / 3 / 3.3s, r 28 / 30 / 32) // refit 2026-10-06
+const ACD_CONTAGION = [null, { every: 1.2, life: 2.4, r: 28 }, { every: 1, life: 3.1, r: 33 }, { every: 0.9, life: 4.2, r: 42 }, { every: 0.8, life: 5, r: 50 }, { every: 0.7, life: 6.5, r: 65 }]; // pools bigger (x1.25) and longer (x1.3) at every tier (owner, 2026-10-08); V the capstone
 // a puddle ramps to the OLD x32 ceiling (owner, 2026-10-08: "increase the puddle damage to compensate" for the jets' cap halved to x16)
 const ACD_PUDDLE_CAP = 32;
 const ACD_PUDDLE_HEAT = [0.5, 1, 1.05, 1.1, 1.2, 1.3];
