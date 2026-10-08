@@ -69,7 +69,7 @@ function updateWaveList() {
   const live = liveWaves(), rows = [];
   const rowOf = (n, w) => {
     const boss = w.type === "bonus";
-    const hp = enemyHp(w.type, n) * (boss ? (BOSS_HP[arcanaOf(n).id] || 1) * laneTravel(laneMap(n).bonus) / meanTravel() : 1);
+    const hp = enemyHp(w.type, n) * (boss ? (BOSS_HP[arcanaOf(n).id] || 1) * BOSS_LANE_HP : 1);
     return { n, w, boss, hp, alive: live.get(n), cur: n === G.wave || live.has(n) }; // highlighted: every wave still ALIVE, and the current one (owner)
   };
   for (const n of [...new Set([...live.keys(), ...(G.wave > 0 ? [G.wave] : [])])].sort((a, b) => a - b)) {
