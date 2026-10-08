@@ -87,9 +87,9 @@ SKILL_TREES.frz = [
 // side at the tower, CONVERGING on the target - not parallel, owner), each its
 // own full hit, 2 / 3 / 4; Refract = the beam bends on to 2 / 5 / 9 more
 // enemies, each within SOL_CONE degrees of the first shot's direction (a light
-// cone shows it); Scorch (was Impale; owner: light-themed) = 1 / 2 / 4 BREACH
+// cone shows it); Pierce (was Impale; owner: light-themed) = 1 / 2 / 4 BREACH
 // stacks per hit (the old bleed: armor down and crit up for every tower, for
-// good). Focus x Scorch multiply:
+// good). Focus x Pierce multiply:
 // 4 beams x 6 = 24 Breaches a volley on one target.
 SKILL_TREES.sol = [
   { id: "focus", name: "Focus", base: "One beam per shot.", tiers: [
@@ -107,11 +107,11 @@ SKILL_TREES.sol = [
     { name: "Aurora", desc: "Refracting on to fifteen more ahead." },
   ] },
   { id: "breach", name: "Breach", base: "", tiers: [
-    { name: "Scorch", desc: "Hits breach once: armor off and crits up for every tower, for good." },
+    { name: "Pierce", desc: "Hits breach once: armor off and crits up for every tower, for good." },
     { name: "Sear", desc: "Hits breach twice: armor off and crits up for every tower, for good." },
     { name: "Flare", desc: "Hits breach six times: armor off and crits up for every tower, for good." },
-    { name: "Brand", desc: "Each beam weakens its target's armor for good, and scorches it so every tower crits it more." },
-    { name: "Sunfire", desc: "Each beam weakens its target's armor for good, and scorches it so every tower crits it more." },
+    { name: "Brand", desc: "Each beam weakens its target's armor for good, and pierces it so every tower crits it more." },
+    { name: "Sunfire", desc: "Each beam weakens its target's armor for good, and pierces it so every tower crits it more." },
   ] },
 ];
 // ACD (owner, 2026-10-05): its lines DRIP burning PUDDLES onto the lane by
@@ -411,7 +411,7 @@ function drawFrzSkill(t, st) {
   ctx.shadowBlur = 0; ctx.globalAlpha = 1;
 }
 
-// ---------- SOL's chart: Focus beams, Refract cone, Scorch Breaches ----------
+// ---------- SOL's chart: Focus beams, Refract cone, Pierce Breaches ----------
 // Breach stacks per hit (owner: "each beam permanently weakens the target's armor" - Breach is what strips it; the base SOL strips nothing)
 const SOL_BEAMS = [1, 2, 3, 4, 5, 6], SOL_REFRACTION = [0, 2, 5, 9, 12, 15];
 // BREACH IS SOL'S OWN, from the start (owner, 2026-10-08): every hit strips SOL_BREACH_ARMOR armor for good
