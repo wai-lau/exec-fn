@@ -283,6 +283,9 @@
 
 /* the boss's haiku, above the title (owner; was on the board under the core) */
 .asp-bosshint { text-align: right; font-size: var(--fs-2xs); line-height: var(--lh-snug); color: hsl(var(--pink-hsl)); white-space: pre; } /* exactly its 3 lines, never wrapped (owner) */
+/* ...and it never moves the power buttons (owner, 2026-10-08): no width of its own - the column
+   (centred on its widest child) ignores it, and the text hangs LEFT from the column's right edge */
+.asp-buildcol .asp-bosshint:not(:empty) { align-self: flex-end; width: 0; display: flex; justify-content: flex-end; }
 
 .asp-bosshint:empty { display: none; } /* "cancel" and "close" the same width: the button never shifts */
 
