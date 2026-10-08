@@ -11,8 +11,20 @@ function powerTap(d) {
   if (d.id === "temporal") { if (temporalFreeze()) refreshPanels(); return; }
   const t = ui.sel && G.towers.find(x => x.id === ui.sel);
   if (t) { if (relay(t)) refreshPanels(); return; }
-  ui.relayArm = !ui.relayArm && cooldownLeft("relay") <= 0;
-  if (ui.relayArm) banner("ORBITAL RELAY · TAP A TOWER", "white", 1.5);
+  ui.relayArm = !ui.relayArm && cooldownLeft("relay") <= 0; // armed: every tower FLASHES a white ring (drawRelayArm), no banner (owner, 2026-10-08)
+}
+// while the Relay is armed, a flashing white ring round every tower says "tap one" - on the
+// same 0.7s beat as the online buttons (aspira.css asp-flash); drawScene calls it after the towers
+const RELAY_RING_K = 1.3, RELAY_RING_BEAT = 0.7;
+function drawRelayArm() {
+  if (!ui.relayArm) return;
+  const p = (performance.now() / 1000 / RELAY_RING_BEAT) % 1, a = 0.15 + 0.85 * Math.abs(Math.cos(p * Math.PI));
+  ctx.strokeStyle = COL.white; ctx.lineWidth = 3; ctx.shadowColor = COL.white; ctx.shadowBlur = 14 * cam.k * a;
+  for (const t of G.towers) {
+    const c0 = CELLS[t.cell], r = Math.hypot(c0.pts[0].x - c0.x, c0.pts[0].y - c0.y) * TOWER_K * RELAY_RING_K;
+    ctx.globalAlpha = a; ctx.beginPath(); ctx.arc(t.x ?? c0.x, t.y ?? c0.y, r, 0, 6.283); ctx.stroke();
+  }
+  ctx.shadowBlur = 0; ctx.globalAlpha = 1;
 }
 // from onTap: an armed Relay goes to the tower tapped; any tap disarms it
 function relayArmTap(hit) {
