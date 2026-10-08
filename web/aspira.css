@@ -711,7 +711,8 @@
 .asp-chart .grid { fill: none; stroke: hsl(var(--green-hsl) / 0.45); stroke-width: 0.6; }
 .asp-chart .now { fill: hsl(var(--green-hsl) / 0.45); stroke: hsl(var(--green-hsl)); stroke-width: 1.2; }
 .asp-chart .next { fill: hsl(var(--green-hsl) / 0.12); stroke: hsl(var(--green-hsl)); stroke-width: 1.2; stroke-dasharray: 3 2; }
-.asp-chart text { fill: hsl(var(--green-hsl) / 0.8); font-size: calc(var(--fs-2xs) * 0.7); text-anchor: middle; dominant-baseline: middle; letter-spacing: var(--tracking-wide); } /* in chart units: the labels scale with the chart */
+.asp-chart text { fill: hsl(var(--green-hsl) / 0.8); font-size: calc(var(--fs-2xs) * 0.65); dominant-baseline: middle; } /* in chart units: the labels scale with the chart; the full axis name, the tier under it */
+.asp-chart-box { padding-top: var(--space-2); } /* the top label's first line rides above the viewBox */
 .asp-chart .track { stroke: transparent; stroke-width: 14; cursor: grab; }
 .asp-chart .stop { fill: hsl(var(--green-hsl) / 0.45); }
 .asp-chart .lock { fill: hsl(var(--green-hsl)); }
