@@ -339,8 +339,10 @@
 .asp-pop dt { color: hsl(var(--green-hsl) / 0.45); }
 .asp-pop dd { margin: 0; }
 
-/* two stat columns (owner): every tower's stats | this type's own */
+/* two stat columns (owner): the rows that matter, bigger | the rest, small (aspira-sliders.js KEY_STATS) */
 .asp-pop .asp-cols { display: flex; gap: var(--space-6); align-items: start; }
+.asp-pop .asp-key { font-size: var(--fs-xs); }
+.asp-pop .asp-key dt { white-space: nowrap; }
 .asp-pop .asp-spec { padding-left: var(--space-4); border-left: 1px solid hsl(var(--green-hsl) / 0.12); }
 .asp-pop .asp-cols dd { white-space: nowrap; } /* the base column's short values stay on one line... */
 .asp-pop .asp-cols .asp-spec dd { white-space: normal; overflow-wrap: anywhere; } /* ...a long spec "now -> next" wraps inside its row, never out of the card (owner) */
