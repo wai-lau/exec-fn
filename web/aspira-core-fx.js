@@ -55,10 +55,15 @@ function drawCoreHud() {
   }
   ctx.globalAlpha = 1; ctx.shadowBlur = 0;
 }
-function drawTimeStop(c) { // the ring sweeping out (owner: the plain ring is enough)
+function drawTimeStop(c) { // RINGS sweeping out for the whole freeze, one every TEMPORAL_RING_EVERY s (owner, 2026-10-08; was one)
   if (!c.freeze) return;
-  const f = c.freeze, p = Math.min(1, f.t / TEMPORAL_GROW);
-  ctx.strokeStyle = COL.cyan; ctx.lineWidth = 6; ctx.globalAlpha = 0.8 * (1 - Math.max(0, f.t - TEMPORAL_GROW) / 0.4);
-  ctx.beginPath(); ctx.arc(CX, CY, Math.max(1, TEMPORAL_R * p), 0, 6.283); ctx.stroke();
+  const f = c.freeze;
+  ctx.strokeStyle = COL.cyan; ctx.lineWidth = 6;
+  for (let t0 = 0; t0 < f.dur && t0 <= f.t; t0 += TEMPORAL_RING_EVERY) {
+    const a = f.t - t0; // this ring's age
+    if (a > TEMPORAL_GROW + TEMPORAL_FADE) continue;
+    ctx.globalAlpha = 0.8 * (1 - Math.max(0, a - TEMPORAL_GROW) / TEMPORAL_FADE);
+    ctx.beginPath(); ctx.arc(CX, CY, Math.max(1, TEMPORAL_R * Math.min(1, a / TEMPORAL_GROW)), 0, 6.283); ctx.stroke();
+  }
   ctx.globalAlpha = 1;
 }
