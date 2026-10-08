@@ -337,7 +337,7 @@ function drawFx(pass) {
       } else { ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); }
       // the core's width is the DAMAGE of this hit (owner: every tower) - a
       // multi-beam shot's beams each carry the whole hit (rayHit)
-      const core = beamWidth(f.d || 0);
+      const core = beamWidth(f.d || 0) * (f.thin || 1); // (thin: Capacitance's leaps)
       if (f.m && !lowQ) { // low quality: the beam's core only, no glow passes
         const a = ctx.globalAlpha;
         if (f.slim) {
@@ -348,7 +348,7 @@ function drawFx(pass) {
             ctx.globalAlpha = Math.min(1, a * SOL_GLOW_A * BEAM_BRIGHT); ctx.lineWidth = core * SOL_BEAM_W * (1 + i * 0.25); ctx.stroke(); // SOL: thicker, more opaque (owner, 2026-10-06; was 0.5 wide, 0.3)
           }
         } else {
-          ctx.globalAlpha = Math.min(1, a * 0.22 * BEAM_BRIGHT); ctx.lineWidth = core * 3; ctx.stroke();
+          ctx.globalAlpha = Math.min(1, a * (f.soft ? ARC_GLOW_A : 0.22) * BEAM_BRIGHT); ctx.lineWidth = core * (f.soft ? ARC_GLOW_W : 3); ctx.stroke(); // soft: a chart ARC's (aspira-skills.js)
         }
         ctx.globalAlpha = a;
       }
