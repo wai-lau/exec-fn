@@ -164,7 +164,7 @@ const SKILL_MOVE = {
   arc:    { conductivity: [[1, 1, 1], [1.15, 1, 1], [1.3, 1, 1], [1.5, 1, 1], [1.65, 1, 1], [1.8, 1, 1]], voltage: [[1, 1, 1], [1.3, 1, 1], [1.6, 1, 1], [2, 1, 1], [2.2, 1, 1], [2.4, 1, 1]], capacitance: [[1, 1, 1], [1, 1.3, 1], [1, 1.6, 1], [1, 2, 1], [1, 2.2, 1], [1, 2.4, 1]] },
   frz: { temp: [[1, 1, 1], [1.08, 1, 1], [1.12, 1, 1], [1.15, 1, 1], [1.18, 1, 1], [1.2, 1, 1]] /* a narrower aura per tier (owner, 2026-10-08; was 1.25 .. 2.2) */, rime: [[1, 1, 1], [1, 4 / 3, 1], [1, 5 / 3, 1], [1, 2, 1], [1, 2.2, 1], [1, 2.4, 1]], moons: NO_MOVE }, // Rime buys back FRZ's halved slide (owner)
   sol: { focus: [[1, 1, 1], [1.2, 1, 1], [1.4, 1, 1], [1.7, 1, 1], [1.85, 1, 1], [2, 1, 1]], refraction: [[1, 1, 1], [1.1, 1, 1], [1.2, 1, 1], [1.35, 1, 1], [1.45, 1, 1], [1.55, 1, 1]], breach: [[1, 1, 1], [1, 1.3, 1], [1, 1.6, 1], [1, 2, 1], [1, 2.2, 1], [1, 2.4, 1]] },
-  acd:    { spray: [[1, 1, 1], [1.2, 1, 1], [1.5, 1, 1], [1.9, 1, 1], [2.1, 1, 1], [2.3, 1, 1]], contagion: [[1, 1, 1], [1, 1.15, 1.15], [1, 1.3, 1.3], [1, 1.5, 1.5], [1, 1.65, 1.65], [1, 1.8, 1.8]], corrosion: NO_MOVE },
+  acd:    { spray: [[1, 1, 1], [1.02, 1, 1], [1.04, 1, 1], [1.06, 1, 1], [1.12, 1, 1], [1.15, 1, 1]] /* Spray's lever now that each jet stays a full strike (owner, 2026-10-08; was 1.2 .. 2.3) */, contagion: [[1, 1, 1], [1, 1.15, 1.15], [1, 1.3, 1.3], [1, 1.5, 1.5], [1, 1.65, 1.65], [1, 1.8, 1.8]], corrosion: NO_MOVE },
 };
 function skillMove(t, s) {
   for (const [ax, tiers] of Object.entries(SKILL_MOVE[t.kind])) {
@@ -427,7 +427,7 @@ const SOL_BREACH_ARMOR = [2, 16, 49, 101, 174, 200], SOL_BREACH_CRIT = [0, 0.01,
 // chance for every tower
 // the cone's half-angle by Refraction tier (owner, 2026-10-08: it WIDENS with the tier and starts wider, since every hop
 // must now travel forward - see solRefraction; was a flat 8, before that 25)
-const SOL_CONE_BY = [12, 40, 48, 54, 58, 60], SOL_CONE = SOL_CONE_BY[0], BREACH_CRIT = 0.01; // (the pre-chart path's per-stack crit; the chart SOL uses SOL_BREACH_CRIT)
+const SOL_CONE_BY = [12, 60, 60, 80, 80, 80], SOL_CONE = SOL_CONE_BY[0], BREACH_CRIT = 0.01; // (the pre-chart path's per-stack crit; the chart SOL uses SOL_BREACH_CRIT)
 // SOL's own lever (owner: more crit): Breach also raises the crit MULTIPLIER, x3 at base
 const SOL_CRITMUL = [3, 4, 5, 7, 8, 9];
 // FITTED 2026-10-06 to +25 / +50 / +100% (on an HP-scaled field, so nothing
@@ -437,9 +437,9 @@ const SOL_CRITMUL = [3, 4, 5, 7, 8, 9];
 const SOL_HOP = [1, 1, 1, 1, 1, 1]; // every refraction hop a full strike (overnight fit 2026-10-08: even 1.5x reached only 133% - Refraction needs a mechanic change, not numbers) // II / III raised 2026-10-07 (were 0.3 / 0.455) with the cone narrowed to 8 degrees: fewer hops land, so each counts more
 // Refraction peaked at I (107%) and fell by III (93%): range alone spread its fire
 // thin, so II / III also hit harder (owner, 2026-10-07)
-const SOL_REFRACTION_DMG = [1, 1, 1.3, 1.6, 1.8, 2];
+const SOL_REFRACTION_DMG = [1, 1, 1.3, 1.84, 2.43, 3]; // III..V x1.15 / 1.35 / 1.5 with the 160-degree cone (owner, 2026-10-08: "even a 160 deg angle?" - the cone alone tops out at 156%)
 // each Focus tier's beam STRENGTH (2026-10-08, the tier fit's lever for Focus: more beams alone measured 168% at V)
-const SOL_FOCUS_DMG = [1, 0.85, 0.771, 1, 1.139, 1.176];
+const SOL_FOCUS_DMG = [1, 1, 1, 1, 1.139, 1.176]; // never below 1 (owner, 2026-10-08: no upgrade lowers a stat) - more beams carry I..III (114 / 133 / 152%)
 function solSkillStats(t, s, b) {
   s.dmg = b.dmg * SOL_REFRACTION_DMG[skillOf(t, "refraction")] * SOL_FOCUS_DMG[skillOf(t, "focus")]; s.range = b.range * RANGE_BONUS; s.crit = LVL_SOL_CRIT[0]; s.rate = b.rate;
   s.beams = SOL_BEAMS[skillOf(t, "focus")]; s.refraction = SOL_REFRACTION[skillOf(t, "refraction")]; s.cone = SOL_CONE_BY[skillOf(t, "refraction")];

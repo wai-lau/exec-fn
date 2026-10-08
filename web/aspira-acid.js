@@ -96,7 +96,7 @@ function stepAcd(t, dt) {
 // heat (ACD_CORROSION_DMG x the dps, so the top heat rises with it - raising only
 // the cap did nothing, the ramp rarely reaches it); the ramp stays ACD_DOUBLE[0]
 const ACD_CORROSION_DMG = [1, 1.213, 1.823, 2.674, 3.631, 4.253];
-const ACD_DOUBLE = [0.5, 0.39, 0.3, 0.12, 0.12, 0.12], ACD_LINES = [2, 3, 4, 6, 7, 8], /* early-game balance 2026-10-06: two lines from the start (was 1/2/3/5); Spray to be re-fitted */ ACD_SPRAY_MUL = [1, 0.614, 0.458, 0.4, 0.4, 0.4];
+const ACD_DOUBLE = [0.5, 0.39, 0.3, 0.12, 0.12, 0.12], ACD_LINES = [2, 3, 4, 6, 7, 8], /* early-game balance 2026-10-06: two lines from the start (was 1/2/3/5); Spray to be re-fitted */ ACD_SPRAY_MUL = [1, 1, 1, 1, 1, 1]; // every jet a full strike (owner, 2026-10-08: never below 1) - Spray's reach (SKILL_MOVE) is the lever
 // puddles by Seep tier (index 0 = the DEFAULT drip, owner): one every `every`
 // s per line, lasting `life` s, radius r; each burns at ACD_PUDDLE_HEAT of its
 // line's heat when it fell, by Seep tier
