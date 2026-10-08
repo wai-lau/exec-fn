@@ -50,14 +50,14 @@ function shieldsOf(type, n) {
 const enemyHp = (type, n) => (9 * Math.pow(HP_GROWTH, n - 1) + n * 2) * ENEMIES[type].hp * 2 * shieldsOf(type, n).hpMul; // x2: half as many enemies (owner); 9 / 2 (2026-10-08: all HP halved, was 18 / 4)
 function spawnEnemy(type, n, pi, ang = 0) {
   const d = ENEMIES[type], s0 = entryS(pi), p0 = pathAt(pi, s0, ang);
-  const hp = enemyHp(type, n);
+  const hp = Math.floor(enemyHp(type, n)); // WHOLE numbers (owner, 2026-10-08): HP, armor and every hit round down
   // DEFENCES KEEP PACE WITH HP (overnight simulator, 2026-10-02): with flat
   // armor/shields, late waves were pure dps and ARC spam won. Armor grows with
   // the curve to ARMOR_EXP (0.4; was the square root), shields with its 0.4 power - normalised so
   // shields still start at exactly their base (8) on their first wave (3).
   const grow = Math.pow(HP_GROWTH, n - 1) + n * 4 / 18, grow3 = Math.pow(HP_GROWTH, 2) + 3 * 4 / 18;
   const { shield } = shieldsOf(type, n); // fewer late shields, more HP (shieldsOf)
-  const armor = d.armor ? d.armor * Math.pow(grow, ARMOR_EXP) : 0;
+  const armor = d.armor ? Math.floor(d.armor * Math.pow(grow, ARMOR_EXP)) : 0;
   G.enemies.push({
     armor, shield, shieldMax: shield, wave: n, // the wave it CAME from (the end screen's leaks)
     // swarm members wander widely off the lane, each at its own speed (+-20%)
@@ -163,13 +163,15 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
   const raw = amt;
   // (SOL ignored armor until 2026-10-07; owner: "SOL should no longer ignore armor" - its damage rose x1.3 to match, solarmor.mjs)
   const pierce = (st && st.armorPierce) || 0;
-  if (e.armor > 0 && !quiet && pierce < 1) amt = Math.max(amt * 0.1, amt - e.armor * (1 - pierce));
+  const arm = Math.trunc(e.armor || 0); // whole armor, rounded toward zero (Breach/Corrosion strip it in fractions)
+  if (arm > 0 && !quiet && pierce < 1) amt = Math.max(amt * 0.1, amt - arm * (1 - pierce));
   // NEGATIVE armor (ACD's Corrosion, owner) is a flat bonus on every hit
-  else if (e.armor < 0 && !quiet) amt -= e.armor;
+  else if (arm < 0 && !quiet) amt -= arm;
   const blunted = amt < raw;
   // per-tower tally: damage counts only up to the HP the enemy had left
   if (t) t.dealt = (t.dealt || 0) + Math.min(amt, Math.max(0, e.hp));
   amt = bossHitCap(e, amt); // Justice / Death cap a single hit (aspira-bosses.js)
+  amt = Math.max(1, Math.floor(amt)); // a hit is a WHOLE number, rounded down - but one that lands always takes 1 (owner, 2026-10-08)
   e.hp -= amt;
   if (!quiet) {
     // impact flash sized and lit by the damage; big hits also throw sparks
