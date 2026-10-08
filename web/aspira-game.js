@@ -47,7 +47,7 @@ function shieldsOf(type, n) {
   const r = sCurve(n) / sCurve(3), old = Math.max(b, b * Math.pow(r, 0.4)), shield = Math.max(b, Math.round(b * Math.pow(r, SHIELD_EXP)));
   return { shield, hpMul: old / shield };
 }
-const enemyHp = (type, n) => (18 * Math.pow(HP_GROWTH, n - 1) + n * 4) * ENEMIES[type].hp * 2 * shieldsOf(type, n).hpMul; // x2: half as many enemies (owner)
+const enemyHp = (type, n) => (9 * Math.pow(HP_GROWTH, n - 1) + n * 2) * ENEMIES[type].hp * 2 * shieldsOf(type, n).hpMul; // x2: half as many enemies (owner); 9 / 2 (2026-10-08: all HP halved, was 18 / 4)
 function spawnEnemy(type, n, pi, ang = 0) {
   const d = ENEMIES[type], s0 = entryS(pi), p0 = pathAt(pi, s0, ang);
   const hp = enemyHp(type, n);
@@ -311,7 +311,7 @@ function addScore(n) {
 // ---------- fx ----------
 // Effect magnitude from damage: ~0.9 for a 4-damage tick, ~2.3 for an 80
 // hit, capped at 3 (a big crit). 0 for no damage (the Slower's beam).
-const dmgMag = d => (d > 0 ? Math.min(3, 0.5 + Math.sqrt(d) / 5) : 0);
+const dmgMag = d => (d > 0 ? Math.min(3, 0.5 + Math.sqrt(d * VIS_DMG) / 5) : 0); // VIS_DMG: sized as before the halving
 // slim: RPR's beam - half the width, brighter glow (owner).
 // follow: the beam keeps hold of its two endpoint objects (tower, enemy) and
 // is redrawn between them every frame while it lasts, so it tracks a moving
@@ -323,7 +323,7 @@ const dmgMag = d => (d > 0 ? Math.min(3, 0.5 + Math.sqrt(d) / 5) : 0);
 // rule). Damage runs from ~5 to 100k+ over a game, so it is LOGARITHMIC:
 // 10 -> 2.0, 100 -> 3.6, 1k -> 5.2, 10k -> 6.8, 100k -> 8.4, capped at BEAM_MAX
 const BEAM_MIN = 0.4, BEAM_PER_DECADE = 1.6, BEAM_MAX = 10;
-const beamWidth = d => Math.min(BEAM_MAX, BEAM_MIN + BEAM_PER_DECADE * Math.log10(1 + Math.max(0, d)));
+const beamWidth = d => Math.min(BEAM_MAX, BEAM_MIN + BEAM_PER_DECADE * Math.log10(1 + Math.max(0, d * VIS_DMG)));
 // every beam lasts BEAM_LIFE_MUL x its asked life and draws BEAM_BRIGHT x as
 // bright (owner, 2026-10-06: "twice as long and twice as bright"; drawFx)
 const BEAM_LIFE_MUL = 2, BEAM_BRIGHT = 2;

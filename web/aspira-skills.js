@@ -428,7 +428,7 @@ const SOL_BEAMS = [1, 2, 3, 4, 5, 6], SOL_REFRACTION = [1, 3, 6, 10, 13, Infinit
 // BREACH IS SOL'S OWN, from the start (owner, 2026-10-08): every hit strips SOL_BREACH_ARMOR armor for good
 // (below zero too: a flat bonus on every later hit from every tower); the Breach axis massively
 // increases the strip and adds crit chance for every tower, SOL_BREACH_CRIT a hit (none at base)
-const SOL_BREACH_ARMOR = [2, 16, 49, 101, 174, 200], SOL_BREACH_CRIT = [0, 0.01, 0.02, 0.03, 0.04, 0.05];
+const SOL_BREACH_ARMOR = [1, 8, 24, 50, 87, 100] /* halved, rounded down (2026-10-08; was 2 16 49 101 174 200) */, SOL_BREACH_CRIT = [0, 0.01, 0.02, 0.03, 0.04, 0.05];
 // a refraction lands within SOL_CONE degrees of the first shot's direction (at
 // any distance); one Breach = BREACH_ARMOR armor off and BREACH_CRIT crit
 // chance for every tower

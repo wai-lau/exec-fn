@@ -249,18 +249,18 @@ function resolveColors() {
 // acd = ACD; older comments still call them chain/slower/reaper/acid (CHN/SLW/RPR)
 // each `blurb` (the build card's tagline) speaks the tower card's own vocabulary (owner,
 // 2026-10-07): arcs that fork, a chill, a ray of light, jets of acid (aspira-desc.js)
-// DISPLAY UNIT (owner, 2026-10-08): every damage, HP and armor number the player READS is the
-// real value / DMG_UNIT, rounded DOWN - so the smallest number shown (Breach I, -2 armor) reads 1
-// (owner: 16 was too much - Breach I read 0).
-// The game's math is untouched; only what is shown is divided.
-const DMG_UNIT = 2;
-const dmgUnits = v => Math.floor(v / DMG_UNIT);
+// ONE SCALE (owner, 2026-10-08): every damage, HP and armor number was HALVED in the game itself
+// (tower dmg, the HP curve, armor, Breach), so the smallest number shown (Breach I, -1 armor) is 1
+// and what the player reads is the real value, rounded DOWN. Hit flashes and beam widths are
+// sized by VIS_DMG x the damage, so they look as they did before the halving.
+const VIS_DMG = 2;
+const dmgUnits = v => Math.floor(v);
 const TOWERS = {
-  arc:     { name: "Arc",     ab: "ARC", color: "orange",   cost: 40,  dmg: 96, rate: 1.5, /* 2026-10-06: was 42, then 48 (late), now 96 - a shot lands for half as long with the range halved (owner, 2026-10-06), so it hits twice as hard */  range: 130 /* owner 2026-10-06: 1.5x the halved 86.7, which felt too small */, blurb: "Arcs fork on hit, so one bolt leaps through a whole swarm.", up: "extra arcs" },
-  frz:     { name: "Freeze",  ab: "FRZ", color: "cyan",   cost: 40,  dmg: 30, rate: 2.4, /* early-game balance 2026-10-06: was 2.5, then 5, then 12; 30 - the aura TICK is FRZ's own damage and pops a swarm (the Empress' children) the halved aura would otherwise miss */  range: 88,  blurb: "A chill slows all it holds, so every other tower gets more time to hit.", up: "slow strength" },
-  sol:     { name: "Sol",      ab: "SOL", color: "pink",   cost: 40,  dmg: 220, /* 2026-10-07: x1.3 (was 170) - armor now bites SOL (owner); solarmor.mjs: 170 piercing dealt 1.10M, unpierced x1.25 1.05M, x1.5 1.39M */  rate: 1, /* 2026-10-06: slower, harder shots (was 140 / 1.35) - an armor and boss specialist, not a swarm answer; 170 with every Focus beam a FULL hit (4 x 170 is about the old 7 shared beams); range 200 (was 175): the fast waves 14 / 18 outran the halved range */  range: 260 /* owner 2026-10-06: 200 still felt too small (was 350, halved) */, blurb: "A ray of light whose huge strikes bring down tanks and bosses.", up: "crit chance" },
+  arc:     { name: "Arc",     ab: "ARC", color: "orange",   cost: 40,  dmg: 48, rate: 1.5, /* 2026-10-08: every damage / HP / armor HALVED (owner, the display unit made real; was 96).  2026-10-06: was 42, then 48 (late), now 96 - a shot lands for half as long with the range halved (owner, 2026-10-06), so it hits twice as hard */  range: 130 /* owner 2026-10-06: 1.5x the halved 86.7, which felt too small */, blurb: "Arcs fork on hit, so one bolt leaps through a whole swarm.", up: "extra arcs" },
+  frz:     { name: "Freeze",  ab: "FRZ", color: "cyan",   cost: 40,  dmg: 15, rate: 2.4, /* 2026-10-08: halved (was 30).  early-game balance 2026-10-06: was 2.5, then 5, then 12; 30 - the aura TICK is FRZ's own damage and pops a swarm (the Empress' children) the halved aura would otherwise miss */  range: 88,  blurb: "A chill slows all it holds, so every other tower gets more time to hit.", up: "slow strength" },
+  sol:     { name: "Sol",      ab: "SOL", color: "pink",   cost: 40,  dmg: 110, /* 2026-10-08: halved (was 220).  2026-10-07: x1.3 (was 170) - armor now bites SOL (owner); solarmor.mjs: 170 piercing dealt 1.10M, unpierced x1.25 1.05M, x1.5 1.39M */  rate: 1, /* 2026-10-06: slower, harder shots (was 140 / 1.35) - an armor and boss specialist, not a swarm answer; 170 with every Focus beam a FULL hit (4 x 170 is about the old 7 shared beams); range 200 (was 175): the fast waves 14 / 18 outran the halved range */  range: 260 /* owner 2026-10-06: 200 still felt too small (was 350, halved) */, blurb: "A ray of light whose huge strikes bring down tanks and bosses.", up: "crit chance" },
   // dmg = damage per SECOND at x1; rate = ticks per second (owner: a DoT line)
-  acd:     { name: "Acid",    ab: "ACD", color: "chatsubo", cost: 40,  dmg: 46,  rate: 4, /* early-game balance 2026-10-06: was 18, then 26; 46 with the range halved (and a faster base ramp, ACD_DOUBLE) */    range: 115, blurb: "Jets of acid etch their targets, the concentration building, so they melt tough enemies and pop shields.", up: "burn" },
+  acd:     { name: "Acid",    ab: "ACD", color: "chatsubo", cost: 40,  dmg: 23,  rate: 4, /* 2026-10-08: halved (was 46).  early-game balance 2026-10-06: was 18, then 26; 46 with the range halved (and a faster base ramp, ACD_DOUBLE) */    range: 115, blurb: "Jets of acid etch their targets, the concentration building, so they melt tough enemies and pop shields.", up: "burn" },
 };
 // which enemies each tower is GOOD AGAINST (owner), on its build card
 const GOOD_VS = { arc: "swarms", frz: "fast, shields", sol: "armor, bosses", acd: "shields, bosses" };
@@ -289,7 +289,7 @@ const ENEMIES = {
   // bounty halved so a swarm wave pays what it did
   swarm:  { sides: 4, hp: 0.14, speed: 125, bounty: 0.18, size: 6, color: "white" },
   shield: { sides: 5, hp: 0.6,  speed: 37.5, bounty: 1.6, size: 13, color: "cyan", shield: 8 }, // owner 2026-10-02: less HP (0.9), more shield (5)
-  armor:  { sides: 7, hp: 1.0,  speed: 30, bounty: 2,   size: 15, color: "pink", armor: 24 }, // owner: 6 -> 15; 2026-10-02 less HP (1.6), more armor (15)
+  armor:  { sides: 7, hp: 1.0,  speed: 30, bounty: 2,   size: 15, color: "pink", armor: 12 }, // 2026-10-08: halved with all damage / HP (was 24) // owner: 6 -> 15; 2026-10-02 less HP (1.6), more armor (15)
   // the rare BOSS (owner, 2026-10-02): every 10th wave, ALONE; an octagon,
   // x5 HP, x2 size, half speed (100 -> 50), and letting it through costs 10 lives. `star` still marks
   // it as the bonus (lane, tracer, drop); `pointy` would draw a star shape.

@@ -65,8 +65,8 @@ const UPGRADES = {
       // late-game test at 84-90 vs an 80 baseline)
       { name: "Bloom", desc: "The burning circle grows as the burn ramps.", mods: { bloom: 1.6, dmg: 1.15 },
         super: { name: "Overgrowth", desc: "The circle blooms even wider.", mods: { bloom: 2.2 } } },
-      { name: "Corrosion", desc: "Eats armor away, so every tower hits harder.", mods: { corrode: 1.5 },
-        super: { name: "Dissolve", desc: "Eats armor faster.", mods: { corrode: 3 } } },
+      { name: "Corrosion", desc: "Eats armor away, so every tower hits harder.", mods: { corrode: 0.75 },
+        super: { name: "Dissolve", desc: "Eats armor faster.", mods: { corrode: 1.5 } } },
       // range cut (owner, 2026-10-02): every burn in range keeps ramping, never
       // down, so a wide Contagion was too strong. 0.6 / 0.75 of the tower's range
       { name: "Contagion", desc: "Everything in range burns, each on its own ramp.", mods: { allInRange: true, plagueR: 0, range: 0.6 },
@@ -104,11 +104,11 @@ const UPGRADES = {
   //   Charge  heavier, slower twin beams (st.beams 2, each half a shot)
   sol: [
     { name: "Impale", desc: "Every hit makes the enemy bleed: its armor falls and every tower crits it more, for good.",
-      mods: { bleedArmor: 3, bleedCrit: 0.03 }, finals: [
+      mods: { bleedArmor: 1.5, bleedCrit: 0.03 }, finals: [
         { name: "Pinpoint", desc: "Crits come far more often, and hit harder.", mods: { critScale: 1.5, critMul: 4 },
           super: { name: "Splicer", desc: "Crits come more often still, and hit harder still.", mods: { critScale: 2, critMul: 5 } } },
-        { name: "Gore", desc: "Every hit bleeds deeper.", mods: { bleedArmor: 6, bleedCrit: 0.06 },
-          super: { name: "Haemorrhage", desc: "The deepest bleeding.", mods: { bleedArmor: 9, bleedCrit: 0.09 } } },
+        { name: "Gore", desc: "Every hit bleeds deeper.", mods: { bleedArmor: 3, bleedCrit: 0.06 },
+          super: { name: "Haemorrhage", desc: "The deepest bleeding.", mods: { bleedArmor: 4.5, bleedCrit: 0.09 } } },
         { name: "Ricochet", desc: "Each shot chains at full damage from enemy to enemy.", mods: { ricochet: 2 },
           super: { name: "Shredder", desc: "The chain runs much further.", mods: { ricochet: 5 } } },
       ] },
