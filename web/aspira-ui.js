@@ -195,15 +195,16 @@ const SPEC = {
     ["Shatter", st.shatter ? Math.round(st.dmg * st.shatter.mul) + " r" + st.shatter.r : "—"],
     ["Extra", st.frostbite ? "blast slows " + st.frostbite + "s" : st.brittle ? "+" + Math.round((st.brittle - 1) * 100) + "% taken"
       : st.chillStop ? "95% for " + st.chillStop + "s" : "—"]],
-  acd: st => [["Burn", Math.round(st.dmg) + "/s"], ["Ramp", "×2 / " + st.double + "s"],
-    ["Max", "×" + st.cap + " (" + Math.round(st.dmg * st.cap) + "/s)"], ["Lines", st.allInRange ? "all in range" : st.targets],
+  // acidic terms, never heat (owner, 2026-10-07): the acid CORRODES, BUILDS on its target, PEAKS
+  acd: st => [["Corrode", Math.round(st.dmg) + "/s"], ["Builds", "×2 / " + st.double + "s"],
+    ["Peak", "×" + st.cap + " (" + Math.round(st.dmg * st.cap) + "/s)"], ["Jets", st.allInRange ? "all in range" : st.targets],
     ["Circle", st.plagueR ? Math.round(st.plagueR) + (st.bloom ? "→" + Math.round(st.plagueR * st.bloom) : "") : "—"],
     ["Armor", st.corrode ? "−" + st.corrode + " / tick" : "—"], ["Shields", "−1 / tick"],
     ...(st.contagion ? [["Puddles", "1 / " + st.contagion.every + "s · " + st.contagion.life + "s · r" + st.contagion.r]] : [])],
   sol: st => [["Crit", Math.round(st.crit * 100) + "%"], ["Crit ×", st.critMul], ["Locks", st.targets],
     ["Beams", st.beams || 1], ...(st.skill ? [["Refract", st.refraction ? "+" + st.refraction + " in a " + SOL_CONE * 2 + "° cone" : "—"]] : []),
     // short enough for the card's right column (owner, 2026-10-07: "1 × (−1.5 armor, +1% crit) / hit" ran off it)
-    [st.skill ? "Breach" : "Bleed", st.bleedArmor ? "−" + st.bleedArmor + " armor, +" + Math.round(st.bleedCrit * 100) + "% crit" + (st.breach > 1 ? " ×" + st.breach : "") + "/hit" : "—"],
+    [st.skill ? "Breach" : "Bleed", st.bleedArmor ? "−" + st.bleedArmor + " armor" + (st.bleedCrit ? ", +" + Math.round(st.bleedCrit * 100) + "% crit" : "") + (st.breach > 1 ? " ×" + st.breach : "") + "/hit" : "—"],
     ["Armor", "ignored"], ["Form", rayForm(st)]],
 };
 
@@ -212,7 +213,7 @@ const SPEC = {
 // A change for the WORSE shows red and bold (owner): compared on the last
 // number in each value, lower-is-better for the rows in LOWER_BETTER, and a
 // number giving way to "—" (a stat the upgrade removes) counts as worse.
-const LOWER_BETTER = new Set(["Delay", "Ramp"]);
+const LOWER_BETTER = new Set(["Delay", "Builds"]);
 function lastNum(v) { const m = String(v).match(/\d+(\.\d+)?/g); return m ? Number(m[m.length - 1]) : NaN; }
 function worse(label, now, next) {
   const a = lastNum(now), b = lastNum(next);
