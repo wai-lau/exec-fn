@@ -77,7 +77,7 @@ function bossSpawn(e, n) {
   e.arcana = arcanaOf(n).id;
   e.spd = (e.spd || 1) * (BOSS_SPEED[e.arcana] || 1);
   const grow = Math.pow(HP_GROWTH, n - 1) + n * 4 / 18; // the armored enemy's armor curve (spawnEnemy)
-  e.armor = e.armor0 = (BOSS_ARMOR[e.arcana] || 0) * Math.pow(grow, ARMOR_EXP);
+  e.armor = e.armor0 = Math.floor((BOSS_ARMOR[e.arcana] || 0) * Math.pow(grow, ARMOR_EXP));
   e.baseSpd = e.spd; e.broodAt = 0.8; e.sprintT = CHARIOT_EVERY;
   e.shield = e.shieldMax = BOSS_SHIELD[e.arcana] || 0; e.shieldBuf = 0;
   // HP per boss: BOSS_HP (fitted, see there; the Devil's is each of six)
@@ -85,7 +85,7 @@ function bossSpawn(e, n) {
   // ...and by the DISTANCE its lane makes it travel (owner): a long lane keeps
   // it under fire longer, so it gets proportionally more HP (x0.5 .. x1.6, the
   // average lane x1)
-  e.max *= laneTravel(e.pi) / meanTravel(); e.hp = e.max;
+  e.max = Math.floor(e.max * laneTravel(e.pi) / meanTravel()); e.hp = e.max; // whole HP
   // each boss a size bigger than the last (owner): Star x1.1 ... Death x2
   e.sizeMul = 1 + 0.1 * (ARCANA.findIndex(a => a.id === e.arcana) + 1);
   const mate = bossCount(n) === 2 && G.enemies.find(o => o !== e && !o.dead && o.arcana === e.arcana && o.n === n && !o.mate);
@@ -108,7 +108,10 @@ function bossStep(e, dt) {
     if (e.sprintT <= -CHARIOT_T) e.sprintT += CHARIOT_EVERY;
     e.spd = e.baseSpd * (e.sprintT <= 0 ? CHARIOT_SPD : 1);
   }
-  if (isA(e, "temperance")) e.hp = Math.min(e.max, e.hp + e.max * TEMPERANCE_REGEN * dt);
+  if (isA(e, "temperance")) { // regen banks fractions and heals in WHOLE points (HP stays a whole number)
+    e.regenBuf = (e.regenBuf || 0) + e.max * TEMPERANCE_REGEN * dt;
+    const whole = Math.floor(e.regenBuf); e.regenBuf -= whole; e.hp = Math.min(e.max, e.hp + whole);
+  }
 
 }
 // from applySlow: Strength shrugs slows off
@@ -121,7 +124,7 @@ function bossHitCap(e, amt) {
 function bossRise(e) {
   if (e.risen || !isA(e, "judgement")) return false;
   e.risen = true; e.dead = false;
-  e.hp = e.max * JUDGEMENT_REVIVE;
+  e.hp = Math.floor(e.max * JUDGEMENT_REVIVE);
   ring(e.x, e.y, 60, "orange", 0.5);
   return true;
 }
