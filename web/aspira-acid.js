@@ -101,11 +101,11 @@ const ACD_DOUBLE = [0.5, 0.39, 0.3, 0.12, 0.12, 0.12], ACD_LINES = [2, 3, 4, 6, 
 // s per line, lasting `life` s, radius r; each burns at ACD_PUDDLE_HEAT of its
 // line's heat when it fell, by Seep tier
 // index 0 = NO puddles (owner, 2026-10-07: "ACD shouldn't have puddles at level 0"; was a default drip { every: 1.4, life: 1.5, r: 20 })
-const ACD_CONTAGION = [null, { every: 1.2, life: 1.8, r: 22 }, { every: 1, life: 2.4, r: 26 }, { every: 0.9, life: 2.7, r: 28 }, { every: 0.8, life: 3, r: 30 }, { every: 0.7, life: 3.3, r: 32 }]; // refit 2026-10-06
+const ACD_CONTAGION = [null, { every: 1.2, life: 1.8, r: 22 }, { every: 1, life: 2.4, r: 26 }, { every: 0.9, life: 3.2, r: 34 }, { every: 0.8, life: 3.8, r: 40 }, { every: 0.7, life: 5, r: 52 }]; // III+ bigger and longer, V the capstone (owner, 2026-10-08; were 2.7 / 3 / 3.3s, r 28 / 30 / 32) // refit 2026-10-06
 const ACD_PUDDLE_HEAT = [0.5, 1, 1.05, 1.1, 1.2, 1.3];
 // Contagion III (Pandemic) puddles SLOW what stands in them (owner, 2026-10-06,
 // the no-FRZ niche search: 3 SOL + 6 ACD reached 98, was 74; FRZ teams unchanged)
-const ACD_CONTAGION_SLOW = [0, 0, 0, 0.25, 0.3, 0.35]; // was 0.3 (2026-10-06 reach rework: with the roaming bonus 0.3 made Pandemic ~5x; phase 4 found 0.2-0.3 all open the niche)
+const ACD_CONTAGION_SLOW = [0, 0.05, 0.1, 0.15, 0.2, 0.25]; // slows from I, ramping slowly to III's old 25% at V (owner, 2026-10-08) // was 0.3 (2026-10-06 reach rework: with the roaming bonus 0.3 made Pandemic ~5x; phase 4 found 0.2-0.3 all open the niche)
 function acdSkillStats(t, s, b) {
   const c = skillOf(t, "corrosion");
   s.dmg = b.dmg * ACD_CORROSION_DMG[c]; s.range = b.range * RANGE_BONUS; s.double = ACD_DOUBLE[0]; s.cap = ACD_BASE_MAX; s.plagueR = 0;

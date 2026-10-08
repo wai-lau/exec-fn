@@ -162,7 +162,7 @@ const shownLvl = t => (!hasSkills(t) ? t.lvl : t.lvl >= maxLvl(t) ? MAX_LVL : 1 
 const NO_MOVE = [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]];
 const SKILL_MOVE = {
   arc:    { conductivity: [[1, 1, 1], [1.15, 1, 1], [1.3, 1, 1], [1.5, 1, 1], [1.65, 1, 1], [1.8, 1, 1]], voltage: [[1, 1, 1], [1.3, 1, 1], [1.6, 1, 1], [2, 1, 1], [2.2, 1, 1], [2.4, 1, 1]], capacitance: [[1, 1, 1], [1, 1.3, 1], [1, 1.6, 1], [1, 2, 1], [1, 2.2, 1], [1, 2.4, 1]] },
-  frz: { temp: [[1, 1, 1], [1.25, 1, 1], [1.5, 1, 1], [1.8, 1, 1], [2, 1, 1], [2.2, 1, 1]], rime: [[1, 1, 1], [1, 4 / 3, 1], [1, 5 / 3, 1], [1, 2, 1], [1, 2.2, 1], [1, 2.4, 1]], moons: NO_MOVE }, // Rime buys back FRZ's halved slide (owner)
+  frz: { temp: [[1, 1, 1], [1.15, 1, 1], [1.3, 1, 1], [1.5, 1, 1], [1.6, 1, 1], [1.7, 1, 1]] /* a narrower aura per tier (owner, 2026-10-08; was 1.25 .. 2.2) */, rime: [[1, 1, 1], [1, 4 / 3, 1], [1, 5 / 3, 1], [1, 2, 1], [1, 2.2, 1], [1, 2.4, 1]], moons: NO_MOVE }, // Rime buys back FRZ's halved slide (owner)
   sol: { focus: [[1, 1, 1], [1.2, 1, 1], [1.4, 1, 1], [1.7, 1, 1], [1.85, 1, 1], [2, 1, 1]], refraction: [[1, 1, 1], [1.1, 1, 1], [1.2, 1, 1], [1.35, 1, 1], [1.45, 1, 1], [1.55, 1, 1]], breach: [[1, 1, 1], [1, 1.3, 1], [1, 1.6, 1], [1, 2, 1], [1, 2.2, 1], [1, 2.4, 1]] },
   acd:    { spray: [[1, 1, 1], [1.2, 1, 1], [1.5, 1, 1], [1.9, 1, 1], [2.1, 1, 1], [2.3, 1, 1]], contagion: [[1, 1, 1], [1, 1.15, 1.15], [1, 1.3, 1.3], [1, 1.5, 1.5], [1, 1.65, 1.65], [1, 1.8, 1.8]], corrosion: NO_MOVE },
 };
@@ -192,7 +192,8 @@ let ARC_CONDUCTIVITY = [{ s: 1, j: 1, f: 2, r: 1, d: 1 }, { s: 1, j: 2, f: 2, r:
 // Capacitance by tier (owner, 2026-10-07): the charge, x the hit that left it, and
 // how many times the charged enemy ARCS when next hit (dischargeStatic). The
 // charge shares are the old ring's fits (2026-10-06: +25 / +50 / +100%); refit later
-const ARC_CAPACITANCE = [null, { arcs: 1, frac: 0.22 }, { arcs: 2, frac: 0.255 }, { arcs: 3, frac: 0.32 }, { arcs: 4, frac: 0.38 }, { arcs: 5, frac: 0.45 }];
+// owner, 2026-10-08 (isolation: the weakest ARC axis, 136% team at V): more charge and more arcs (were 1..5 arcs at .22 .. .45)
+const ARC_CAPACITANCE = [null, { arcs: 2, frac: 0.3 }, { arcs: 3, frac: 0.36 }, { arcs: 4, frac: 0.44 }, { arcs: 6, frac: 0.52 }, { arcs: 8, frac: 0.6 }];
 // each jump hits ARC_FALL as hard and reaches ARC_SHRINK as far as the one before (owner)
 const ARC_FALL = 0.5, ARC_SHRINK = 0.7;
 // a jump's reach, before Conductivity lengthens it (owner: longer by default). It
@@ -262,7 +263,7 @@ const ARC_STAT_SLOW = [0, 0, 0, 0.3, 0.35, 0.4], STAT_SLOW_T = 0.6;
 // ch.arcs times in a chain, each leap worth the whole charge, drawn as ARC's beams.
 // Quiet: a leap neither charges nor sets off charges, so there is no chain reaction
 // (staticQuiet). (Was an expanding ring around the enemy.)
-const STATIC_ARC_REACH = ARC_JUMP_BASE;
+const STATIC_ARC_REACH = 320; // longer than an ARC jump (owner, 2026-10-08: "increase arc reach"; was ARC_JUMP_BASE 234)
 function dischargeStatic(e) {
   const ch = e.charge;
   e.charge = null;
@@ -320,14 +321,14 @@ function skillHopTo(c, node, nxt, depth) {
 // for the other towers; FRZ + L1 ARC + L1 SOL, waves 20-30) - the first
 // guesses were 2-4x too strong; range moves little so "colder" reads as colder
 // early-game balance 2026-10-06: +0.03 on every tier (FRZ stays a pure SUPPORT tower - owner)
-const FRZ_TEMP_SLOW = [0.4, 0.43, 0.46, 0.5, 0.54, 0.58]; // the aura's range is in SKILL_MOVE
+const FRZ_TEMP_SLOW = [0.4, 0.42, 0.44, 0.46, 0.48, 0.5]; // weakened (owner, 2026-10-08; isolation: Temp V 438% team, leaks 660 -> 56); was .43 .46 .5 .54 .58 // the aura's range is in SKILL_MOVE
 // Temp III's TEAM hook (owner, 2026-10-07: FRZ's chart was flat, 97-103%): an enemy
 // its aura touches turns BRITTLE - while slowed it takes x FRZ_BRITTLE from every
 // tower (damage(), which already reads e.brittle; drawStatus shows the crack)
 const FRZ_BRITTLE = [1, 1, 1, 1.15, 1.2, 1.25];
 const FRZ_RIME = [0, 0.02, 0.035, 0.06, 0.08, 0.1]; // 2026-10-06: tier I was a dead point (was 1% / 1.9% / 3.7%) // each pulse's permanent stacking slow
 // FRZ's own levers (owner: no generic multipliers): Rime pulses MORE OFTEN each tier, the moons are STRONGER copies each tier
-const FRZ_RIME_PERIOD = [2, 2, 1.7, 1.4, 1.2, 1], FRZ_MOON_BY = [0.78, 0.9, 0.95, 1, 1, 1]; // Moons IV / V: four and five full moons
+const FRZ_RIME_PERIOD = [2, 2, 1.7, 1.4, 1.2, 1], FRZ_MOON_BY = [0.6, 0.65, 0.7, 0.75, 0.8, 0.85]; // weakened (owner, 2026-10-08; isolation: Moons V 499% team); was .78 .9 .95 1 1 1 // Moons IV / V: four and five full moons
 const FRZ_TICK = 0.5, FRZ_RIME_GROW = 2.4; // a Rime ring takes FRZ_RIME_GROW game s to reach the edge (owner: much slower; was 0.6)
 const FRZ_AURA_HOLD = 0.06, FRZ_RIM_W = 16; // the frosted rim's width per unit of slow (owner: thicker the colder) // an aura slow outlasts one step only: it is gone the moment the enemy leaves
 const FRZ_TICK_HIT = { armorPierce: 1 }; // a tick's hit on a shield: no armor bite
