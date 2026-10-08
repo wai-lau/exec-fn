@@ -717,7 +717,7 @@
 
 /* the BUTTON GROUP at the foot of the control half, CENTRED (owner): upgrade + cancel,
    and sell under them, smaller */
-#asp-upbox { display: flex; justify-content: center; gap: var(--space-2); margin-top: auto; margin-bottom: var(--space-4); } /* breathing room under upgrade + cancel (owner, 2026-10-08) */
+#asp-upbox { display: flex; justify-content: center; gap: var(--space-2); margin-top: auto; padding-top: var(--space-4); margin-bottom: var(--space-4); } /* breathing room under AND above upgrade + cancel (owner, 2026-10-08) */
 #asp-acts { grid-area: acts; display: flex; justify-content: center; } /* the card's last row on a phone (owner, 2026-10-08) */
 
 /* SMALL buttons and a small targeting slider (owner, 2026-10-07): the triangle is the card's focus */
