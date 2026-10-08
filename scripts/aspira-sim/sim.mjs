@@ -12,7 +12,7 @@ import { pickNext, usePowers } from "./corepower.mjs";
 // re-reads them, so a balance commit landing mid-run would otherwise mix two
 // versions (2026-10-07)
 const WEB = (process.env.ASPIRA_WEB || path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "web")) + "/";
-const FILES = ["aspira-defs.js", "aspira-upgrades.js", "aspira-game.js", "aspira-waves.js", "aspira-bosses.js", "aspira-towers.js", "aspira-acid.js", "aspira-skills.js", "aspira-positioning.js", "aspira-core.js"];
+const FILES = ["aspira-defs.js", "aspira-upgrades.js", "aspira-game.js", "aspira-waves.js", "aspira-bosses.js", "aspira-towers.js", "aspira-acid.js", "aspira-skills.js", "aspira-desc.js", "aspira-positioning.js", "aspira-core.js"];
 
 export function makeGame(seed, patch = "") {
   let a = seed >>> 0 || 1;

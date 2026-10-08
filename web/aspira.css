@@ -315,6 +315,9 @@
 
 /* an upgrade that makes this stat WORSE (owner): red, bold - Ember is the palette's red */
 .asp-next.asp-worse { color: hsl(var(--orange-glow-hsl)); }
+/* on the tower card a change for the better is the description's INSERTED green (owner: the same reds and greens) */
+.asp-pop .asp-next { color: hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l)); }
+.asp-pop .asp-next.asp-worse { color: hsl(var(--orange-glow-hsl)); }
 
 #asp button.on { background: hsl(var(--green-hsl) / 0.12); border-color: currentcolor; }
 

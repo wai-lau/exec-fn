@@ -37,13 +37,13 @@ const MECH = {
 };
 // the words that change from a to b, b's changed words marked *so* (the card's wordDiff, in text)
 function mark(a, b) {
-  const A = a.split(" "), B = b.split(" ");
+  const A = a.split(" "), B = b.split(" "), same = (x, y) => x.toLowerCase() === y.toLowerCase(); // a case change is no change (the card's wordDiff)
   const L = Array.from({ length: A.length + 1 }, () => new Array(B.length + 1).fill(0));
-  for (let i = A.length - 1; i >= 0; i--) for (let j = B.length - 1; j >= 0; j--) L[i][j] = A[i] === B[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  for (let i = A.length - 1; i >= 0; i--) for (let j = B.length - 1; j >= 0; j--) L[i][j] = same(A[i], B[j]) ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
   const out = []; let i = 0, j = 0, ins = [];
   const flush = () => { if (ins.length) out.push("*" + ins.join(" ") + "*"); ins = []; };
   while (i < A.length || j < B.length) {
-    if (i < A.length && j < B.length && A[i] === B[j]) { flush(); out.push(A[i]); i++; j++; }
+    if (i < A.length && j < B.length && same(A[i], B[j])) { flush(); out.push(B[j]); i++; j++; }
     else if (j < B.length && (i >= A.length || L[i][j + 1] >= L[i + 1][j])) ins.push(B[j++]);
     else i++;
   }
@@ -56,7 +56,8 @@ for (const kind of Object.keys(V("SKILL_TREES"))) {
   md += `\n## ${V(`TOWERS[${JSON.stringify(kind)}].name`)} (${kind.toUpperCase()})\n`;
   for (const ax of V(`SKILL_TREES[${JSON.stringify(kind)}]`)) {
     md += `\n### ${ax.name}\n\n| tier | sentence (changes from the tier before marked) | mechanic |\n|---|---|---|\n`;
-    const chain = [ax.base, ...ax.tiers.map(t => t.desc)];
+    // a composed tower (aspira-desc.js): its whole prose with only this axis raised; else the axis's own sentences
+    const chain = V(`!!DESCRIBE[${JSON.stringify(kind)}]`) ? [0, 1, 2, 3].map(k => V(`describeTower(${JSON.stringify(kind)}, { ${ax.id}: ${k} })`)) : [ax.base, ...ax.tiers.map(t => t.desc)];
     chain.forEach((sentence, k) => { md += `| ${roman[k]} | ${k ? mark(chain[k - 1], sentence) : sentence} | ${MECH[kind][ax.id](k)} |\n`; });
   }
 }
