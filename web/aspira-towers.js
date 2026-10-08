@@ -129,12 +129,21 @@ const MOON_SPIN = 2 / 3, MOON_ORBIT = 126; // rad/s (owner: 4 -> 2 -> 2/3); orbi
 // a chart FRZ's moons orbit CLOSER, and closer with every Moons tier (owner,
 // 2026-10-06: after the range halving 126 put them far outside the aura)
 const MOON_ORBIT_BY_N = [MOON_ORBIT, 140, 140, 140, 140, 140]; // TWICE as far (owner, 2026-10-08: "twice as far as they are now"; was 70 at every tier, before that 70 58 46 46 46)
+// a chart FRZ's moons fly ELLIPTICAL orbits (owner, 2026-10-08): Keplerian, the tower at a focus, the
+// orbit's size its old radius, eccentricity MOON_ECC - the near end (periapsis) toward the core, so a moon
+// swings far out over the lanes (210) and back in close (70), fastest near the tower; the moons are evenly
+// spaced in TIME (mean anomaly), so they bunch on the far side like real ones
+const MOON_ECC = 0.5;
 function moonSpots(t, st) {
   const a = (t.spin || 0) * MOON_SPIN, n = st.moons || 1;
+  const kep = hasSkills(t), phi = Math.atan2(CY - t.y, CX - t.x), cp = Math.cos(phi), sp = Math.sin(phi), b = Math.sqrt(1 - MOON_ECC * MOON_ECC);
   return Array.from({ length: n }, (_, i) => {
     const m = a + i * 2 * Math.PI / n;
-    const r = hasSkills(t) ? MOON_ORBIT_BY_N[Math.min(n, MOON_ORBIT_BY_N.length - 1)] : MOON_ORBIT;
-    return { x: t.x + Math.cos(m) * r, y: t.y + Math.sin(m) * r };
+    const r = kep ? MOON_ORBIT_BY_N[Math.min(n, MOON_ORBIT_BY_N.length - 1)] : MOON_ORBIT;
+    if (!kep) return { x: t.x + Math.cos(m) * r, y: t.y + Math.sin(m) * r };
+    let E = m; for (let k = 0; k < 5; k++) E -= (E - MOON_ECC * Math.sin(E) - m) / (1 - MOON_ECC * Math.cos(E)); // Kepler's equation
+    const px = r * (Math.cos(E) - MOON_ECC), py = r * b * Math.sin(E); // from the focus, periapsis on +x
+    return { x: t.x + px * cp - py * sp, y: t.y + px * sp + py * cp };
   });
 }
 // each moon's pick, like a Stasis FRZ standing where the moon is; t.moonLinks
