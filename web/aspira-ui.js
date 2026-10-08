@@ -200,7 +200,10 @@ const SPEC = {
     ["Peak", "×" + st.cap + " (" + Math.round(st.dmg * st.cap) + "/s)"], ["Jets", st.allInRange ? "all in range" : st.targets],
     ["Circle", st.plagueR ? Math.round(st.plagueR) + (st.bloom ? "→" + Math.round(st.plagueR * st.bloom) : "") : "—"],
     ["Armor", st.corrode ? "−" + st.corrode + " / tick" : "—"], ["Shields", "−1 / tick"],
-    ...(st.contagion ? [["Puddles", "1 / " + st.contagion.every + "s · " + st.contagion.life + "s · r" + st.contagion.r]] : [])],
+    // puddles one number a row (owner, 2026-10-07: "1 / 1.4s · 1.5s · r20" was unreadable), so each
+    // reads now -> next on its own and its colour judges that one number
+    ...(st.contagion ? [["Puddle burn", Math.round(st.contagionHeat * 100) + "% of jet"], ["Drips every", st.contagion.every + "s"],
+      ["Puddle size", st.contagion.r], ["Puddle lasts", st.contagion.life + "s"], ["Puddle slow", st.contagionSlow ? Math.round(st.contagionSlow * 100) + "%" : "—"]] : [])],
   sol: st => [["Crit", Math.round(st.crit * 100) + "%"], ["Crit ×", st.critMul], ["Locks", st.targets],
     ["Beams", st.beams || 1], ...(st.skill ? [["Refract", st.refraction ? "+" + st.refraction + " in a " + SOL_CONE * 2 + "° cone" : "—"]] : []),
     // short enough for the card's right column (owner, 2026-10-07: "1 × (−1.5 armor, +1% crit) / hit" ran off it)
@@ -213,7 +216,7 @@ const SPEC = {
 // A change for the WORSE shows red and bold (owner): compared on the last
 // number in each value, lower-is-better for the rows in LOWER_BETTER, and a
 // number giving way to "—" (a stat the upgrade removes) counts as worse.
-const LOWER_BETTER = new Set(["Delay", "Builds"]);
+const LOWER_BETTER = new Set(["Delay", "Builds", "Drips every"]); // (Drips every: a shorter wait is better)
 function lastNum(v) { const m = String(v).match(/\d+(\.\d+)?/g); return m ? Number(m[m.length - 1]) : NaN; }
 function worse(label, now, next) {
   const a = lastNum(now), b = lastNum(next);

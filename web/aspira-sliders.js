@@ -110,7 +110,7 @@ function refreshUpgradePreview(t) {
 // the left, bigger (KEY_STATS, in that order), everything else on the right, small;
 // "now -> next" where the pulled points change a value (statRow paints a change for
 // the worse red); rows the tower has not got yet ("—") are left out
-const KEY_STATS = { arc: ["Damage", "Hits", "Arc dmg", "Charge", "Range"], frz: ["Aura slow", "Range", "Rime", "Moons", "Aura dmg"], sol: ["Damage", "Beams", "Crit", "Crit ×", "Breach", "Refract"], acd: ["Corrode", "Jets", "Peak", "Builds", "Puddles"] };
+const KEY_STATS = { arc: ["Damage", "Hits", "Arc dmg", "Charge", "Range"], frz: ["Aura slow", "Range", "Rime", "Moons", "Aura dmg"], sol: ["Damage", "Beams", "Crit", "Crit ×", "Breach", "Refract"], acd: ["Corrode", "Jets", "Peak", "Builds", "Puddle burn"] };
 function cardStats(t, pv) {
   const b = TOWERS[t.kind], st = towerStats(t), nx = pv ? towerStats(pv) : null, spN = nx ? SPEC[t.kind](nx, pv) : null;
   const rows = [];
