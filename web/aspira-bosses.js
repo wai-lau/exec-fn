@@ -46,6 +46,10 @@ const BOSS_HP = { star: 2.7, empress: 3.4, strength: 1.1, chariot: 1.7, lovers: 
 // lose HP, so SOL (whose hits strip armor) and ACD (whose ramp wants a long-lived target) boss alike
 const BOSS_ARMOR = { star: 0, empress: 0, strength: 0, chariot: 0, lovers: 0, temperance: 0, devil: 0, justice: 0, judgement: 0, death: 0 };
 const BOSS_SPEED = { star: 1, empress: 1, strength: 1, chariot: 1, lovers: 1, temperance: 1, devil: 1, justice: 1, judgement: 1, death: 1 };
+// each boss's SHIELD (hits absorbed, whatever their size) and its REFILL a second - the counter to
+// SOL's few huge hits (owner, 2026-10-08): ACD's ticks, ARC's forks and FRZ's aura strip it cheaply
+const BOSS_SHIELD = { star: 0, empress: 0, strength: 0, chariot: 0, lovers: 0, temperance: 0, devil: 0, justice: 0, judgement: 0, death: 0 };
+const BOSS_SHIELD_REGEN = { star: 0, empress: 0, strength: 0, chariot: 0, lovers: 0, temperance: 0, devil: 0, justice: 0, judgement: 0, death: 0 };
 const BOSS_INTRO = 2.5; // s between a boss wave starting and its boss arriving (its warning plays)
 let EMPRESS_BROOD = 12; // fitted 2026-10-05 (was 30): her HP was never the lever, her brood is; let: the boss balance test (scripts/aspira-sim/bossbal.mjs, BB_BROOD) tries other broods
 const CHARIOT_EVERY = 4, CHARIOT_T = 1, CHARIOT_SPD = 3, LOVERS_SPD = 1.5;
@@ -75,6 +79,7 @@ function bossSpawn(e, n) {
   const grow = Math.pow(HP_GROWTH, n - 1) + n * 4 / 18; // the armored enemy's armor curve (spawnEnemy)
   e.armor = e.armor0 = (BOSS_ARMOR[e.arcana] || 0) * Math.pow(grow, ARMOR_EXP);
   e.baseSpd = e.spd; e.broodAt = 0.8; e.sprintT = CHARIOT_EVERY;
+  e.shield = e.shieldMax = BOSS_SHIELD[e.arcana] || 0; e.shieldBuf = 0;
   // HP per boss: BOSS_HP (fitted, see there; the Devil's is each of six)
   e.max *= BOSS_HP[e.arcana] || 1;
   // ...and by the DISTANCE its lane makes it travel (owner): a long lane keeps
@@ -88,6 +93,8 @@ function bossSpawn(e, n) {
 }
 // each step, for a live boss: Empress's brood, the sprint, regeneration
 function bossStep(e, dt) {
+  const regen = BOSS_SHIELD_REGEN[e.arcana] || 0; // a shield that REFILLS (up to its full ring)
+  if (regen && e.shield < e.shieldMax) { e.shieldBuf += regen * dt; const n = Math.floor(e.shieldBuf); if (n) { e.shieldBuf -= n; e.shield = Math.min(e.shieldMax, e.shield + n); } }
   if (isA(e, "empress") && e.hp / e.max <= e.broodAt) {
     e.broodAt -= 0.2;
     for (let i = 0; i < EMPRESS_BROOD; i++) {
