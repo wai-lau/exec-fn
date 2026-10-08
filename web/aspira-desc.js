@@ -16,7 +16,6 @@ const FRZ_MOONS = ["", " One moon orbits it, a copy of the tower.", " Two moons 
 const SOL_RAYS = ["A ray", "Two rays", "Three rays", "Four rays"];
 const SOL_REFRACT = ["stopping at the first enemy struck", "refracting from the first enemy struck on to two more ahead", "refracting from the first enemy struck on to five more ahead", "refracting from the first enemy struck on to nine more ahead"];
 const ACD_JETS = ["Two", "Three", "Four", "Six"]; // acidic terms, never heat (owner)
-const ACD_PUDDLES = ["puddles", "puddles", "puddles", "puddles that slow all who wade through them"];
 const DESCRIBE = {
   // "Arcs fork on hit, each jump carrying half the hit." -> Conductivity: chain once and / into
   // three / twin; Voltage: most of .. all of (its harder hit is a stat row); Capacitance: the charge sentence (owner's words)
@@ -38,11 +37,11 @@ const DESCRIBE = {
     const f = sk.focus || 0, r = sk.refraction || 0, b = sk.breach || 0;
     return SOL_RAYS[f] + " of light" + (f ? ", each a full strike" : "") + ", " + SOL_REFRACT[r] + (b ? "; each beam weakens its target's armor for good, and scorches it so every tower crits it more." : ".");
   },
-  // "Two jets of acid, each etching its own enemy, dripping puddles; a fresh jet starts with little
-  // of a spent one's concentration." (owner: jets of acid, acidic terms) -> Spray: three .. six jets;
-  // Corrosion I: all of the concentration; Contagion III: puddles that slow
+  // "Two jets of acid, each corroding the enemy, leaving behind pools of acid. Acid flow is
+  // reduced when switching targets." (owner's words) -> Spray: three .. six jets; Corrosion I:
+  // the flow HOLDS on a switch; Contagion III: pools that slow all who wade through them
   acd(sk) {
-    return ACD_JETS[sk.spray || 0] + " jets of acid, each etching its own enemy, dripping " + ACD_PUDDLES[sk.contagion || 0] + "; a fresh jet starts with " + ((sk.corrosion || 0) ? "all" : "little") + " of a spent one's concentration.";
+    return ACD_JETS[sk.spray || 0] + " jets of acid, each corroding the enemy, leaving behind pools of acid" + ((sk.contagion || 0) >= 3 ? " that slow all who wade through them" : "") + ". Acid flow " + ((sk.corrosion || 0) ? "holds" : "is reduced") + " when switching targets.";
   },
 };
 // the description for a chart (`skills`): the composer, else the axes' sentences run together
