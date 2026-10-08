@@ -390,7 +390,7 @@ function fitPop(pop, room, winRoom) {
   pop.__fitRoom = room; pop.__fitDirty = false;
   pop.style.maxHeight = room + "px";
   const chart = pop.querySelector(".asp-chart");
-  pop.style.minHeight = chart && towerWide() ? Math.min(TOWER_CARD_H, room) + "px" : "";
+  pop.style.minHeight = ""; // (a forced TOWER_CARD_H left empty bands - owner)
   if (!chart) return;
   chart.style.width = "";
   if (towerWide()) return;
