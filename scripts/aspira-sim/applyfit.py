@@ -25,6 +25,8 @@ TABLES = {
     "corrosion": ("web/aspira-acid.js", "ACD_CORROSION_DMG", None),
     "spray": ("web/aspira-acid.js", "ACD_SPRAY_MUL", None),
     "contagion": ("web/aspira-acid.js", "ACD_PUDDLE_HEAT", None),
+    "refrcone": ("web/aspira-skills.js", "SOL_CONE_BY", None),
+    "contslow": ("web/aspira-acid.js", "ACD_CONTAGION_SLOW", None),
 }  # (tempreach, SKILL_MOVE.frz.temp, is a nested table: applied by hand)
 
 
