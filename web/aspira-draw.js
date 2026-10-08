@@ -287,6 +287,8 @@ function drawTowerRange(t, dim) {
   // Moons / Desolation: each moon's slowing circle INSTEAD of the tower's range (owner)
   if (st.moons) { for (const m of moonSpots(t, st)) drawRange(m.x, m.y, r, col, dim); return; }
   drawRange(t.x, t.y, r, col, dim);
+  // a chart FRZ's moon ORBIT, drawn like its range (owner, 2026-10-08): faint always, bright when selected
+  if (st.moonN && !(dim && lowQ)) { const o = moonOrbit(t, st.moonN); ctx.beginPath(); ctx.ellipse(o.x, o.y, o.a, o.b, o.phi, 0, 6.283); ctx.strokeStyle = COL[col]; ctx.globalAlpha = dim ? 0.35 : 0.75; ctx.lineWidth = dim ? 2 : 3.5; ctx.stroke(); ctx.globalAlpha = 1; }
   if (t.kind !== "arc") return;
   if (st.skill) return; // a chart ARC has no reach from the tower: each jump reaches from its own enemy (owner)
   ctx.beginPath(); ctx.arc(t.x, t.y, chainReach(st), 0, 6.283);
