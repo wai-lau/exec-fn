@@ -49,8 +49,8 @@ const SKILL_TREES = {
     { id: "capacitance", name: "Capacitance", base: "", tiers: [
       { name: "Static", desc: "Hits charge the target, charged targets arc once when hit by anything." },
       { name: "Charge", desc: "Hits charge the target, charged targets arc twice when hit by anything." },
-      { name: "Overload", desc: "Hits charge the target, charged targets arc three times when hit by anything, slowing what they hit." },
-      { name: "Discharge", desc: "Hits charge the target, charged targets arc four times when hit by anything, slowing what they hit." },
+      { name: "Overload", desc: "Hits charge the target, charged targets arc three times when hit by anything." },
+      { name: "Discharge", desc: "Hits charge the target, charged targets arc four times when hit by anything." },
       { name: "Tempest", desc: "Hits charge the target, charged targets arc five times when hit by anything, slowing what they hit." },
     ] },
   ],
@@ -64,8 +64,8 @@ SKILL_TREES.frz = [
   { id: "temp", name: "Temp", base: "The aura slows what it holds.", tiers: [
     { name: "Chill", desc: "A colder, wider aura slows what it holds." },
     { name: "Freeze", desc: "A far colder, wider aura slows what it holds." },
-    { name: "Absolute Zero", desc: "The coldest, widest aura slows what it holds, and every tower hits it harder." },
-    { name: "Permafrost", desc: "A chill slows all it holds, and turns it brittle." },
+    { name: "Absolute Zero", desc: "A chill slows all it holds." },
+    { name: "Permafrost", desc: "A chill slows all it holds." },
     { name: "Heat Death", desc: "A chill slows all it holds, and turns it brittle." },
   ] },
   { id: "rime", name: "Rime", base: "", tiers: [
@@ -257,7 +257,7 @@ function skillHit(c, e, d) {
 let staticQuiet = false;
 // Overload's leaps SLOW what they hit (owner, 2026-10-06, the no-FRZ niche search):
 // 30% for STAT_SLOW_T s - a late team without FRZ can answer the fast waves
-const ARC_STAT_SLOW = [0, 0, 0, 0.3, 0.35, 0.4], STAT_SLOW_T = 0.6;
+const ARC_STAT_SLOW = [0, 0, 0, 0, 0, 0.4], STAT_SLOW_T = 0.6; // the CAPSTONE, at V (owner, 2026-10-08; was from III when there were three tiers)
 // a DISCHARGE (owner, 2026-10-07: "charged targets arc once when hit by anything"):
 // the charged enemy ARCS - a bolt leaps from it to the nearest enemy not yet hit,
 // ch.arcs times in a chain, each leap worth the whole charge, drawn as ARC's beams.
@@ -325,7 +325,7 @@ const FRZ_TEMP_SLOW = [0.4, 0.42, 0.44, 0.46, 0.48, 0.5]; // weakened (owner, 20
 // Temp III's TEAM hook (owner, 2026-10-07: FRZ's chart was flat, 97-103%): an enemy
 // its aura touches turns BRITTLE - while slowed it takes x FRZ_BRITTLE from every
 // tower (damage(), which already reads e.brittle; drawStatus shows the crack)
-const FRZ_BRITTLE = [1, 1, 1, 1.15, 1.2, 1.25];
+const FRZ_BRITTLE = [1, 1, 1, 1, 1, 1.25]; // the CAPSTONE, at V (owner, 2026-10-08; was from III)
 const FRZ_RIME = [0, 0.02, 0.035, 0.06, 0.08, 0.1]; // 2026-10-06: tier I was a dead point (was 1% / 1.9% / 3.7%) // each pulse's permanent stacking slow
 // FRZ's own levers (owner: no generic multipliers): Rime pulses MORE OFTEN each tier, the moons are STRONGER copies each tier
 const FRZ_RIME_PERIOD = [2, 2, 1.7, 1.4, 1.2, 1], FRZ_MOON_BY = [0.6, 0.65, 0.7, 0.75, 0.8, 0.85]; // weakened (owner, 2026-10-08; isolation: Moons V 499% team); was .78 .9 .95 1 1 1 // Moons IV / V: four and five full moons
