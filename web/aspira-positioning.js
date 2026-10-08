@@ -24,9 +24,12 @@ let POS_URGENCY = 6, POS_MODE_MIX = 1; // FULL targeting (owner: 0.3 barely coun
 let posPred = null, posPredAt = -1;
 // [{ e, pts: [{ x, y, t }] }], recomputed at most once per POS_EVERY of game time
 function predictions() {
-  if (posPred && G.clock - posPredAt < POS_EVERY / 2) return posPred;
+  // fresh for a NEW GAME too (2026-10-08, owner: "towers stuck positionally"): G.clock restarts at 0, so
+  // the last game's posPredAt left the clock "behind" it and the stale predictions (dead enemies) were kept
+  if (posPred && posPred.G === G && G.clock >= posPredAt && G.clock - posPredAt < POS_EVERY / 2) return posPred;
   posPredAt = G.clock;
   posPred = [];
+  posPred.G = G;
   for (const e of G.enemies) {
     if (e.dead) continue;
     const v = effSpeed(e), pts = [];
