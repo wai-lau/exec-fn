@@ -21,7 +21,7 @@ const DESCRIBE = {
   // three / twin; Voltage: most of .. all of (its harder hit is a stat row); Capacitance: the charge sentence (owner's words)
   arc(sk) {
     const c = sk.conductivity || 0, v = sk.voltage || 0, z = sk.capacitance || 0;
-    let s = [c >= 5 ? "three" : c >= 3 ? "twin" : "", "arcs", c >= 4 ? "chain twice and" : c >= 1 ? "chain once and" : "", "fork", c >= 2 ? "into three" : "", c >= 3 ? "on hit, returning to struck enemies " + ARC_RETURN[c] + ", each jump carrying" : "on hit, each jump carrying", ARC_KEEP[v], "the hit."].filter(Boolean).join(" ");
+    let s = [c >= 5 ? "four" : c >= 4 ? "three" : c >= 3 ? "twin" : "", "arcs", c >= 1 ? "chain once and" : "", "fork", c >= 2 ? "into three" : "", c >= 3 ? "on hit, returning to struck enemies " + ARC_RETURN[c] + ", each jump carrying" : "on hit, each jump carrying", ARC_KEEP[v], "the hit."].filter(Boolean).join(" ");
     if (z) s += " Hits charge the target, charged targets arc " + ARC_ARCS[z] + " when hit by anything" + (z >= 3 ? ", slowing what they hit." : ".");
     return cap(s);
   },
