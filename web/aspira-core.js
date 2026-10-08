@@ -22,9 +22,9 @@ const CORE_POWERS = [
   { id: "relay", name: "Orbital Relay", /* planetary defence names (owner, 2026-10-06; was Fortifications) */ how: "drag the core onto a tower",
     desc: "For a while, a tower acts as three: every bolt, ray, burn line and moon, three times over." },
   { id: "temporal", name: "Temporal Drive", /* (owner; was Temporal Manipulation) */ how: "press and hold the core",
-    desc: "A ring spreads from the core and stops every enemy dead, briefly." },
+    desc: "Every enemy stops dead at once, and stays stopped while rings pulse out from the core." },
 ];
-const TEMPORAL = [null, { dur: 5, cd: 60 }, { dur: 8, cd: 45 }, { dur: 12, cd: 35 }], /* owner 2026-10-06: longer stop, longer cooldown (was 2 / 30, 4 / 20) */ TEMPORAL_GROW = 0.6, TEMPORAL_R = 560;
+const TEMPORAL = [null, { dur: 5, cd: 60 }, { dur: 8, cd: 45 }, { dur: 12, cd: 35 }], /* owner 2026-10-06: longer stop, longer cooldown (was 2 / 30, 4 / 20) */ TEMPORAL_GROW = 0.6, TEMPORAL_R = 560, TEMPORAL_FADE = 0.4, TEMPORAL_RING_EVERY = 0.5; // a ring shot out every TEMPORAL_RING_EVERY s for the whole freeze (owner, 2026-10-08)
 // the Relay: RELAY_MUL x the tower for `dur` s, the cooldown counted from when
 // it wears off (per tier for the dial's sake; only III is ever owned)
 const RELAY_MUL = 3, RELAY = [null, { dur: 22.5, cd: 40 }, { dur: 22.5, cd: 40 }, { dur: 22.5, cd: 40 }]; // 22.5 s: halved (owner, 2026-10-07; was 45 s)
@@ -84,7 +84,7 @@ function temporalFreeze() {
   const c = coreState();
   c.cd.temporal = lv.cd;
   c.freeze = { t: 0, dur: lv.dur, hit: new Set() };
-  c.frozenIds = c.freeze.hit; c.freezeUntil = c.clock + TEMPORAL_GROW + lv.dur; // for the look (aspira-core-fx.js)
+  c.frozenIds = c.freeze.hit; c.freezeUntil = c.clock + lv.dur; // for the look (aspira-core-fx.js)
   if (typeof sfx === "function") sfx("powertemporal");
   return true;
 }
@@ -96,14 +96,15 @@ function stepCore(dt) {
   c.clock += dt;
   for (const k in c.cd) c.cd[k] = Math.max(0, c.cd[k] - dt);
   if (c.freeze) {
-    const f = c.freeze;
+    const f = c.freeze, left = f.dur - f.t;
     f.t += dt;
-    const front = TEMPORAL_R * Math.min(1, f.t / TEMPORAL_GROW);
-    for (const e of G.enemies) {
-      if (e.dead || f.hit.has(e.id) || Math.hypot(e.x - CX, e.y - CY) > front) continue;
-      f.hit.add(e.id); applySlow(e, 1, f.dur, "core:time"); // a 100% slow: stopped dead (bosses' own rules still apply)
+    // EVERY enemy stops at once, and any that arrives while it lasts, until it ends (owner, 2026-10-08:
+    // "just freeze enemies, dont wait for contact with rings"; the rings are only the look)
+    if (left > 0) for (const e of G.enemies) {
+      if (e.dead || f.hit.has(e.id)) continue;
+      f.hit.add(e.id); applySlow(e, 1, left, "core:time"); // a 100% slow: stopped dead (bosses' own rules still apply)
     }
-    if (f.t >= TEMPORAL_GROW + 0.4) c.freeze = null;
+    if (f.t >= f.dur + TEMPORAL_GROW + TEMPORAL_FADE) c.freeze = null; // the last ring has faded
   }
 }
 // kept for newGame(): the slots go home (the Space push that moved them is gone)
