@@ -4,8 +4,7 @@
 // stat rows read now -> next, the description shows its change as TRACK
 // CHANGES (removed words struck through, added ones underlined, like Word or
 // Docs), the upgrade button prices the whole basket and LOCKS IT IN. A handle
-// stops where it must and the card SAYS why (#asp-slider-note): the top tier or
-// the tier already locked in. The bank is no limit to a pull (owner, 2026-10-07):
+// stops at the tier already locked in and the card SAYS so (#asp-slider-note). The bank is no limit to a pull (owner, 2026-10-07):
 // a basket it cannot cover shows its cost in red on a button that will not take
 // the tap (the handles flash only where a point IS affordable). The U key
 // locks in (1-3 stay the speed keys). UI only; loaded after aspira-chart.js and
@@ -26,129 +25,68 @@ function axisRoom(t, id) {
   return { others, left, afford };
 }
 
-// ---------- the chart as a control ----------
-const SL_R = 46, SL_C = 60, SL_R0 = 8; // the card chart's outer radius, centre and tier-0 radius (viewBox units)
+// ---------- the control: three sliders, and the chart beside them ----------
+// (owner, 2026-10-07; was handles dragged on the chart's own axes): each axis
+// is a REAL range slider with its full name and tier under it, the three
+// stacked to the LEFT of the chart; the chart is the picture - the tier rings,
+// what the tower has (filled), what the pull would make (dashed), the axes'
+// short names at the corners and no numbers
+const SL_R = 46, SL_C = 60, SL_R0 = 8; // the chart's outer radius, centre and tier-0 radius (viewBox units)
+const axisAngle = (i, n) => -Math.PI / 2 + i * 2 * Math.PI / n;
 function axisPt(i, k, n) {
-  const a = -Math.PI / 2 + i * 2 * Math.PI / n, r = SL_R0 + (SL_R - SL_R0) * k / SKILL_TIERS;
+  const a = axisAngle(i, n), r = SL_R0 + (SL_R - SL_R0) * k / SKILL_TIERS;
   return [SL_C + Math.cos(a) * r, SL_C + Math.sin(a) * r];
 }
 const tierTxt = k => (k ? roman(k) : "0");
-// a tier's tick across the rail: TICK_HALF either side of the tier point
-const TICK_HALF = 2.5;
-function tick(i, k, n) {
-  const [x, y] = axisPt(i, k, n), a = axisAngle(i, n), px = -Math.sin(a) * TICK_HALF, py = Math.cos(a) * TICK_HALF;
-  return [[x - px, y - py], [x + px, y + py]];
-}
 const tierSpan = (lock, at) => (at > lock ? tierTxt(lock) + "→" + tierTxt(at) : tierTxt(lock));
-// the HANDLE is a TRIANGLE pointing out along its axis (owner): its tip HANDLE_TIP
-// past the tier point, its base HANDLE_BACK behind it and HANDLE_HALF wide
-const HANDLE_TIP = 6, HANDLE_BACK = 3, HANDLE_HALF = 4;
-function handlePts(i, k, n) {
-  const [hx, hy] = axisPt(i, k, n), a = axisAngle(i, n), ux = Math.cos(a), uy = Math.sin(a);
-  return [[hx + ux * HANDLE_TIP, hy + uy * HANDLE_TIP], [hx - ux * HANDLE_BACK - uy * HANDLE_HALF, hy - uy * HANDLE_BACK + ux * HANDLE_HALF], [hx - ux * HANDLE_BACK + uy * HANDLE_HALF, hy - uy * HANDLE_BACK - ux * HANDLE_HALF]]
-    .map(p => p.map(v => v.toFixed(1)).join(",")).join(" ");
-}
-// a handle FLASHES while the bank covers one more point on its axis (owner: it must read as slidable)
+// a slider's thumb FLASHES while the bank covers one more point on its axis (owner: it must read as slidable)
 const canPull = (t, ax) => { const r = axisRoom(t, ax.id); return r.left > 0 && r.afford > 0; };
-// the FULL axis name (owner) on one line, the tier on the next; the bottom
-// corners' labels run inward from their corner so the longest names stay inside the chart
-const LABEL_ANCHOR = ["middle", "end", "start"], LABEL_LINE = 8;
-const axisLabel = (ax, lock, at, i, n) => {
-  const [tx, ty] = axisPt(i, SKILL_TIERS + 0.75, n);
-  return '<text x="' + tx.toFixed(1) + '" y="' + (ty - LABEL_LINE / 2).toFixed(1) + '" text-anchor="' + (LABEL_ANCHOR[i] || "middle") + '"><tspan x="' + tx.toFixed(1) + '">' + ax.name + '</tspan><tspan x="' + tx.toFixed(1) + '" dy="' + LABEL_LINE + '">' + tierSpan(lock, at) + "</tspan></text>";
-};
+const shapeOf = (axes, sk, n) => axes.map((ax, i) => axisPt(i, (sk && sk[ax.id]) || 0, n).map(v => v.toFixed(1)).join(",")).join(" ");
 function sliderChart(t) {
   const axes = SKILL_TREES[t.kind], n = axes.length, add = basketFor(t), pv = previewTower(t);
-  const P = (i, k) => axisPt(i, k, n).map(v => v.toFixed(1)).join(",");
-  const shape = sk => axes.map((ax, i) => P(i, (sk && sk[ax.id]) || 0)).join(" ");
-  let svg = '<div class="asp-chart-box"><svg class="asp-chart asp-sliders" viewBox="0 0 120 120">';
-  for (let k = 1; k <= SKILL_TIERS; k++) svg += '<polygon class="grid" points="' + axes.map((_, i) => P(i, k)).join(" ") + '"/>';
-  svg += '<polygon class="next" points="' + shape(pv.skills) + '"/><polygon class="now" points="' + shape(t.skills) + '"/>';
-  // each axis is a LITERAL SLIDER (owner): a rail from the centre to the corner with
-  // a tick per tier, the run to the locked tier filled, the pulled run dashed, and
-  // the triangular knob on it
-  const L = (cls, a, b, extra = "") => '<line class="' + cls + '"' + extra + ' x1="' + a[0].toFixed(1) + '" y1="' + a[1].toFixed(1) + '" x2="' + b[0].toFixed(1) + '" y2="' + b[1].toFixed(1) + '"/>';
-  axes.forEach((ax, i) => {
-    const lock = skillOf(t, ax.id), at = lock + (add[ax.id] || 0), c = [SL_C, SL_C];
-    const end = axisPt(i, SKILL_TIERS, n), lk = axisPt(i, lock, n), pt = axisPt(i, at, n);
-    svg += L("rail", axisPt(i, 0, n), end);
-    for (let k = 1; k <= SKILL_TIERS; k++) svg += L("stop", ...tick(i, k, n));
-    svg += L("fill", axisPt(i, 0, n), lk) + L("pull", lk, pt);
-    // the wide invisible TRACK is what a finger drags on; the knob rides the axis
-    svg += L("track", c, end, ' data-axis="' + i + '"');
-    svg += '<polygon class="handle' + (canPull(t, ax) ? " can" : "") + '" data-axis="' + i + '" points="' + handlePts(i, at, n) + '"/>';
-    svg += axisLabel(ax, lock, at, i, n);
-  });
-  return svg + "</svg>" + '<div class="asp-slider-note" id="asp-slider-note"></div></div>';
+  let svg = '<svg class="asp-chart asp-sliders" viewBox="0 0 120 120">';
+  for (let k = 1; k <= SKILL_TIERS; k++) svg += '<polygon class="grid" points="' + axes.map((_, i) => axisPt(i, k, n).map(v => v.toFixed(1)).join(",")).join(" ") + '"/>';
+  axes.forEach((ax, i) => { const [ex, ey] = axisPt(i, SKILL_TIERS, n); svg += '<line class="grid" x1="' + SL_C + '" y1="' + SL_C + '" x2="' + ex.toFixed(1) + '" y2="' + ey.toFixed(1) + '"/>'; });
+  svg += '<polygon class="next" points="' + shapeOf(axes, pv.skills, n) + '"/><polygon class="now" points="' + shapeOf(axes, t.skills, n) + '"/>';
+  axes.forEach((ax, i) => { const [tx, ty] = axisPt(i, SKILL_TIERS + 0.75, n); svg += '<text x="' + tx.toFixed(1) + '" y="' + ty.toFixed(1) + '" text-anchor="middle">' + ax.name.slice(0, 4).toUpperCase() + "</text>"; });
+  svg += "</svg>";
+  const sliders = axes.map((ax, i) => {
+    const lock = skillOf(t, ax.id), at = lock + (add[ax.id] || 0);
+    return '<label class="asp-axis-row"><input type="range" class="asp-axis' + (canPull(t, ax) ? " can" : "") + '" data-axis="' + i + '" min="0" max="' + SKILL_TIERS + '" step="1" value="' + at + '" aria-label="' + ax.name + '">' +
+      '<span class="asp-axis-name">' + ax.name + '<b class="asp-axis-tier">' + tierSpan(lock, at) + "</b></span></label>";
+  }).join("");
+  return '<div class="asp-ctl-row"><div class="asp-axes">' + sliders + '</div><div class="asp-chart-box">' + svg + '<div class="asp-slider-note" id="asp-slider-note"></div></div></div>';
 }
-// the chart updated IN PLACE while a drag holds the pointer (a rebuilt card would drop the capture)
+// the control updated IN PLACE after a pull (a rebuilt input would lose the thumb under the finger)
 function updateSliderChart(t, svg) {
   const axes = SKILL_TREES[t.kind], n = axes.length, add = basketFor(t), pv = previewTower(t);
-  svg.querySelector(".next").setAttribute("points", axes.map((ax, i) => axisPt(i, pv.skills[ax.id] || 0, n).map(v => v.toFixed(1)).join(",")).join(" "));
-  const handles = svg.querySelectorAll(".handle"), labels = svg.querySelectorAll("text"), pulls = svg.querySelectorAll(".pull");
+  svg.querySelector(".next").setAttribute("points", shapeOf(axes, pv.skills, n));
+  const inputs = document.querySelectorAll(".asp-axis"), tiers = document.querySelectorAll(".asp-axis-tier");
   axes.forEach((ax, i) => {
-    const lock = skillOf(t, ax.id), at = lock + (add[ax.id] || 0), [px, py] = axisPt(i, at, n);
-    handles[i].setAttribute("points", handlePts(i, at, n)); handles[i].classList.toggle("can", canPull(t, ax));
-    pulls[i].setAttribute("x2", px.toFixed(1)); pulls[i].setAttribute("y2", py.toFixed(1));
-    labels[i].querySelectorAll("tspan")[1].textContent = tierSpan(lock, at);
+    const lock = skillOf(t, ax.id), at = lock + (add[ax.id] || 0);
+    if (inputs[i]) { inputs[i].value = at; inputs[i].classList.toggle("can", canPull(t, ax)); }
+    if (tiers[i]) tiers[i].textContent = tierSpan(lock, at);
   });
 }
 // the HUD tick (aspira-ui.js updateHud): income may have brought a point within reach - the flash follows the bank
 function refreshHandleFlash(t) {
-  const svg = document.querySelector(".asp-sliders");
-  if (!svg) return;
-  svg.querySelectorAll(".handle").forEach((h, i) => h.classList.toggle("can", canPull(t, SKILL_TREES[t.kind][i])));
+  document.querySelectorAll(".asp-axis").forEach((s, i) => s.classList.toggle("can", canPull(t, SKILL_TREES[t.kind][i])));
 }
-// the pointer in chart units, and its tier along axis i: the projection on the axis, snapped to a stop
-const chartPt = (svg, ev) => new DOMPoint(ev.clientX, ev.clientY).matrixTransform(svg.getScreenCTM().inverse());
-const axisAngle = (i, n) => -Math.PI / 2 + i * 2 * Math.PI / n;
-function tierAt(p, i, n) {
-  const a = axisAngle(i, n), d = (p.x - SL_C) * Math.cos(a) + (p.y - SL_C) * Math.sin(a);
-  return Math.round((d - SL_R0) / (SL_R - SL_R0) * SKILL_TIERS);
-}
-// the axis a pointer means: the one whose direction from the centre is nearest
-// its own (the three tracks and the tier-0 handles all meet at the centre, so a
-// press there is settled by which way the drag goes)
-function nearestAxis(p, n) {
-  const ang = Math.atan2(p.y - SL_C, p.x - SL_C);
-  let best = 0, bd = 9;
-  for (let i = 0; i < n; i++) { const d = Math.abs(Math.atan2(Math.sin(ang - axisAngle(i, n)), Math.cos(ang - axisAngle(i, n)))); if (d < bd) { bd = d; best = i; } }
-  return best;
-}
-const CENTRE_DEAD = 4; // chart units within which a press has no direction yet
 function bindSliders(t, root) {
-  const svg = root.querySelector(".asp-sliders");
-  if (!svg) return;
-  const n = SKILL_TREES[t.kind].length;
-  svg.onpointerdown = ev => {
-    const el = ev.target.closest(".track, .handle");
-    if (!el) return;
-    svg.setPointerCapture(ev.pointerId); ev.preventDefault();
-    const p0 = chartPt(svg, ev);
-    let i = el.classList.contains("handle") ? Number(el.dataset.axis) : Math.hypot(p0.x - SL_C, p0.y - SL_C) > CENTRE_DEAD ? nearestAxis(p0, n) : -1;
-    const move = e => {
-      const p = chartPt(svg, e);
-      if (i < 0 && Math.hypot(p.x - SL_C, p.y - SL_C) > CENTRE_DEAD) i = nearestAxis(p, n);
-      if (i >= 0) pullAxis(t, i, tierAt(p, i, n));
-    };
-    svg.onpointermove = move; move(ev);
-    // the release lands the LAST position too (a fast drag's final move may never arrive as a move)
-    svg.onpointerup = svg.onpointercancel = e => { svg.onpointermove = null; move(e); };
-  };
+  for (const s of root.querySelectorAll(".asp-axis")) s.oninput = () => pullAxis(t, Number(s.dataset.axis), Number(s.value));
 }
-// pull axis i to tier `want`, as far as the rules allow, and say what stopped it
+// pull axis i to tier `want`, as far as the rules allow, and say what stopped it: a
+// pull below the locked-in tier snaps back (the bank is no limit - upgradeButton)
 function pullAxis(t, i, want) {
   const ax = SKILL_TREES[t.kind][i], add = basketFor(t), lock = skillOf(t, ax.id);
-  const max = SKILL_TIERS, to = Math.max(lock, Math.min(max, want));
-  let why = "";
-  if (want > max) why = ax.name + " " + roman(SKILL_TIERS) + " is the top tier";
-  else if (want < lock) why = ax.name + " " + roman(lock) + " is locked in · sell to undo";
+  const to = Math.max(lock, Math.min(SKILL_TIERS, want)), why = want < lock ? ax.name + " " + roman(lock) + " is locked in · sell to undo" : "";
   const was = add[ax.id] || 0;
   add[ax.id] = to - lock;
   if (was !== to - lock) refreshUpgradePreview(t);
-  const note = $("asp-slider-note"), svg = document.querySelector(".asp-sliders");
-  if (note) note.innerHTML = why; // (cr() marks the credits with a span)
-  if (svg) svg.querySelectorAll(".handle").forEach((h, k) => h.classList.toggle("stuck", !!why && k === i));
+  else { const s = document.querySelectorAll(".asp-axis")[i]; if (s) s.value = to; }
+  const note = $("asp-slider-note");
+  if (note) note.innerHTML = why;
+  document.querySelectorAll(".asp-axis").forEach((s, k) => s.classList.toggle("stuck", !!why && k === i));
 }
 // the card's preview parts, re-rendered: the chart (in place), the stats, the description, the button, the spend bar
 function refreshUpgradePreview(t) {
@@ -214,7 +152,7 @@ function upgradeButton(t) {
   const n = basketPoints(t), cost = basketCost(t), pts = t.lvl - 1 + n;
   const label = towerTitle(t) + (pts ? " " + roman(pts) : "") + (n ? ' <span class="asp-spend-cost">(−' + cr(cost) + ")</span>" : "");
   const btn = button(box, "asp-primary asp-up-big", label, () => lockIn(t), "asp-up");
-  btn.classList.toggle("poor", n > 0 && G.money < cost); btn.disabled = n > 0 && G.money < cost; // the bank cannot cover it: red, and no tap (owner)
+  btn.classList.toggle("poor", n > 0 && G.money < cost); btn.disabled = !n || G.money < cost; // greyed until a slider moves; red, no tap, when the bank cannot cover it (owner)
   button(box, "asp-up-cancel", n ? "cancel" : "close", () => { if (basketPoints(t)) { basket.add = {}; refreshPanels(); } else closeCard(); }, "asp-up-cancel");
 }
 // buy every pulled point, in axis order, each at its own ladder step (upgradeTower pays one)
