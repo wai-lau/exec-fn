@@ -792,7 +792,8 @@
 
 /* the CORE POWERS' BUTTONS above the title (owner, 2026-10-08; aspira-powers.js): name, seconds left, and a
    bar along the bottom that fills as the power recharges; flashing when ready, lit while it runs or is armed */
-.asp-powers { display: flex; justify-content: center; gap: var(--space-2); }
+.asp-powers { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); } /* stacked, TEMPORAL DRIVE over ORBITAL RELAY (owner, 2026-10-08) */
+#asp .asp-powers .asp-power { align-self: stretch; } /* one width: the wider label sets both */
 .asp-powers[hidden] { display: none; }
 #asp .asp-power { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; gap: var(--space-0-5); min-width: calc(var(--space-10) * 3); padding: var(--space-1-5) var(--space-3); font-size: var(--fs-xs); line-height: var(--lh-none); text-transform: uppercase; }
 #asp .asp-power b { font-size: var(--fs-2xs); font-variant-numeric: tabular-nums; text-transform: none; }
