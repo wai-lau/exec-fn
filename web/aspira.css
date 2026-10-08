@@ -313,12 +313,19 @@
 }
 .asp-next { color: hsl(var(--orange-hsl)); font-weight: var(--fw-bold); }
 
+/* BETTER and WORSE on a card (owner, 2026-10-08: they must CONTRAST with the card): Chatsubo
+   green and Ember red, except where the card's own colour is too close - Ember on the
+   Marigold ARC card goes Lizzie's pink, Chatsubo on the Chatsubo ACD card goes cyan */
+#asp .asp-pop, #asp .asp-card { --asp-good-hsl: var(--cat-social-h) var(--cat-social-s) var(--cat-social-l); --asp-bad-hsl: var(--orange-glow-hsl); }
+#asp [data-kind="arc"] { --asp-bad-hsl: var(--pink-hsl); }
+#asp [data-kind="acd"] { --asp-good-hsl: var(--cyan-hsl); }
+
 /* an upgrade that makes this stat WORSE (owner): red, bold - Ember is the palette's red */
 .asp-next.asp-worse { color: hsl(var(--orange-glow-hsl)); }
 
 /* on the tower card a change for the better is the description's INSERTED green (owner: the same reds and greens) */
-.asp-pop .asp-next { color: hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l)); }
-.asp-pop .asp-next.asp-worse { color: hsl(var(--orange-glow-hsl)); }
+.asp-pop .asp-next { color: hsl(var(--asp-good-hsl)); }
+.asp-pop .asp-next.asp-worse { color: hsl(var(--asp-bad-hsl)); }
 
 #asp button.on { background: hsl(var(--green-hsl) / 0.12); border-color: currentcolor; }
 
@@ -572,8 +579,8 @@
 
 /* on the upgrade cards an INCREASE reads chatsubo green (owner); a change for
    the worse stays Ember red */
-.asp-card .asp-next { color: hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l)); }
-.asp-card .asp-next.asp-worse { color: hsl(var(--orange-glow-hsl)); }
+.asp-card .asp-next { color: hsl(var(--asp-good-hsl)); }
+.asp-card .asp-next.asp-worse { color: hsl(var(--asp-bad-hsl)); }
 
 /* the title left the header, so it flips with the boss sky on its own */
 
@@ -726,8 +733,8 @@
 
 /* the upgrade button is ONE line (owner): "Arc IV", and while axes are pulled "Arc VI (-440c)";
    a basket the bank cannot cover: the cost red, the border red, no tap - but readable (owner) */
-.asp-up-big .asp-spend-cost { font-weight: var(--fw-normal); }
-#asp #asp-upbox button.asp-up-big.poor { opacity: 1; border-color: hsl(var(--orange-glow-hsl)); cursor: not-allowed; }
+.asp-up-big .asp-spend-cost { font-weight: var(--fw-normal); color: hsl(var(--asp-bad-hsl)); } /* the card's red, so it shows on the pink SOL card too */
+#asp #asp-upbox button.asp-up-big.poor { opacity: 1; border-color: hsl(var(--asp-bad-hsl)); cursor: not-allowed; }
 #asp #asp-upbox button.asp-up-big.asp-confirm { animation: asp-flash 1.1s ease-in-out infinite; } /* a pull waits: tap to lock it in (owner) */
 
 @media (orientation: landscape) and (width >= 700px) {
@@ -762,8 +769,8 @@
 /* the thumb FLASHES while the bank covers a point on its axis; red where a pull was refused */
 .asp-axis.can::-webkit-slider-thumb { animation: asp-flash 1.1s ease-in-out infinite; }
 .asp-axis.can::-moz-range-thumb { animation: asp-flash 1.1s ease-in-out infinite; }
-.asp-axis.stuck::-webkit-slider-thumb { border-color: hsl(var(--orange-glow-hsl)); }
-.asp-axis.stuck::-moz-range-thumb { border-color: hsl(var(--orange-glow-hsl)); }
+.asp-axis.stuck::-webkit-slider-thumb { border-color: hsl(var(--asp-bad-hsl)); }
+.asp-axis.stuck::-moz-range-thumb { border-color: hsl(var(--asp-bad-hsl)); }
 
 /* the reason a handle stopped, laid OVER the chart's lower edge (between the two
    bottom labels, which sit in the corners) so it reserves no line of its own */
@@ -772,5 +779,5 @@
 /* the description's TRACK CHANGES (owner, 2026-10-07: like Word or Docs): removed
    words struck through in Ember red, added ones underlined in the acid green */
 .asp-desc { height: calc(5 * var(--lh-tight) * var(--fs-sm)); overflow: hidden; font-size: var(--fs-sm); line-height: var(--lh-tight); color: hsl(var(--green-hsl)); } /* a FIXED five lines (owner): the sentences run on, wrapping; nothing moves as a sentence grows */
-.asp-desc del { color: hsl(var(--orange-glow-hsl)); text-decoration: line-through; }
-.asp-desc ins { color: hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l)); text-decoration: underline; }
+.asp-desc del { color: hsl(var(--asp-bad-hsl)); text-decoration: line-through; }
+.asp-desc ins { color: hsl(var(--asp-good-hsl)); text-decoration: underline; }
