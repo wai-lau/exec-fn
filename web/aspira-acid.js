@@ -102,6 +102,8 @@ const ACD_DOUBLE = [0.5, 0.39, 0.3, 0.12, 0.12, 0.12], ACD_LINES = [2, 3, 4, 6, 
 // line's heat when it fell, by Seep tier
 // index 0 = NO puddles (owner, 2026-10-07: "ACD shouldn't have puddles at level 0"; was a default drip { every: 1.4, life: 1.5, r: 20 })
 const ACD_CONTAGION = [null, { every: 1.2, life: 1.8, r: 22 }, { every: 1, life: 2.4, r: 26 }, { every: 0.9, life: 3.2, r: 34 }, { every: 0.8, life: 3.8, r: 40 }, { every: 0.7, life: 5, r: 52 }]; // III+ bigger and longer, V the capstone (owner, 2026-10-08; were 2.7 / 3 / 3.3s, r 28 / 30 / 32) // refit 2026-10-06
+// a puddle ramps to the OLD x32 ceiling (owner, 2026-10-08: "increase the puddle damage to compensate" for the jets' cap halved to x16)
+const ACD_PUDDLE_CAP = 32;
 const ACD_PUDDLE_HEAT = [0.5, 1, 1.05, 1.1, 1.2, 1.3];
 // Contagion III (Pandemic) puddles SLOW what stands in them (owner, 2026-10-06,
 // the no-FRZ niche search: 3 SOL + 6 ACD reached 98, was 74; FRZ teams unchanged)
@@ -123,7 +125,7 @@ function stepPuddles(t, st, dt) {
     l.drip = (l.drip ?? sp.every) - dt;
     if (l.drip > 0) continue;
     l.drip += sp.every;
-    (t.puddles ||= []).push({ x: l.e.x, y: l.e.y, r: sp.r, life: sp.life, age: 0, tick: 0, dps: st.dmg * acdMulOf(l.held, st) * st.contagionHeat });
+    (t.puddles ||= []).push({ x: l.e.x, y: l.e.y, r: sp.r, life: sp.life, age: 0, tick: 0, dps: st.dmg * Math.min(ACD_PUDDLE_CAP, 2 ** (l.held / st.double)) * st.contagionHeat });
   }
   if (!t.puddles) return;
   const every = 1 / st.rate;
