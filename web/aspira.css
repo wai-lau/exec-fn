@@ -354,7 +354,7 @@
 /* the selected tower's stats, pinned beside it on the board (aspira-ui.js) */
 .asp-pop {
   position: absolute;
-  z-index: var(--z-raised);
+  z-index: var(--z-bubble); /* the cards sit ABOVE everything else (owner, 2026-10-07) - the bar, the wave list, the spend bar - under only the CRT fx */
   width: 380px; /* room for two stat columns (owner) */
   max-width: calc(100% - 16px);
   overflow: hidden; /* capped by placePop on a short screen and NEVER scrolled (owner): the chart shrinks to fit */
@@ -418,6 +418,7 @@
 }
 
 #asp-vol::-webkit-slider-runnable-track,
+.asp-axis::-webkit-slider-runnable-track,
 .asp-prio-slider::-webkit-slider-runnable-track {
   height: var(--space-2);
   background: hsl(var(--bg-hsl) / 0.45);
@@ -426,6 +427,7 @@
 }
 
 #asp-vol::-moz-range-track,
+.asp-axis::-moz-range-track,
 .asp-prio-slider::-moz-range-track {
   height: var(--space-2);
   background: hsl(var(--bg-hsl) / 0.45);
@@ -434,6 +436,7 @@
 }
 
 #asp-vol::-webkit-slider-thumb,
+.asp-axis::-webkit-slider-thumb,
 .asp-prio-slider::-webkit-slider-thumb {
   width: var(--space-4);
   height: var(--space-5);
@@ -445,6 +448,7 @@
 }
 
 #asp-vol::-moz-range-thumb,
+.asp-axis::-moz-range-thumb,
 .asp-prio-slider::-moz-range-thumb {
   width: var(--space-4);
   height: var(--space-5);
@@ -472,7 +476,7 @@
 
 /* the upgrade chooser (aspira-ui.js): 2-3 cards over the dimmed board, each
    coloured like the tower; nothing is charged until one is tapped */
-.asp-chooser { overflow-y: auto; justify-content: flex-start; }
+.asp-chooser { z-index: var(--z-bubble); overflow-y: auto; justify-content: flex-start; } /* the cards above everything (owner) */
 .asp-chooser > :first-child { margin-top: auto; }
 .asp-chooser > :last-child { margin-bottom: auto; } /* CENTRED vertically (owner, 2026-10-07; was at the bottom) */ /* sits at the BOTTOM, where the tower card is (owner); its lift is set by aspira-ui.js */
 .asp-chooser .asp-chooser-cost {
@@ -718,8 +722,9 @@
 @media (orientation: landscape) and (min-width: 700px) {
   .asp-pop.asp-tower { display: flex; flex-direction: column; width: 760px; } /* its min-height is set by fitPop; the grid fills it */
   .asp-tower-grid { flex: 1; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "ctl info"; gap: var(--space-3) var(--space-6); }
-  /* the chart FILLS the control half's height (owner: no gap under the triangle), centred, as big as the half allows */
-  .asp-tower-ctl .asp-chart-box { display: flex; flex: 1; justify-content: center; min-height: 0; }
+  /* the control row FILLS the half's height (owner: no gap under the triangle); the chart as tall as the row */
+  .asp-tower-ctl .asp-ctl-row { flex: 1; min-height: 0; }
+  .asp-tower-ctl .asp-chart-box { display: flex; justify-content: center; min-height: 0; height: 100%; }
   .asp-tower-ctl .asp-chart { width: auto; height: 100%; max-width: 100%; }
 }
 #asp.asp-towercard .asp-spend { display: none; } /* the tower card has its own cancel / close, stacked or wide; the credits line above it stays */
@@ -728,15 +733,19 @@
 .asp-chart .next { fill: hsl(var(--green-hsl) / 0.12); stroke: hsl(var(--green-hsl)); stroke-width: 1.2; stroke-dasharray: 3 2; }
 .asp-chart text { fill: hsl(var(--green-hsl) / 0.8); font-size: calc(var(--fs-2xs) * 0.65); dominant-baseline: middle; } /* in chart units: the labels scale with the chart; the full axis name, the tier under it */
 .asp-chart-box { padding-top: var(--space-2); } /* the top label's first line rides above the viewBox */
-/* each axis a LITERAL SLIDER (owner): the rail, a tick per tier, the locked run filled, the pulled run dashed, the knob */
-.asp-chart .rail { stroke: hsl(var(--green-hsl) / 0.45); stroke-width: 3; stroke-linecap: round; }
-.asp-chart .stop { stroke: hsl(var(--green-hsl) / 0.8); stroke-width: 1; }
-.asp-chart .fill { stroke: hsl(var(--green-hsl)); stroke-width: 3; stroke-linecap: round; }
-.asp-chart .pull { stroke: hsl(var(--green-hsl) / 0.8); stroke-width: 3; stroke-dasharray: 2 2; }
-.asp-chart .track { stroke: transparent; stroke-width: 14; cursor: grab; }
-.asp-chart .handle { fill: hsl(var(--green-hsl) / 0.45); stroke: hsl(var(--green-hsl)); stroke-width: 1.2; stroke-linejoin: round; cursor: grab; } /* a triangle pointing out along its axis */
-.asp-chart .handle.can { fill: hsl(var(--green-hsl)); animation: asp-flash 1.1s ease-in-out infinite; } /* the bank covers a point on this axis: it reads as slidable (owner) */
-.asp-chart .handle.stuck { fill: hsl(var(--orange-glow-hsl)); stroke: hsl(var(--orange-glow-hsl)); animation: none; }
+/* THE CONTROL (aspira-sliders.js, owner 2026-10-07): three real sliders stacked LEFT of
+   the chart, each with its full name and tier under it; the chart is the picture */
+.asp-ctl-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-3); align-items: stretch; }
+.asp-axes { display: flex; flex-direction: column; justify-content: center; gap: var(--space-2); min-width: 0; }
+.asp-axis-row { display: flex; flex-direction: column; gap: var(--space-0-5); }
+.asp-axis { width: 100%; height: var(--space-6); margin: 0; appearance: none; background: transparent; cursor: pointer; }
+.asp-axis-name { display: flex; justify-content: space-between; font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.8); }
+.asp-axis-tier { font-weight: var(--fw-bold); color: hsl(var(--green-hsl)); }
+/* the thumb FLASHES while the bank covers a point on its axis; red where a pull was refused */
+.asp-axis.can::-webkit-slider-thumb { animation: asp-flash 1.1s ease-in-out infinite; }
+.asp-axis.can::-moz-range-thumb { animation: asp-flash 1.1s ease-in-out infinite; }
+.asp-axis.stuck::-webkit-slider-thumb { border-color: hsl(var(--orange-glow-hsl)); }
+.asp-axis.stuck::-moz-range-thumb { border-color: hsl(var(--orange-glow-hsl)); }
 /* the reason a handle stopped, laid OVER the chart's lower edge (between the two
    bottom labels, which sit in the corners) so it reserves no line of its own */
 .asp-chart-box { position: relative; }
