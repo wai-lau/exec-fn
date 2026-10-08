@@ -128,7 +128,7 @@ function hopTo(c, node, nxt, depth) {
 const MOON_SPIN = 2 / 3, MOON_ORBIT = 126; // rad/s (owner: 4 -> 2 -> 2/3); orbit radius tripled (owner, 2026-10-05; was 80, then 42)
 // a chart FRZ's moons orbit CLOSER, and closer with every Moons tier (owner,
 // 2026-10-06: after the range halving 126 put them far outside the aura)
-const MOON_ORBIT_BY_N = [MOON_ORBIT, 70, 58, 46, 46, 46]; // Moons IV / V keep III's orbit, more of them round it
+const MOON_ORBIT_BY_N = [MOON_ORBIT, 175, 165, 155, 150, 145]; // FAR from the tower (owner, 2026-10-08: "greatly increase moon distance"; was 70 58 46 46 46), a little closer as more of them share the ring
 function moonSpots(t, st) {
   const a = (t.spin || 0) * MOON_SPIN, n = st.moons || 1;
   return Array.from({ length: n }, (_, i) => {
