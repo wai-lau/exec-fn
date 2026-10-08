@@ -62,7 +62,7 @@ function spawnEnemy(type, n, pi, ang = 0) {
     armor, shield, shieldMax: shield, wave: n, // the wave it CAME from (the end screen's leaks)
     // swarm members wander widely off the lane, each at its own speed (+-20%)
     // and its own wobble rate, so a clump churns as it moves
-    jit: type === "swarm" ? 6 + Math.random() * 15 : 0, ph: Math.random() * 6.283, // owner: tripled, then halved twice
+    jit: type === "swarm" ? 12 + Math.random() * 30 : 0, ph: Math.random() * 6.283, // owner: tripled, halved twice, doubled 2026-10-08
     spd: type === "swarm" ? 0.8 + Math.random() * 0.4 : 1, phr: 0.6 + Math.random(),
     id: G.id++, type, n, hp, max: hp, pi, ang, s: s0, x: p0.x, y: p0.y, rot: Math.random() * 6,
     // fractional, so a cheap swarmer really pays its share (owner: halved
