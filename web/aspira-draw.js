@@ -189,7 +189,7 @@ function drawTower(t, ghost) {
   // stroked once per level, and at max level that was by far the costliest
   // draw of a late-game frame (profiled 2026-10-05). Stamped here 1:1 with the
   // canvas's pixels, then the label on top.
-  const sp = towerSprite(t.kind, shownLvl(t), c0), w = sp.width / cam.k; // a chart tower's 7 levels drawn as 4
+  const sp = towerSprite(t.kind, shownLvl(t), c0), w = sp.width / cam.k; // a chart tower's 9 points drawn as 4 glows
   ctx.globalAlpha = ghost ? 0.55 : 1;
   ctx.drawImage(sp, x - w / 2, y - w / 2, w, w);
   // as BIG as fits (owner): every label is 3 monospace letters, 1.5 em wide, and
@@ -202,14 +202,16 @@ function drawTower(t, ghost) {
 }
 // one sprite per kind + level + colours + zoom + the hex's turn (Horizon orbits
 // the slots), drawn exactly as the tower used to be drawn each frame
-const SOL_BEAM_W = 0.9, TOWER_LINE = 2.6, towerSprites = new Map(), TOWER_LABEL_PX = 23, MAX_SPOKE_PAST = 0.165; // a max-level spoke's reach past the outer ring, in cell sizes
+const SOL_BEAM_W = 0.9, TOWER_LINE = 2.6, towerSprites = new Map(), TOWER_LABEL_PX = 23;
 function towerSprite(kind, lvl, c0) {
   const b = TOWERS[kind], turn = Math.round(Math.atan2(c0.pts[0].y - c0.y, c0.pts[0].x - c0.x) * 90 / Math.PI); // 2-degree steps
   const key = [kind, lvl, COL[b.color], COL.bg, cam.k.toFixed(4), turn].join("|");
   let sp = towerSprites.get(key);
   if (sp) return sp;
   if (towerSprites.size > 300) towerSprites.clear();
-  const tiers = lvl - 1, reach = CELL_S * (TOWER_K + LEVEL_GAP * tiers) + 4 + TOWER_GLOW[lvl - 1] * 1.6;
+  // ONE hex, no level rings and no max-level spokes (owner, 2026-10-07): the level
+  // shows only in the glow, the build in the chart drawn on it (boardChart)
+  const reach = CELL_S * TOWER_K + 4 + TOWER_GLOW[lvl - 1] * 1.6;
   sp = document.createElement("canvas");
   sp.width = sp.height = Math.ceil(2 * reach * cam.k);
   const sx = sp.getContext("2d"), main = ctx;
@@ -218,25 +220,12 @@ function towerSprite(kind, lvl, c0) {
   ctx = sx;
   try {
     ctx.fillStyle = COL.bg; ctx.strokeStyle = COL[b.color]; ctx.lineJoin = "round"; ctx.globalAlpha = 1;
-    towerHex(c, TOWER_K + LEVEL_GAP * tiers); ctx.fill(); // the background colour under the WHOLE tower, rings too (owner)
+    towerHex(c, TOWER_K); ctx.fill(); // the background colour under the tower (owner)
     ctx.shadowColor = COL[b.color]; ctx.shadowBlur = TOWER_GLOW[lvl - 1] * cam.k;
-    for (let r = 1; r <= tiers; r++) {
-      ctx.globalAlpha = 1 - 0.12 * r; ctx.lineWidth = TOWER_LINE * 0.78;
-      towerHex(c, TOWER_K + LEVEL_GAP * r); ctx.stroke();
-    }
     // the glow stacks one pass per level, since a lone wide shadow thins out
-    ctx.globalAlpha = 1; ctx.lineWidth = TOWER_LINE; // thinner (owner, 2026-10-06; was 4.5, rings and spokes 3.5)
+    ctx.globalAlpha = 1; ctx.lineWidth = TOWER_LINE; // thinner (owner, 2026-10-06; was 4.5)
     towerHex(c, TOWER_K);
     for (let i = 0; i < lvl; i++) ctx.stroke();
-    // MAX LEVEL reads at a glance (owner: L3 and L4 were hard to tell apart):
-    // SIX SPOKES in the tower's colour, one from each corner of its hex out
-    // past the outermost ring (owner; replaced a white outer ring)
-    if (lvl >= MAX_LVL) {
-      const k0 = TOWER_K, k1 = TOWER_K + LEVEL_GAP * tiers + MAX_SPOKE_PAST;
-      ctx.lineWidth = TOWER_LINE * 0.78; ctx.lineCap = "round"; ctx.beginPath();
-      for (const p of c.pts) { ctx.moveTo(p.x * k0, p.y * k0); ctx.lineTo(p.x * k1, p.y * k1); }
-      ctx.stroke();
-    }
   } finally { ctx = main; }
   towerSprites.set(key, sp);
   return sp;
@@ -467,7 +456,7 @@ function drawScene([sx, sy], clipR) {
   drawAims();
   drawFx("shots");
   drawCoreFx(); // the core's struts and beams, under the towers (aspira-core.js)
-  ownColours(() => { drawSpokes(); for (const t of G.towers) drawTower(t); drawUpDots(); }); // towers keep their colours on a boss sky (owner)
+  ownColours(() => { drawSpokes(); for (const t of G.towers) drawTower(t); }); // towers keep their colours on a boss sky (owner)
   drawSlotFlash(); // a corner slot that just opened (aspira-waves.js)
   if (ui.build && ui.hover) drawPlacement();
   drawCore();

@@ -20,14 +20,13 @@ export function grantAll(g) {
   for (const id of ALL) g.run(`coreState().picks++; pickPower(${JSON.stringify(id)});`);
 }
 
-// the tower that dealt the most since the last call (falls back to total)
-function hotTower(g, mem) {
+// the tower that dealt the most since the last call (falls back to total);
+// `kind`: only that kind's towers count, while the player has one (players.mjs)
+function hotTower(g, mem, kind) {
   let bestT = null, bestD = -1;
-  for (const t of g.G.towers) {
-    const d = (t.dealt || 0) - (mem[t.id] || 0);
-    mem[t.id] = t.dealt || 0;
-    if (d > bestD) { bestD = d; bestT = t; }
-  }
+  const pool = kind && g.G.towers.some(t => t.kind === kind) ? g.G.towers.filter(t => t.kind === kind) : g.G.towers;
+  for (const t of g.G.towers) { const d = (t.dealt || 0) - (mem[t.id] || 0); mem[t.id] = t.dealt || 0; t.__hot = d; }
+  for (const t of pool) if (t.__hot > bestD) { bestD = t.__hot; bestT = t; }
   return bestT;
 }
 
@@ -35,7 +34,7 @@ const count = (mem, id) => { mem.fired = mem.fired || {}; mem.fired[id] = (mem.f
 
 // call every ~0.5 game-s; `mem` is a per-game object the caller keeps
 // (hotTower's memory + `fired`, how many times each power went off)
-export function usePowers(g, mem) {
+export function usePowers(g, mem, relayKind) {
   const G = g.G;
   if (!G.core || !G.core.pw) return;
   const pw = G.core.pw, cd = G.core.cd || {};
@@ -50,6 +49,6 @@ export function usePowers(g, mem) {
     if ((boss || near >= CROWD_N) && g.run("temporalFreeze()")) count(mem, "temporal");
   }
   if (!pw.relay || cd.relay > 0) return;
-  const t = hotTower(g, mem);
+  const t = hotTower(g, mem, relayKind);
   if (t && g.run(`relay(G.towers.find(t => t.id === ${t.id}))`)) count(mem, "relay");
 }

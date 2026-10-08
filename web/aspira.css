@@ -339,7 +339,7 @@
 /* two stat columns (owner): every tower's stats | this type's own */
 .asp-pop .asp-cols { display: flex; gap: var(--space-6); align-items: start; }
 .asp-pop .asp-spec { padding-left: var(--space-4); border-left: 1px solid hsl(var(--green-hsl) / 0.12); }
-.asp-pop .asp-cols dd { white-space: nowrap; } /* "now -> next" stays on one line */
+.asp-pop .asp-cols dd { white-space: normal; overflow-wrap: anywhere; } /* a long "now -> next" wraps inside its row, never out of the card (owner) */
 .asp-hint { margin: 0; font-size: var(--fs-sm); line-height: var(--lh-snug); color: hsl(var(--green-hsl)); } /* bright on every card alike, the stats' old size (owner) */
 
 .asp-bar { height: 6px; background: hsl(var(--bg-hsl) / 0.45); border-radius: var(--radius-1); overflow: hidden; }
@@ -353,6 +353,7 @@
   z-index: var(--z-raised);
   width: 380px; /* room for two stat columns (owner) */
   max-width: calc(100% - 16px);
+  overflow: hidden; /* capped by placePop on a short screen and NEVER scrolled (owner): the chart shrinks to fit */
   line-height: var(--lh-snug);
   border-color: hsl(var(--green-hsl) / 0.45);
 }
@@ -499,12 +500,10 @@
 /* no build buttons (owner): free slots are tapped instead */
 #asp .asp-build { display: none; }
 
-/* ONE line of cards (owner): a row, or a column when they do not all fit across
-   (aspira-chooser.js). A GRID: side by side the cards share one row and so
-   stretch to the SAME height (owner); stacked in a column each keeps its own
-   height, to save room */
-.asp-cards { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 380px); justify-content: center; gap: var(--space-4); }
-.asp-cards.asp-cards-col { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: minmax(0, 380px); }
+/* the cards' GRID (aspira-chooser.js layoutCards sets --cols and --card-w by the
+   screen's shape, owner 2026-10-07): side by side the cards of a row stretch to
+   the SAME height (owner); stacked, each keeps its own */
+.asp-cards { display: grid; grid-template-columns: repeat(var(--cols, 1), minmax(0, var(--card-w, 380px))); justify-content: center; gap: var(--space-4); }
 
 /* cancel: the same as clicking off the cards (owner) */
 #asp button.asp-cancel { padding-inline: var(--space-8); background: hsl(var(--bg-hsl)); }
@@ -522,8 +521,7 @@
   flex-direction: column;
   align-items: stretch;
   gap: var(--space-3);
-  width: 380px;
-  max-width: 100%;
+  width: 100%; /* its grid column's width (layoutCards) */
   padding: var(--space-4);
   text-align: left;
   line-height: var(--lh-snug);
@@ -673,11 +671,61 @@
 .asp-wavenote > .asp-cur { background: hsl(var(--white-hsl) / 0.12); }
 .asp-wavenote > span { display: flex; align-items: center; align-self: stretch; }
 
-/* the skill chart on a chart tower's TOWER card (aspira-skills.js): a
+/* the skill chart on a chart tower's TOWER card (aspira-sliders.js): a
    triangle radar, its rings and axes faint, what the tower HAS filled, what
-   this pick would make dashed (owner: a JoJo Stand chart) */
-.asp-chart { display: block; width: calc(var(--space-10) * 3); height: calc(var(--space-10) * 3); margin: 0 auto; overflow: visible; }
+   the pulled points would make dashed (owner: a JoJo Stand chart) - and the
+   UPGRADE CONTROL itself: a wide invisible track along each axis to drag on, a
+   stop per tier, the locked-in tier a filled dot, the handle a ring that turns
+   red where it cannot go; the reason reads in the note under it */
+.asp-chart { display: block; width: 100%; height: auto; aspect-ratio: 1; margin: 0 auto; overflow: visible; touch-action: none; } /* the whole width of its half (owner): big enough to drag with a thumb */
+
+/* the tower card's TWO HALVES (owner, 2026-10-07; aspira-ui.js inspectTower): the
+   control (chart, targeting, confirm + cancel) and the info (name, description,
+   stats, sell). Stacked on a phone, the info first and the control at the thumb;
+   side by side on a wide screen, where the card doubles its width and the spend
+   bar's close gives way to the card's own cancel / close */
+/* stacked: title, chart + confirm, then the info (owner: "triangle under title") */
+.asp-tower-grid { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "title" "ctl" "info"; gap: var(--space-3); }
+.asp-tower-title { grid-area: title; }
+.asp-tower-ctl { grid-area: ctl; }
+.asp-tower-info { grid-area: info; }
+.asp-tower-ctl, .asp-tower-info { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.asp-tower-ctl { gap: var(--space-1); }
+/* confirm + cancel sit at the FOOT of the control half, sell at the foot of the
+   info half, so the two halves end level (owner: no gap under the triangle) */
+#asp-upbox { display: flex; gap: var(--space-2); margin-top: auto; }
+#asp-acts { margin-top: auto; }
+#asp #asp-upbox button.asp-up-big { flex: 1; width: auto; min-width: 0; padding-block: var(--space-3); }
+#asp #asp-upbox button.asp-up-cancel { flex: 0 0 auto; padding-inline: var(--space-4); background: hsl(var(--bg-hsl)); }
+/* the upgrade button's two lines: UPGRADE, then the basket's size and price (or "pull an axis") */
+.asp-up-big > span { display: block; font-size: var(--fs-sm); font-weight: var(--fw-normal); letter-spacing: var(--tracking-wide); }
+.asp-up-big > span .asp-c { display: inline; } /* the credits' c stays on the line (cr) */
+@media (orientation: landscape) and (min-width: 700px) {
+  .asp-pop.asp-tower { display: flex; flex-direction: column; width: 760px; } /* its min-height is set by fitPop; the grid fills it */
+  .asp-tower-grid { flex: 1; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 1fr; grid-template-areas: "ctl title" "ctl info"; gap: var(--space-3) var(--space-6); }
+  /* the chart FILLS the control half's height (owner: no gap under the triangle), centred, as big as the half allows */
+  .asp-tower-ctl .asp-chart-box { display: flex; flex: 1; justify-content: center; min-height: 0; }
+  .asp-tower-ctl .asp-chart { width: auto; height: 100%; max-width: 100%; }
+  #asp.asp-towercard .asp-spend { display: none; }
+}
 .asp-chart .grid { fill: none; stroke: hsl(var(--green-hsl) / 0.45); stroke-width: 0.6; }
 .asp-chart .now { fill: hsl(var(--green-hsl) / 0.45); stroke: hsl(var(--green-hsl)); stroke-width: 1.2; }
 .asp-chart .next { fill: hsl(var(--green-hsl) / 0.12); stroke: hsl(var(--green-hsl)); stroke-width: 1.2; stroke-dasharray: 3 2; }
-.asp-chart text { fill: hsl(var(--green-hsl) / 0.8); font-size: var(--fs-2xs); text-anchor: middle; dominant-baseline: middle; }
+.asp-chart text { fill: hsl(var(--green-hsl) / 0.8); font-size: calc(var(--fs-2xs) * 0.7); text-anchor: middle; dominant-baseline: middle; letter-spacing: var(--tracking-wide); } /* in chart units: the labels scale with the chart */
+.asp-chart .track { stroke: transparent; stroke-width: 14; cursor: grab; }
+.asp-chart .stop { fill: hsl(var(--green-hsl) / 0.45); }
+.asp-chart .lock { fill: hsl(var(--green-hsl)); }
+.asp-chart .handle { fill: hsl(var(--green-hsl) / 0.45); stroke: hsl(var(--green-hsl)); stroke-width: 1.2; stroke-linejoin: round; cursor: grab; } /* a triangle pointing out along its axis */
+.asp-chart .handle.can { fill: hsl(var(--green-hsl)); animation: asp-flash 1.1s ease-in-out infinite; } /* the bank covers a point on this axis: it reads as slidable (owner) */
+.asp-chart .handle.stuck { fill: hsl(var(--orange-glow-hsl)); stroke: hsl(var(--orange-glow-hsl)); animation: none; }
+/* the reason a handle stopped, laid OVER the chart's lower edge (between the two
+   bottom labels, which sit in the corners) so it reserves no line of its own */
+.asp-chart-box { position: relative; }
+.asp-slider-note { position: absolute; right: 0; bottom: 0; left: 0; text-align: center; font-size: var(--fs-2xs); color: hsl(var(--orange-glow-hsl)); pointer-events: none; }
+
+/* the description's TRACK CHANGES (owner, 2026-10-07: like Word or Docs): removed
+   words struck through in Ember red, added ones underlined in the acid green */
+.asp-desc { font-size: var(--fs-sm); line-height: var(--lh-snug); color: hsl(var(--green-hsl)); }
+.asp-desc p { margin: 0; }
+.asp-desc del { color: hsl(var(--orange-glow-hsl)); text-decoration: line-through; }
+.asp-desc ins { color: hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l)); text-decoration: underline; }
