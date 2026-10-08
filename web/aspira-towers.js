@@ -17,7 +17,8 @@
 // is shown by a separate charge-up line instead (stepSol / drawAims)
 // the arc delay is a QUARTER of the tower's shot interval (owner), so it
 // follows fire-rate upgrades: 1.5 shots/s -> 0.17s per layer
-const CHAIN_BEAM_LIFE = 0.2, RAY_BEAM_LIFE = 0.083, CHAIN_HOP_FRAC = 0.25;
+// beam lives (x BEAM_LIFE_MUL; look only - owner, 2026-10-08: SOL longer, ARC slightly shorter; were 0.2 / 0.083)
+const CHAIN_BEAM_LIFE = 0.16, RAY_BEAM_LIFE = 0.15, CHAIN_HOP_FRAC = 0.25;
 const hopDelay = st => CHAIN_HOP_FRAC / st.rate;
 // arcs only land on enemies within the REACH, measured from the TOWER (owner;
 // drawn as a dashed outer ring): CHAIN_LEASH x range for the base 1-layer
