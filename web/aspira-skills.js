@@ -100,11 +100,11 @@ SKILL_TREES.sol = [
     { name: "Supernova", desc: "Six rays of light, each a full strike." },
   ] },
   { id: "refraction", name: "Refraction", base: "", tiers: [
-    { name: "Lens", desc: "Shots bounce on to two more enemies ahead." },
-    { name: "Prism", desc: "Shots bounce harder on to five more enemies ahead." },
-    { name: "Spectrum", desc: "Shots bounce hardest on to nine more enemies ahead." },
-    { name: "Halo", desc: "Refracting on to twelve more ahead." },
-    { name: "Aurora", desc: "Refracting on to fifteen more ahead." },
+    { name: "Lens", desc: "Shots bounce on to three more enemies ahead." },
+    { name: "Prism", desc: "Shots bounce harder on to six more enemies ahead." },
+    { name: "Spectrum", desc: "Shots bounce hardest on to ten more enemies ahead." },
+    { name: "Halo", desc: "Refracting on to thirteen more ahead." },
+    { name: "Aurora", desc: "Refracting on to sixteen more, ahead or back." },
   ] },
   { id: "breach", name: "Breach", base: "", tiers: [
     { name: "Pierce", desc: "Hits breach once: armor off and crits up for every tower, for good." },
@@ -420,7 +420,8 @@ function drawFrzSkill(t, st) {
 
 // ---------- SOL's chart: Focus beams, Refract cone, Pierce Breaches ----------
 // Breach stacks per hit (owner: "each beam permanently weakens the target's armor" - Breach is what strips it; the base SOL strips nothing)
-const SOL_BEAMS = [1, 2, 3, 4, 5, 6], SOL_REFRACTION = [0, 2, 5, 9, 12, 15];
+// Refraction from the start (owner, 2026-10-08): one hop in a 40-degree cone at tier 0; every tier one more hop than before (were 0 / 2 / 5 / 9 / 12 / 15)
+const SOL_BEAMS = [1, 2, 3, 4, 5, 6], SOL_REFRACTION = [1, 3, 6, 10, 13, 16];
 // BREACH IS SOL'S OWN, from the start (owner, 2026-10-08): every hit strips SOL_BREACH_ARMOR armor for good
 // (below zero too: a flat bonus on every later hit from every tower); the Breach axis massively
 // increases the strip and adds crit chance for every tower, SOL_BREACH_CRIT a hit (none at base)
@@ -430,7 +431,7 @@ const SOL_BREACH_ARMOR = [2, 16, 49, 101, 174, 200], SOL_BREACH_CRIT = [0, 0.01,
 // chance for every tower
 // the cone's half-angle by Refraction tier (owner, 2026-10-08: it WIDENS with the tier and starts wider, since every hop
 // must now travel forward - see solRefraction; was a flat 8, before that 25)
-const SOL_CONE_BY = [12, 60, 60, 80, 80, 80], SOL_CONE = SOL_CONE_BY[0], BREACH_CRIT = 0.01; // (the pre-chart path's per-stack crit; the chart SOL uses SOL_BREACH_CRIT)
+const SOL_CONE_BY = [20, 60, 60, 80, 80, 80], SOL_CONE = SOL_CONE_BY[0], BREACH_CRIT = 0.01; // (the pre-chart path's per-stack crit; the chart SOL uses SOL_BREACH_CRIT)
 // SOL's own lever (owner: more crit): Breach also raises the crit MULTIPLIER, x3 at base
 const SOL_CRITMUL = [3, 4, 5, 7, 8, 9];
 // FITTED 2026-10-06 to +25 / +50 / +100% (on an HP-scaled field, so nothing
@@ -445,7 +446,7 @@ const SOL_REFRACTION_DMG = [1, 1, 1.3, 1.84, 2.43, 3]; // III..V x1.15 / 1.35 / 
 const SOL_FOCUS_DMG = [1, 1, 1, 1, 1.139, 1.176]; // never below 1 (owner, 2026-10-08: no upgrade lowers a stat) - more beams carry I..III (114 / 133 / 152%)
 function solSkillStats(t, s, b) {
   s.dmg = b.dmg * SOL_REFRACTION_DMG[skillOf(t, "refraction")] * SOL_FOCUS_DMG[skillOf(t, "focus")]; s.range = b.range * RANGE_BONUS; s.crit = LVL_SOL_CRIT[0]; s.rate = b.rate;
-  s.beams = SOL_BEAMS[skillOf(t, "focus")]; s.refraction = SOL_REFRACTION[skillOf(t, "refraction")]; s.cone = SOL_CONE_BY[skillOf(t, "refraction")];
+  s.beams = SOL_BEAMS[skillOf(t, "focus")]; s.refraction = SOL_REFRACTION[skillOf(t, "refraction")]; s.cone = SOL_CONE_BY[skillOf(t, "refraction")]; s.backward = skillOf(t, "refraction") >= SKILL_TIERS; s.hop = SOL_HOP[skillOf(t, "refraction")]; // V's hops may go BACKWARDS (owner, 2026-10-08)
   const bk = skillOf(t, "breach");
   s.breach = 1; s.critMul = SOL_CRITMUL[bk]; s.bleedArmor = SOL_BREACH_ARMOR[bk]; s.bleedCrit = SOL_BREACH_CRIT[bk]; s.skill = true;
 }
@@ -462,9 +463,9 @@ function solRefraction(t, st, e) {
   // last hit, and the hop's own direction within the cone's half-angle of the shot - no beam bends back on itself
   const forward = (from, o) => Math.hypot(o.x - t.x, o.y - t.y) > Math.hypot(from.x - t.x, from.y - t.y) && off(Math.atan2(o.y - from.y, o.x - from.x)) <= half;
   for (let k = 0; k < st.refraction; k++) {
-    const from = prev, nxt = chainPick(t, prev, Infinity, o => hit.has(o) || !inCone(o) || !forward(from, o)); // within the cone, forward, by SOL's targeting
+    const from = prev, nxt = chainPick(t, prev, Infinity, o => hit.has(o) || !inCone(o) || !(st.backward || forward(from, o))); // within the cone, forward (any way at V), by SOL's targeting
     if (!nxt) break;
-    rayHit(t, st, nxt, st.dmg * SOL_HOP[SOL_REFRACTION.indexOf(st.refraction)], prev); hit.add(nxt); prev = nxt;
+    rayHit(t, st, nxt, st.dmg * (st.hop || 1), prev); hit.add(nxt); prev = nxt;
     far = Math.max(far, Math.hypot(nxt.x - t.x, nxt.y - t.y));
   }
   // the cone, from the tower to just past the furthest enemy it bent to

@@ -194,6 +194,9 @@ function shatterAt(e) {
 // Owner's rules: if the target dies mid-charge the charge starts over on a
 // new one; if it only leaves range the Reaper re-targets but keeps its charge;
 // with no target at all it sits uncharged, so every shot is telegraphed.
+const aimAt = (t, e) => Math.atan2(e.y - t.y, e.x - t.x);
+// e within SOL's cone (st.cone degrees either side) of direction a from the tower
+const inSolCone = (t, st, a, e) => Math.abs(((aimAt(t, e) - a + 3 * Math.PI) % (2 * Math.PI)) - Math.PI) <= (st.cone || SOL_CONE) * Math.PI / 180;
 function stepSol(t, dt) {
   const st = towerStats(t);
   t.period = 1 / st.rate;
@@ -204,11 +207,17 @@ function stepSol(t, dt) {
   // a new lock charges from empty, fires its own ray when full and charges
   // again; a lock whose target dies or slips away is dropped, and the slot
   // refills with a fresh lock.
-  t.locks = (t.locks || []).filter(l => !l.e.dead && Math.hypot(l.e.x - t.x, l.e.y - t.y) <= st.range * SOL_HOLD);
+  // CHARGE CONSERVATION (owner, 2026-10-08): a lost lock hands its charge on only to a new
+  // target inside the Refraction cone (st.cone either side) of the lost one's direction from
+  // the tower; anywhere else the new lock charges from empty
+  const lost = [];
+  t.locks = (t.locks || []).filter(l => { const ok = !l.e.dead && Math.hypot(l.e.x - t.x, l.e.y - t.y) <= st.range * SOL_HOLD; if (!ok) lost.push({ a: aimAt(t, l.e), cd: l.cd }); return ok; });
   if (t.locks.length < st.targets) {
     for (const e of pickTargets(t, st, st.targets + t.locks.length)) {
       if (t.locks.length >= st.targets) break;
-      if (!t.locks.some(l => l.e === e)) t.locks.push({ e, cd: t.period });
+      if (t.locks.some(l => l.e === e)) continue;
+      const k = lost.findIndex(o => inSolCone(t, st, o.a, e));
+      t.locks.push({ e, cd: k >= 0 ? lost.splice(k, 1)[0].cd : t.period });
     }
   }
   let fired = false;
@@ -217,8 +226,9 @@ function stepSol(t, dt) {
     if (l.cd > 0) continue;
     // a full charge RE-AIMS by the targeting before it fires (owner: Fresh kept
     // hitting the enemy it had already bled): the best enemy in range that no
-    // other lock holds; the charge carries over, so no shot is lost
-    const pick = pickTargets(t, st, st.targets + t.locks.length).find(e => e === l.e || !t.locks.some(o => o.e === e));
+    // other lock holds - inside the Refraction cone of its target, since only
+    // there does the charge carry over (owner, 2026-10-08); else it fires where it was
+    const a0 = aimAt(t, l.e), pick = pickTargets(t, st, st.targets + t.locks.length).find(e => e === l.e || (!t.locks.some(o => o.e === e) && inSolCone(t, st, a0, e)));
     if (pick) l.e = pick;
     fireRay(t, st, l.e); l.cd = t.period; fired = true;
     t.shots = (t.shots || 0) + 1;
