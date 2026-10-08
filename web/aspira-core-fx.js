@@ -2,7 +2,7 @@
 // effects need to be extremely more visible"). Loaded after aspira-core.js.
 //   the BUTTONS   cooldowns moved off the board (owner, 2026-10-08; was a
 //                 dial of arcs round the core) - aspira-powers.js
-//   TIME STOP     AT-field pulses: nested orange octagons sweeping out (owner, 2026-10-08)
+//   TIME STOP     AT-field pulses: nested white octagons sweeping out (owner, 2026-10-08)
 //   RELAY         a THICK pulsing beam from the core to the tower it has made
 //                 three of, a glowing halo round it and "RELAY x3" with its
 //                 seconds left above it
@@ -11,7 +11,7 @@
 // 26 units reads as ~14px
 const READY_POP = 15, RELAY_TEXT = 26;
 const DIAL = [ // the owned powers' buttons (aspira-powers.js) read this; colours are palette keys
-  { id: "temporal", label: "TEMPORAL DRIVE", color: "cyan", mid: Math.PI, tab: () => TEMPORAL, active: c => c.freezeUntil - c.clock }, // the left half
+  { id: "temporal", label: "TEMPORAL DRIVE", color: "white", /* white (owner, 2026-10-08; was cyan) */ mid: Math.PI, tab: () => TEMPORAL, active: c => c.freezeUntil - c.clock }, // the left half
   { id: "relay", label: "ORBITAL RELAY", color: "white", mid: 0, tab: () => RELAY, active: () => relayLeft() }, // the right half
 ];
 const relayLeft = () => Math.max(0, ...G.towers.map(t => (t.relayUntil || 0) - (G.clock || 0)));
@@ -55,20 +55,20 @@ function drawCoreHud() {
   }
   ctx.globalAlpha = 1; ctx.shadowBlur = 0;
 }
-// each pulse an EVANGELION AT FIELD (owner, 2026-10-08): nested orange OCTAGONS sweeping out together,
+// each pulse an EVANGELION AT FIELD (owner, 2026-10-08): nested WHITE OCTAGONS, the power's colour (owner: field and button both white; was orange, then cyan) sweeping out together,
 // the outer one brightest, a faint fill inside it, the whole field shimmering fast; pulses still come
 // every TEMPORAL_RING_EVERY s for the whole freeze (owner, same day; it was one plain cyan ring)
 const AT_LAYERS = 5, AT_STEP = 0.12, AT_FILL = 0.06;
 function drawTimeStop(c) {
   if (!c.freeze) return;
   const f = c.freeze, shimmer = 0.85 + 0.15 * Math.sin(performance.now() / 40);
-  ctx.strokeStyle = ctx.fillStyle = COL.orange; ctx.lineJoin = "miter";
+  ctx.strokeStyle = ctx.fillStyle = COL.white; ctx.lineJoin = "miter";
   for (let t0 = 0; t0 < f.dur && t0 <= f.t; t0 += TEMPORAL_RING_EVERY) {
     const a = f.t - t0; // this pulse's age
     if (a > TEMPORAL_GROW + TEMPORAL_FADE) continue;
     const A = 0.85 * shimmer * (1 - Math.max(0, a - TEMPORAL_GROW) / TEMPORAL_FADE), R = Math.max(1, TEMPORAL_R * Math.min(1, a / TEMPORAL_GROW));
     poly(CX, CY, R, 8, Math.PI / 8, false); ctx.globalAlpha = A * AT_FILL; ctx.fill();
-    glow(COL.orange, 22);
+    glow(COL.white, 22);
     for (let k = 0; k < AT_LAYERS; k++) {
       const r = R * (1 - k * AT_STEP);
       if (r <= CORE_R) break;
