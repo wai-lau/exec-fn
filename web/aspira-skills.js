@@ -281,7 +281,7 @@ function dischargeStatic(e) {
   try {
     // every charge BURSTS round the enemy: everything within ARC_BURST_R (the enemy too) takes it, a ring per charge
     // ONE thin, faint ring for the whole discharge, no glow (owner, 2026-10-08: "reduce intensity, no glow"; was a glowing ring per charge)
-    ring(e.x, e.y, ARC_BURST_R, TOWERS.arc.color, 0.18, false); Object.assign(fx[fx.length - 1], { a: ARC_BURST_A, w: 1.2 });
+    ring(e.x, e.y, ARC_BURST_R, TOWERS.arc.color, 0.18, false); const rf = fx[fx.length - 1]; if (rf && rf.k === "ring") Object.assign(rf, { a: ARC_BURST_A, w: 1.2 }); // (the simulator stubs ring out)
     ch.list.forEach(dmg => {
       for (const o of G.enemies) {
         if (o.dead || Math.hypot(o.x - e.x, o.y - e.y) > ARC_BURST_R) continue;
