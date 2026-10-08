@@ -5,14 +5,14 @@
 // aspira-skills.js (the simulator too, for scripts/aspira-desc-graph.mjs).
 // A tower without a composer here falls back to its axes' `base` / `desc`
 // sentences (aspira-skills.js) run together.
-const ARC_ADJ = ["", "harder", "much harder", "the hardest"], ARC_KEEP = ["half", "most of", "nearly all of", "all of"], ARC_SHARE = ["", "a share", "a bigger share", "the biggest share"];
+const ARC_ADJ = ["", "harder", "much harder", "the hardest"], ARC_KEEP = ["half", "most of", "nearly all of", "all of"], ARC_ARCS = ["", "once", "twice", "three times"];
 const DESCRIBE = {
   // "Arcs fork on hit, each jump carrying half the hit." -> Conductivity: chain once and / into
-  // three / twin; Voltage: harder .. the hardest, most of .. all of; Capacitance: the charge sentence
+  // three / twin; Voltage: harder .. the hardest, most of .. all of; Capacitance: the charge sentence (owner's words)
   arc(sk) {
     const c = sk.conductivity || 0, v = sk.voltage || 0, z = sk.capacitance || 0;
     let s = [ARC_ADJ[v], c >= 3 ? "twin" : "", "arcs", c >= 1 ? "chain once and" : "", "fork", c >= 2 ? "into three" : "", "on hit, each jump carrying", ARC_KEEP[v], "the hit."].filter(Boolean).join(" ");
-    if (z) s += " Hits leave " + ARC_SHARE[z] + " of themselves behind for the next hit from any tower to burst" + (z >= 3 ? ", slowing what it catches." : ".");
+    if (z) s += " Hits charge the target, charged targets arc " + ARC_ARCS[z] + " when hit by anything" + (z >= 3 ? ", slowing what they hit." : ".");
     return s[0].toUpperCase() + s.slice(1);
   },
 };

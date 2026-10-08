@@ -452,7 +452,6 @@ function drawScene([sx, sy], clipR) {
   if (!lowQ) drawStars(); // low quality: no star field
   drawTethers();
   drawAcd();
-  drawStaticRings(); // ARC Static's discharge rings (aspira-skills.js)
   drawAims();
   drawFx("shots");
   drawCoreFx(); // the core's struts and beams, under the towers (aspira-core.js)
