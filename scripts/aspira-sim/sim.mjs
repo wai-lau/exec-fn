@@ -208,7 +208,7 @@ export function makePlayer(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = 
         const t = next.up, [p, f] = (strategy.paths || {})[t.kind] || [0, 0];
         if (G.money - g.upCost(t) < floor) return;
         const need = g.pendingChoice(t);
-        const axis = need === "skill" ? ((strategy.skills || {})[t.kind] || []).find(id => ((t.skills || {})[id] || 0) < 3) : null;
+        const axis = need === "skill" ? ((strategy.skills || {})[t.kind] || []).find(id => ((t.skills || {})[id] || 0) < g.run("SKILL_TIERS")) : null;
         g.upgrade(t, axis || (need === "path" ? p : f));
         S.used[t.kind] = 1; next = null; continue;
       }
