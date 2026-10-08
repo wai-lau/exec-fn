@@ -159,7 +159,9 @@ export function cellScores(g, kind) {
 //                                 (leaks by type over the last 5 waves), near (closest approach last wave),
 //                                 nearBoss (closest the last boss came), share (damage by kind, last 5 waves),
 //                                 towers, money) and each rule whose `when` holds fires ONCE, editing the live
-//                                 strategy; game.setMode(kind, mode) retargets the towers it already has }
+//                                 strategy; game.setMode(kind, mode) retargets the towers it already has
+//   mind(s, obs, game)            called at EVERY wave's send after the pivots (mbti.mjs's cognitive stacks):
+//                                 obs also carries dealtAll / spentBy / leaksAll, the whole game so far }
 // threat (owner, 2026-10-02: "measure the nearest an enemy got; upgrade or
 // build when units get a bit too close"): the player SAVES (earning interest)
 // and only spends once a live enemy comes within `threat` of the core.
@@ -221,15 +223,16 @@ export function makePlayer(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = 
   const game = { setMode(kind, mode) { for (const t of g.G.towers) if (t.kind === kind) t.mode = mode; strategy.modes = { ...strategy.modes, [kind]: mode }; } };
   // the board as the player sees it at a wave's send (the pivots' `obs`)
   const observe = (record = true) => {
-    const G = g.G, dealt = {}, towers = {};
-    for (const t of G.towers) { dealt[t.kind] = (dealt[t.kind] || 0) + (t.dealt || 0); towers[t.kind] = (towers[t.kind] || 0) + 1; }
+    const G = g.G, dealt = {}, towers = {}, spentBy = {};
+    for (const t of G.towers) { dealt[t.kind] = (dealt[t.kind] || 0) + (t.dealt || 0); towers[t.kind] = (towers[t.kind] || 0) + 1; spentBy[t.kind] = (spentBy[t.kind] || 0) + (t.spent || 0); }
     const now = { wave: G.wave, lives: G.lives, leaks: { ...S.leaks }, dealt, near: S.waveNear };
     const then = S.hist[Math.max(0, S.hist.length - 5)] || { lives: 18, leaks: {}, dealt: {} };
     if (record) S.hist.push(now);
     const lostBy = {}; for (const k of Object.keys(S.leaks)) lostBy[k] = (S.leaks[k] || 0) - (then.leaks[k] || 0);
     const d5 = {}; let tot = 0; for (const k of Object.keys(dealt)) { d5[k] = dealt[k] - (then.dealt[k] || 0); tot += d5[k]; }
     const share = {}; for (const k of Object.keys(d5)) share[k] = tot ? d5[k] / tot : 0;
-    return { wave: G.wave, lives: G.lives, lost5: then.lives - G.lives, lostBy, near: S.waveNear, nearBoss: S.bossNear, share, towers, money: G.money, slots: g.run("openCells()") };
+    return { wave: G.wave, lives: G.lives, lost5: then.lives - G.lives, lostBy, near: S.waveNear, nearBoss: S.bossNear, share, towers, money: G.money, slots: g.run("openCells()"),
+      dealtAll: dealt, spentBy, leaksAll: { ...S.leaks } }; // (dealtAll / spentBy / leaksAll: the whole game so far, for a mind)
   };
   const onWave = () => { // a wave's send: the trace, the ledger, the player's look at the board, its pivots
     const G = g.G, spent = Math.round(G.towers.reduce((a, t) => a + (t.spent || 0), 0)), maxed = G.towers.filter(t => t.lvl >= g.maxLvl(t)).length;
@@ -243,6 +246,7 @@ export function makePlayer(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = 
         if (S.fired.includes(pv.name) || !pv.when(obs, strategy)) continue;
         S.fired.push(pv.name); pv.do(strategy, obs, game); S.pivoted.push({ wave: obs.wave, name: pv.name });
       }
+      if (strategy.mind) strategy.mind(strategy, obs, game); // a MIND (mbti.mjs): reasons over the board EVERY wave, editing the live knobs
       if (S.lastWave % 10 === 0) S.bossNear = S.waveNear;
     }
     S.lastWave = g.G.wave; S.waveNear = Infinity;
