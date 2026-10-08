@@ -37,11 +37,12 @@ const DESCRIBE = {
     const f = sk.focus || 0, r = sk.refraction || 0, b = sk.breach || 0;
     return SOL_RAYS[f] + " of light" + (f ? ", each a full strike" : "") + ", " + SOL_REFRACT[r] + (b ? "; each beam weakens its target's armor for good, and scorches it so every tower crits it more." : ".");
   },
-  // "Two jets of acid, each corroding the enemy, leaving behind pools of acid. Acid flow is
-  // reduced when switching targets." (owner's words) -> Spray: three .. six jets; Corrosion I:
-  // the flow HOLDS on a switch; Contagion III: pools that slow all who wade through them
+  // "Two jets of acid, each corroding the enemy. Acid flow is reduced when switching targets."
+  // (owner's words) -> Spray: three .. six jets; Corrosion I: the flow HOLDS on a switch;
+  // Contagion I: leaving behind pools of acid, III: that slow all who wade through them
   acd(sk) {
-    return ACD_JETS[sk.spray || 0] + " jets of acid, each corroding the enemy, leaving behind pools of acid" + ((sk.contagion || 0) >= 3 ? " that slow all who wade through them" : "") + ". Acid flow " + ((sk.corrosion || 0) ? "holds" : "is reduced") + " when switching targets.";
+    const c = sk.contagion || 0; // no pools until Contagion I (owner)
+    return ACD_JETS[sk.spray || 0] + " jets of acid, each corroding the enemy" + (c ? ", leaving behind pools of acid" : "") + (c >= 3 ? " that slow all who wade through them" : "") + ". Acid flow " + ((sk.corrosion || 0) ? "holds" : "is reduced") + " when switching targets.";
   },
 };
 // the description for a chart (`skills`): the composer, else the axes' sentences run together

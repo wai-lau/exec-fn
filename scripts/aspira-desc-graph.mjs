@@ -32,7 +32,7 @@ const MECH = {
   acd: {
     corrosion: k => `acid x${V("ACD_CORROSION_DMG")[k]}, a fresh jet starts with ${pct(k >= 1 ? 1 : 0.4)} of a spent jet's concentration`,
     spray: k => `${V("ACD_LINES")[k]} jets, each x${V("ACD_SPRAY_MUL")[k]}, range x${V("SKILL_MOVE").acd.spray[k][0]}`,
-    contagion: k => { const c = V("ACD_CONTAGION")[k]; return `a puddle every ${c.every}s per jet, lasting ${c.life}s, radius ${c.r}, at ${pct(V("ACD_PUDDLE_HEAT")[k])} of the jet's concentration${V("ACD_CONTAGION_SLOW")[k] ? `, slows ${pct(V("ACD_CONTAGION_SLOW")[k])}` : ""}, roam x${V("SKILL_MOVE").acd.contagion[k][1]}`; },
+    contagion: k => { const c = V("ACD_CONTAGION")[k]; if (!c) return "no puddles"; return `a puddle every ${c.every}s per jet, lasting ${c.life}s, radius ${c.r}, at ${pct(V("ACD_PUDDLE_HEAT")[k])} of the jet's concentration${V("ACD_CONTAGION_SLOW")[k] ? `, slows ${pct(V("ACD_CONTAGION_SLOW")[k])}` : ""}, roam x${V("SKILL_MOVE").acd.contagion[k][1]}`; },
   },
 };
 // the words that change from a to b, b's changed words marked *so* (the card's wordDiff, in text)
