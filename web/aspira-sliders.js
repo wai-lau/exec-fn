@@ -4,8 +4,10 @@
 // stat rows read now -> next, the description shows its change as TRACK
 // CHANGES (removed words struck through, added ones underlined, like Word or
 // Docs), the upgrade button prices the whole basket and LOCKS IT IN. A handle
-// stops where it must and the card SAYS why (#asp-slider-note): the top tier,
-// the tier already locked in, or the point the bank cannot cover. The U key
+// stops where it must and the card SAYS why (#asp-slider-note): the top tier or
+// the tier already locked in. The bank is no limit to a pull (owner, 2026-10-07):
+// a basket it cannot cover shows its cost in red on a button that will not take
+// the tap (the handles flash only where a point IS affordable). The U key
 // locks in (1-3 stay the speed keys). UI only; loaded after aspira-chart.js and
 // before aspira-ui.js, whose helpers (statRow, button, noFunds, SPEC, ...) it
 // calls at run time.
@@ -136,11 +138,10 @@ function bindSliders(t, root) {
 }
 // pull axis i to tier `want`, as far as the rules allow, and say what stopped it
 function pullAxis(t, i, want) {
-  const ax = SKILL_TREES[t.kind][i], add = basketFor(t), lock = skillOf(t, ax.id), { others, left, afford } = axisRoom(t, ax.id);
-  const max = lock + Math.min(left, afford), to = Math.max(lock, Math.min(max, want));
+  const ax = SKILL_TREES[t.kind][i], add = basketFor(t), lock = skillOf(t, ax.id);
+  const max = SKILL_TIERS, to = Math.max(lock, Math.min(max, want));
   let why = "";
-  if (want > max && max === SKILL_TIERS) why = ax.name + " " + roman(SKILL_TIERS) + " is the top tier";
-  else if (want > max) why = "next point " + cr(skillPointsCost(t, others + afford + 1) - skillPointsCost(t, others + afford)) + " · need " + cr(short(skillPointsCost(t, others + afford + 1) - G.money)) + " more";
+  if (want > max) why = ax.name + " " + roman(SKILL_TIERS) + " is the top tier";
   else if (want < lock) why = ax.name + " " + roman(lock) + " is locked in · sell to undo";
   const was = add[ax.id] || 0;
   add[ax.id] = to - lock;
@@ -213,7 +214,7 @@ function upgradeButton(t) {
   const n = basketPoints(t), cost = basketCost(t), pts = t.lvl - 1 + n;
   const label = towerTitle(t) + (pts ? " " + roman(pts) : "") + (n ? ' <span class="asp-spend-cost">(−' + cr(cost) + ")</span>" : "");
   const btn = button(box, "asp-primary asp-up-big", label, () => lockIn(t), "asp-up");
-  btn.classList.toggle("poor", n > 0 && G.money < cost);
+  btn.classList.toggle("poor", n > 0 && G.money < cost); btn.disabled = n > 0 && G.money < cost; // the bank cannot cover it: red, and no tap (owner)
   button(box, "asp-up-cancel", n ? "cancel" : "close", () => { if (basketPoints(t)) { basket.add = {}; refreshPanels(); } else closeCard(); }, "asp-up-cancel");
 }
 // buy every pulled point, in axis order, each at its own ladder step (upgradeTower pays one)
