@@ -120,9 +120,12 @@ function pickTargets(t, st, count) {
 // profiled 2026-10-05, waves 80-85, 9 max towers.)
 const DMG_MAX = 120;
 let dmgLive = []; // the live damage-number floats, each carrying its hit size `v`
+// a number's size follows its hit against the biggest hit yet - steeper and wider than it was (owner, 2026-10-08:
+// "big numbers bigger!!"; was sqrt, 11..27px)
+const DMG_SIZE_EXP = 0.7, DMG_PX_MIN = 10, DMG_PX_SPAN = 28;
 function dmgNumber(e, label, size, color) {
   G.maxHit = Math.max(G.maxHit || 1, size);
-  const rel = Math.sqrt(size / G.maxHit);
+  const rel = (size / G.maxHit) ** DMG_SIZE_EXP;
   if (dmgLive.length >= DMG_MAX) {
     dmgLive = dmgLive.filter(f => f.t < f.life);
     if (dmgLive.length >= DMG_MAX) {
@@ -133,7 +136,7 @@ function dmgNumber(e, label, size, color) {
       dmgLive.splice(lo, 1);
     }
   }
-  float(e.x + (Math.random() - 0.5) * 24, e.y - 14, label, color, Math.round(11 + 16 * rel), 0.8 + 1.2 * rel, 1, 30, true);
+  float(e.x + (Math.random() - 0.5) * 24, e.y - 14, label, color, Math.round(DMG_PX_MIN + DMG_PX_SPAN * rel), 0.8 + 1.2 * rel, 1, 30, true);
   const f = fx[fx.length - 1];
   f.v = size; dmgLive.push(f);
 }

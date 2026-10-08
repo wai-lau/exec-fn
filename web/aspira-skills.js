@@ -467,7 +467,7 @@ function solRefraction(t, st, e) {
   const forward = (from, o) => Math.hypot(o.x - t.x, o.y - t.y) > Math.hypot(from.x - t.x, from.y - t.y) && off(Math.atan2(o.y - from.y, o.x - from.x)) <= half;
   for (let k = 0; k < st.refraction; k++) {
     const from = prev, nxt = chainPick(t, prev, Infinity, o => hit.has(o) || !inCone(o) || !forward(from, o)); // within the cone, forward, by SOL's targeting
-    if (!nxt) { if (st.refraction === Infinity) solOutOfSight(t, st, k ? from0 : t, prev); break; } // V: on out of sight
+    if (!nxt) { solOutOfSight(t, st, from0, prev); break; } // no one left in the cone: on out of sight (owner, 2026-10-08: always, not only V)
     from0 = prev;
     rayHit(t, st, nxt, st.dmg * (st.hop || 1), prev); hit.add(nxt); prev = nxt;
     far = Math.max(far, Math.hypot(nxt.x - t.x, nxt.y - t.y));
@@ -475,7 +475,7 @@ function solRefraction(t, st, e) {
   // the cone, from the tower to just past the furthest enemy it bent to
   fx.push({ k: "cone", x: t.x, y: t.y, a: dir, half, len: far + 30, color: TOWERS[t.kind].color, t: 0, life: SOL_CONE_LIFE });
 }
-// V's last beam: on from the last enemy struck, along its last leg, far past the screen's edge (owner, 2026-10-08)
+// a shot that runs OUT OF TARGETS goes on from the last enemy struck, along its last leg, far past the screen's edge (owner, 2026-10-08)
 const SOL_OUT_LEN = 3000;
 function solOutOfSight(t, st, a, b) {
   const dx = b.x - a.x, dy = b.y - a.y, n = Math.hypot(dx, dy) || 1;
