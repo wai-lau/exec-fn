@@ -18,7 +18,7 @@ const SPEC = {
   arc: st => {
     const tree = [1]; for (let l = 1; l <= st.layers; l++) tree.push(st.branch ** l);
     return [["Hits", tree.join("→")], ["Arc dmg", dmgUnits(st.dmg * st.arcFall)],
-      ["Charge", st.charge ? Math.round(st.charge.frac * 100) + "% of hit · arcs " + (st.charge.arcs === 1 ? "once" : st.charge.arcs === 2 ? "twice" : st.charge.arcs + "×") : "—"],
+      ["Charge", st.charge ? st.charge.n + " × " + Math.round(st.charge.frac * 100) + "% of hit · burst r" + ARC_BURST_R : "—"],
       // a chart ARC: no reach from the tower - EACH JUMP its own, shrinking (owner)
       ...(st.skill ? [["Jumps", st.layers + (st.layers > 1 ? " jumps" : " jump") + " · first " + Math.round(st.arcRange)]] // (the first jump's reach LAST: it only rises, the card reads the last number)
         : [["Arc hop", Math.round(st.arcRange)], ["Reach", Math.round(chainReach(st))]]),

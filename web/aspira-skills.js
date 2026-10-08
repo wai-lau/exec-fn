@@ -47,11 +47,11 @@ const SKILL_TREES = {
       { name: "Plasma", desc: "Each jump carries far more than the hit." },
     ] },
     { id: "capacitance", name: "Capacitance", base: "", tiers: [
-      { name: "Static", desc: "Hits charge the target, charged targets arc twice when hit by anything." },
-      { name: "Charge", desc: "Hits charge the target, charged targets arc three times when hit by anything." },
-      { name: "Overload", desc: "Hits charge the target, charged targets arc four times when hit by anything, slowing what they hit." },
-      { name: "Discharge", desc: "Hits charge the target, charged targets arc six times when hit by anything, slowing what they hit." },
-      { name: "Tempest", desc: "Hits charge the target, charged targets arc eight times when hit by anything, slowing what they hit." },
+      { name: "Static", desc: "Hits leave a charge, which bursts around the target when it is hit by anything." },
+      { name: "Charge", desc: "Hits leave two charges, which burst around the target when it is hit by anything." },
+      { name: "Overload", desc: "Hits leave three charges, which burst around the target when it is hit by anything, slowing what they hit." },
+      { name: "Discharge", desc: "Hits leave four charges, which burst around the target when it is hit by anything, slowing what they hit." },
+      { name: "Tempest", desc: "Hits leave five charges, which burst around the target when it is hit by anything, slowing what they hit." },
     ] },
   ],
 };
@@ -195,7 +195,12 @@ let ARC_CONDUCTIVITY = [{ s: 1, j: 1, f: 2, r: 1, d: 1, v: 0 }, { s: 1, j: 2, f:
 // how many times the charged enemy ARCS when next hit (dischargeStatic). The
 // charge shares are the old ring's fits (2026-10-06: +25 / +50 / +100%); refit later
 // owner, 2026-10-08 (isolation: the weakest ARC axis, 136% team at V): more charge and more arcs (were 1..5 arcs at .22 .. .45)
-const ARC_CAPACITANCE = [null, { arcs: 2, frac: 0.575 }, { arcs: 3, frac: 1.052 }, { arcs: 4, frac: 1.328 }, { arcs: 6, frac: 1.292 }, { arcs: 8, frac: 1.226 }];
+// BURSTS, NOT ARCS (owner, 2026-10-08: "Capa is too much like Cond now - circle AoE instead of arcs; add multiple
+// charges instead of arcing more ... hits add more and more charges as you level up"): an ARC hit leaves `n`
+// charges, each worth `frac` of the hit; the next hit from anything sets them ALL off, each a BURST of radius
+// ARC_BURST_R round the enemy hitting everything inside (each burst its own hit: armor bites each, each pops a shield)
+const ARC_CAPACITANCE = [null, { n: 1, frac: 0.1 }, { n: 2, frac: 0.1 }, { n: 3, frac: 0.1 }, { n: 4, frac: 0.1 }, { n: 5, frac: 0.1 }]; // a burst hits all round it, so each charge is small: isolation I..V 110 119 150 167 184% (with the slows below)
+const ARC_BURST_R = 70;
 // each jump hits ARC_FALL as hard and reaches ARC_SHRINK as far as the one before (owner)
 const ARC_FALL = 0.5, ARC_SHRINK = 0.7;
 // a jump's reach, before Conductivity lengthens it (owner: longer by default). It
@@ -232,7 +237,7 @@ const withSkills = (t, add) => { const s = { ...t.skills }; for (const [id, n] o
 // once when hit by anything"): an ARC hit leaves a CHARGE on the enemy it struck,
 // worth st.charge.frac of the hit; charges STACK. The next hit on that enemy from
 // ANY tower - the ARC that charged it too (owner: it procs itself) - makes it ARC
-// (dischargeStatic: st.charge.arcs leaps, each worth the whole charge) before the
+// (dischargeStatic: every charge bursts round it) before the
 // new charge lands, and the charge is gone; so does its DEATH (owner).
 function fireSkillChain(t, st, e, seen) {
   if (seen && seen.has(e.id)) return; // a second strike never re-hits what the first took
@@ -253,40 +258,36 @@ function skillHit(c, e, d) {
   damage(e, d, c.t, false, false, c.st); onHit(e, c.t, c.st, d); // (discharges e's own charges, if any)
   const b = c.st.charge;
   if (!b || e.dead) return;
-  const ch = e.charge || (e.charge = { dmg: 0, arcs: 0, t: c.t });
-  ch.dmg += d * b.frac; ch.arcs = Math.max(ch.arcs, b.arcs); ch.t = c.t; ch.slow = Math.max(ch.slow || 0, c.st.statSlow || 0);
+  const ch = e.charge || (e.charge = { list: [], t: c.t });
+  for (let k = 0; k < b.n; k++) ch.list.push(d * b.frac); // n charges a hit (the hit itself set off any it had)
+  ch.t = c.t; ch.slow = Math.max(ch.slow || 0, c.st.statSlow || 0);
 }
 let staticQuiet = false;
 // Overload's leaps SLOW what they hit (owner, 2026-10-06, the no-FRZ niche search):
 // 30% for STAT_SLOW_T s - a late team without FRZ can answer the fast waves
-const ARC_STAT_SLOW = [0, 0, 0, 0.3, 0.35, 0.4], STAT_SLOW_T = 0.6; // from III (owner, 2026-10-08: kept at III, not moved to V)
-// a DISCHARGE (owner, 2026-10-07: "charged targets arc once when hit by anything"):
-// the charged enemy ARCS - a bolt leaps from it to the nearest enemy not yet hit,
-// ch.arcs times in a chain, each leap worth the whole charge, drawn as ARC's beams.
-// Quiet: a leap neither charges nor sets off charges, so there is no chain reaction
-// (staticQuiet). (Was an expanding ring around the enemy.)
+const ARC_STAT_SLOW = [0, 0, 0, 0.15, 0.17, 0.2] /* halved for the bursts (2026-10-08; were .3 .35 .4) */, STAT_SLOW_T = 0.6; // from III (owner, 2026-10-08: kept at III, not moved to V)
+// a DISCHARGE: every charge the enemy holds BURSTS round it (ARC_CAPACITANCE; 2026-10-08, was a chain of
+// arcs - too much like Conductivity). Quiet: a burst neither charges nor sets off charges, so there is
+// no chain reaction (staticQuiet).
 // ARC's LOOK only (owner, 2026-10-08: "overwhelming at high levels" -> "less visible overall, the strike most of all;
 // still tied to damage, but less"): the strike draws at ARC_A, a jump at ARC_A x (its share of the strike)^ARC_CORR -
 // so under Voltage IV-V, where a jump carries MORE than the strike, the far jumps outshine the shot; widths follow the
 // damage at ARC_W_CORR of the usual slope; Capacitance's leaps thin and faint; the glow narrower and dimmer (drawFx, f.soft)
 const ARC_A = 0.3, ARC_CORR = 0.5, ARC_W_CORR = 0.5, ARC_LEAP_A = 0.6 * ARC_A, ARC_LEAP_W = 0.6, ARC_GLOW_A = 0.12, ARC_GLOW_W = 2;
-const STATIC_ARC_REACH = 320; // longer than an ARC jump (owner, 2026-10-08: "increase arc reach"; was ARC_JUMP_BASE 234)
 function dischargeStatic(e) {
   const ch = e.charge;
   e.charge = null;
   staticQuiet = true;
   try {
-    let from = e;
-    const hit = new Set([e.id]);
-    for (let k = 0; k < ch.arcs; k++) {
-      const nxt = chainPick(ch.t, from, STATIC_ARC_REACH * STATIC_ARC_REACH, o => hit.has(o.id)); // by the charging ARC's targeting
-      if (!nxt) break;
-      hit.add(nxt.id);
-      beam(from, nxt, TOWERS.arc.color, CHAIN_BEAM_LIFE, 1.5, ch.dmg); Object.assign(fx[fx.length - 1], { soft: true, alpha: ARC_LEAP_A, thin: ARC_LEAP_W });
-      damage(nxt, ch.dmg, ch.t, false, false, null);
-      if (ch.slow && !nxt.dead) applySlow(nxt, ch.slow, STAT_SLOW_T, ch.t.id + ":stat");
-      from = nxt;
-    }
+    // every charge BURSTS round the enemy: everything within ARC_BURST_R (the enemy too) takes it, a ring per charge
+    ch.list.forEach((dmg, k) => {
+      ring(e.x, e.y, ARC_BURST_R, TOWERS.arc.color, 0.18 + 0.05 * k, true);
+      for (const o of G.enemies) {
+        if (o.dead || Math.hypot(o.x - e.x, o.y - e.y) > ARC_BURST_R) continue;
+        damage(o, dmg, ch.t, false, false, null);
+        if (ch.slow && !o.dead) applySlow(o, ch.slow, STAT_SLOW_T, ch.t.id + ":stat");
+      }
+    });
   } finally { staticQuiet = false; }
 }
 // the nearest enemy this bolt has not hit yet, within this jump's (shrunk) reach
