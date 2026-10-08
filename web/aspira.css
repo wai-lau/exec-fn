@@ -57,12 +57,12 @@
 /* BOTTOM-LEFT (owner, 2026-10-02): the next waves, the title under them */
 .asp-left {
   position: absolute;
-  left: var(--space-6);
+  left: var(--space-3); /* snapped to the left edge (owner, 2026-10-07; was space-6 and centred) */
   bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px) + var(--foot-h, 0px) + var(--space-3)); /* above the bottom speed bar (and a phone's home bar) */
   z-index: var(--z-raised);
   display: flex;
   flex-direction: column;
-  align-items: center; /* next-wave line and the title centred on the list (owner) */
+  align-items: flex-start; /* the label and the rows flush left (owner) */
   gap: var(--space-2);
   pointer-events: none;
 }
