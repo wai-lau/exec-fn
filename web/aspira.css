@@ -684,8 +684,8 @@
 /* auto-wait ON and a power ONLINE flash BRIGHTER and HARDER (owner, 2026-10-08; were asp-blink):
    faster, down to near nothing, and up to an over-bright glow in their own colour */
 @keyframes asp-flash {
-  0%, 100% { opacity: 1; filter: brightness(1.6) drop-shadow(0 0 var(--blur-sm) currentcolor); }
-  50% { opacity: 0.15; filter: none; }
+  0%, 100% { opacity: 1; filter: brightness(1.4) drop-shadow(0 0 var(--blur-sm) currentcolor); } /* a touch softer (owner, 2026-10-08; were 1.6 / 0.15) */
+  50% { opacity: 0.3; filter: none; }
 }
 
 /* the quality toggle reads as a BUTTON (owner, 2026-10-08): a box round its label, unlike the auto-wait checkbox */
