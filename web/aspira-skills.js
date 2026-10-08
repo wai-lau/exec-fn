@@ -36,8 +36,8 @@ const SKILL_TREES = {
       { name: "Transfer", desc: "Arcs chain once and fork on hit." },
       { name: "Conduit", desc: "Arcs chain once and fork into three on hit." },
       { name: "Superconductor", desc: "Two arcs chain once and fork into three on hit." },
-      { name: "Lattice", desc: "Two arcs chain twice and fork into three on hit." },
-      { name: "Storm", desc: "Three arcs chain twice and fork into three on hit." },
+      { name: "Lattice", desc: "Three arcs chain once and fork into three on hit." },
+      { name: "Storm", desc: "Four arcs chain once and fork into three on hit." },
     ] },
     { id: "voltage", name: "Voltage", base: "Each jump carries half the hit.", tiers: [
       { name: "Spark", desc: "Harder hits; each jump carries most of the hit." },
@@ -188,7 +188,7 @@ const ARC_VOLTAGE_DMG = [1, 1.4, 1.9, 2.8, 3.6, 4.6], ARC_VOLTAGE_FALL = [0.5, 0
 // and r, how much further each JUMP reaches (owner; Voltage owns the tower's range)
 // d: a damage multiplier, FITTED so each tier deals +25% / +50% / +100% over
 // the base (owner), like Voltage's (scripts/aspira-sim: arcfit)
-let ARC_CONDUCTIVITY = [{ s: 1, j: 1, f: 2, r: 1, d: 1, v: 0 }, { s: 1, j: 2, f: 2, r: 1.2, d: 1, v: 0 }, { s: 1, j: 2, f: 3, r: 1.4, d: 1, v: 0 }, { s: 2, j: 2, f: 3, r: 1.6, d: 1, v: 1 }, { s: 2, j: 3, f: 3, r: 1.8, d: 1, v: 2 }, { s: 3, j: 3, f: 3, r: 2, d: 1, v: 3 }]; // IV chains twice, V three arcs (2026-10-07) // owner 2026-10-06: a tier never lowers the hit (d was 1 / .775 / .613 / .394); the tree and the jump reach pay for it
+let ARC_CONDUCTIVITY = [{ s: 1, j: 1, f: 2, r: 1, d: 1, v: 0 }, { s: 1, j: 2, f: 2, r: 1.2, d: 1, v: 0 }, { s: 1, j: 2, f: 3, r: 1.4, d: 1, v: 0 }, { s: 2, j: 2, f: 3, r: 1.6, d: 1, v: 1 }, { s: 3, j: 2, f: 3, r: 1.8, d: 1, v: 2 }, { s: 4, j: 2, f: 3, r: 2, d: 1, v: 3 }] /* IV / V: three and four arcs at III's depth and forking (owner, 2026-10-08) */; // IV chains twice, V three arcs (2026-10-07) // owner 2026-10-06: a tier never lowers the hit (d was 1 / .775 / .613 / .394); the tree and the jump reach pay for it
 // v: how many times a bolt may RETURN to an enemy it already struck (owner, 2026-10-08): from III a jump may hit any
 // enemy but the one it leaps from - III once more (2 hits an enemy), IV twice (3), V three times (4)
 // Capacitance by tier (owner, 2026-10-07): the charge, x the hit that left it, and
