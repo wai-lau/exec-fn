@@ -31,7 +31,12 @@ function axisRoom(t, id) {
 // stacked to the LEFT of the chart; the chart is the picture - the tier rings,
 // what the tower has (filled), what the pull would make (dashed), the axes'
 // short names at the corners and no numbers
-const SL_R = 46, SL_C = 60, SL_R0 = 8, SL_H = 96; // the chart's outer radius, centre and tier-0 radius (viewBox units); the viewBox is CROPPED to the triangle and its labels (SL_H of 120: no empty band under it - owner)
+// the chart's outer radius (bigger, owner), centre and tier-0 radius (viewBox units); each label
+// sits LABEL_GAP past its corner along the axis - the same gap on all three (owner: COND looked
+// further off than CAPA / VOLT); the viewBox is CROPPED to the triangle and its labels (from
+// SL_TOP to SL_TOP + SL_H: no empty band under it - owner)
+const SL_R = 50, SL_C = 60, SL_R0 = 8, LABEL_GAP = 7, SL_TOP = -3, SL_H = 97;
+const labelPt = (i, n) => { const a = axisAngle(i, n), r = SL_R + LABEL_GAP; return [SL_C + Math.cos(a) * r, SL_C + Math.sin(a) * r]; };
 const axisAngle = (i, n) => -Math.PI / 2 + i * 2 * Math.PI / n;
 function axisPt(i, k, n) {
   const a = axisAngle(i, n), r = SL_R0 + (SL_R - SL_R0) * k / SKILL_TIERS;
@@ -44,16 +49,16 @@ const canPull = (t, ax) => { const r = axisRoom(t, ax.id); return r.left > 0 && 
 const shapeOf = (axes, sk, n) => axes.map((ax, i) => axisPt(i, (sk && sk[ax.id]) || 0, n).map(v => v.toFixed(1)).join(",")).join(" ");
 function sliderChart(t) {
   const axes = SKILL_TREES[t.kind], n = axes.length, add = basketFor(t), pv = previewTower(t);
-  let svg = '<svg class="asp-chart asp-sliders" viewBox="0 0 120 ' + SL_H + '">';
+  let svg = '<svg class="asp-chart asp-sliders" viewBox="0 ' + SL_TOP + ' 120 ' + SL_H + '">';
   for (let k = 1; k <= SKILL_TIERS; k++) svg += '<polygon class="grid" points="' + axes.map((_, i) => axisPt(i, k, n).map(v => v.toFixed(1)).join(",")).join(" ") + '"/>';
   axes.forEach((ax, i) => { const [ex, ey] = axisPt(i, SKILL_TIERS, n); svg += '<line class="grid" x1="' + SL_C + '" y1="' + SL_C + '" x2="' + ex.toFixed(1) + '" y2="' + ey.toFixed(1) + '"/>'; });
   svg += '<polygon class="next" points="' + shapeOf(axes, pv.skills, n) + '"/><polygon class="now" points="' + shapeOf(axes, t.skills, n) + '"/>';
-  axes.forEach((ax, i) => { const [tx, ty] = axisPt(i, SKILL_TIERS + 0.75, n); svg += '<text x="' + tx.toFixed(1) + '" y="' + ty.toFixed(1) + '" text-anchor="middle">' + ax.name.slice(0, 4).toUpperCase() + "</text>"; });
+  axes.forEach((ax, i) => { const [tx, ty] = labelPt(i, n); svg += '<text x="' + tx.toFixed(1) + '" y="' + ty.toFixed(1) + '" text-anchor="middle">' + ax.name.slice(0, 4).toUpperCase() + "</text>"; });
   svg += "</svg>";
   const sliders = axes.map((ax, i) => {
     const lock = skillOf(t, ax.id), at = lock + (add[ax.id] || 0);
-    return '<label class="asp-axis-row"><input type="range" class="asp-axis' + (canPull(t, ax) ? " can" : "") + '" data-axis="' + i + '" min="0" max="' + SKILL_TIERS + '" step="1" value="' + at + '" aria-label="' + ax.name + '">' +
-      '<span class="asp-axis-name">' + ax.name + '<b class="asp-axis-tier">' + tierSpan(lock, at) + "</b></span></label>";
+    return '<label class="asp-axis-row"><span class="asp-axis-name">' + ax.name + '<b class="asp-axis-tier">' + tierSpan(lock, at) + "</b></span>" + // the name ABOVE its slider (owner)
+      '<input type="range" class="asp-axis' + (canPull(t, ax) ? " can" : "") + '" data-axis="' + i + '" min="0" max="' + SKILL_TIERS + '" step="1" value="' + at + '" aria-label="' + ax.name + '"></label>';
   }).join("");
   return '<div class="asp-ctl-row"><div class="asp-axes">' + sliders + '</div><div class="asp-chart-box">' + svg + '<div class="asp-slider-note" id="asp-slider-note"></div></div></div>';
 }
@@ -172,16 +177,16 @@ function lockIn(t) {
 // with the info on top and the control under it, at the thumb (aspira.css .asp-tower-grid)
 function inspectTower(el, t) {
   const maxed = t.lvl >= maxLvl(t), chart = hasSkills(t), pv = chart && basketPoints(t) ? previewTower(t) : null;
-  // no title line (owner): the upgrade button names the tower and its points (upgradeButton)
+  // no title line (owner): the upgrade button names the tower and its points (upgradeButton);
+  // the DESCRIPTION tops the card, across its width (owner) - the tower's prose in track
+  // changes while points are pulled (aspira-sliders.js); else the current upgrade's tagline
   el.innerHTML = '<div class="asp-tower-grid">' +
+    '<div id="asp-desc-box">' + (chart ? skillDesc(t, previewTower(t)) : '<p class="asp-hint">' + towerTagline(t) + "</p>") + "</div>" +
     (chart ? "" : '<div class="name asp-tower-title">' + towerTitle(t) + " · L" + t.lvl + " of " + maxLvl(t) + "</div>") +
     '<div class="asp-tower-ctl">' +
-    (chart ? sliderChart(t) : "") + // the chart IS the upgrade control (owner, 2026-10-07)
+    (chart ? sliderChart(t) : "") + // the sliders and the chart (owner, 2026-10-07)
     '<div class="asp-row" id="asp-upbox"></div>' + // confirm + cancel (aspira-sliders.js upgradeButton)
     '</div><div class="asp-tower-info">' +
-    // the description (owner): a chart tower's tier lines, in track changes while
-    // points are pulled (aspira-sliders.js); else the current upgrade's tagline
-    '<div id="asp-desc-box">' + (chart ? skillDesc(t, previewTower(t)) : '<p class="asp-hint">' + towerTagline(t) + "</p>") + "</div>" +
     // two columns (owner): what every tower has | what only this type has; kills and
     // damage dealt share ONE row, and stats the tower has not got yet ("—") are left out
     '<div id="asp-stats-box">' + cardStats(t, pv) + "</div>" +

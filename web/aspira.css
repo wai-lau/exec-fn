@@ -685,15 +685,16 @@
    UPGRADE CONTROL itself: a wide invisible track along each axis to drag on, a
    stop per tier, the locked-in tier a filled dot, the handle a ring that turns
    red where it cannot go; the reason reads in the note under it */
-.asp-chart { display: block; width: 100%; height: auto; aspect-ratio: 120 / 96; margin: 0 auto; overflow: visible; } /* the viewBox is cropped to the triangle and its labels (SL_H), so no band sits under it (owner) */
+.asp-chart { display: block; width: 100%; height: auto; aspect-ratio: 120 / 97; margin: 0 auto; overflow: visible; } /* the viewBox is cropped to the triangle and its labels (SL_H), so no band sits under it (owner) */
 
 /* the tower card's TWO HALVES (owner, 2026-10-07; aspira-ui.js inspectTower): the
    control (chart, targeting, confirm + cancel) and the info (name, description,
    stats, sell). Stacked on a phone, the info first and the control at the thumb;
    side by side on a wide screen, where the card doubles its width and the spend
    bar's close gives way to the card's own cancel / close */
-/* stacked: chart + confirm, then the info (owner; the tower's name and points are on the upgrade button) */
-.asp-tower-grid { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "ctl" "info"; gap: var(--space-2); }
+/* stacked: the description, the sliders + chart + confirm, then the info (owner; the tower's name and points are on the upgrade button) */
+.asp-tower-grid { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "desc" "ctl" "info"; gap: var(--space-2); }
+#asp-desc-box { grid-area: desc; }
 .asp-tower-title { grid-area: title; }
 .asp-tower-ctl { grid-area: ctl; }
 .asp-tower-info { grid-area: info; }
@@ -721,7 +722,8 @@
 #asp #asp-upbox button.asp-up-big.poor { opacity: 1; border-color: hsl(var(--orange-glow-hsl)); cursor: not-allowed; }
 @media (orientation: landscape) and (min-width: 700px) {
   .asp-pop.asp-tower { display: flex; flex-direction: column; width: 760px; } /* its min-height is set by fitPop; the grid fills it */
-  .asp-tower-grid { flex: 1; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "ctl info"; gap: var(--space-3) var(--space-6); }
+  .asp-tower-grid { flex: 1; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 1fr; grid-template-areas: "desc desc" "ctl info"; gap: var(--space-3) var(--space-6); }
+  .asp-desc { height: calc(3 * var(--lh-tight) * var(--fs-sm)); } /* across the whole card: three lines hold it */
   /* the control row FILLS the half's height (owner: no gap under the triangle); the chart as tall as the row */
   .asp-tower-ctl .asp-ctl-row { flex: 1; min-height: 0; }
   .asp-tower-ctl .asp-chart-box { display: flex; justify-content: center; min-height: 0; height: 100%; }
