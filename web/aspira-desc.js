@@ -39,10 +39,10 @@ const DESCRIBE = {
   },
   // "Two jets of acid, each corroding the enemy. Acid flow is reduced when switching targets."
   // (owner's words) -> Spray: three .. six jets; Corrosion I: the flow HOLDS on a switch;
-  // Contagion I: leaving behind pools of acid, III: that slow all who wade through them
+  // Contagion I: leaving behind pools of acid that slow all who wade through them (from I, 2026-10-08)
   acd(sk) {
     const c = sk.contagion || 0; // no pools until Contagion I (owner)
-    return ACD_JETS[sk.spray || 0] + " jets of acid, each corroding the enemy" + (c ? ", leaving behind pools of acid" : "") + (c >= 3 ? " that slow all who wade through them" : "") + ". Acid flow " + ((sk.corrosion || 0) ? "holds" : "is reduced") + " when switching targets.";
+    return ACD_JETS[sk.spray || 0] + " jets of acid, each corroding the enemy" + (c ? ", leaving behind pools of acid that slow all who wade through them" : "") + ". Acid flow " + ((sk.corrosion || 0) ? "holds" : "is reduced") + " when switching targets.";
   },
 };
 // the description for a chart (`skills`): the composer, else the axes' sentences run together
