@@ -18,6 +18,7 @@ const LEVERS = {
   breach: { kind: "sol", get: k => `SOL_BREACH_ARMOR[${k}]`, set: (k, v) => `SOL_BREACH_ARMOR[${k}] = ${v};`, max: 200 }, // the strip a hit
   temp: { kind: "frz", get: k => `FRZ_TEMP_SLOW[${k}]`, set: (k, v) => `FRZ_TEMP_SLOW[${k}] = ${v};`, min: 0.4, max: 0.85 }, // the aura's slow (never below the base)
   contslow: { kind: "acd", axis: "contagion", get: k => `ACD_CONTAGION_SLOW[${k}]`, set: (k, v) => `ACD_CONTAGION_SLOW[${k}] = ${v};`, min: 0.01, max: 0.5 }, // the pools' slow
+  contrate: { kind: "acd", axis: "contagion", get: k => `1 / ACD_CONTAGION[${k}].every`, set: (k, v) => `ACD_CONTAGION[${k}].every = ${+(1 / v).toFixed(3)};`, min: 0.2, max: 2 }, // the pools' drip rate (per s)
   refrcone: { kind: "sol", axis: "refraction", get: k => `SOL_CONE_BY[${k}]`, set: (k, v) => `SOL_CONE_BY[${k}] = ${v};`, min: 8, max: 60 }, // Refraction's cone half-angle
   tempreach: { kind: "frz", axis: "temp", get: k => `SKILL_MOVE.frz.temp[${k}][0]`, set: (k, v) => `SKILL_MOVE.frz.temp[${k}][0] = ${v};`, min: 1, max: 2.2 }, // Temp's aura reach
   moons: { kind: "frz", get: k => `FRZ_MOON_BY[${k}]`, set: (k, v) => `FRZ_MOON_BY[${k}] = ${v};`, min: 0.3, max: 1.5 }, // each moon's strength
