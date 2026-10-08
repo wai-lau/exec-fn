@@ -37,14 +37,20 @@ function boardChart(t, x, y, alpha, c0) {
   path(axes.map(ax => skillOf(t, ax.id)));
   ctx.globalAlpha = 0.6 * alpha; ctx.fill();
   ctx.globalAlpha = alpha; ctx.lineWidth = 2; ctx.stroke();
-  // each axis's TIER just outside its corner, I / II / III (owner, 2026-10-07: nine
-  // points need reading at a glance); a tier-0 corner stays bare
+  // each axis's TIER just outside its corner as PARALLEL SPOKES (owner, 2026-10-07;
+  // were roman numerals): one, two or three short lines running out from the
+  // corner side by side, in the tower's colour; a tier-0 corner stays bare
+  ctx.lineWidth = SPOKE_W; ctx.lineCap = "round"; ctx.globalAlpha = alpha; ctx.beginPath();
   axes.forEach((ax, i) => {
     const k = skillOf(t, ax.id);
     if (!k) return;
-    const [px, py] = pt(i, SKILL_TIERS);
-    text(roman(k), x + (px - x) * CORNER_NUMERAL_OUT, y + (py - y) * CORNER_NUMERAL_OUT, CORNER_NUMERAL_PX, TOWERS[t.kind].color, true, true); // in the tower's colour (owner)
+    const [px, py] = pt(i, SKILL_TIERS), dx = px - x, dy = py - y, len = Math.hypot(dx, dy), nx = -dy / len, ny = dx / len;
+    for (let j = 0; j < k; j++) {
+      const o = (j - (k - 1) / 2) * SPOKE_GAP;
+      ctx.moveTo(x + dx * SPOKE_FROM + nx * o, y + dy * SPOKE_FROM + ny * o); ctx.lineTo(x + dx * SPOKE_TO + nx * o, y + dy * SPOKE_TO + ny * o);
+    }
   });
+  ctx.stroke();
 }
-const CORNER_NUMERAL_OUT = 1.32, CORNER_NUMERAL_PX = 10; // the numeral sits just OUTSIDE its corner of the hex (owner)
+const SPOKE_FROM = 1.08, SPOKE_TO = 1.42, SPOKE_GAP = 4, SPOKE_W = 2; // the spokes' reach past the corner (x the corner's radius), their spacing and width
 // the chart on the TOWER CARD is a control now - aspira-sliders.js (sliderChart)
