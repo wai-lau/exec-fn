@@ -238,7 +238,7 @@ function fireSkillChain(t, st, e, seen) {
   if (seen && seen.has(e.id)) return; // a second strike never re-hits what the first took
   const col = TOWERS[t.kind].color, d = shotDamage(t, st, e, st.dmg);
   beam(t, e, col, CHAIN_BEAM_LIFE, 1.5, d);
-  const root = { e, fx: fx[fx.length - 1], up: null, kids: new Set() };
+  const root = { e, fx: Object.assign(fx[fx.length - 1], { soft: true }), up: null, kids: new Set() };
   // Voltage SHOWS (owner): a white-hot core in every arc, and at tier III the
   // strike point throws sparks
   const v = skillOf(t, "voltage");
@@ -265,6 +265,9 @@ const ARC_STAT_SLOW = [0, 0, 0, 0.3, 0.35, 0.4], STAT_SLOW_T = 0.6; // from III 
 // ch.arcs times in a chain, each leap worth the whole charge, drawn as ARC's beams.
 // Quiet: a leap neither charges nor sets off charges, so there is no chain reaction
 // (staticQuiet). (Was an expanding ring around the enemy.)
+// ARC's LOOK only (owner, 2026-10-08: "arc effects are overwhelming at high levels"): each jump a shade fainter than
+// the one before, Capacitance's leaps thin and faint, the glow narrower and dimmer (drawFx, f.soft)
+const ARC_DEPTH_FADE = 0.65, ARC_LEAP_A = 0.45, ARC_LEAP_W = 0.6, ARC_GLOW_A = 0.12, ARC_GLOW_W = 2;
 const STATIC_ARC_REACH = 320; // longer than an ARC jump (owner, 2026-10-08: "increase arc reach"; was ARC_JUMP_BASE 234)
 function dischargeStatic(e) {
   const ch = e.charge;
@@ -277,7 +280,7 @@ function dischargeStatic(e) {
       const nxt = chainPick(ch.t, from, STATIC_ARC_REACH * STATIC_ARC_REACH, o => hit.has(o.id)); // by the charging ARC's targeting
       if (!nxt) break;
       hit.add(nxt.id);
-      beam(from, nxt, TOWERS.arc.color, CHAIN_BEAM_LIFE, 1.5, ch.dmg);
+      beam(from, nxt, TOWERS.arc.color, CHAIN_BEAM_LIFE, 1.5, ch.dmg); Object.assign(fx[fx.length - 1], { soft: true, alpha: ARC_LEAP_A, thin: ARC_LEAP_W });
       damage(nxt, ch.dmg, ch.t, false, false, null);
       if (ch.slow && !nxt.dead) applySlow(nxt, ch.slow, STAT_SLOW_T, ch.t.id + ":stat");
       from = nxt;
@@ -311,7 +314,7 @@ function skillHopTo(c, node, nxt, depth) {
   const raw = c.st.dmg * c.st.arcFall ** depth, d = shotDamage(c.t, c.st, nxt, raw);
   node.kids.add(nxt.id); c.seen.add(nxt.id); c.hits.set(nxt.id, (c.hits.get(nxt.id) || 0) + 1);
   beam(node.e, nxt, c.col, CHAIN_BEAM_LIFE, 1.5, d);
-  fx[fx.length - 1].alpha = Math.min(1, raw / c.st.dmg); // as opaque as the share of the strike it carries
+  Object.assign(fx[fx.length - 1], { soft: true, alpha: Math.min(1, raw / c.st.dmg) * ARC_DEPTH_FADE ** (depth - 1) }); // as opaque as the share of the strike it carries, a shade fainter a jump
   if (skillOf(c.t, "voltage")) fx[fx.length - 1].pierce = true; // Voltage's white-hot core
   const child = { e: nxt, fx: fx[fx.length - 1], up: node, kids: new Set() };
   keepLit(node, CHAIN_BEAM_LIFE);
