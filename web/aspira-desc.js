@@ -14,7 +14,7 @@ const ARC_KEEP = ["half", "most of", "nearly all of", "all of", "more than", "fa
 const FRZ_RIME_TEXT = ["", ...Array(5).fill(" Rings of rime roll out, leaving behind a rime that layers and never thaws.")];
 const FRZ_MOONS = ["", " One moon orbits it, a copy of the tower.", " Two moons orbit it, copies of the tower.", " Three moons orbit it, copies of the tower.", " Four moons orbit it, copies of the tower.", " Five moons orbit it, copies of the tower."];
 const SOL_RAYS = ["A ray", "Two rays", "Three rays", "Four rays", "Five rays", "Six rays"];
-const SOL_REFRACT = ["stopping at the first enemy struck", "refracting from the first enemy struck on to two more ahead", "refracting from the first enemy struck on to five more ahead", "refracting from the first enemy struck on to nine more ahead", "refracting from the first enemy struck on to twelve more ahead", "refracting from the first enemy struck on to fifteen more ahead"];
+const SOL_REFRACT = ["refracting from the first enemy struck on to one more ahead", "refracting from the first enemy struck on to three more ahead", "refracting from the first enemy struck on to six more ahead", "refracting from the first enemy struck on to ten more ahead", "refracting from the first enemy struck on to thirteen more ahead", "refracting from the first enemy struck on to sixteen more, ahead or back"];
 const ACD_JETS = ["Two", "Three", "Four", "Six", "Seven", "Eight"]; // acidic terms, never heat (owner)
 const DESCRIBE = {
   // "Arcs fork on hit, each jump carrying half the hit." -> Conductivity: chain once and / into
