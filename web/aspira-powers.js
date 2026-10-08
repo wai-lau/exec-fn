@@ -7,6 +7,8 @@
 // tap anywhere else disarms (onTap, aspira-ui.js). The core's own gestures (hold /
 // drag, aspira-camera.js) still work. UI only; loaded after aspira-core-fx.js (DIAL)
 // and before aspira-ui.js, whose HUD tick calls updatePowers.
+// each power's word when it can go (owner, 2026-10-08): TEMPORAL DRIVE online, ORBITAL RELAY ready
+const POWER_READY = { temporal: "online", relay: "ready" };
 function powerTap(d) {
   if (d.id === "temporal") { if (temporalFreeze()) refreshPanels(); return; }
   const t = ui.sel && G.towers.find(x => x.id === ui.sel);
@@ -39,13 +41,13 @@ function updatePowers() {
     let b = box.querySelector('[data-pw="' + d.id + '"]');
     if (!b) { b = button(box, "asp-power " + d.color, "", () => powerTap(d)); b.dataset.pw = d.id; }
     const lv = powerLvl(d.id), cd = cooldownLeft(d.id), full = d.tab()[lv].cd, run = d.active(c);
-    const state = run > 0 ? Math.ceil(run) + "s on" : cd > 0 ? Math.ceil(cd) + "s" : "online"; // (owner, 2026-10-08: "should say temporal drive online"; was TIME STOP / ready)
+    const state = run > 0 ? Math.ceil(run) + "s on" : cd > 0 ? Math.ceil(cd) + "s" : POWER_READY[d.id]; // (owner, 2026-10-08: "should say temporal drive online"; was TIME STOP / ready)
     setHtml(b, "<span>" + d.label + "</span><b>" + state + '</b><i style="width:' + Math.round(100 * (run > 0 ? 1 : 1 - Math.min(1, cd / full))) + '%"></i>');
     b.classList.toggle("ready", run <= 0 && cd <= 0); b.classList.toggle("run", run > 0);
     b.classList.toggle("armed", d.id === "relay" && !!ui.relayArm);
     // a power coming off cooldown pops "<NAME> ONLINE" where the interest pops up, under the core (was the dial's)
     const was = (c.cdSeen ||= {})[d.id];
-    if (was > 0 && cd <= 0) float(CX, CY + CORE_R + LIFE_GAP * LIFE_RINGS + 16, d.label + " ONLINE", d.color, READY_POP, 1.6, 1, 30);
+    if (was > 0 && cd <= 0) float(CX, CY + CORE_R + LIFE_GAP * LIFE_RINGS + 16, d.label + " " + POWER_READY[d.id].toUpperCase(), d.color, READY_POP, 1.6, 1, 30);
     c.cdSeen[d.id] = cd;
   }
 }
