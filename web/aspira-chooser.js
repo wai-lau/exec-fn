@@ -101,10 +101,13 @@ function layoutCards(el, row) {
 const BTN_ROOM = 56;
 function spendRoom() { const cv0 = cv.getBoundingClientRect(); return cv0.bottom - document.querySelector(".asp-foot").getBoundingClientRect().top + BTN_ROOM; }
 // close the cards (nothing was charged); a pick pays through upgradeTower
+// the BUILD dialog UNPAUSES when it closes - a tower built or the cancel (owner,
+// 2026-10-07), whatever the pause before it; the upgrade chooser puts the old pause back
 function closeChooser() {
   if (!chooser.t) return;
+  const building = chooser.ci != null;
   chooser.t = null; chooser.ci = null; chooserEl().classList.remove("asp-building");
-  $("asp-chooser").hidden = true; ui.paused = chooser.wasPaused;
+  $("asp-chooser").hidden = true; ui.paused = building ? false : chooser.wasPaused;
   $("asp").classList.remove("asp-choosing");
   hideSpend(); refreshPanels(); // the card under it (if any) takes the spend bar back
 }
