@@ -134,6 +134,11 @@ const MOON_ORBIT_BY_N = [MOON_ORBIT, 140, 140, 140, 140, 140]; // TWICE as far (
 // swings far out over the lanes (210) and back in close (70), fastest near the tower; the moons are evenly
 // spaced in TIME (mean anomaly), so they bunch on the far side like real ones
 const MOON_ECC = 0.5;
+// the orbit itself, for drawing: centre (a x e from the focus, away from periapsis), semi-axes, tilt
+function moonOrbit(t, n) {
+  const a = MOON_ORBIT_BY_N[Math.min(n, MOON_ORBIT_BY_N.length - 1)], phi = Math.atan2(CY - t.y, CX - t.x);
+  return { x: t.x - Math.cos(phi) * a * MOON_ECC, y: t.y - Math.sin(phi) * a * MOON_ECC, a, b: a * Math.sqrt(1 - MOON_ECC * MOON_ECC), phi };
+}
 function moonSpots(t, st) {
   const a = (t.spin || 0) * MOON_SPIN, n = st.moons || 1;
   const kep = hasSkills(t), phi = Math.atan2(CY - t.y, CX - t.x), cp = Math.cos(phi), sp = Math.sin(phi), b = Math.sqrt(1 - MOON_ECC * MOON_ECC);
