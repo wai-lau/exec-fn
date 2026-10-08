@@ -67,9 +67,10 @@ function drawEnemy(e) {
     drawSegs(e.x, e.y, e.shSegs, d.sides, e.rot, size, 2.5); // layers tight (owner: much thinner gap; was 5)
   }
   ctx.globalAlpha = 1;
-  if (e.charged || e.charge) { // ARC's Static charge: a border in ARC's colour just outside the outline (owner)
-    poly(e.x, e.y, size + 4, d.sides, e.rot, false);
-    ctx.strokeStyle = COL[TOWERS.arc.color]; ctx.lineWidth = 2; ctx.stroke(); // ARC's colour, whatever it is
+  if (e.charged || e.charge) { // ARC's Static charge: a border in ARC's colour just outside the outline (owner) - ONE PER CHARGE held (Capacitance, 2026-10-08)
+    ctx.strokeStyle = COL[TOWERS.arc.color]; ctx.lineWidth = 2; // ARC's colour, whatever it is
+    const n = e.charge ? Math.min(5, e.charge.list.length) : 1;
+    for (let k = 0; k < n; k++) { poly(e.x, e.y, size + 4 + 4 * k, d.sides, e.rot, false); ctx.stroke(); }
   }
   if (e.stunT > 0) {
     ctx.beginPath(); ctx.arc(e.x, e.y, size + 6, 0, 6.283);
