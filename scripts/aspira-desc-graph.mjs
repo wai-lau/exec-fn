@@ -30,9 +30,9 @@ const MECH = {
     breach: k => (V("SOL_BREACH")[k] ? `${V("SOL_BREACH")[k]} breach${V("SOL_BREACH")[k] > 1 ? "es" : ""} per hit (each -${V("BREACH_ARMOR")} armor, +${pct(V("BREACH_CRIT"))} crit for every tower, for good), crit x${V("SOL_CRITMUL")[k]}, slide x${V("SKILL_MOVE").sol.breach[k][1]}` : `no breach, crit x${V("SOL_CRITMUL")[0]}`),
   },
   acd: {
-    corrosion: k => `burn x${V("ACD_CORROSION_DMG")[k]}, a new line starts with ${pct(k >= 1 ? 1 : 0.4)} of a dead line's ramp`,
-    spray: k => `${V("ACD_LINES")[k]} lines, each x${V("ACD_SPRAY_MUL")[k]}, range x${V("SKILL_MOVE").acd.spray[k][0]}`,
-    contagion: k => { const c = V("ACD_CONTAGION")[k]; return `a puddle every ${c.every}s per line, lasting ${c.life}s, radius ${c.r}, at ${pct(V("ACD_PUDDLE_HEAT")[k])} of the line's heat${V("ACD_CONTAGION_SLOW")[k] ? `, slows ${pct(V("ACD_CONTAGION_SLOW")[k])}` : ""}, roam x${V("SKILL_MOVE").acd.contagion[k][1]}`; },
+    corrosion: k => `acid x${V("ACD_CORROSION_DMG")[k]}, a fresh jet starts with ${pct(k >= 1 ? 1 : 0.4)} of a spent jet's concentration`,
+    spray: k => `${V("ACD_LINES")[k]} jets, each x${V("ACD_SPRAY_MUL")[k]}, range x${V("SKILL_MOVE").acd.spray[k][0]}`,
+    contagion: k => { const c = V("ACD_CONTAGION")[k]; return `a puddle every ${c.every}s per jet, lasting ${c.life}s, radius ${c.r}, at ${pct(V("ACD_PUDDLE_HEAT")[k])} of the jet's concentration${V("ACD_CONTAGION_SLOW")[k] ? `, slows ${pct(V("ACD_CONTAGION_SLOW")[k])}` : ""}, roam x${V("SKILL_MOVE").acd.contagion[k][1]}`; },
   },
 };
 // the words that change from a to b, b's changed words marked *so* (the card's wordDiff, in text)

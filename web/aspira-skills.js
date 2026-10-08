@@ -99,20 +99,20 @@ SKILL_TREES.sol = [
 // burn ramps faster (tier III: a line whose enemy dies hands half its ramp to
 // the next); Pour = 2 / 3 / 5 lines at once; Seep = more, longer, bigger puddles.
 SKILL_TREES.acd = [
-  { id: "corrosion", name: "Corrosion", base: "A line keeps little of its heat when it moves to a new target.", tiers: [
-    { name: "Etch", desc: "A line keeps all of its heat when it moves to a new target." },
-    { name: "Corrode", desc: "A hotter line keeps all of its heat when it moves to a new target." },
-    { name: "Dissolve", desc: "The hottest line keeps all of its heat when it moves to a new target." },
+  { id: "corrosion", name: "Corrosion", base: "A jet keeps little of its concentration when it moves to a new target.", tiers: [
+    { name: "Etch", desc: "A jet keeps all of its concentration when it moves to a new target." },
+    { name: "Corrode", desc: "A stronger jet keeps all of its concentration when it moves to a new target." },
+    { name: "Dissolve", desc: "The strongest jet keeps all of its concentration when it moves to a new target." },
   ] },
-  { id: "spray", name: "Spray", base: "Two burn lines at once, each on its own enemy.", tiers: [
-    { name: "Mist", desc: "Three burn lines at once, each on its own enemy." },
-    { name: "Downpour", desc: "Four burn lines at once, each on its own enemy." },
-    { name: "Torrent", desc: "Six burn lines at once, each on its own enemy." },
+  { id: "spray", name: "Spray", base: "Two jets of acid at once, each on its own enemy.", tiers: [
+    { name: "Mist", desc: "Three jets of acid at once, each on its own enemy." },
+    { name: "Downpour", desc: "Four jets of acid at once, each on its own enemy." },
+    { name: "Torrent", desc: "Six jets of acid at once, each on its own enemy." },
   ] },
-  { id: "contagion", name: "Contagion", base: "Lines drip puddles.", tiers: [
-    { name: "Blister", desc: "Lines drip hotter puddles, more often." },
-    { name: "Plague", desc: "Lines drip hotter, bigger puddles, more often." },
-    { name: "Pandemic", desc: "Lines drip the hottest, biggest puddles, more often, slowing what stands in them." },
+  { id: "contagion", name: "Contagion", base: "Jets drip puddles.", tiers: [
+    { name: "Blister", desc: "Jets drip blistering puddles, more often." },
+    { name: "Plague", desc: "Jets drip bigger blistering puddles, more often." },
+    { name: "Pandemic", desc: "Jets drip bigger blistering puddles, more often, that slow all who wade through them." },
   ] },
 ];
 const hasSkills = t => !!SKILL_TREES[t.kind];
@@ -379,6 +379,7 @@ function drawFrzSkill(t, st) {
 }
 
 // ---------- SOL's chart: Focus beams, Refract cone, Scorch Breaches ----------
+// Breach stacks per hit (owner: "each beam permanently weakens the target's armor" - Breach is what strips it; the base SOL strips nothing)
 const SOL_BEAMS = [1, 2, 3, 4], SOL_REFRACTION = [0, 2, 5, 9], SOL_BREACH = [0, 1, 2, 6];
 // a refraction lands within SOL_CONE degrees of the first shot's direction (at
 // any distance); one Breach = BREACH_ARMOR armor off and BREACH_CRIT crit
