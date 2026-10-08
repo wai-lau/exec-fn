@@ -2,7 +2,7 @@
 // effects need to be extremely more visible"). Loaded after aspira-core.js.
 //   the BUTTONS   cooldowns moved off the board (owner, 2026-10-08; was a
 //                 dial of arcs round the core) - aspira-powers.js
-//   TIME STOP     the plain cyan ring sweeping out (owner: enough as it was)
+//   TIME STOP     AT-field pulses: nested orange octagons sweeping out (owner, 2026-10-08)
 //   RELAY         a THICK pulsing beam from the core to the tower it has made
 //                 three of, a glowing halo round it and "RELAY x3" with its
 //                 seconds left above it
@@ -55,15 +55,27 @@ function drawCoreHud() {
   }
   ctx.globalAlpha = 1; ctx.shadowBlur = 0;
 }
-function drawTimeStop(c) { // RINGS sweeping out for the whole freeze, one every TEMPORAL_RING_EVERY s (owner, 2026-10-08; was one)
+// each pulse an EVANGELION AT FIELD (owner, 2026-10-08): nested orange OCTAGONS sweeping out together,
+// the outer one brightest, a faint fill inside it, the whole field shimmering fast; pulses still come
+// every TEMPORAL_RING_EVERY s for the whole freeze (owner, same day; it was one plain cyan ring)
+const AT_LAYERS = 5, AT_STEP = 0.12, AT_FILL = 0.06;
+function drawTimeStop(c) {
   if (!c.freeze) return;
-  const f = c.freeze;
-  ctx.strokeStyle = COL.cyan; ctx.lineWidth = 6;
+  const f = c.freeze, shimmer = 0.85 + 0.15 * Math.sin(performance.now() / 40);
+  ctx.strokeStyle = ctx.fillStyle = COL.orange; ctx.lineJoin = "miter";
   for (let t0 = 0; t0 < f.dur && t0 <= f.t; t0 += TEMPORAL_RING_EVERY) {
-    const a = f.t - t0; // this ring's age
+    const a = f.t - t0; // this pulse's age
     if (a > TEMPORAL_GROW + TEMPORAL_FADE) continue;
-    ctx.globalAlpha = 0.8 * (1 - Math.max(0, a - TEMPORAL_GROW) / TEMPORAL_FADE);
-    ctx.beginPath(); ctx.arc(CX, CY, Math.max(1, TEMPORAL_R * Math.min(1, a / TEMPORAL_GROW)), 0, 6.283); ctx.stroke();
+    const A = 0.85 * shimmer * (1 - Math.max(0, a - TEMPORAL_GROW) / TEMPORAL_FADE), R = Math.max(1, TEMPORAL_R * Math.min(1, a / TEMPORAL_GROW));
+    poly(CX, CY, R, 8, Math.PI / 8, false); ctx.globalAlpha = A * AT_FILL; ctx.fill();
+    glow(COL.orange, 22);
+    for (let k = 0; k < AT_LAYERS; k++) {
+      const r = R * (1 - k * AT_STEP);
+      if (r <= CORE_R) break;
+      poly(CX, CY, r, 8, Math.PI / 8, false);
+      ctx.globalAlpha = A * (1 - k / AT_LAYERS); ctx.lineWidth = 7 - k; ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
   }
-  ctx.globalAlpha = 1;
+  ctx.globalAlpha = 1; ctx.lineJoin = "round";
 }
