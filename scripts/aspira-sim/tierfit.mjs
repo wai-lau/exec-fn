@@ -16,7 +16,14 @@ const LEVERS = {
   focus: { kind: "sol", get: k => `SOL_FOCUS_DMG[${k}]`, set: (k, v) => `SOL_FOCUS_DMG[${k}] = ${v};` },
   refraction: { kind: "sol", get: k => `SOL_HOP[${k}]`, set: (k, v) => `SOL_HOP[${k}] = ${v};` },
   breach: { kind: "sol", get: k => `SOL_BREACH_ARMOR[${k}]`, set: (k, v) => `SOL_BREACH_ARMOR[${k}] = ${v};` }, // the strip a hit
+  temp: { kind: "frz", get: k => `FRZ_TEMP_SLOW[${k}]`, set: (k, v) => `FRZ_TEMP_SLOW[${k}] = ${v};`, min: 0.4, max: 0.85 }, // the aura's slow (never below the base)
+  moons: { kind: "frz", get: k => `FRZ_MOON_BY[${k}]`, set: (k, v) => `FRZ_MOON_BY[${k}] = ${v};`, max: 1.5 }, // each moon's strength
+  corrosion: { kind: "acd", get: k => `ACD_CORROSION_DMG[${k}]`, set: (k, v) => `ACD_CORROSION_DMG[${k}] = ${v};` },
+  spray: { kind: "acd", get: k => `ACD_SPRAY_MUL[${k}]`, set: (k, v) => `ACD_SPRAY_MUL[${k}] = ${v};` }, // each jet's strength
+  contagion: { kind: "acd", get: k => `ACD_PUDDLE_HEAT[${k}]`, set: (k, v) => `ACD_PUDDLE_HEAT[${k}] = ${v};` }, // the pool's share of its jet
 };
+// a lever's sane range (a slow can't pass 85%, say); the bisection never proposes outside it
+const clampV = (axis, v) => Math.min(LEVERS[axis].max ?? Infinity, Math.max(LEVERS[axis].min ?? 0, v));
 const AXES = process.env.AXES ? process.env.AXES.split(",") : Object.keys(LEVERS);
 const TARGET = (process.env.TARGET || "1.25,1.5,2,2.5,3").split(",").map(Number);
 const FROM = Number(process.env.FROM || 40), TO = Number(process.env.TO || 70);
@@ -38,7 +45,7 @@ for (let round = 0; round <= ROUNDS; round++) {
   const jobs = [];
   for (const c of cells) {
     c.m = round === 0 ? 0 : (c.lo + c.hi) / 2; // round 0 measures the CURRENT value
-    const v = +(c.cur * 2 ** c.m).toPrecision(4); c.v = v;
+    const v = +clampV(c.axis, c.cur * 2 ** c.m).toPrecision(4); c.v = v;
     for (let seed = 1; seed <= SEEDS; seed++) jobs.push({ kind: LEVERS[c.axis].kind, axis: c.axis, k: c.k, seed, from: FROM, to: TO, patch: LEVERS[c.axis].set(c.k, v) });
   }
   const res = await runPool(task, jobs, { quiet: true });
@@ -50,6 +57,7 @@ for (let round = 0; round <= ROUNDS; round++) {
   }
   console.error(`round ${round}/${ROUNDS} done`);
 }
+if (process.env.FIT_JSON) (await import("node:fs")).writeFileSync(process.env.FIT_JSON, JSON.stringify(cells.map(c => ({ axis: c.axis, k: c.k, cur: c.cur, v: c.best.v, now: c.now, pct: c.best.pct, target: TARGET[c.k - 1] }))));
 console.log(`tier fit, waves ${FROM}-${TO}, ${SEEDS} seeds, ${ROUNDS} rounds; target team damage ${TARGET.map(t => Math.round(t * 100) + "%").join(" / ")}`);
 for (const axis of AXES) {
   const cs = cells.filter(c => c.axis === axis);
