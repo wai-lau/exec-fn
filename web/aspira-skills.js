@@ -182,7 +182,7 @@ function skillMove(t, s) {
 // is what each JUMP keeps of the hit before it (ARC_FALL 0.5 at 0; III = every jump
 // at full damage), on top of its damage step; the `pierce` flag it sets is only
 // the white core drawn in its arcs (aspira-draw.js), never a rule
-const ARC_VOLTAGE_DMG = [1, 1.4, 1.9, 2.8, 3.6, 4.6], ARC_VOLTAGE_FALL = [0.5, 0.65, 0.8, 1, 1.1, 1.25]; // IV / V (2026-10-07): a jump carries MORE than the hit before it // its RANGE is in SKILL_MOVE
+const ARC_VOLTAGE_DMG = [1, 2.068, 3.093, 4.272, 5.492, 6.793], ARC_VOLTAGE_FALL = [0.5, 0.65, 0.8, 1, 1.1, 1.25]; // IV / V (2026-10-07): a jump carries MORE than the hit before it // its RANGE is in SKILL_MOVE
 // Conductivity's shape by tier (owner): strikes (separate first targets),
 // jumps, and forks per jump - 3, 7, 13, then two separate 13-hit attacks -
 // and r, how much further each JUMP reaches (owner; Voltage owns the tower's range)
@@ -195,7 +195,7 @@ let ARC_CONDUCTIVITY = [{ s: 1, j: 1, f: 2, r: 1, d: 1, v: 0 }, { s: 1, j: 2, f:
 // how many times the charged enemy ARCS when next hit (dischargeStatic). The
 // charge shares are the old ring's fits (2026-10-06: +25 / +50 / +100%); refit later
 // owner, 2026-10-08 (isolation: the weakest ARC axis, 136% team at V): more charge and more arcs (were 1..5 arcs at .22 .. .45)
-const ARC_CAPACITANCE = [null, { arcs: 2, frac: 0.3 }, { arcs: 3, frac: 0.36 }, { arcs: 4, frac: 0.44 }, { arcs: 6, frac: 0.52 }, { arcs: 8, frac: 0.6 }];
+const ARC_CAPACITANCE = [null, { arcs: 2, frac: 0.575 }, { arcs: 3, frac: 1.052 }, { arcs: 4, frac: 1.328 }, { arcs: 6, frac: 1.292 }, { arcs: 8, frac: 1.226 }];
 // each jump hits ARC_FALL as hard and reaches ARC_SHRINK as far as the one before (owner)
 const ARC_FALL = 0.5, ARC_SHRINK = 0.7;
 // a jump's reach, before Conductivity lengthens it (owner: longer by default). It
@@ -325,14 +325,14 @@ function skillHopTo(c, node, nxt, depth) {
 // for the other towers; FRZ + L1 ARC + L1 SOL, waves 20-30) - the first
 // guesses were 2-4x too strong; range moves little so "colder" reads as colder
 // early-game balance 2026-10-06: +0.03 on every tier (FRZ stays a pure SUPPORT tower - owner)
-const FRZ_TEMP_SLOW = [0.4, 0.42, 0.44, 0.46, 0.48, 0.5]; // weakened (owner, 2026-10-08; isolation: Temp V 438% team, leaks 660 -> 56); was .43 .46 .5 .54 .58 // the aura's range is in SKILL_MOVE
+const FRZ_TEMP_SLOW = [0.4, 0.41, 0.42, 0.43, 0.44, 0.45]; // a small ramp (overnight fit 2026-10-08: even a flat 0.4 overshot - Temp's reach is the next lever) // weakened (owner, 2026-10-08; isolation: Temp V 438% team, leaks 660 -> 56); was .43 .46 .5 .54 .58 // the aura's range is in SKILL_MOVE
 // Temp III's TEAM hook (owner, 2026-10-07: FRZ's chart was flat, 97-103%): an enemy
 // its aura touches turns BRITTLE - while slowed it takes x FRZ_BRITTLE from every
 // tower (damage(), which already reads e.brittle; drawStatus shows the crack)
 const FRZ_BRITTLE = [1, 1, 1, 1.15, 1.2, 1.25]; // from III (owner, 2026-10-08: kept at III)
-const FRZ_RIME = [0, 0.02, 0.035, 0.06, 0.08, 0.1]; // 2026-10-06: tier I was a dead point (was 1% / 1.9% / 3.7%) // each pulse's permanent stacking slow
+const FRZ_RIME = [0, 0.024, 0.035, 0.054, 0.064, 0.068]; // 2026-10-06: tier I was a dead point (was 1% / 1.9% / 3.7%) // each pulse's permanent stacking slow
 // FRZ's own levers (owner: no generic multipliers): Rime pulses MORE OFTEN each tier, the moons are STRONGER copies each tier
-const FRZ_RIME_PERIOD = [2, 2, 1.7, 1.4, 1.2, 1], FRZ_MOON_BY = [0.6, 0.65, 0.7, 0.75, 0.8, 0.85]; // weakened (owner, 2026-10-08; isolation: Moons V 499% team); was .78 .9 .95 1 1 1 // Moons IV / V: four and five full moons
+const FRZ_RIME_PERIOD = [2, 2, 1.7, 1.4, 1.2, 1], FRZ_MOON_BY = [0.6, 0.485, 0.49, 0.508, 0.524, 0.539]; // weakened (owner, 2026-10-08; isolation: Moons V 499% team); was .78 .9 .95 1 1 1 // Moons IV / V: four and five full moons
 const FRZ_TICK = 0.5, FRZ_RIME_GROW = 2.4; // a Rime ring takes FRZ_RIME_GROW game s to reach the edge (owner: much slower; was 0.6)
 const FRZ_AURA_HOLD = 0.06, FRZ_RIM_W = 16; // the frosted rim's width per unit of slow (owner: thicker the colder) // an aura slow outlasts one step only: it is gone the moment the enemy leaves
 const FRZ_TICK_HIT = { armorPierce: 1 }; // a tick's hit on a shield: no armor bite
@@ -421,7 +421,7 @@ const SOL_BEAMS = [1, 2, 3, 4, 5, 6], SOL_REFRACTION = [0, 2, 5, 9, 12, 15];
 // BREACH IS SOL'S OWN, from the start (owner, 2026-10-08): every hit strips SOL_BREACH_ARMOR armor for good
 // (below zero too: a flat bonus on every later hit from every tower); the Breach axis massively
 // increases the strip and adds crit chance for every tower, SOL_BREACH_CRIT a hit (none at base)
-const SOL_BREACH_ARMOR = [2, 5, 9, 14, 20, 28], SOL_BREACH_CRIT = [0, 0.01, 0.02, 0.03, 0.04, 0.05];
+const SOL_BREACH_ARMOR = [2, 16, 38, 60, 70, 80], SOL_BREACH_CRIT = [0, 0.01, 0.02, 0.03, 0.04, 0.05];
 // a refraction lands within SOL_CONE degrees of the first shot's direction (at
 // any distance); one Breach = BREACH_ARMOR armor off and BREACH_CRIT crit
 // chance for every tower
@@ -434,12 +434,12 @@ const SOL_CRITMUL = [3, 4, 5, 7, 8, 9];
 // saturates): each Focus beam's share of the shot by tier, and each Refract
 // hop's damage by tier (a hop is far weaker than the first hit)
 // (owner 2026-10-06: every Focus beam is a FULL hit - 1 / 2 / 3 / 4 beams, no share - so no stat falls; SOL's base damage pays for it)
-const SOL_HOP = [1, 0.29, 0.45, 0.7, 0.8, 0.9]; // II / III raised 2026-10-07 (were 0.3 / 0.455) with the cone narrowed to 8 degrees: fewer hops land, so each counts more
+const SOL_HOP = [1, 1, 1, 1, 1, 1]; // every refraction hop a full strike (overnight fit 2026-10-08: even 1.5x reached only 133% - Refraction needs a mechanic change, not numbers) // II / III raised 2026-10-07 (were 0.3 / 0.455) with the cone narrowed to 8 degrees: fewer hops land, so each counts more
 // Refraction peaked at I (107%) and fell by III (93%): range alone spread its fire
 // thin, so II / III also hit harder (owner, 2026-10-07)
 const SOL_REFRACTION_DMG = [1, 1, 1.3, 1.6, 1.8, 2];
 // each Focus tier's beam STRENGTH (2026-10-08, the tier fit's lever for Focus: more beams alone measured 168% at V)
-const SOL_FOCUS_DMG = [1, 1, 1, 1, 1, 1];
+const SOL_FOCUS_DMG = [1, 0.85, 0.771, 1, 1.139, 1.176];
 function solSkillStats(t, s, b) {
   s.dmg = b.dmg * SOL_REFRACTION_DMG[skillOf(t, "refraction")] * SOL_FOCUS_DMG[skillOf(t, "focus")]; s.range = b.range * RANGE_BONUS; s.crit = LVL_SOL_CRIT[0]; s.rate = b.rate;
   s.beams = SOL_BEAMS[skillOf(t, "focus")]; s.refraction = SOL_REFRACTION[skillOf(t, "refraction")]; s.cone = SOL_CONE_BY[skillOf(t, "refraction")];
