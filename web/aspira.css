@@ -688,8 +688,8 @@
    stats, sell). Stacked on a phone, the info first and the control at the thumb;
    side by side on a wide screen, where the card doubles its width and the spend
    bar's close gives way to the card's own cancel / close */
-/* stacked: title, chart + confirm, then the info (owner: "triangle under title") */
-.asp-tower-grid { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "title" "ctl" "info"; gap: var(--space-2); }
+/* stacked: chart + confirm, then the info (owner; the tower's name and points are on the upgrade button) */
+.asp-tower-grid { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "ctl" "info"; gap: var(--space-2); }
 .asp-tower-title { grid-area: title; }
 .asp-tower-ctl { grid-area: ctl; }
 .asp-tower-info { grid-area: info; }
@@ -710,12 +710,12 @@
 .asp-tower .asp-prio-slider::-moz-range-thumb { width: var(--space-3); height: var(--space-4); }
 .asp-tower .asp-prio { margin-bottom: 0; font-size: calc(var(--fs-2xs) * 0.8); }
 .asp-tower .asp-prio b { font-weight: var(--fw-normal); }
-/* the upgrade button's two lines: UPGRADE, then the basket's size and price (or "pull an axis") */
-.asp-up-big > span { display: block; font-size: var(--fs-xs); font-weight: var(--fw-normal); letter-spacing: var(--tracking-wide); }
-.asp-up-big > span .asp-c { display: inline; } /* the credits' c stays on the line (cr) */
+/* the upgrade button is ONE line (owner): "Arc IV", and while axes are pulled "Arc VI (-440c)" */
+#asp #asp-upbox button.asp-up-big { white-space: nowrap; }
+.asp-up-big .asp-spend-cost { font-weight: var(--fw-normal); }
 @media (orientation: landscape) and (min-width: 700px) {
   .asp-pop.asp-tower { display: flex; flex-direction: column; width: 760px; } /* its min-height is set by fitPop; the grid fills it */
-  .asp-tower-grid { flex: 1; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 1fr; grid-template-areas: "ctl title" "ctl info"; gap: var(--space-3) var(--space-6); }
+  .asp-tower-grid { flex: 1; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "ctl info"; gap: var(--space-3) var(--space-6); }
   /* the chart FILLS the control half's height (owner: no gap under the triangle), centred, as big as the half allows */
   .asp-tower-ctl .asp-chart-box { display: flex; flex: 1; justify-content: center; min-height: 0; }
   .asp-tower-ctl .asp-chart { width: auto; height: 100%; max-width: 100%; }
