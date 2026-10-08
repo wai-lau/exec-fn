@@ -31,6 +31,7 @@ function axisPt(i, k, n) {
   return [SL_C + Math.cos(a) * r, SL_C + Math.sin(a) * r];
 }
 const tierTxt = k => (k ? roman(k) : "0");
+const tierSpan = (lock, at) => (at > lock ? tierTxt(lock) + "→" + tierTxt(at) : tierTxt(lock));
 // the HANDLE is a TRIANGLE pointing out along its axis (owner): its tip HANDLE_TIP
 // past the tier point, its base HANDLE_BACK behind it and HANDLE_HALF wide
 const HANDLE_TIP = 6, HANDLE_BACK = 3, HANDLE_HALF = 4;
@@ -41,7 +42,13 @@ function handlePts(i, k, n) {
 }
 // a handle FLASHES while the bank covers one more point on its axis (owner: it must read as slidable)
 const canPull = (t, ax) => { const r = axisRoom(t, ax.id); return r.left > 0 && r.afford > 0; };
-const axisLabel = (ax, lock, at) => ax.name.slice(0, 4).toUpperCase() + " " + (at > lock ? tierTxt(lock) + "→" + tierTxt(at) : tierTxt(lock));
+// the FULL axis name (owner) on one line, the tier on the next; the bottom
+// corners' labels run inward from their corner so the longest names stay inside the chart
+const LABEL_ANCHOR = ["middle", "end", "start"], LABEL_LINE = 8;
+const axisLabel = (ax, lock, at, i, n) => {
+  const [tx, ty] = axisPt(i, SKILL_TIERS + 0.75, n);
+  return '<text x="' + tx.toFixed(1) + '" y="' + (ty - LABEL_LINE / 2).toFixed(1) + '" text-anchor="' + (LABEL_ANCHOR[i] || "middle") + '"><tspan x="' + tx.toFixed(1) + '">' + ax.name + '</tspan><tspan x="' + tx.toFixed(1) + '" dy="' + LABEL_LINE + '">' + tierSpan(lock, at) + "</tspan></text>";
+};
 function sliderChart(t) {
   const axes = SKILL_TREES[t.kind], n = axes.length, add = basketFor(t), pv = previewTower(t);
   const P = (i, k) => axisPt(i, k, n).map(v => v.toFixed(1)).join(",");
@@ -51,14 +58,14 @@ function sliderChart(t) {
   svg += '<polygon class="next" points="' + shape(pv.skills) + '"/><polygon class="now" points="' + shape(t.skills) + '"/>';
   axes.forEach((ax, i) => {
     const lock = skillOf(t, ax.id), at = lock + (add[ax.id] || 0);
-    const [ex, ey] = axisPt(i, SKILL_TIERS, n), [lx, ly] = axisPt(i, lock, n), [tx, ty] = axisPt(i, SKILL_TIERS + 0.9, n);
+    const [ex, ey] = axisPt(i, SKILL_TIERS, n), [lx, ly] = axisPt(i, lock, n);
     svg += '<line class="grid" x1="' + SL_C + '" y1="' + SL_C + '" x2="' + ex.toFixed(1) + '" y2="' + ey.toFixed(1) + '"/>';
     for (let k = 1; k <= SKILL_TIERS; k++) { const [sx, sy] = axisPt(i, k, n); svg += '<circle class="stop" cx="' + sx.toFixed(1) + '" cy="' + sy.toFixed(1) + '" r="1.6"/>'; }
     // the wide invisible TRACK is what a finger drags on; the handle rides the axis
     svg += '<line class="track" data-axis="' + i + '" x1="' + SL_C + '" y1="' + SL_C + '" x2="' + ex.toFixed(1) + '" y2="' + ey.toFixed(1) + '"/>';
     svg += '<circle class="lock" cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="2"/>';
     svg += '<polygon class="handle' + (canPull(t, ax) ? " can" : "") + '" data-axis="' + i + '" points="' + handlePts(i, at, n) + '"/>';
-    svg += '<text x="' + tx.toFixed(1) + '" y="' + ty.toFixed(1) + '">' + axisLabel(ax, lock, at) + "</text>";
+    svg += axisLabel(ax, lock, at, i, n);
   });
   return svg + "</svg>" + '<div class="asp-slider-note" id="asp-slider-note"></div></div>';
 }
@@ -70,7 +77,7 @@ function updateSliderChart(t, svg) {
   axes.forEach((ax, i) => {
     const lock = skillOf(t, ax.id), at = lock + (add[ax.id] || 0);
     handles[i].setAttribute("points", handlePts(i, at, n)); handles[i].classList.toggle("can", canPull(t, ax));
-    labels[i].textContent = axisLabel(ax, lock, at);
+    labels[i].querySelectorAll("tspan")[1].textContent = tierSpan(lock, at);
   });
 }
 // the HUD tick (aspira-ui.js updateHud): income may have brought a point within reach - the flash follows the bank
@@ -156,14 +163,12 @@ function cardStats(t, pv) {
     .filter(r => r[1] !== "—" || (r[2] != null && r[2] !== "—")).map(r => row(r[0], r[1], r[2])).join("");
   return '<div class="asp-cols"><dl>' + base + '<dt>Kills</dt><dd id="asp-kills"></dd></dl><dl class="asp-spec">' + spec + "</dl></div>";
 }
-// the description: a line per axis above tier 0 - the tier's name and what it
-// does - and, while points are pulled, each changed line in TRACK CHANGES; a
-// chart with no tier yet shows the tower's blurb
+// the description: ONE evolving sentence per axis (its `base` at tier 0, the
+// tier's `desc` above it - aspira-skills.js) and, while points are pulled, the
+// change from the locked tier's sentence to the pulled one in TRACK CHANGES
+const axisSentence = (ax, k) => (k ? ax.tiers[k - 1].desc : ax.base);
 function skillDesc(t, pv) {
-  const lines = SKILL_TREES[t.kind].map(ax => [ax.tiers[skillOf(t, ax.id) - 1] || null, ax.tiers[skillOf(pv, ax.id) - 1] || null]).filter(([a, b]) => a || b);
-  if (!lines.length) return '<p class="asp-hint">' + TOWERS[t.kind].blurb + "</p>";
-  const words = tier => (tier ? ["<b>" + tier.name + "</b>"].concat(tier.desc.split(" ")) : []);
-  return '<div class="asp-desc">' + lines.map(([a, b]) => "<p>" + wordDiff(words(a), words(b)) + "</p>").join("") + "</div>";
+  return '<div class="asp-desc">' + SKILL_TREES[t.kind].map(ax => "<p>" + wordDiff(axisSentence(ax, skillOf(t, ax.id)).split(" "), axisSentence(ax, skillOf(pv, ax.id)).split(" ")) + "</p>").join("") + "</div>";
 }
 // a word-level diff (longest common subsequence): removed words in <del>, added in <ins>
 function wordDiff(a, b) {

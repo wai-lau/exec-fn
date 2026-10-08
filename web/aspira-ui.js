@@ -286,10 +286,17 @@ function flashBuild() {
   $("asp-build").style.visibility = full ? "hidden" : "";
   if (full && ui.build) { ui.build = null; $("asp-placing").hidden = true; }
 }
+// the game PAUSES while a card is open (owner, 2026-10-07; the build and
+// upgrade choosers already did): the tower's or the core's card, and the pause
+// the player had before it is put back when it closes
+const cardPause = { on: false, was: false };
 function refreshPanels() {
   flashBuild();
   const pop = $("asp-pop"), placing = $("asp-placing");
   const t = ui.sel && G.towers.find(x => x.id === ui.sel), core = ui.sel === "core";
+  if ((t || core) && !cardPause.on) { cardPause.on = true; cardPause.was = ui.paused; ui.paused = true; }
+  else if (!t && !core && cardPause.on) { cardPause.on = false; ui.paused = cardPause.was; }
+  if (!t) { basket.id = null; basket.add = {}; } // a card closed without upgrading drops its pulled points (owner): the sliders reopen at the locked tiers (aspira-sliders.js)
   pop.hidden = !t && !core;
   pop.dataset.kind = core ? "core" : t ? t.kind : ""; // the card takes the tower's colour (aspira.css)
   pop.classList.toggle("asp-tower", !!t); $("asp").classList.toggle("asp-towercard", !!t); // the two-half tower card, and its wide-screen width (aspira.css)

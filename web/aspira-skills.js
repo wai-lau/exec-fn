@@ -15,30 +15,33 @@ const SKILL_POINTS = 9, SKILL_TIERS = 3;
 // ...and on, for the three points past the sixth (owner, 2026-10-07: "keep increasing
 // the prices"): the step grows by one more each time, a full chart 174.5 builds (6,980c)
 const SKILL_STEP_COST = [2.5, 4, 7, 11, 16, 22, 29, 37, 46];
-// Every tier's `desc` (owner, 2026-10-07): ONE sentence per axis whose words barely
-// change from tier to tier, so the card's track changes (aspira-sliders.js) show
-// only the gain; no bare stat talk ("slides further", "more range") unless that
-// IS the upgrade - the reach each tier buys is in SKILL_MOVE below
+// Every axis is ONE EVOLVING SENTENCE (owner, 2026-10-07): `base` says what the
+// tower does with no point on the axis, and each tier's `desc` is that sentence
+// with as few words changed as will carry the gain, so the card's track changes
+// (aspira-sliders.js) read as a single edit - "Arcs fork on hit." -> "Arcs *chain
+// once* and fork on hit." -> "... fork *into three* on hit."; no bare stat talk
+// ("slides further", "more range") unless that IS the upgrade - the reach each
+// tier buys is in SKILL_MOVE below. The tier `name`s are not shown on the card.
 const SKILL_TREES = {
   // ARC (owner): Conductivity = ALL the branching (owner, 2026-10-05) - how
   // many times the chain jumps AND how many ways each jump forks; Voltage =
   // raw power, damage and range; Static = an EXPLOSION on every hit that marks
   // what it catches. Base: one jump forking two ways, three enemies.
   arc: [
-    { id: "conductivity", name: "Conductivity", tiers: [
-      { name: "Transfer", desc: "One bolt jumps twice, forking two ways." },
-      { name: "Conduit", desc: "One bolt jumps twice, forking three ways." },
-      { name: "Superconductor", desc: "Two bolts jump twice, forking three ways." },
+    { id: "conductivity", name: "Conductivity", base: "Arcs fork on hit.", tiers: [
+      { name: "Transfer", desc: "Arcs chain once and fork on hit." },
+      { name: "Conduit", desc: "Arcs chain once and fork into three on hit." },
+      { name: "Superconductor", desc: "Two arcs chain once and fork into three on hit." },
     ] },
-    { id: "voltage", name: "Voltage", tiers: [
-      { name: "Spark", desc: "Hits harder; each jump keeps most of the hit before it." },
-      { name: "Fry", desc: "Hits much harder; each jump keeps nearly all of the hit before it." },
-      { name: "Vaporize", desc: "Hits hardest; each jump keeps all of the hit before it." },
+    { id: "voltage", name: "Voltage", base: "Each jump carries half the hit.", tiers: [
+      { name: "Spark", desc: "Harder hits; each jump carries most of the hit." },
+      { name: "Fry", desc: "Harder hits; each jump carries nearly all of the hit." },
+      { name: "Vaporize", desc: "Hardest hits; each jump carries all of the hit." },
     ] },
-    { id: "capacitance", name: "Capacitance", tiers: [
-      { name: "Static", desc: "Each hit stores a share of itself on the enemy; the next hit from any tower bursts it around them." },
-      { name: "Charge", desc: "Each hit stores a bigger share of itself on the enemy; the next hit from any tower bursts it around them." },
-      { name: "Overload", desc: "Each hit stores the biggest share of itself on the enemy; the next hit from any tower bursts it around them, slowing them." },
+    { id: "capacitance", name: "Capacitance", base: "Hits leave nothing behind.", tiers: [
+      { name: "Static", desc: "Hits leave a share of themselves behind; the next hit from any tower bursts it." },
+      { name: "Charge", desc: "Hits leave a bigger share of themselves behind; the next hit from any tower bursts it." },
+      { name: "Overload", desc: "Hits leave the biggest share of themselves behind; the next hit from any tower bursts it and slows what it catches." },
     ] },
   ],
 };
@@ -48,20 +51,20 @@ const SKILL_TREES = {
 // PERMANENT slow on all it passes; Moons = 1 / 2 / 3 orbiting copies of the
 // tower at half of everything.
 SKILL_TREES.frz = [
-  { id: "temp", name: "Temp", tiers: [
-    { name: "Chill", desc: "A colder, wider aura." },
-    { name: "Freeze", desc: "A much colder, wider aura." },
-    { name: "Absolute Zero", desc: "The coldest, widest aura; what it chills takes more from every tower." },
+  { id: "temp", name: "Temp", base: "The aura slows what it holds.", tiers: [
+    { name: "Chill", desc: "A colder, wider aura slows what it holds." },
+    { name: "Freeze", desc: "A far colder, wider aura slows what it holds." },
+    { name: "Absolute Zero", desc: "The coldest, widest aura slows what it holds, and every tower hits it harder." },
   ] },
-  { id: "rime", name: "Rime", tiers: [
-    { name: "Frost", desc: "Pulses leave a slow that stacks and never fades." },
-    { name: "Glacier", desc: "Faster pulses leave a deeper slow that stacks and never fades." },
-    { name: "Cryosphere", desc: "The fastest pulses leave the deepest slow that stacks and never fades." },
+  { id: "rime", name: "Rime", base: "Nothing lingers past the aura.", tiers: [
+    { name: "Frost", desc: "Pulses leave a slow that lingers past the aura and stacks." },
+    { name: "Glacier", desc: "Faster pulses leave a deeper slow that lingers past the aura and stacks." },
+    { name: "Cryosphere", desc: "The fastest pulses leave the deepest slow that lingers past the aura and stacks." },
   ] },
-  { id: "moons", name: "Moons", tiers: [
-    { name: "Moon", desc: "One orbiting moon, a weaker copy of the tower." },
-    { name: "Twin Moons", desc: "Two orbiting moons, near copies of the tower." },
-    { name: "Desolation", desc: "Three orbiting moons, full copies of the tower." },
+  { id: "moons", name: "Moons", base: "No moons orbit the tower.", tiers: [
+    { name: "Moon", desc: "One moon orbits the tower, a weaker copy of it." },
+    { name: "Twin Moons", desc: "Two moons orbit the tower, near copies of it." },
+    { name: "Desolation", desc: "Three moons orbit the tower, full copies of it." },
   ] },
 ];
 // SOL (owner, 2026-10-05): Focus = more beams (the old Quad look: side by
@@ -73,20 +76,20 @@ SKILL_TREES.frz = [
 // good). Focus x Scorch multiply:
 // 4 beams x 6 = 24 Breaches a volley on one target.
 SKILL_TREES.sol = [
-  { id: "focus", name: "Focus", tiers: [
+  { id: "focus", name: "Focus", base: "One beam per shot.", tiers: [
     { name: "Convergence", desc: "Two beams per shot, each a full hit." },
     { name: "Crux", desc: "Three beams per shot, each a full hit." },
     { name: "Disintegration", desc: "Four beams per shot, each a full hit." },
   ] },
-  { id: "refraction", name: "Refraction", tiers: [
-    { name: "Lens", desc: "Each shot bounces on to two more enemies ahead." },
-    { name: "Prism", desc: "Each shot bounces harder on to five more enemies ahead." },
-    { name: "Spectrum", desc: "Each shot bounces hardest on to nine more enemies ahead." },
+  { id: "refraction", name: "Refraction", base: "Shots stop at the first enemy.", tiers: [
+    { name: "Lens", desc: "Shots bounce on to two more enemies ahead." },
+    { name: "Prism", desc: "Shots bounce harder on to five more enemies ahead." },
+    { name: "Spectrum", desc: "Shots bounce hardest on to nine more enemies ahead." },
   ] },
-  { id: "breach", name: "Breach", tiers: [
-    { name: "Scorch", desc: "Each hit breaches once: armor stripped, and every tower crits it more, for good." },
-    { name: "Sear", desc: "Each hit breaches twice: armor stripped, and every tower crits it more, for good." },
-    { name: "Flare", desc: "Each hit breaches six times: armor stripped, and every tower crits it more, for good." },
+  { id: "breach", name: "Breach", base: "Hits leave armor and crits as they are.", tiers: [
+    { name: "Scorch", desc: "Hits breach once: armor off and crits up for every tower, for good." },
+    { name: "Sear", desc: "Hits breach twice: armor off and crits up for every tower, for good." },
+    { name: "Flare", desc: "Hits breach six times: armor off and crits up for every tower, for good." },
   ] },
 ];
 // ACD (owner, 2026-10-05): its lines DRIP burning PUDDLES onto the lane by
@@ -94,17 +97,17 @@ SKILL_TREES.sol = [
 // burn ramps faster (tier III: a line whose enemy dies hands half its ramp to
 // the next); Pour = 2 / 3 / 5 lines at once; Seep = more, longer, bigger puddles.
 SKILL_TREES.acd = [
-  { id: "corrosion", name: "Corrosion", tiers: [
-    { name: "Etch", desc: "A line keeps its full heat when it moves to a new target." },
-    { name: "Corrode", desc: "A hotter line keeps its full heat when it moves to a new target." },
-    { name: "Dissolve", desc: "The hottest line keeps its full heat when it moves to a new target." },
+  { id: "corrosion", name: "Corrosion", base: "A line keeps little of its heat when it moves to a new target.", tiers: [
+    { name: "Etch", desc: "A line keeps all of its heat when it moves to a new target." },
+    { name: "Corrode", desc: "A hotter line keeps all of its heat when it moves to a new target." },
+    { name: "Dissolve", desc: "The hottest line keeps all of its heat when it moves to a new target." },
   ] },
-  { id: "spray", name: "Spray", tiers: [
+  { id: "spray", name: "Spray", base: "Two burn lines at once, each on its own enemy.", tiers: [
     { name: "Mist", desc: "Three burn lines at once, each on its own enemy." },
     { name: "Downpour", desc: "Four burn lines at once, each on its own enemy." },
     { name: "Torrent", desc: "Six burn lines at once, each on its own enemy." },
   ] },
-  { id: "contagion", name: "Contagion", tiers: [
+  { id: "contagion", name: "Contagion", base: "Lines drip puddles.", tiers: [
     { name: "Blister", desc: "Lines drip hotter puddles, more often." },
     { name: "Plague", desc: "Lines drip hotter, bigger puddles, more often." },
     { name: "Pandemic", desc: "Lines drip the hottest, biggest puddles, more often, slowing what stands in them." },
