@@ -27,7 +27,7 @@ const MECH = {
   sol: {
     focus: k => `${V("SOL_BEAMS")[k]} beam${V("SOL_BEAMS")[k] > 1 ? "s" : ""} per shot, each a full hit, range x${V("SKILL_MOVE").sol.focus[k][0]}`,
     refraction: k => (V("SOL_REFRACTION")[k] ? `bends on to ${V("SOL_REFRACTION")[k]} more within a ${V("SOL_CONE") * 2} deg cone, each hop ${pct(V("SOL_HOP")[k])} of the shot, shot x${V("SOL_REFRACTION_DMG")[k]}, range x${V("SKILL_MOVE").sol.refraction[k][0]}` : "no bounce"),
-    breach: k => (V("SOL_BREACH")[k] ? `${V("SOL_BREACH")[k]} breach${V("SOL_BREACH")[k] > 1 ? "es" : ""} per hit (each -${V("BREACH_ARMOR")} armor, +${pct(V("BREACH_CRIT"))} crit for every tower, for good), crit x${V("SOL_CRITMUL")[k]}, slide x${V("SKILL_MOVE").sol.breach[k][1]}` : `no breach, crit x${V("SOL_CRITMUL")[0]}`),
+    breach: k => `every hit strips ${V("SOL_BREACH_ARMOR")[k]} armor for good${V("SOL_BREACH_CRIT")[k] ? `, +${pct(V("SOL_BREACH_CRIT")[k])} crit for every tower` : ""}, crit x${V("SOL_CRITMUL")[k]}, slide x${V("SKILL_MOVE").sol.breach[k][1]}`,
   },
   acd: {
     corrosion: k => `acid x${V("ACD_CORROSION_DMG")[k]}, a fresh jet starts with ${pct(k >= 1 ? 1 : 0.4)} of a spent jet's concentration`,

@@ -30,12 +30,12 @@ const DESCRIBE = {
   frz(sk) {
     return "A chill slows all it holds" + ((sk.temp || 0) >= 3 ? ", and turns it brittle." : ".") + FRZ_RIME_TEXT[sk.rime || 0] + FRZ_MOONS[sk.moons || 0];
   },
-  // "A ray of light, stopping at the first enemy struck." -> Focus: two .. four rays, each a full
-  // strike; Refraction: refracting on to two / five / nine more; Breach (owner's words): each beam
-  // weakens its target's armor for good, and scorches it so every tower crits it more
+  // "A ray of light, stopping at the first enemy struck; each beam weakens its target's armor for
+  // good." (Breach is SOL's own from the start, owner 2026-10-08) -> Focus: two .. six rays, each a
+  // full strike; Refraction: refracting on to more; Breach: armor *greatly*, and scorches it so every tower crits it more
   sol(sk) {
     const f = sk.focus || 0, r = sk.refraction || 0, b = sk.breach || 0;
-    return SOL_RAYS[f] + " of light" + (f ? ", each a full strike" : "") + ", " + SOL_REFRACT[r] + (b ? "; each beam weakens its target's armor for good, and scorches it so every tower crits it more." : ".");
+    return SOL_RAYS[f] + " of light" + (f ? ", each a full strike" : "") + ", " + SOL_REFRACT[r] + "; each beam weakens its target's armor" + (b ? " greatly" : "") + " for good" + (b ? ", and scorches it so every tower crits it more." : ".");
   },
   // "Two jets of acid, each corroding the enemy. Acid flow is reduced when switching targets."
   // (owner's words) -> Spray: three .. six jets; Corrosion I: the flow HOLDS on a switch;
