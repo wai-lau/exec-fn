@@ -180,6 +180,7 @@ function ringOf(i, sides) {
 }
 const shieldPulse = () => 1 + 0.04 * Math.sin(performance.now() / 300); // the core's own breath
 // ring r (0 = inner) has radius base + gap * (r + 1); slot i is side i % sides of ring floor(i / sides)
+const SHIELD_RING_FADE = 0.7, SHIELD_RING_MIN = 0.2;
 function drawSegs(x, y, segs, sides, rot, base, gap, flashes) {
   const k = shieldPulse();
   const side = i => {
@@ -190,9 +191,15 @@ function drawSegs(x, y, segs, sides, rot, base, gap, flashes) {
     ctx.moveTo(x0 + (x1 - x0) * j / ring, y0 + (y1 - y0) * j / ring);
     ctx.lineTo(x0 + (x1 - x0) * (j + 1) / ring, y0 + (y1 - y0) * (j + 1) / ring);
   };
-  ctx.beginPath();
-  segs.forEach((on, i) => { if (on) side(i); });
-  ctx.stroke();
+  // each ring OUT is fainter (owner, 2026-10-08: "shields lose opacity as you get more layers out"):
+  // ring r at SHIELD_RING_FADE^(r-1) of the alpha it was drawn with, never under SHIELD_RING_MIN
+  const a0 = ctx.globalAlpha, byRing = new Map();
+  segs.forEach((on, i) => { if (on) { const r = ringOf(i, sides).r; (byRing.get(r) || byRing.set(r, []).get(r)).push(i); } });
+  for (const [r, ids] of byRing) {
+    ctx.globalAlpha = a0 * Math.max(SHIELD_RING_MIN, SHIELD_RING_FADE ** (r - 1));
+    ctx.beginPath(); ids.forEach(side); ctx.stroke();
+  }
+  ctx.globalAlpha = a0;
   if (!flashes || !flashes.length) return;
   // a LOST segment flashes RED and thick, fading over SEG_FLASH_T (owner). The
   // red is the BOSS red - Hack cyan inverted, as a boss icon shows it - since
