@@ -242,13 +242,15 @@ function cellPath(c, k = 1) {
 
 // Shown while placing: every OPEN slot at full strength (owner: "fully show"),
 // free cells in the colour of the tower being placed (owner), occupied ones grey.
+const SLOT_POOR_A = 0.3; // a free slot's outline and price when the bank cannot cover a tower
 function drawCells() {
   ctx.lineWidth = 2;
   CELLS.forEach((c, ci) => {
     if (!cellOpen(ci)) return; // a corner slot shows once its wave opens it
     const free = canPlace(ci);
     // before the first tower the free slots FLASH (owner; the build buttons used to)
-    if (!ui.build) { if (free) { cellPath(c, TOWER_K); ctx.strokeStyle = COL.white; ctx.lineWidth = 3.5; ctx.globalAlpha = G.towers.length ? 0.55 : 0.6 + 0.4 * Math.sin(performance.now() / 250); ctx.stroke(); ctx.lineWidth = 2; ctx.globalAlpha = 0.9; text(towerCost("arc") + "c", c.x, c.y, 14, "white"); } return; } // thicker, more opaque; the build price inside (owner)
+    // a slot the bank cannot fill is FADED (owner, 2026-10-07), its price too
+    if (!ui.build) { if (free) { const poor = G.money < towerCost("arc"), fade = poor ? SLOT_POOR_A : 1; cellPath(c, TOWER_K); ctx.strokeStyle = COL.white; ctx.lineWidth = 3.5; ctx.globalAlpha = fade * (G.towers.length ? 0.55 : 0.6 + 0.4 * Math.sin(performance.now() / 250)); ctx.stroke(); ctx.lineWidth = 2; ctx.globalAlpha = 0.9 * fade; text(towerCost("arc") + "c", c.x, c.y, 14, "white"); } return; } // thicker, more opaque; the build price inside (owner)
     cellPath(c, TOWER_K);
     const col = COL[TOWERS[ui.build].color];
     if (free) { ctx.fillStyle = col; ctx.globalAlpha = 0.15; ctx.fill(); }
