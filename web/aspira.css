@@ -673,10 +673,16 @@
 /* a plain checkbox + label, no button box (owner: "not on a card"), lit text while it holds the game slow */
 #asp .asp-autowait button { flex: 0 0 auto; white-space: nowrap; display: inline-flex; align-items: center; gap: var(--space-1); padding: 0; border: none; background: none; font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.8); }
 
-#asp .asp-autowait button.on { color: hsl(var(--green-hsl)); background: none; animation: asp-blink 1.1s ease-in-out infinite; } /* FLASHES while it holds the game slow (owner, 2026-10-08) */
+#asp .asp-autowait button.on { color: hsl(var(--green-hsl)); background: none; animation: asp-flash 0.7s ease-in-out infinite; } /* FLASHES while it holds the game slow (owner, 2026-10-08) */
 
 @keyframes asp-blink {
   50% { opacity: 0.45; }
+}
+/* auto-wait ON and a power ONLINE flash BRIGHTER and HARDER (owner, 2026-10-08; were asp-blink):
+   faster, down to near nothing, and up to an over-bright glow in their own colour */
+@keyframes asp-flash {
+  0%, 100% { opacity: 1; filter: brightness(1.6) drop-shadow(0 0 var(--blur-sm) currentcolor); }
+  50% { opacity: 0.15; filter: none; }
 }
 
 /* the quality toggle reads as a BUTTON (owner, 2026-10-08): a box round its label, unlike the auto-wait checkbox */
@@ -794,5 +800,5 @@
 #asp .asp-power i { position: absolute; bottom: 0; left: 0; height: var(--space-1); background: currentcolor; opacity: 0.45; }
 #asp .asp-power.cyan { color: hsl(var(--cyan-hsl)); border-color: hsl(var(--cyan-hsl) / 0.45); }
 #asp .asp-power.white { color: hsl(var(--white-hsl)); border-color: hsl(var(--gray-hsl) / 0.45); } /* (silver: white has no 0.45) */
-#asp .asp-power.ready { animation: asp-blink 1.1s ease-in-out infinite; border-color: currentcolor; }
+#asp .asp-power.ready { animation: asp-flash 0.7s ease-in-out infinite; border-color: currentcolor; }
 #asp .asp-power.run, #asp .asp-power.armed { border-color: currentcolor; background: hsl(var(--white-hsl) / 0.12); }
