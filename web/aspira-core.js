@@ -89,6 +89,8 @@ function temporalFreeze() {
   return true;
 }
 
+// a Temporal Drive freeze is running (its stop, not the rings' fade): the wave clock and the spawns hold (step, aspira-game.js)
+const timeStopped = () => !!(G.core && G.core.freeze && G.core.freeze.t < G.core.freeze.dur);
 // the core each step: cooldowns and the freeze ring
 function stepCore(dt) {
   if (!G.core) return;

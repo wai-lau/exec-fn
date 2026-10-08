@@ -429,12 +429,15 @@ function step(dt) {
   // clears (owner): nothing alive, nothing still queued to spawn
   // ...except the BOSS holds the timer (owner): nothing new comes until it
   // is dead (or through), then the field is clear and the next wave goes
-  if (!bossUp()) G.nextIn -= dt;
+  // ...and a TIME STOP holds everything (owner, 2026-10-08: "stop spawning during the effect, don't speed up
+  // the next wave either"): no countdown, no early send on a clear field, nothing spawns
+  const stopped = timeStopped();
+  if (!bossUp() && !stopped) G.nextIn -= dt;
   // the game is WON when the 10th boss (wave WIN_WAVE) falls (owner)
   // (no wave after it: the field plays out, then the clear wins)
   if (G.wave >= WIN_WAVE) { if (waveClear()) { winGame(); return; } }
-  else if (G.nextIn <= 0 || waveClear()) { sendWave(); return; }
-  stepSpawns(dt);
+  else if (!stopped && (G.nextIn <= 0 || waveClear())) { sendWave(); return; }
+  if (!stopped) stepSpawns(dt);
   stepEnemies(dt);
   if (G.over) return;
   stepChains(dt);
