@@ -477,9 +477,13 @@ function solRefraction(t, st, e) {
 }
 // a shot that runs OUT OF TARGETS goes on from the last enemy struck, along its last leg, far past the screen's edge (owner, 2026-10-08)
 const SOL_OUT_LEN = 3000;
+// it FOLLOWS, like every other beam (owner, 2026-10-08: "should track dead enemies like arc to avoid jumps"):
+// it starts on the struck enemy (dead or alive - a ghost keeps moving) and its far end is read live
+// along a -> b, so the extension never detaches from the leg it continues
 function solOutOfSight(t, st, a, b) {
-  const dx = b.x - a.x, dy = b.y - a.y, n = Math.hypot(dx, dy) || 1;
-  beam(b, { x: b.x + dx / n * SOL_OUT_LEN, y: b.y + dy / n * SOL_OUT_LEN }, TOWERS[t.kind].color, RAY_BEAM_LIFE, 3, st.dmg, true, false);
+  const far = { get x() { const dx = b.x - a.x, dy = b.y - a.y; return b.x + dx / (Math.hypot(dx, dy) || 1) * SOL_OUT_LEN; },
+    get y() { const dx = b.x - a.x, dy = b.y - a.y; return b.y + dy / (Math.hypot(dx, dy) || 1) * SOL_OUT_LEN; } };
+  beam(b, far, TOWERS[t.kind].color, RAY_BEAM_LIFE, 3, st.dmg, true);
 }
 const SOL_CONE_LIFE = 0.6; // game seconds (1x runs 2 game s a real s): long enough to see the cubic fade
 // UI (drawFx): the Refract light cone, a faint wedge that fades FAST (owner):
