@@ -95,17 +95,17 @@ function stepAcd(t, dt) {
 // keeps full heat on a new target (it was III's), II / III burn HOTTER at every
 // heat (ACD_CORROSION_DMG x the dps, so the top heat rises with it - raising only
 // the cap did nothing, the ramp rarely reaches it); the ramp stays ACD_DOUBLE[0]
-const ACD_CORROSION_DMG = [1, 1.1, 1.5, 2.2];
-const ACD_DOUBLE = [0.5, 0.39, 0.3, 0.12], ACD_LINES = [2, 3, 4, 6], /* early-game balance 2026-10-06: two lines from the start (was 1/2/3/5); Spray to be re-fitted */ ACD_SPRAY_MUL = [1, 1, 1.1, 1.2];
+const ACD_CORROSION_DMG = [1, 1.1, 1.5, 2.2, 2.8, 3.5];
+const ACD_DOUBLE = [0.5, 0.39, 0.3, 0.12, 0.12, 0.12], ACD_LINES = [2, 3, 4, 6, 7, 8], /* early-game balance 2026-10-06: two lines from the start (was 1/2/3/5); Spray to be re-fitted */ ACD_SPRAY_MUL = [1, 1, 1.1, 1.2, 1.25, 1.3];
 // puddles by Seep tier (index 0 = the DEFAULT drip, owner): one every `every`
 // s per line, lasting `life` s, radius r; each burns at ACD_PUDDLE_HEAT of its
 // line's heat when it fell, by Seep tier
 // index 0 = NO puddles (owner, 2026-10-07: "ACD shouldn't have puddles at level 0"; was a default drip { every: 1.4, life: 1.5, r: 20 })
-const ACD_CONTAGION = [null, { every: 1.2, life: 1.8, r: 22 }, { every: 1, life: 2.4, r: 26 }, { every: 0.9, life: 2.7, r: 28 }]; // refit 2026-10-06
-const ACD_PUDDLE_HEAT = [0.5, 1, 1.05, 1.1];
+const ACD_CONTAGION = [null, { every: 1.2, life: 1.8, r: 22 }, { every: 1, life: 2.4, r: 26 }, { every: 0.9, life: 2.7, r: 28 }, { every: 0.8, life: 3, r: 30 }, { every: 0.7, life: 3.3, r: 32 }]; // refit 2026-10-06
+const ACD_PUDDLE_HEAT = [0.5, 1, 1.05, 1.1, 1.2, 1.3];
 // Contagion III (Pandemic) puddles SLOW what stands in them (owner, 2026-10-06,
 // the no-FRZ niche search: 3 SOL + 6 ACD reached 98, was 74; FRZ teams unchanged)
-const ACD_CONTAGION_SLOW = [0, 0, 0, 0.25]; // was 0.3 (2026-10-06 reach rework: with the roaming bonus 0.3 made Pandemic ~5x; phase 4 found 0.2-0.3 all open the niche)
+const ACD_CONTAGION_SLOW = [0, 0, 0, 0.25, 0.3, 0.35]; // was 0.3 (2026-10-06 reach rework: with the roaming bonus 0.3 made Pandemic ~5x; phase 4 found 0.2-0.3 all open the niche)
 function acdSkillStats(t, s, b) {
   const c = skillOf(t, "corrosion");
   s.dmg = b.dmg * ACD_CORROSION_DMG[c]; s.range = b.range * RANGE_BONUS; s.double = ACD_DOUBLE[0]; s.cap = ACD_BASE_MAX; s.plagueR = 0;

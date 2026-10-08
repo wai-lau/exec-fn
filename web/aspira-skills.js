@@ -7,14 +7,16 @@
 // NINE points (owner, 2026-10-07; was 6): every axis can be maxed. Points are bought
 // by DRAGGING the axes of the chart on the tower card (aspira-sliders.js), any
 // number at once; each still costs its own step of the ladder below
-const SKILL_POINTS = 9, SKILL_TIERS = 3;
+// FIVE tiers an axis (owner, 2026-10-07: "add another 2 tiers to each upgrade"; was 3), fifteen points a tower
+const SKILL_POINTS = 15, SKILL_TIERS = 5;
 // cost of each of the six small upgrades, x the build cost (about the old
 // three-step total, spread over six; balance later). DEARER (owner, 2026-10-06:
 // "make the levels more expensive and more powerful"): was 2 / 3.5 / 5.5 / 8 / 10.5 / 13,
 // a full chart 42.5 builds; now 62.5 (the first points stay near their old price, the last ones cost nearly double) - and every tier hits harder to match (below)
 // ...and on, for the three points past the sixth (owner, 2026-10-07: "keep increasing
 // the prices"): the step grows by one more each time, a full chart 174.5 builds (6,980c)
-const SKILL_STEP_COST = [2.5, 4, 7, 11, 16, 22, 29, 37, 46];
+// (the six points past the ninth, 2026-10-07: each step grows by one more again - a full chart 695.5 builds, 27,820c)
+const SKILL_STEP_COST = [2.5, 4, 7, 11, 16, 22, 29, 37, 46, 56, 67, 79, 92, 106, 121];
 // Every axis is ONE EVOLVING SENTENCE (owner, 2026-10-07): `base` says what the
 // tower does with no point on the axis, and each tier's `desc` is that sentence
 // with as few words changed as will carry the gain, so the card's track changes
@@ -34,16 +36,22 @@ const SKILL_TREES = {
       { name: "Transfer", desc: "Arcs chain once and fork on hit." },
       { name: "Conduit", desc: "Arcs chain once and fork into three on hit." },
       { name: "Superconductor", desc: "Two arcs chain once and fork into three on hit." },
+      { name: "Lattice", desc: "Two arcs chain twice and fork into three on hit." },
+      { name: "Storm", desc: "Three arcs chain twice and fork into three on hit." },
     ] },
     { id: "voltage", name: "Voltage", base: "Each jump carries half the hit.", tiers: [
       { name: "Spark", desc: "Harder hits; each jump carries most of the hit." },
       { name: "Fry", desc: "Harder hits; each jump carries nearly all of the hit." },
       { name: "Vaporize", desc: "Hardest hits; each jump carries all of the hit." },
+      { name: "Arc Flash", desc: "Each jump carries more than the hit." },
+      { name: "Plasma", desc: "Each jump carries far more than the hit." },
     ] },
     { id: "capacitance", name: "Capacitance", base: "", tiers: [
       { name: "Static", desc: "Hits charge the target, charged targets arc once when hit by anything." },
       { name: "Charge", desc: "Hits charge the target, charged targets arc twice when hit by anything." },
       { name: "Overload", desc: "Hits charge the target, charged targets arc three times when hit by anything, slowing what they hit." },
+      { name: "Discharge", desc: "Hits charge the target, charged targets arc four times when hit by anything, slowing what they hit." },
+      { name: "Tempest", desc: "Hits charge the target, charged targets arc five times when hit by anything, slowing what they hit." },
     ] },
   ],
 };
@@ -57,16 +65,22 @@ SKILL_TREES.frz = [
     { name: "Chill", desc: "A colder, wider aura slows what it holds." },
     { name: "Freeze", desc: "A far colder, wider aura slows what it holds." },
     { name: "Absolute Zero", desc: "The coldest, widest aura slows what it holds, and every tower hits it harder." },
+    { name: "Permafrost", desc: "A chill slows all it holds, and turns it brittle." },
+    { name: "Heat Death", desc: "A chill slows all it holds, and turns it brittle." },
   ] },
   { id: "rime", name: "Rime", base: "", tiers: [
     { name: "Frost", desc: "Pulses leave a slow that lingers past the aura and stacks." },
     { name: "Glacier", desc: "Faster pulses leave a deeper slow that lingers past the aura and stacks." },
     { name: "Cryosphere", desc: "The fastest pulses leave the deepest slow that lingers past the aura and stacks." },
+    { name: "Ice Sheet", desc: "Rings of rime roll out, leaving a frost that never thaws and stacks." },
+    { name: "Glaciation", desc: "Rings of rime roll out, leaving a frost that never thaws and stacks." },
   ] },
   { id: "moons", name: "Moons", base: "", tiers: [
     { name: "Moon", desc: "One moon orbits the tower, a weaker copy of it." },
     { name: "Twin Moons", desc: "Two moons orbit the tower, near copies of it." },
     { name: "Desolation", desc: "Three moons orbit the tower, full copies of it." },
+    { name: "Quad Moons", desc: "Four moons orbit it, copies of the tower." },
+    { name: "Eclipse", desc: "Five moons orbit it, copies of the tower." },
   ] },
 ];
 // SOL (owner, 2026-10-05): Focus = more beams (the old Quad look: side by
@@ -82,16 +96,22 @@ SKILL_TREES.sol = [
     { name: "Convergence", desc: "Two beams per shot, each a full hit." },
     { name: "Crux", desc: "Three beams per shot, each a full hit." },
     { name: "Disintegration", desc: "Four beams per shot, each a full hit." },
+    { name: "Lance", desc: "Five rays of light, each a full strike." },
+    { name: "Supernova", desc: "Six rays of light, each a full strike." },
   ] },
   { id: "refraction", name: "Refraction", base: "", tiers: [
     { name: "Lens", desc: "Shots bounce on to two more enemies ahead." },
     { name: "Prism", desc: "Shots bounce harder on to five more enemies ahead." },
     { name: "Spectrum", desc: "Shots bounce hardest on to nine more enemies ahead." },
+    { name: "Halo", desc: "Refracting on to twelve more ahead." },
+    { name: "Aurora", desc: "Refracting on to fifteen more ahead." },
   ] },
   { id: "breach", name: "Breach", base: "", tiers: [
     { name: "Scorch", desc: "Hits breach once: armor off and crits up for every tower, for good." },
     { name: "Sear", desc: "Hits breach twice: armor off and crits up for every tower, for good." },
     { name: "Flare", desc: "Hits breach six times: armor off and crits up for every tower, for good." },
+    { name: "Brand", desc: "Each beam weakens its target's armor for good, and scorches it so every tower crits it more." },
+    { name: "Sunfire", desc: "Each beam weakens its target's armor for good, and scorches it so every tower crits it more." },
   ] },
 ];
 // ACD (owner, 2026-10-05): its lines DRIP burning PUDDLES onto the lane by
@@ -103,16 +123,22 @@ SKILL_TREES.acd = [
     { name: "Etch", desc: "A jet keeps all of its concentration when it moves to a new target." },
     { name: "Corrode", desc: "A stronger jet keeps all of its concentration when it moves to a new target." },
     { name: "Dissolve", desc: "The strongest jet keeps all of its concentration when it moves to a new target." },
+    { name: "Erode", desc: "Acid flow holds when switching targets." },
+    { name: "Annihilate", desc: "Acid flow holds when switching targets." },
   ] },
   { id: "spray", name: "Spray", base: "Two jets of acid at once, each on its own enemy.", tiers: [
     { name: "Mist", desc: "Three jets of acid at once, each on its own enemy." },
     { name: "Downpour", desc: "Four jets of acid at once, each on its own enemy." },
     { name: "Torrent", desc: "Six jets of acid at once, each on its own enemy." },
+    { name: "Deluge", desc: "Seven jets of acid, each corroding the enemy." },
+    { name: "Cascade", desc: "Eight jets of acid, each corroding the enemy." },
   ] },
   { id: "contagion", name: "Contagion", base: "Jets drip puddles.", tiers: [
     { name: "Blister", desc: "Jets drip blistering puddles, more often." },
     { name: "Plague", desc: "Jets drip bigger blistering puddles, more often." },
     { name: "Pandemic", desc: "Jets drip bigger blistering puddles, more often, that slow all who wade through them." },
+    { name: "Epidemic", desc: "Pools of acid that slow all who wade through them." },
+    { name: "Blight", desc: "Pools of acid that slow all who wade through them." },
   ] },
 ];
 const hasSkills = t => !!SKILL_TREES[t.kind];
@@ -120,7 +146,7 @@ const maxLvl = t => (hasSkills(t) ? 1 + SKILL_POINTS : MAX_LVL);
 const skillOf = (t, id) => (t.skills && t.skills[id]) || 0;
 // the level the TOWER'S LOOK shows (its rings, max-level spokes): a chart
 // tower's 7 levels fold onto the 4 drawn ones
-const shownLvl = t => (!hasSkills(t) ? t.lvl : t.lvl >= maxLvl(t) ? MAX_LVL : 1 + Math.floor((t.lvl - 1) / 3)); // nine points, three a look
+const shownLvl = t => (!hasSkills(t) ? t.lvl : t.lvl >= maxLvl(t) ? MAX_LVL : 1 + Math.floor((t.lvl - 1) / 5)); // fifteen points, five a look
 
 // REACH BY TIER (owner, 2026-10-06: ranges and movement were HALVED, and "no upgrade
 // causes any stat to go down - balance by playing around with ranges and movement
@@ -133,12 +159,12 @@ const shownLvl = t => (!hasSkills(t) ? t.lvl : t.lvl >= maxLvl(t) ? MAX_LVL : 1 
 //   SOL  (a long-range ANCHOR) Focus and Refraction = RANGE; Breach = SLIDE extent (owner)
 //   ACD  Spray = range (more lines need more targets in reach); Contagion = a roaming
 //        plague (the puddles follow the lane): slide and speed
-const NO_MOVE = [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]];
+const NO_MOVE = [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]];
 const SKILL_MOVE = {
-  arc:    { conductivity: [[1, 1, 1], [1.15, 1, 1], [1.3, 1, 1], [1.5, 1, 1]], voltage: [[1, 1, 1], [1.3, 1, 1], [1.6, 1, 1], [2, 1, 1]], capacitance: [[1, 1, 1], [1, 1.3, 1], [1, 1.6, 1], [1, 2, 1]] },
-  frz: { temp: [[1, 1, 1], [1.25, 1, 1], [1.5, 1, 1], [1.8, 1, 1]], rime: [[1, 1, 1], [1, 4 / 3, 1], [1, 5 / 3, 1], [1, 2, 1]], moons: NO_MOVE }, // Rime buys back FRZ's halved slide (owner)
-  sol: { focus: [[1, 1, 1], [1.2, 1, 1], [1.4, 1, 1], [1.7, 1, 1]], refraction: [[1, 1, 1], [1.1, 1, 1], [1.2, 1, 1], [1.35, 1, 1]], breach: [[1, 1, 1], [1, 1.3, 1], [1, 1.6, 1], [1, 2, 1]] },
-  acd:    { spray: [[1, 1, 1], [1.2, 1, 1], [1.5, 1, 1], [1.9, 1, 1]], contagion: [[1, 1, 1], [1, 1.15, 1.15], [1, 1.3, 1.3], [1, 1.5, 1.5]], corrosion: NO_MOVE },
+  arc:    { conductivity: [[1, 1, 1], [1.15, 1, 1], [1.3, 1, 1], [1.5, 1, 1], [1.65, 1, 1], [1.8, 1, 1]], voltage: [[1, 1, 1], [1.3, 1, 1], [1.6, 1, 1], [2, 1, 1], [2.2, 1, 1], [2.4, 1, 1]], capacitance: [[1, 1, 1], [1, 1.3, 1], [1, 1.6, 1], [1, 2, 1], [1, 2.2, 1], [1, 2.4, 1]] },
+  frz: { temp: [[1, 1, 1], [1.25, 1, 1], [1.5, 1, 1], [1.8, 1, 1], [2, 1, 1], [2.2, 1, 1]], rime: [[1, 1, 1], [1, 4 / 3, 1], [1, 5 / 3, 1], [1, 2, 1], [1, 2.2, 1], [1, 2.4, 1]], moons: NO_MOVE }, // Rime buys back FRZ's halved slide (owner)
+  sol: { focus: [[1, 1, 1], [1.2, 1, 1], [1.4, 1, 1], [1.7, 1, 1], [1.85, 1, 1], [2, 1, 1]], refraction: [[1, 1, 1], [1.1, 1, 1], [1.2, 1, 1], [1.35, 1, 1], [1.45, 1, 1], [1.55, 1, 1]], breach: [[1, 1, 1], [1, 1.3, 1], [1, 1.6, 1], [1, 2, 1], [1, 2.2, 1], [1, 2.4, 1]] },
+  acd:    { spray: [[1, 1, 1], [1.2, 1, 1], [1.5, 1, 1], [1.9, 1, 1], [2.1, 1, 1], [2.3, 1, 1]], contagion: [[1, 1, 1], [1, 1.15, 1.15], [1, 1.3, 1.3], [1, 1.5, 1.5], [1, 1.65, 1.65], [1, 1.8, 1.8]], corrosion: NO_MOVE },
 };
 function skillMove(t, s) {
   for (const [ax, tiers] of Object.entries(SKILL_MOVE[t.kind])) {
@@ -156,24 +182,24 @@ function skillMove(t, s) {
 // is what each JUMP keeps of the hit before it (ARC_FALL 0.5 at 0; III = every jump
 // at full damage), on top of its damage step; the `pierce` flag it sets is only
 // the white core drawn in its arcs (aspira-draw.js), never a rule
-const ARC_VOLTAGE_DMG = [1, 1.4, 1.9, 2.8], ARC_VOLTAGE_FALL = [0.5, 0.65, 0.8, 1]; // its RANGE is in SKILL_MOVE
+const ARC_VOLTAGE_DMG = [1, 1.4, 1.9, 2.8, 3.6, 4.6], ARC_VOLTAGE_FALL = [0.5, 0.65, 0.8, 1, 1.1, 1.25]; // IV / V (2026-10-07): a jump carries MORE than the hit before it // its RANGE is in SKILL_MOVE
 // Conductivity's shape by tier (owner): strikes (separate first targets),
 // jumps, and forks per jump - 3, 7, 13, then two separate 13-hit attacks -
 // and r, how much further each JUMP reaches (owner; Voltage owns the tower's range)
 // d: a damage multiplier, FITTED so each tier deals +25% / +50% / +100% over
 // the base (owner), like Voltage's (scripts/aspira-sim: arcfit)
-let ARC_CONDUCTIVITY = [{ s: 1, j: 1, f: 2, r: 1, d: 1 }, { s: 1, j: 2, f: 2, r: 1.2, d: 1 }, { s: 1, j: 2, f: 3, r: 1.4, d: 1 }, { s: 2, j: 2, f: 3, r: 1.6, d: 1 }]; // owner 2026-10-06: a tier never lowers the hit (d was 1 / .775 / .613 / .394); the tree and the jump reach pay for it
+let ARC_CONDUCTIVITY = [{ s: 1, j: 1, f: 2, r: 1, d: 1 }, { s: 1, j: 2, f: 2, r: 1.2, d: 1 }, { s: 1, j: 2, f: 3, r: 1.4, d: 1 }, { s: 2, j: 2, f: 3, r: 1.6, d: 1 }, { s: 2, j: 3, f: 3, r: 1.8, d: 1 }, { s: 3, j: 3, f: 3, r: 2, d: 1 }]; // IV chains twice, V three arcs (2026-10-07) // owner 2026-10-06: a tier never lowers the hit (d was 1 / .775 / .613 / .394); the tree and the jump reach pay for it
 // Capacitance by tier (owner, 2026-10-07): the charge, x the hit that left it, and
 // how many times the charged enemy ARCS when next hit (dischargeStatic). The
 // charge shares are the old ring's fits (2026-10-06: +25 / +50 / +100%); refit later
-const ARC_CAPACITANCE = [null, { arcs: 1, frac: 0.22 }, { arcs: 2, frac: 0.255 }, { arcs: 3, frac: 0.32 }];
+const ARC_CAPACITANCE = [null, { arcs: 1, frac: 0.22 }, { arcs: 2, frac: 0.255 }, { arcs: 3, frac: 0.32 }, { arcs: 4, frac: 0.38 }, { arcs: 5, frac: 0.45 }];
 // each jump hits ARC_FALL as hard and reaches ARC_SHRINK as far as the one before (owner)
 const ARC_FALL = 0.5, ARC_SHRINK = 0.7;
 // a jump's reach, before Conductivity lengthens it (owner: longer by default). It
 // was 1.5 x the tower's range; the range was HALVED (owner, 2026-10-06: "not their
 // effects nor reach"), so the jump keeps its old absolute size: 1.5 x the old 156
 // range, and Voltage still lengthens it by the old x1.15 / 1.3 / 1.45
-const ARC_JUMP_BASE = 234, ARC_VOLTAGE_JUMP = [1, 1.15, 1.3, 1.45];
+const ARC_JUMP_BASE = 234, ARC_VOLTAGE_JUMP = [1, 1.15, 1.3, 1.45, 1.6, 1.75];
 function arcSkillStats(t, s, b) {
   const c = skillOf(t, "conductivity"), v = skillOf(t, "voltage"), z = skillOf(t, "capacitance");
   s.dmg = b.dmg * ARC_VOLTAGE_DMG[v] * ARC_CONDUCTIVITY[c].d; s.range = b.range * RANGE_BONUS;
@@ -230,7 +256,7 @@ function skillHit(c, e, d) {
 let staticQuiet = false;
 // Overload's leaps SLOW what they hit (owner, 2026-10-06, the no-FRZ niche search):
 // 30% for STAT_SLOW_T s - a late team without FRZ can answer the fast waves
-const ARC_STAT_SLOW = [0, 0, 0, 0.3], STAT_SLOW_T = 0.6;
+const ARC_STAT_SLOW = [0, 0, 0, 0.3, 0.35, 0.4], STAT_SLOW_T = 0.6;
 // a DISCHARGE (owner, 2026-10-07: "charged targets arc once when hit by anything"):
 // the charged enemy ARCS - a bolt leaps from it to the nearest enemy not yet hit,
 // ch.arcs times in a chain, each leap worth the whole charge, drawn as ARC's beams.
@@ -289,14 +315,14 @@ function skillHopTo(c, node, nxt, depth) {
 // for the other towers; FRZ + L1 ARC + L1 SOL, waves 20-30) - the first
 // guesses were 2-4x too strong; range moves little so "colder" reads as colder
 // early-game balance 2026-10-06: +0.03 on every tier (FRZ stays a pure SUPPORT tower - owner)
-const FRZ_TEMP_SLOW = [0.4, 0.43, 0.46, 0.5]; // the aura's range is in SKILL_MOVE
+const FRZ_TEMP_SLOW = [0.4, 0.43, 0.46, 0.5, 0.54, 0.58]; // the aura's range is in SKILL_MOVE
 // Temp III's TEAM hook (owner, 2026-10-07: FRZ's chart was flat, 97-103%): an enemy
 // its aura touches turns BRITTLE - while slowed it takes x FRZ_BRITTLE from every
 // tower (damage(), which already reads e.brittle; drawStatus shows the crack)
-const FRZ_BRITTLE = [1, 1, 1, 1.15];
-const FRZ_RIME = [0, 0.02, 0.035, 0.06]; // 2026-10-06: tier I was a dead point (was 1% / 1.9% / 3.7%) // each pulse's permanent stacking slow
+const FRZ_BRITTLE = [1, 1, 1, 1.15, 1.2, 1.25];
+const FRZ_RIME = [0, 0.02, 0.035, 0.06, 0.08, 0.1]; // 2026-10-06: tier I was a dead point (was 1% / 1.9% / 3.7%) // each pulse's permanent stacking slow
 // FRZ's own levers (owner: no generic multipliers): Rime pulses MORE OFTEN each tier, the moons are STRONGER copies each tier
-const FRZ_RIME_PERIOD = [2, 2, 1.7, 1.4], FRZ_MOON_BY = [0.78, 0.9, 0.95, 1];
+const FRZ_RIME_PERIOD = [2, 2, 1.7, 1.4, 1.2, 1], FRZ_MOON_BY = [0.78, 0.9, 0.95, 1, 1, 1]; // Moons IV / V: four and five full moons
 const FRZ_TICK = 0.5, FRZ_RIME_GROW = 2.4; // a Rime ring takes FRZ_RIME_GROW game s to reach the edge (owner: much slower; was 0.6)
 const FRZ_AURA_HOLD = 0.06, FRZ_RIM_W = 16; // the frosted rim's width per unit of slow (owner: thicker the colder) // an aura slow outlasts one step only: it is gone the moment the enemy leaves
 const FRZ_TICK_HIT = { armorPierce: 1 }; // a tick's hit on a shield: no armor bite
@@ -381,21 +407,21 @@ function drawFrzSkill(t, st) {
 
 // ---------- SOL's chart: Focus beams, Refract cone, Scorch Breaches ----------
 // Breach stacks per hit (owner: "each beam permanently weakens the target's armor" - Breach is what strips it; the base SOL strips nothing)
-const SOL_BEAMS = [1, 2, 3, 4], SOL_REFRACTION = [0, 2, 5, 9], SOL_BREACH = [0, 1, 2, 6];
+const SOL_BEAMS = [1, 2, 3, 4, 5, 6], SOL_REFRACTION = [0, 2, 5, 9, 12, 15], SOL_BREACH = [0, 1, 2, 6, 8, 10];
 // a refraction lands within SOL_CONE degrees of the first shot's direction (at
 // any distance); one Breach = BREACH_ARMOR armor off and BREACH_CRIT crit
 // chance for every tower
 const SOL_CONE = 8, /* greatly narrowed (owner, 2026-10-07; was 25) */ BREACH_ARMOR = 1.5, BREACH_CRIT = 0.01;
 // SOL's own lever (owner: more crit): Breach also raises the crit MULTIPLIER, x3 at base
-const SOL_CRITMUL = [3, 4, 5, 7];
+const SOL_CRITMUL = [3, 4, 5, 7, 8, 9];
 // FITTED 2026-10-06 to +25 / +50 / +100% (on an HP-scaled field, so nothing
 // saturates): each Focus beam's share of the shot by tier, and each Refract
 // hop's damage by tier (a hop is far weaker than the first hit)
 // (owner 2026-10-06: every Focus beam is a FULL hit - 1 / 2 / 3 / 4 beams, no share - so no stat falls; SOL's base damage pays for it)
-const SOL_HOP = [1, 0.29, 0.45, 0.7]; // II / III raised 2026-10-07 (were 0.3 / 0.455) with the cone narrowed to 8 degrees: fewer hops land, so each counts more
+const SOL_HOP = [1, 0.29, 0.45, 0.7, 0.8, 0.9]; // II / III raised 2026-10-07 (were 0.3 / 0.455) with the cone narrowed to 8 degrees: fewer hops land, so each counts more
 // Refraction peaked at I (107%) and fell by III (93%): range alone spread its fire
 // thin, so II / III also hit harder (owner, 2026-10-07)
-const SOL_REFRACTION_DMG = [1, 1, 1.3, 1.6];
+const SOL_REFRACTION_DMG = [1, 1, 1.3, 1.6, 1.8, 2];
 function solSkillStats(t, s, b) {
   s.dmg = b.dmg * SOL_REFRACTION_DMG[skillOf(t, "refraction")]; s.range = b.range * RANGE_BONUS; s.crit = LVL_SOL_CRIT[0]; s.rate = b.rate;
   s.beams = SOL_BEAMS[skillOf(t, "focus")]; s.refraction = SOL_REFRACTION[skillOf(t, "refraction")];
