@@ -22,6 +22,8 @@ const SKILL_STEP_COST = [2.5, 4, 7, 11, 16, 22, 29, 37, 46];
 // once* and fork on hit." -> "... fork *into three* on hit."; no bare stat talk
 // ("slides further", "more range") unless that IS the upgrade - the reach each
 // tier buys is in SKILL_MOVE below. The tier `name`s are not shown on the card.
+// An axis whose tier 0 does NOTHING has an EMPTY base (owner): its line on the
+// card stays blank until a point is pulled, and the first tier reads as one insertion
 const SKILL_TREES = {
   // ARC (owner): Conductivity = ALL the branching (owner, 2026-10-05) - how
   // many times the chain jumps AND how many ways each jump forks; Voltage =
@@ -38,7 +40,7 @@ const SKILL_TREES = {
       { name: "Fry", desc: "Harder hits; each jump carries nearly all of the hit." },
       { name: "Vaporize", desc: "Hardest hits; each jump carries all of the hit." },
     ] },
-    { id: "capacitance", name: "Capacitance", base: "Hits leave nothing behind.", tiers: [
+    { id: "capacitance", name: "Capacitance", base: "", tiers: [
       { name: "Static", desc: "Hits leave a share of themselves behind; the next hit from any tower bursts it." },
       { name: "Charge", desc: "Hits leave a bigger share of themselves behind; the next hit from any tower bursts it." },
       { name: "Overload", desc: "Hits leave the biggest share of themselves behind; the next hit from any tower bursts it and slows what it catches." },
@@ -56,12 +58,12 @@ SKILL_TREES.frz = [
     { name: "Freeze", desc: "A far colder, wider aura slows what it holds." },
     { name: "Absolute Zero", desc: "The coldest, widest aura slows what it holds, and every tower hits it harder." },
   ] },
-  { id: "rime", name: "Rime", base: "Nothing lingers past the aura.", tiers: [
+  { id: "rime", name: "Rime", base: "", tiers: [
     { name: "Frost", desc: "Pulses leave a slow that lingers past the aura and stacks." },
     { name: "Glacier", desc: "Faster pulses leave a deeper slow that lingers past the aura and stacks." },
     { name: "Cryosphere", desc: "The fastest pulses leave the deepest slow that lingers past the aura and stacks." },
   ] },
-  { id: "moons", name: "Moons", base: "No moons orbit the tower.", tiers: [
+  { id: "moons", name: "Moons", base: "", tiers: [
     { name: "Moon", desc: "One moon orbits the tower, a weaker copy of it." },
     { name: "Twin Moons", desc: "Two moons orbit the tower, near copies of it." },
     { name: "Desolation", desc: "Three moons orbit the tower, full copies of it." },
@@ -81,12 +83,12 @@ SKILL_TREES.sol = [
     { name: "Crux", desc: "Three beams per shot, each a full hit." },
     { name: "Disintegration", desc: "Four beams per shot, each a full hit." },
   ] },
-  { id: "refraction", name: "Refraction", base: "Shots stop at the first enemy.", tiers: [
+  { id: "refraction", name: "Refraction", base: "", tiers: [
     { name: "Lens", desc: "Shots bounce on to two more enemies ahead." },
     { name: "Prism", desc: "Shots bounce harder on to five more enemies ahead." },
     { name: "Spectrum", desc: "Shots bounce hardest on to nine more enemies ahead." },
   ] },
-  { id: "breach", name: "Breach", base: "Hits leave armor and crits as they are.", tiers: [
+  { id: "breach", name: "Breach", base: "", tiers: [
     { name: "Scorch", desc: "Hits breach once: armor off and crits up for every tower, for good." },
     { name: "Sear", desc: "Hits breach twice: armor off and crits up for every tower, for good." },
     { name: "Flare", desc: "Hits breach six times: armor off and crits up for every tower, for good." },

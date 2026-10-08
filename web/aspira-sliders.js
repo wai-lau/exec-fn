@@ -166,9 +166,11 @@ function cardStats(t, pv) {
 // the description: ONE evolving sentence per axis (its `base` at tier 0, the
 // tier's `desc` above it - aspira-skills.js) and, while points are pulled, the
 // change from the locked tier's sentence to the pulled one in TRACK CHANGES
+// (an axis whose tier 0 does nothing has an empty base: its line stays BLANK, a line tall, until a point is pulled)
 const axisSentence = (ax, k) => (k ? ax.tiers[k - 1].desc : ax.base);
+const words = s => (s ? s.split(" ") : []);
 function skillDesc(t, pv) {
-  return '<div class="asp-desc">' + SKILL_TREES[t.kind].map(ax => "<p>" + wordDiff(axisSentence(ax, skillOf(t, ax.id)).split(" "), axisSentence(ax, skillOf(pv, ax.id)).split(" ")) + "</p>").join("") + "</div>";
+  return '<div class="asp-desc">' + SKILL_TREES[t.kind].map(ax => "<p>" + (wordDiff(words(axisSentence(ax, skillOf(t, ax.id))), words(axisSentence(ax, skillOf(pv, ax.id)))) || "&nbsp;") + "</p>").join("") + "</div>";
 }
 // a word-level diff (longest common subsequence): removed words in <del>, added in <ins>
 function wordDiff(a, b) {
