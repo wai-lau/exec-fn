@@ -3963,7 +3963,7 @@ must never fail because of a rate limit (owner).
 
 ## 22. /aspira — spiral tower defence
 
-**ACD's RAMP CAP HALVED (owner, 2026-10-08):** `ACD_BASE_MAX` 32 -> 16 - a jet held on a long-lived boss reached x32 and out-bossed SOL. Puddles compensate: they keep the old x32 ceiling (`ACD_PUDDLE_CAP`), so they burn as hard as before; and every tier's pools are bigger (x1.25) and longer (x1.3): I 2.4s r28 .. V 6.5s r65.
+**ACD's RAMP CAP (owner, 2026-10-08):** halved to x16 then RESTORED to x32 (`ACD_BASE_MAX`) - `bossvs.mjs` showed SOL out-bossing ACD at every boss whatever the cap (ACD breaches 90 / 100 even at x32), so the cap was not the lever. The ramp is FAST (doubling every `ACD_DOUBLE[0]` 0.5s: x32 in 2.5s, and a dead jet hands 40% of its ramp on, all of it from Corrosion I): to wave 80, 75% of ACD's damage on ORDINARY enemies lands at the cap (90% on bosses), so the cap is not a boss lever - a slower ramp would make it one. Per-boss `BOSS_ARMOR` / `BOSS_SPEED` tables exist in aspira-bosses.js, all neutral for now. Pools keep `ACD_PUDDLE_CAP` x32 and are bigger and longer at every tier: I 2.4s r28 .. V 6.5s r65.
 
 **BREACH IS SOL'S OWN (owner, 2026-10-08):** every SOL hit strips `SOL_BREACH_ARMOR[0]` 2 armor for good (below zero too); the Breach axis raises the strip massively (5 / 9 / 14 / 20 / 28) and adds crit chance for every tower (`SOL_BREACH_CRIT` 1..5% a hit, none at base). `SOL_BREACH` stack counts are gone (`st.breach` is 1). Prose: "...; each beam weakens its target's armor for good.", Breach I+ inserts *greatly* and "and pierces it so every tower crits it more" (owner, 2026-10-08: was "scorches"; the Breach I tier is named Pierce, was Scorch).
 

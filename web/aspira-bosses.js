@@ -41,6 +41,11 @@ const ARCANA = [
 // strength 0.9, chariot 4, lovers 3.1, temperance 3, devil 0.75, justice 4.4,
 // judgement 1.7. Death not refitted (the run was stopped for memory): kept 1.6.
 const BOSS_HP = { star: 2.7, empress: 3.4, strength: 1.1, chariot: 1.7, lovers: 1.2, temperance: 0.61, devil: 0.38, justice: 3.2, judgement: 1.7, death: 1.6 };
+// each boss's ARMOR (x the armored enemy's growth curve at its wave, like ENEMIES.armor) and SPEED
+// (x the boss base) - owner, 2026-10-08: the bosses ACD is too good against get armor and speed and
+// lose HP, so SOL (whose hits strip armor) and ACD (whose ramp wants a long-lived target) boss alike
+const BOSS_ARMOR = { star: 0, empress: 0, strength: 0, chariot: 0, lovers: 0, temperance: 0, devil: 0, justice: 0, judgement: 0, death: 0 };
+const BOSS_SPEED = { star: 1, empress: 1, strength: 1, chariot: 1, lovers: 1, temperance: 1, devil: 1, justice: 1, judgement: 1, death: 1 };
 const BOSS_INTRO = 2.5; // s between a boss wave starting and its boss arriving (its warning plays)
 let EMPRESS_BROOD = 12; // fitted 2026-10-05 (was 30): her HP was never the lever, her brood is; let: the boss balance test (scripts/aspira-sim/bossbal.mjs, BB_BROOD) tries other broods
 const CHARIOT_EVERY = 4, CHARIOT_T = 1, CHARIOT_SPD = 3, LOVERS_SPD = 1.5;
@@ -66,7 +71,10 @@ const isA = (e, id) => e.arcana === id;
 // from spawnEnemy: name the boss for its wave, and pair up the two of a pair
 function bossSpawn(e, n) {
   e.arcana = arcanaOf(n).id;
-  e.baseSpd = e.spd || 1; e.broodAt = 0.8; e.sprintT = CHARIOT_EVERY;
+  e.spd = (e.spd || 1) * (BOSS_SPEED[e.arcana] || 1);
+  const grow = Math.pow(HP_GROWTH, n - 1) + n * 4 / 18; // the armored enemy's armor curve (spawnEnemy)
+  e.armor = e.armor0 = (BOSS_ARMOR[e.arcana] || 0) * Math.pow(grow, ARMOR_EXP);
+  e.baseSpd = e.spd; e.broodAt = 0.8; e.sprintT = CHARIOT_EVERY;
   // HP per boss: BOSS_HP (fitted, see there; the Devil's is each of six)
   e.max *= BOSS_HP[e.arcana] || 1;
   // ...and by the DISTANCE its lane makes it travel (owner): a long lane keeps

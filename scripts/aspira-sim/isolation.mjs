@@ -13,8 +13,8 @@ import { runPool } from "./pool.mjs";
 const KINDS = ["arc", "frz", "sol", "acd"];
 const WINDOWS = (process.env.WINDOWS || "10-30,40-70").split(",").map(w => w.split("-").map(Number));
 
-export default async function task({ kind, axis, k, seed, from, to }) {
-  const g = makeGame(seed); g.reset();
+export default async function task({ kind, axis, k, seed, from, to, patch = "" }) {
+  const g = makeGame(seed, patch); g.reset();
   g.run(`G.money = 1e12; G.started = true; G.wave = ${from - 1}; G.lives = 1e6;`);
   const t = g.place(kind, 0);
   if (axis && k) { t.skills = { [axis]: k }; t.lvl = 1 + k; }
