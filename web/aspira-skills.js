@@ -72,8 +72,8 @@ SKILL_TREES.frz = [
     { name: "Frost", desc: "Pulses leave a slow that lingers past the aura and stacks." },
     { name: "Glacier", desc: "Faster pulses leave a deeper slow that lingers past the aura and stacks." },
     { name: "Cryosphere", desc: "The fastest pulses leave the deepest slow that lingers past the aura and stacks." },
-    { name: "Ice Sheet", desc: "Rings of rime roll out, leaving a frost that never thaws and stacks." },
-    { name: "Glaciation", desc: "Rings of rime roll out, leaving a frost that never thaws and stacks." },
+    { name: "Ice Sheet", desc: "Rings of rime roll out, leaving behind a rime that layers and never thaws." },
+    { name: "Glaciation", desc: "Rings of rime roll out, leaving behind a rime that layers and never thaws." },
   ] },
   { id: "moons", name: "Moons", base: "", tiers: [
     { name: "Moon", desc: "One moon orbits the tower, a weaker copy of it." },
@@ -271,12 +271,7 @@ function dischargeStatic(e) {
     let from = e;
     const hit = new Set([e.id]);
     for (let k = 0; k < ch.arcs; k++) {
-      let nxt = null, nd = STATIC_ARC_REACH * STATIC_ARC_REACH;
-      for (const o of G.enemies) {
-        if (o.dead || hit.has(o.id)) continue;
-        const d2 = (o.x - from.x) ** 2 + (o.y - from.y) ** 2;
-        if (d2 < nd) { nd = d2; nxt = o; }
-      }
+      const nxt = chainPick(ch.t, from, STATIC_ARC_REACH * STATIC_ARC_REACH, o => hit.has(o.id)); // by the charging ARC's targeting
       if (!nxt) break;
       hit.add(nxt.id);
       beam(from, nxt, TOWERS.arc.color, CHAIN_BEAM_LIFE, 1.5, ch.dmg);
@@ -287,15 +282,25 @@ function dischargeStatic(e) {
   } finally { staticQuiet = false; }
 }
 // the nearest enemy this bolt has not hit yet, within this jump's (shrunk) reach
-function skillHop(c, node, depth) {
-  const from = node.e, r = c.st.arcRange * c.st.arcShrink ** (depth - 1);
-  let nxt = null, nd = r * r;
+// CHAINS TARGET LIKE THEIR TOWER (owner, 2026-10-07: "chains should use the same targeting
+// algorithm as the parent"): of the enemies a jump can reach, the one the tower's own mode
+// ranks first (MODE_KEY: Near = closest to the core, Biggest = most HP, Fresh = undebuffed
+// first); ties go to the nearest. Used by ARC's jumps, Capacitance's leaps and SOL's refraction
+function chainPick(t, from, r2, skip) {
+  const key = MODE_KEY[t.mode] || MODE_KEY.close;
+  let best = null, bk = Infinity, bd = Infinity;
   for (const o of G.enemies) {
-    if (o.dead || c.seen.has(o.id)) continue;
+    if (o.dead || skip(o)) continue;
     const d = (o.x - from.x) ** 2 + (o.y - from.y) ** 2;
-    if (d < nd) { nd = d; nxt = o; }
+    if (d > r2) continue;
+    const k = key({ e: o, d });
+    if (k < bk || (k === bk && d < bd)) { bk = k; bd = d; best = o; }
   }
-  return nxt;
+  return best;
+}
+function skillHop(c, node, depth) {
+  const r = c.st.arcRange * c.st.arcShrink ** (depth - 1);
+  return chainPick(c.t, node.e, r * r, o => c.seen.has(o.id));
 }
 function skillHopTo(c, node, nxt, depth) {
   const raw = c.st.dmg * c.st.arcFall ** depth, d = shotDamage(c.t, c.st, nxt, raw);
@@ -436,12 +441,7 @@ function solRefraction(t, st, e) {
   const inCone = o => Math.abs(((Math.atan2(o.y - t.y, o.x - t.x) - dir + 3 * Math.PI) % (2 * Math.PI)) - Math.PI) <= half;
   let prev = e, far = Math.hypot(e.x - t.x, e.y - t.y);
   for (let k = 0; k < st.refraction; k++) {
-    let nxt = null, nd = Infinity;
-    for (const o of G.enemies) {
-      if (o.dead || hit.has(o)) continue;
-      const d = (o.x - prev.x) ** 2 + (o.y - prev.y) ** 2;
-      if (d < nd && inCone(o)) { nd = d; nxt = o; }
-    }
+    const nxt = chainPick(t, prev, Infinity, o => hit.has(o) || !inCone(o)); // within the cone, by SOL's targeting
     if (!nxt) break;
     rayHit(t, st, nxt, st.dmg * SOL_HOP[SOL_REFRACTION.indexOf(st.refraction)], prev); hit.add(nxt); prev = nxt;
     far = Math.max(far, Math.hypot(nxt.x - t.x, nxt.y - t.y));

@@ -3963,6 +3963,8 @@ must never fail because of a rate limit (owner).
 
 ## 22. /aspira — spiral tower defence
 
+**CHAINS TARGET LIKE THEIR TOWER (owner, 2026-10-07):** ARC's jumps, Capacitance's leaps and SOL's refraction hops pick, among the enemies they can reach, the one the tower's own targeting mode ranks first (`chainPick` over `MODE_KEY`; ties to the nearest) - they used to take the nearest. FRZ Rime reads "Rings of rime roll out, leaving behind a rime that layers and never thaws."
+
 **FIVE TIERS AN AXIS (owner, 2026-10-07):** `SKILL_TIERS` 3 -> 5, `SKILL_POINTS` 15; every per-tier table gained IV / V continuing its trend (ARC: Conductivity IV chains twice, V three arcs; Voltage IV / V a jump carries 1.1x / 1.25x the hit; Capacitance arcs four / five times. FRZ: Temp slow .54 / .58, Rime .08 / .10 every 1.2 / 1s, four / five moons. SOL: five / six beams, refraction 12 / 15, breach 8 / 10. ACD: seven / eight jets, corrosion x2.8 / 3.5, puddles every .8 / .7s) and the ladder runs on 56 .. 121 (a full chart 27,820c). Unmeasured - the balance runs were restarted on it.
 
 **SOL NO LONGER IGNORES ARMOR (owner, 2026-10-07):** the `pierce` exemption in damage() is gone; `TOWERS.sol.dmg` 170 -> 220 (x1.3) to match - `scripts/aspira-sim/solarmor.mjs` (balanced all-four player, 4 seeds to wave 70): SOL piercing at 170 dealt 1.10M a game, unpierced x1.25 1.05M, x1.5 1.39M. While a pull waits the upgrade button PULSES and the note reads "tap Arc III to lock it in".
