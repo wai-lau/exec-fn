@@ -179,7 +179,7 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
     // damage number, jittered so rapid hits don't stack
     // armor-blunted hits read dim grey (the graticule's Silver), the rest white
     // sized by the hit BEFORE armor (owner): a big hit blunted to little still reads big, in grey
-    dmgNumber(e, String(Math.round(amt)), raw, crit ? "orange" : blunted ? "grid" : "white");
+    dmgNumber(e, String(dmgUnits(amt)), raw, crit ? "orange" : blunted ? "grid" : "white");
   }
   if (e.hp <= 0) kill(e, t);
 }
