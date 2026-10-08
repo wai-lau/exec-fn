@@ -177,23 +177,24 @@ function cardStats(t, pv) {
 // the description: ONE evolving sentence per axis (its `base` at tier 0, the
 // tier's `desc` above it - aspira-skills.js) and, while points are pulled, the
 // change from the locked tier's sentence to the pulled one in TRACK CHANGES
-// The sentences run one after another, wrapping as they need, in a box of FIXED
-// height (owner, 2026-10-07; was a line per axis); an axis whose tier 0 does
-// nothing has an empty base and adds nothing until a point is pulled
-const axisSentence = (ax, k) => (k ? ax.tiers[k - 1].desc : ax.base);
+// The tower's prose (aspira-desc.js describeTower) for the locked tiers against the
+// pulled ones, in a box of FIXED height (owner, 2026-10-07)
 const words = s => (s ? s.split(" ") : []);
 function skillDesc(t, pv) {
-  return '<div class="asp-desc">' + SKILL_TREES[t.kind].map(ax => wordDiff(words(axisSentence(ax, skillOf(t, ax.id))), words(axisSentence(ax, skillOf(pv, ax.id))))).filter(Boolean).map(h => "<span>" + h + "</span>").join(" ") + "</div>";
+  return '<div class="asp-desc">' + wordDiff(words(describeTower(t.kind, t.skills)), words(describeTower(t.kind, pv.skills))) + "</div>";
 }
-// a word-level diff (longest common subsequence): removed words in <del>, added in <ins>
+// a word-level diff (longest common subsequence): removed words in <del>, added in
+// <ins>; a word that only changed CASE counts as the same word ("Arcs" -> "Harder arcs"
+// marks only "Harder") and is shown in the new text's spelling
+const sameWord = (x, y) => x.toLowerCase() === y.toLowerCase();
 function wordDiff(a, b) {
   const L = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
-  for (let i = a.length - 1; i >= 0; i--) for (let j = b.length - 1; j >= 0; j--) L[i][j] = a[i] === b[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  for (let i = a.length - 1; i >= 0; i--) for (let j = b.length - 1; j >= 0; j--) L[i][j] = sameWord(a[i], b[j]) ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
   const out = [];
   let i = 0, j = 0, del = [], ins = [];
   const flush = () => { if (del.length) out.push("<del>" + del.join(" ") + "</del>"); if (ins.length) out.push("<ins>" + ins.join(" ") + "</ins>"); del = []; ins = []; };
   while (i < a.length || j < b.length) {
-    if (i < a.length && j < b.length && a[i] === b[j]) { flush(); out.push(a[i]); i++; j++; }
+    if (i < a.length && j < b.length && sameWord(a[i], b[j])) { flush(); out.push(b[j]); i++; j++; }
     else if (j < b.length && (i >= a.length || L[i][j + 1] >= L[i + 1][j])) ins.push(b[j++]);
     else del.push(a[i++]);
   }
