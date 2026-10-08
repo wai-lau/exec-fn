@@ -11,7 +11,7 @@ const ARC_KEEP = ["half", "most of", "nearly all of", "all of", "more than", "fa
 // ONLY BEHAVIOUR is told here (owner, 2026-10-07): a tier that just moves a number - harder
 // hits, a colder or wider aura, faster pulses, a stronger acid, more or bigger puddles -
 // changes no words; the card's stat rows show that change (now -> next)
-const FRZ_RIME_TEXT = ["", ...Array(5).fill(" Rings of rime roll out, leaving a frost that never thaws and stacks.")];
+const FRZ_RIME_TEXT = ["", ...Array(5).fill(" Rings of rime roll out, leaving behind a rime that layers and never thaws.")];
 const FRZ_MOONS = ["", " One moon orbits it, a copy of the tower.", " Two moons orbit it, copies of the tower.", " Three moons orbit it, copies of the tower.", " Four moons orbit it, copies of the tower.", " Five moons orbit it, copies of the tower."];
 const SOL_RAYS = ["A ray", "Two rays", "Three rays", "Four rays", "Five rays", "Six rays"];
 const SOL_REFRACT = ["stopping at the first enemy struck", "refracting from the first enemy struck on to two more ahead", "refracting from the first enemy struck on to five more ahead", "refracting from the first enemy struck on to nine more ahead", "refracting from the first enemy struck on to twelve more ahead", "refracting from the first enemy struck on to fifteen more ahead"];
