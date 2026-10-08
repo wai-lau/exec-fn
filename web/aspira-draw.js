@@ -337,7 +337,7 @@ function drawFx(pass) {
       } else { ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); }
       // the core's width is the DAMAGE of this hit (owner: every tower) - a
       // multi-beam shot's beams each carry the whole hit (rayHit)
-      const core = beamWidth(f.d || 0) * (f.thin || 1); // (thin: Capacitance's leaps)
+      const core = (f.soft ? BEAM_MIN + (beamWidth(f.d || 0) - BEAM_MIN) * ARC_W_CORR : beamWidth(f.d || 0)) * (f.thin || 1); // (soft: a chart ARC's, flatter with damage - aspira-skills.js; thin: its leaps)
       if (f.m && !lowQ) { // low quality: the beam's core only, no glow passes
         const a = ctx.globalAlpha;
         if (f.slim) {
