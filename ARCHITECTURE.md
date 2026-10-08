@@ -4318,6 +4318,7 @@ towers, draw, ui):
 | `web/aspira-lanes.js` | lane strokes, wave:track labels (non-overlapping), lit-lane fades |
 | `web/aspira-camera.js` | zoom (wheel / pinch) + drag-to-pan view; tap vs drag → `onTap` |
 | `web/aspira-ui.js` | HUD, decks, input, overlay, rAF loop (fixed 20ms substeps × speed) |
+| `web/aspira-powers.js` | the core powers as BUTTONS above the title (owner, 2026-10-08; replaced the cooldown dial round the core): one per owned power, recharge bar + seconds, `ready` blinks; Temporal fires on tap, Relay relays the selected tower or ARMS so the next tower tapped takes it (`relayArmTap` from `onTap`); the core's hold / drag gestures still work |
 | `web/aspira-stats.js` | the tower card's stat rows: `SPEC` (each kind's own rows), `worse()`, `statRow()` - split from aspira-ui.js at its 500-line cap (2026-10-08) |
 
 **Colours never live in the JS.** The template carries hidden `.asp-sw`
