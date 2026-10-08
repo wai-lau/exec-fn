@@ -117,7 +117,7 @@ function drawLaneStrokes(live) {
     lctx.strokeStyle = gctx.strokeStyle = COL[u.color];
     // a wide GLOW that grows in intensity toward the core (owner), on its own
     // layer with a much steeper fade outward (owner: "stronger gradient")
-    if (!lowQ) { gctx.globalAlpha = Math.min(1, 0.22 * k * u.a); gctx.lineWidth = 32 * w; gctx.stroke(PATHS[u.pi].glow2d); } // thicker at the core (owner; was 0.18, 20)
+    if (!lowQ) { gctx.globalAlpha = Math.min(1, 0.22 * k * u.a); gctx.lineWidth = 32 * w; gctx.lineCap = "butt"; gctx.stroke(PATHS[u.pi].glow2d); gctx.lineCap = "round"; } // butt: a round end was a disc by the core // thicker at the core (owner; was 0.18, 20)
     gctx.restore();
     lctx.globalAlpha = 0.03 * k * u.a; lctx.lineWidth = 6 * w; lctx.stroke(PATHS[u.pi].lit2d);
     if (u.star) { lctx.shadowColor = COL[u.color]; lctx.shadowBlur = BOSS_LANE_BLUR * cam.k; }
