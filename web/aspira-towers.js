@@ -133,7 +133,7 @@ const MOON_ORBIT_BY_N = [MOON_ORBIT, 140, 140, 140, 140, 140]; // TWICE as far (
 // orbit's size its old radius, eccentricity MOON_ECC - the near end (periapsis) toward the core, so a moon
 // swings far out over the lanes (210) and back in close (70), fastest near the tower; the moons are evenly
 // spaced in TIME (mean anomaly), so they bunch on the far side like real ones
-const MOON_ECC = 0.5;
+const MOON_ECC = 0; // back to CIRCLES (owner, same day; 0.5 swung 70..210) - 0 makes the orbit a circle round the tower
 // the orbit itself, for drawing: centre (a x e from the focus, away from periapsis), semi-axes, tilt
 function moonOrbit(t, n) {
   const a = MOON_ORBIT_BY_N[Math.min(n, MOON_ORBIT_BY_N.length - 1)], phi = Math.atan2(CY - t.y, CX - t.x);
