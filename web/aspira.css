@@ -722,6 +722,7 @@
 #asp #asp-upbox button.asp-up-big { white-space: nowrap; }
 .asp-up-big .asp-spend-cost { font-weight: var(--fw-normal); }
 #asp #asp-upbox button.asp-up-big.poor { opacity: 1; border-color: hsl(var(--orange-glow-hsl)); cursor: not-allowed; }
+#asp #asp-upbox button.asp-up-big.asp-confirm { animation: asp-flash 1.1s ease-in-out infinite; } /* a pull waits: tap to lock it in (owner) */
 @media (orientation: landscape) and (min-width: 700px) {
   .asp-pop.asp-tower { display: flex; flex-direction: column; width: 760px; } /* its min-height is set by fitPop; the grid fills it */
   .asp-tower-grid { flex: 1; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 1fr; grid-template-areas: "desc desc" "ctl info"; gap: var(--space-3) var(--space-6); }
@@ -754,7 +755,7 @@
 /* the reason a handle stopped, laid OVER the chart's lower edge (between the two
    bottom labels, which sit in the corners) so it reserves no line of its own */
 .asp-chart-box { position: relative; }
-.asp-slider-note { position: absolute; right: 0; bottom: 0; left: 0; text-align: center; font-size: var(--fs-2xs); color: hsl(var(--orange-glow-hsl)); pointer-events: none; }
+.asp-slider-note { position: absolute; right: 0; bottom: 0; left: 0; text-align: center; font-size: var(--fs-2xs); color: hsl(var(--green-hsl)); pointer-events: none; }
 
 /* the description's TRACK CHANGES (owner, 2026-10-07: like Word or Docs): removed
    words struck through in Ember red, added ones underlined in the acid green */
