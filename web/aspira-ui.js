@@ -57,6 +57,7 @@ function onTap(ev) {
   ui.hover = p;
   // a tower is tapped where it IS now (it may have slid out along its spoke)
   const ci = cellAt(p.x, p.y), hit = towerAt(p) || (ci >= 0 && G.towers.find(t => t.cell === ci)) || (!ui.build && trackAt(p));
+  if (relayArmTap(hit)) { refreshPanels(); return; } // an armed Relay button: this tower takes it (aspira-powers.js)
   if (hit) { ui.sel = hit.id; ui.build = null; }
   else if (!ui.build && Math.hypot(p.x - CX, p.y - CY) <= CORE_R) { ui.sel = "core"; } // the core's card (aspira-core.js)
   else if (ui.build) placeTower(p);
@@ -265,6 +266,7 @@ function refreshPanels() {
 let lastNote = "", waveListAt = 0, hudAt = 0;
 function updateHud() {
   updateSpend(); // the spend bar's credits (aspira-chooser.js)
+  updatePowers(); // the core powers' buttons above the title (aspira-powers.js)
   { const h = bossHint(); if ($("asp-bosshint").textContent !== h) $("asp-bosshint").textContent = h; } // the boss's haiku above the title
   setText($("asp-lives"), G.lives);
   setText($("asp-int"), (G.interest * 100).toFixed(1) + "%");

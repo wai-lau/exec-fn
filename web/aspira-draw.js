@@ -444,7 +444,7 @@ function drawScene([sx, sy], clipR) {
   ctx.save();
   if (clipR) { ctx.beginPath(); ctx.arc(bossInv.x, bossInv.y, clipR, 0, 6.283); ctx.clip(); }
   ctx.fillStyle = COL.bg; ctx.globalAlpha = 1; ctx.fillRect(CX - 4000, CY - 4000, 8000, 8000);
-  drawCoreDial(); drawFx("dmg"); // the cooldown dial UNDER every pop-up (owner, 2026-10-07), then damage numbers just above the background, under all else
+  drawFx("dmg"); // damage numbers just above the background, under all else (the cooldown dial moved to buttons above the title - aspira-powers.js)
   drawBoard();
   drawBossBar(); // a live boss's HP line along the horizon, UNDER the towers and their effects (owner)
   const sel = ui.sel && G.towers.find(t => t.id === ui.sel);

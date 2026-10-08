@@ -783,3 +783,16 @@
 .asp-desc { height: calc(5 * var(--lh-tight) * var(--fs-sm)); overflow: hidden; font-size: var(--fs-sm); line-height: var(--lh-tight); color: hsl(var(--green-hsl)); } /* a FIXED five lines (owner): the sentences run on, wrapping; nothing moves as a sentence grows */
 .asp-desc del { color: hsl(var(--asp-bad-hsl)); text-decoration: line-through; }
 .asp-desc ins { color: hsl(var(--asp-good-hsl)); text-decoration: underline; }
+
+/* the CORE POWERS' BUTTONS above the title (owner, 2026-10-08; aspira-powers.js): name, seconds left, and a
+   bar along the bottom that fills as the power recharges; flashing when ready, lit while it runs or is armed */
+.asp-powers { display: flex; justify-content: center; gap: var(--space-2); }
+.asp-powers[hidden] { display: none; }
+#asp .asp-power { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; gap: var(--space-0-5); min-width: calc(var(--space-10) * 3); padding: var(--space-1-5) var(--space-3); font-size: var(--fs-xs); line-height: var(--lh-none); text-transform: uppercase; }
+#asp .asp-power b { font-size: var(--fs-2xs); font-variant-numeric: tabular-nums; text-transform: none; }
+#asp button.asp-power:hover:not(:disabled) { border-color: currentcolor; } /* its own colour, not the buttons' green hover (a tap leaves hover on, on a phone) */
+#asp .asp-power i { position: absolute; bottom: 0; left: 0; height: var(--space-1); background: currentcolor; opacity: 0.45; }
+#asp .asp-power.cyan { color: hsl(var(--cyan-hsl)); border-color: hsl(var(--cyan-hsl) / 0.45); }
+#asp .asp-power.white { color: hsl(var(--white-hsl)); border-color: hsl(var(--gray-hsl) / 0.45); } /* (silver: white has no 0.45) */
+#asp .asp-power.ready { animation: asp-blink 1.1s ease-in-out infinite; border-color: currentcolor; }
+#asp .asp-power.run, #asp .asp-power.armed { border-color: currentcolor; background: hsl(var(--white-hsl) / 0.12); }

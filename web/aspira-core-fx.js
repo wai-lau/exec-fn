@@ -1,23 +1,16 @@
 // /aspira — the CORE POWERS' LOOK (UI only; owner, 2026-10-06: "cooldowns and
 // effects need to be extremely more visible"). Loaded after aspira-core.js.
-//   the DIAL      three thick arcs round the core, one per owned power, each
-//                 in its own colour and named: a dim track that fills as the
-//                 power recharges, a pulsing glow when it is up (and a
-//                 "TEMPORAL DRIVE READY" pop-up where the interest's pops up the
-//                 moment it comes up - owner; the dial carries no labels), and
-//                 while the power RUNS a white-hot arc draining with its time
+//   the BUTTONS   cooldowns moved off the board (owner, 2026-10-08; was a
+//                 dial of arcs round the core) - aspira-powers.js
 //   TIME STOP     the plain cyan ring sweeping out (owner: enough as it was)
 //   RELAY         a THICK pulsing beam from the core to the tower it has made
 //                 three of, a glowing halo round it and "RELAY x3" with its
 //                 seconds left above it
-// drawCoreFx goes under the towers (beams), drawCoreHud over the enemies, and
-// the dial (drawCoreDial) under everything, pop-up text included.
+// drawCoreFx goes under the towers (beams), drawCoreHud over the enemies.
 // sized for a PHONE (the board shows at ~0.54 css px per unit there): text
 // 26 units reads as ~14px
-// closer and thinner (owner): just outside a level-4 core's outermost ring (~75)
-// hugging the core (owner: "much closer to the credit count"; was 90, then 118)
-const DIAL_R = 62, DIAL_W = 7, DIAL_GAP = 0.2, READY_POP = 15, RELAY_TEXT = 26;
-const DIAL = [ // clockwise from the top-left; colours are palette keys
+const READY_POP = 15, RELAY_TEXT = 26;
+const DIAL = [ // the owned powers' buttons (aspira-powers.js) read this; colours are palette keys
   { id: "temporal", label: "TEMPORAL DRIVE", color: "cyan", mid: Math.PI, tab: () => TEMPORAL, active: c => c.freezeUntil - c.clock }, // the left half
   { id: "relay", label: "ORBITAL RELAY", color: "white", mid: 0, tab: () => RELAY, active: () => relayLeft() }, // the right half
 ];
@@ -62,46 +55,10 @@ function drawCoreHud() {
   }
   ctx.globalAlpha = 1; ctx.shadowBlur = 0;
 }
-// the cooldown dial goes UNDER every pop-up text, damage numbers included
-// (owner, 2026-10-07): render draws it first, right over the background
-function drawCoreDial() {
-  if (!G.core) return;
-  ctx.lineCap = "round";
-  drawDial(G.core, performance.now());
-  ctx.globalAlpha = 1; ctx.shadowBlur = 0;
-}
 function drawTimeStop(c) { // the ring sweeping out (owner: the plain ring is enough)
   if (!c.freeze) return;
   const f = c.freeze, p = Math.min(1, f.t / TEMPORAL_GROW);
   ctx.strokeStyle = COL.cyan; ctx.lineWidth = 6; ctx.globalAlpha = 0.8 * (1 - Math.max(0, f.t - TEMPORAL_GROW) / 0.4);
   ctx.beginPath(); ctx.arc(CX, CY, Math.max(1, TEMPORAL_R * p), 0, 6.283); ctx.stroke();
   ctx.globalAlpha = 1;
-}
-
-// the dial: one arc per OWNED power
-function drawDial(c, now) {
-  const seg = (2 * Math.PI) / DIAL.length - DIAL_GAP;
-  for (const d of DIAL) {
-    const lv = powerLvl(d.id);
-    if (!lv) continue;
-    const a0 = d.mid - seg / 2, col = COL[d.color], cd = cooldownLeft(d.id), full = d.tab()[lv].cd, run = d.active(c);
-    ctx.lineWidth = DIAL_W; ctx.strokeStyle = col;
-    ctx.globalAlpha = 0.18; ctx.beginPath(); ctx.arc(CX, CY, DIAL_R, a0, a0 + seg); ctx.stroke(); // the track
-    if (run > 0) { // RUNNING: white-hot, draining with its time
-      ctx.strokeStyle = COL.white; glow(COL.white, 16); ctx.globalAlpha = 1;
-      const dur = d.id === "temporal" ? d.tab()[lv].dur + TEMPORAL_GROW : d.tab()[lv].dur;
-      ctx.beginPath(); ctx.arc(CX, CY, DIAL_R, a0, a0 + seg * Math.min(1, run / dur)); ctx.stroke();
-    } else if (cd > 0) { // RECHARGING: fills
-      ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.arc(CX, CY, DIAL_R, a0, a0 + seg * (1 - cd / full)); ctx.stroke();
-    } else { // READY: full, glowing, pulsing
-      glow(col, 18 + 10 * Math.sin(now / 500)); ctx.globalAlpha = 1;
-      ctx.beginPath(); ctx.arc(CX, CY, DIAL_R, a0, a0 + seg); ctx.stroke();
-    }
-    ctx.shadowBlur = 0; ctx.globalAlpha = 1;
-    // NO labels on the dial (owner): a power coming off cooldown pops up
-    // "<NAME> READY" in its colour WHERE THE INTEREST POPS UP, under the core
-    const was = (c.cdSeen ||= {})[d.id];
-    if (was > 0 && cd <= 0) float(CX, CY + CORE_R + LIFE_GAP * LIFE_RINGS + 16, d.label + " READY", d.color, READY_POP, 1.6, 1, 30);
-    c.cdSeen[d.id] = cd;
-  }
 }
