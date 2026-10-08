@@ -104,7 +104,7 @@ SKILL_TREES.sol = [
     { name: "Prism", desc: "Shots bounce harder on to six more enemies ahead." },
     { name: "Spectrum", desc: "Shots bounce hardest on to ten more enemies ahead." },
     { name: "Halo", desc: "Refracting on to thirteen more ahead." },
-    { name: "Aurora", desc: "Refracting on to sixteen more, ahead or back." },
+    { name: "Aurora", desc: "Refracting on through every enemy ahead, and out of sight." },
   ] },
   { id: "breach", name: "Breach", base: "", tiers: [
     { name: "Pierce", desc: "Hits breach once: armor off and crits up for every tower, for good." },
@@ -422,8 +422,9 @@ function drawFrzSkill(t, st) {
 
 // ---------- SOL's chart: Focus beams, Refract cone, Pierce Breaches ----------
 // Breach stacks per hit (owner: "each beam permanently weakens the target's armor" - Breach is what strips it; the base SOL strips nothing)
-// Refraction from the start (owner, 2026-10-08): one hop in a 40-degree cone at tier 0; every tier one more hop than before (were 0 / 2 / 5 / 9 / 12 / 15)
-const SOL_BEAMS = [1, 2, 3, 4, 5, 6], SOL_REFRACTION = [1, 3, 6, 10, 13, 16];
+// Refraction from the start (owner, 2026-10-08): one hop in a 40-degree cone at tier 0; every tier one more hop than before
+// (were 0 / 2 / 5 / 9 / 12 / 15); V has NO limit - every enemy ahead in the cone, then on out of sight (solRefraction)
+const SOL_BEAMS = [1, 2, 3, 4, 5, 6], SOL_REFRACTION = [1, 3, 6, 10, 13, Infinity];
 // BREACH IS SOL'S OWN, from the start (owner, 2026-10-08): every hit strips SOL_BREACH_ARMOR armor for good
 // (below zero too: a flat bonus on every later hit from every tower); the Breach axis massively
 // increases the strip and adds crit chance for every tower, SOL_BREACH_CRIT a hit (none at base)
@@ -448,7 +449,7 @@ const SOL_REFRACTION_DMG = [1, 1, 1.3, 1.84, 2.43, 3]; // III..V x1.15 / 1.35 / 
 const SOL_FOCUS_DMG = [1, 1, 1, 1, 1.139, 1.176]; // never below 1 (owner, 2026-10-08: no upgrade lowers a stat) - more beams carry I..III (114 / 133 / 152%)
 function solSkillStats(t, s, b) {
   s.dmg = b.dmg * SOL_REFRACTION_DMG[skillOf(t, "refraction")] * SOL_FOCUS_DMG[skillOf(t, "focus")]; s.range = b.range * RANGE_BONUS; s.crit = LVL_SOL_CRIT[0]; s.rate = b.rate;
-  s.beams = SOL_BEAMS[skillOf(t, "focus")]; s.refraction = SOL_REFRACTION[skillOf(t, "refraction")]; s.cone = SOL_CONE_BY[skillOf(t, "refraction")]; s.backward = skillOf(t, "refraction") >= SKILL_TIERS; s.hop = SOL_HOP[skillOf(t, "refraction")]; // V's hops may go BACKWARDS (owner, 2026-10-08)
+  s.beams = SOL_BEAMS[skillOf(t, "focus")]; s.refraction = SOL_REFRACTION[skillOf(t, "refraction")]; s.cone = SOL_CONE_BY[skillOf(t, "refraction")]; s.hop = SOL_HOP[skillOf(t, "refraction")];
   const bk = skillOf(t, "breach");
   s.breach = 1; s.critMul = SOL_CRITMUL[bk]; s.bleedArmor = SOL_BREACH_ARMOR[bk]; s.bleedCrit = SOL_BREACH_CRIT[bk]; s.skill = true;
 }
@@ -460,18 +461,25 @@ function solRefraction(t, st, e) {
   const dir = Math.atan2(e.y - t.y, e.x - t.x), half = (st.cone || SOL_CONE) * Math.PI / 180, hit = new Set([e]);
   const off = a => Math.abs(((a - dir + 3 * Math.PI) % (2 * Math.PI)) - Math.PI); // an angle's distance from the shot's line
   const inCone = o => off(Math.atan2(o.y - t.y, o.x - t.x)) <= half;
-  let prev = e, far = Math.hypot(e.x - t.x, e.y - t.y);
+  let prev = e, from0 = t, far = Math.hypot(e.x - t.x, e.y - t.y);
   // every hop travels FORWARD (owner, 2026-10-08: "shots shouldn't go backwards"): further from the tower than the
   // last hit, and the hop's own direction within the cone's half-angle of the shot - no beam bends back on itself
   const forward = (from, o) => Math.hypot(o.x - t.x, o.y - t.y) > Math.hypot(from.x - t.x, from.y - t.y) && off(Math.atan2(o.y - from.y, o.x - from.x)) <= half;
   for (let k = 0; k < st.refraction; k++) {
-    const from = prev, nxt = chainPick(t, prev, Infinity, o => hit.has(o) || !inCone(o) || !(st.backward || forward(from, o))); // within the cone, forward (any way at V), by SOL's targeting
-    if (!nxt) break;
+    const from = prev, nxt = chainPick(t, prev, Infinity, o => hit.has(o) || !inCone(o) || !forward(from, o)); // within the cone, forward, by SOL's targeting
+    if (!nxt) { if (st.refraction === Infinity) solOutOfSight(t, st, k ? from0 : t, prev); break; } // V: on out of sight
+    from0 = prev;
     rayHit(t, st, nxt, st.dmg * (st.hop || 1), prev); hit.add(nxt); prev = nxt;
     far = Math.max(far, Math.hypot(nxt.x - t.x, nxt.y - t.y));
   }
   // the cone, from the tower to just past the furthest enemy it bent to
   fx.push({ k: "cone", x: t.x, y: t.y, a: dir, half, len: far + 30, color: TOWERS[t.kind].color, t: 0, life: SOL_CONE_LIFE });
+}
+// V's last beam: on from the last enemy struck, along its last leg, far past the screen's edge (owner, 2026-10-08)
+const SOL_OUT_LEN = 3000;
+function solOutOfSight(t, st, a, b) {
+  const dx = b.x - a.x, dy = b.y - a.y, n = Math.hypot(dx, dy) || 1;
+  beam(b, { x: b.x + dx / n * SOL_OUT_LEN, y: b.y + dy / n * SOL_OUT_LEN }, TOWERS[t.kind].color, RAY_BEAM_LIFE, 3, st.dmg, true, false);
 }
 const SOL_CONE_LIFE = 0.6; // game seconds (1x runs 2 game s a real s): long enough to see the cubic fade
 // UI (drawFx): the Refract light cone, a faint wedge that fades FAST (owner):
