@@ -200,7 +200,7 @@ let ARC_CONDUCTIVITY = [{ s: 1, j: 1, f: 2, r: 1, d: 1, v: 0 }, { s: 1, j: 2, f:
 // charges, each worth `frac` of the hit; the next hit from anything sets them ALL off, each a BURST of radius
 // ARC_BURST_R round the enemy hitting everything inside (each burst its own hit: armor bites each, each pops a shield)
 const ARC_CAPACITANCE = [null, { n: 1, frac: 0.1 }, { n: 2, frac: 0.1 }, { n: 3, frac: 0.1 }, { n: 4, frac: 0.1 }, { n: 5, frac: 0.1 }]; // a burst hits all round it, so each charge is small: isolation I..V 110 119 150 167 184% (with the slows below)
-const ARC_BURST_R = 70;
+const ARC_BURST_R = 70, ARC_BURST_A = 0.45;
 // each jump hits ARC_FALL as hard and reaches ARC_SHRINK as far as the one before (owner)
 const ARC_FALL = 0.5, ARC_SHRINK = 0.7;
 // a jump's reach, before Conductivity lengthens it (owner: longer by default). It
@@ -280,8 +280,9 @@ function dischargeStatic(e) {
   staticQuiet = true;
   try {
     // every charge BURSTS round the enemy: everything within ARC_BURST_R (the enemy too) takes it, a ring per charge
-    ch.list.forEach((dmg, k) => {
-      ring(e.x, e.y, ARC_BURST_R, TOWERS.arc.color, 0.18 + 0.05 * k, true);
+    // ONE thin, faint ring for the whole discharge, no glow (owner, 2026-10-08: "reduce intensity, no glow"; was a glowing ring per charge)
+    ring(e.x, e.y, ARC_BURST_R, TOWERS.arc.color, 0.18, false); Object.assign(fx[fx.length - 1], { a: ARC_BURST_A, w: 1.2 });
+    ch.list.forEach(dmg => {
       for (const o of G.enemies) {
         if (o.dead || Math.hypot(o.x - e.x, o.y - e.y) > ARC_BURST_R) continue;
         damage(o, dmg, ch.t, false, false, null);

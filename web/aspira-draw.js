@@ -379,7 +379,7 @@ function drawFx(pass) {
     } else if (f.k === "ring") {
       if (f.grad) { const a = ctx.globalAlpha; gradDisc(f.x, f.y, f.r * (1 - k * 0.5), COL[f.color], a); ctx.globalAlpha = a; }
       if (f.outline === false) continue; // Zen's pulse: the gradient wave alone
-      ctx.strokeStyle = COL[f.color]; ctx.lineWidth = 2;
+      ctx.strokeStyle = COL[f.color]; ctx.lineWidth = f.w || 2; if (f.a) ctx.globalAlpha *= f.a; // a: a fainter ring (Capacitance's burst)
       ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (1 - k * 0.5), 0, 6.283); ctx.stroke();
     } else if (f.k === "cone") {
       drawCone(f, k); // SOL's Refract light cone (aspira-skills.js)
