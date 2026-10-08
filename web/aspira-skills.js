@@ -349,7 +349,7 @@ function frzSkillStats(t, s, b) {
 }
 // Moons V: every moon has SMALL MOONS of its own (owner, 2026-10-08): FRZ_SUBMOON.n of them
 // circling it at r, the other way round and faster, each an aura at k x its moon's
-const FRZ_SUBMOON = { n: 2, r: 28, k: 0.3, spin: 2 }; // k 0.3: V at ~200% (0.35 -> 204, 0.5 -> 216)
+const FRZ_SUBMOON = { n: 2, r: 28, k: 0.2, spin: 2 }; // k 0.2: V at 195% (0.1 -> 194, 0.3 -> 203, 0.5 -> 216; five moons alone sit near 190)
 // the aura's sources: the tower, then each moon at FRZ_MOON_SCALE of everything, then their small moons
 function frzSources(t, st) {
   const out = [{ x: t.x, y: t.y, k: 1, id: t.id }];
