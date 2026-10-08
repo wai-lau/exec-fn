@@ -152,7 +152,7 @@ export function cellScores(g, kind) {
 //                                 capped interest (INTEREST_PER_WAVE x (wave+1) / rate) and spend only the
 //                                 surplus - unless THREATENED (an enemy within `threat` of the core, a life
 //                                 lost since the last look, a boss wave now / next, or 6 lives left), when it
-//                                 spends it all
+//                                 spends it all; threat 0 = never by proximity, noBossPrep = never for a boss
 //   queue: [kinds]                builds taken next, before anything else (a pivot's "build a SOL now")
 //   pivots: [{ name, when(obs, s), do(s, obs, game) }]  the player's INTUITION (players.mjs): at every
 //                                 wave's send it looks at the board (observe(): wave, lives, lost5, lostBy
@@ -264,10 +264,10 @@ export function makePlayer(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = 
       // the interest-aware saver: the bank that earns the capped payout, the rest is surplus;
       // a threat (an enemy close, a life just lost, a boss now or next, few lives) opens the whole bank
       const G = g.G, bank = Math.floor(interestPerWave * (G.wave + 1) / G.interest);
-      const boss = G.wave % 10 === 0 || (G.wave + 1) % 10 === 0;
+      const boss = !strategy.noBossPrep && (G.wave % 10 === 0 || (G.wave + 1) % 10 === 0);
       const hurt = G.lives < S.lastLives; S.lastLives = G.lives;
       if (hurt) S.hurtUntil = S.time + 20; // stay open for a while after a leak
-      const open = near < (strategy.threat || 220) || boss || S.time < S.hurtUntil || G.lives <= 6;
+      const open = near < (strategy.threat ?? 220) || boss || S.time < S.hurtUntil || G.lives <= 6; // threat 0: never by proximity
       act(open ? 0 : bank);
     }
     else if (!strategy.threat || !opened) act();
