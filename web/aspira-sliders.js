@@ -78,7 +78,22 @@ function refreshHandleFlash(t) {
   document.querySelectorAll(".asp-axis").forEach((s, i) => s.classList.toggle("can", canPull(t, SKILL_TREES[t.kind][i])));
 }
 function bindSliders(t, root) {
-  for (const s of root.querySelectorAll(".asp-axis")) s.oninput = () => pullAxis(t, Number(s.dataset.axis), Number(s.value));
+  for (const s of root.querySelectorAll(".asp-axis")) { s.oninput = () => pullAxis(t, Number(s.dataset.axis), Number(s.value)); s.onpointerdown = ev => dragAxis(t, s, ev); }
+}
+// a finger slides the axis from ANYWHERE on its track (owner, 2026-10-08: a native range
+// on iOS moves only when its thumb is caught): the tier nearest the finger, live, on
+// window listeners (no setPointerCapture - CLAUDE.md gesture rule). A mouse keeps the
+// native control, which already jumps on a click
+function dragAxis(t, s, ev) {
+  if (ev.pointerType === "mouse") return;
+  ev.preventDefault();
+  const i = Number(s.dataset.axis), id = ev.pointerId;
+  const tierAt = x => { const r = s.getBoundingClientRect(); return Math.round(Math.max(0, Math.min(1, (x - r.left) / r.width)) * SKILL_TIERS); };
+  let last = -1;
+  const move = e => { if (e.pointerId !== id) return; const k = tierAt(e.clientX); if (k !== last) { last = k; pullAxis(t, i, k); } };
+  const up = e => { if (e.pointerId !== id) return; removeEventListener("pointermove", move); removeEventListener("pointerup", up); removeEventListener("pointercancel", up); };
+  addEventListener("pointermove", move); addEventListener("pointerup", up); addEventListener("pointercancel", up);
+  move(ev);
 }
 // pull axis i to tier `want`, as far as the rules allow, and say what stopped it: a
 // pull below the locked-in tier snaps back (the bank is no limit - upgradeButton)
