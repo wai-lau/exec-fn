@@ -201,17 +201,18 @@ function wordDiff(a, b) {
   flush();
   return out.join(" ");
 }
-// CONFIRM and CANCEL (owner): the upgrade button prices the basket (or says why
-// there is nothing to buy); beside it, cancel drops the pulled points - and with
-// none pulled it is the card's close
+// CONFIRM and CANCEL (owner, 2026-10-07): the upgrade button IS the tower's title -
+// "Arc IV", its points locked in, on one line - and while axes are pulled it reads
+// what they would make, "Arc VI (-440c)", the cost in the spend bar's red; a tap
+// locks them in. Beside it, cancel drops the pulled points - and with none pulled it
+// is the card's close
 function upgradeButton(t) {
   const box = $("asp-upbox");
   if (!box) return;
   box.innerHTML = "";
-  const n = basketPoints(t), cost = basketCost(t), maxed = t.lvl >= maxLvl(t);
-  const label = "upgrade<span>" + (maxed ? "every axis at the top" : !n ? "pull an axis" : n + (n > 1 ? " points · " : " point · ") + cr(cost)) + "</span>";
+  const n = basketPoints(t), cost = basketCost(t), pts = t.lvl - 1 + n;
+  const label = towerTitle(t) + (pts ? " " + roman(pts) : "") + (n ? ' <span class="asp-spend-cost">(−' + cr(cost) + ")</span>" : "");
   const btn = button(box, "asp-primary asp-up-big", label, () => lockIn(t), "asp-up");
-  btn.disabled = maxed || !n;
   btn.classList.toggle("poor", n > 0 && G.money < cost);
   button(box, "asp-up-cancel", n ? "cancel" : "close", () => { if (basketPoints(t)) { basket.add = {}; refreshPanels(); } else closeCard(); }, "asp-up-cancel");
 }
@@ -232,9 +233,9 @@ function lockIn(t) {
 // with the info on top and the control under it, at the thumb (aspira.css .asp-tower-grid)
 function inspectTower(el, t) {
   const maxed = t.lvl >= maxLvl(t), chart = hasSkills(t), pv = chart && basketPoints(t) ? previewTower(t) : null;
-  // the TITLE is its own grid item: over the info half on a wide screen, over the chart stacked (owner)
+  // no title line (owner): the upgrade button names the tower and its points (upgradeButton)
   el.innerHTML = '<div class="asp-tower-grid">' +
-    '<div class="name asp-tower-title">' + towerTitle(t) + " · " + (chart ? (t.lvl - 1) + " of " + SKILL_POINTS + " points" : "L" + t.lvl + " of " + maxLvl(t)) + "</div>" +
+    (chart ? "" : '<div class="name asp-tower-title">' + towerTitle(t) + " · L" + t.lvl + " of " + maxLvl(t) + "</div>") +
     '<div class="asp-tower-ctl">' +
     (chart ? sliderChart(t) : "") + // the chart IS the upgrade control (owner, 2026-10-07)
     '<div class="asp-row" id="asp-upbox"></div>' + // confirm + cancel (aspira-sliders.js upgradeButton)
