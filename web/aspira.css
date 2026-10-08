@@ -685,7 +685,7 @@
    UPGRADE CONTROL itself: a wide invisible track along each axis to drag on, a
    stop per tier, the locked-in tier a filled dot, the handle a ring that turns
    red where it cannot go; the reason reads in the note under it */
-.asp-chart { display: block; width: 100%; height: auto; aspect-ratio: 1; margin: 0 auto; overflow: visible; touch-action: none; } /* the whole width of its half (owner): big enough to drag with a thumb */
+.asp-chart { display: block; width: 100%; height: auto; aspect-ratio: 120 / 96; margin: 0 auto; overflow: visible; } /* the viewBox is cropped to the triangle and its labels (SL_H), so no band sits under it (owner) */
 
 /* the tower card's TWO HALVES (owner, 2026-10-07; aspira-ui.js inspectTower): the
    control (chart, targeting, confirm + cancel) and the info (name, description,
@@ -735,7 +735,8 @@
 .asp-chart-box { padding-top: var(--space-2); } /* the top label's first line rides above the viewBox */
 /* THE CONTROL (aspira-sliders.js, owner 2026-10-07): three real sliders stacked LEFT of
    the chart, each with its full name and tier under it; the chart is the picture */
-.asp-ctl-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-3); align-items: stretch; }
+.asp-ctl-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-3); align-items: center; } /* the shorter side sits centred on the taller (owner) */
+.asp-chart-box { display: flex; align-items: center; justify-content: center; }
 .asp-axes { display: flex; flex-direction: column; justify-content: center; gap: var(--space-2); min-width: 0; }
 .asp-axis-row { display: flex; flex-direction: column; gap: var(--space-0-5); }
 .asp-axis { width: 100%; height: var(--space-6); margin: 0; appearance: none; background: transparent; cursor: pointer; }

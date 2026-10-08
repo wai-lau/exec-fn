@@ -31,7 +31,7 @@ function axisRoom(t, id) {
 // stacked to the LEFT of the chart; the chart is the picture - the tier rings,
 // what the tower has (filled), what the pull would make (dashed), the axes'
 // short names at the corners and no numbers
-const SL_R = 46, SL_C = 60, SL_R0 = 8; // the chart's outer radius, centre and tier-0 radius (viewBox units)
+const SL_R = 46, SL_C = 60, SL_R0 = 8, SL_H = 96; // the chart's outer radius, centre and tier-0 radius (viewBox units); the viewBox is CROPPED to the triangle and its labels (SL_H of 120: no empty band under it - owner)
 const axisAngle = (i, n) => -Math.PI / 2 + i * 2 * Math.PI / n;
 function axisPt(i, k, n) {
   const a = axisAngle(i, n), r = SL_R0 + (SL_R - SL_R0) * k / SKILL_TIERS;
@@ -44,7 +44,7 @@ const canPull = (t, ax) => { const r = axisRoom(t, ax.id); return r.left > 0 && 
 const shapeOf = (axes, sk, n) => axes.map((ax, i) => axisPt(i, (sk && sk[ax.id]) || 0, n).map(v => v.toFixed(1)).join(",")).join(" ");
 function sliderChart(t) {
   const axes = SKILL_TREES[t.kind], n = axes.length, add = basketFor(t), pv = previewTower(t);
-  let svg = '<svg class="asp-chart asp-sliders" viewBox="0 0 120 120">';
+  let svg = '<svg class="asp-chart asp-sliders" viewBox="0 0 120 ' + SL_H + '">';
   for (let k = 1; k <= SKILL_TIERS; k++) svg += '<polygon class="grid" points="' + axes.map((_, i) => axisPt(i, k, n).map(v => v.toFixed(1)).join(",")).join(" ") + '"/>';
   axes.forEach((ax, i) => { const [ex, ey] = axisPt(i, SKILL_TIERS, n); svg += '<line class="grid" x1="' + SL_C + '" y1="' + SL_C + '" x2="' + ex.toFixed(1) + '" y2="' + ey.toFixed(1) + '"/>'; });
   svg += '<polygon class="next" points="' + shapeOf(axes, pv.skills, n) + '"/><polygon class="now" points="' + shapeOf(axes, t.skills, n) + '"/>';
