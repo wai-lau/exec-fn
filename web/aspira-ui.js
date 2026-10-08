@@ -203,8 +203,8 @@ const SPEC = {
     // puddles one number a row (owner, 2026-10-07: "1 / 1.4s · 1.5s · r20" was unreadable), so each
     // reads now -> next on its own and its colour judges that one number
     // always the same rows ("—" with no puddles), so a pull from Contagion 0 lines up now -> next
-    ["Puddle burn", st.contagion ? Math.round(st.contagionHeat * 100) + "% of jet" : "—"], ["Drips every", st.contagion ? st.contagion.every + "s" : "—"],
-    ["Puddle size", st.contagion ? st.contagion.r : "—"], ["Puddle lasts", st.contagion ? st.contagion.life + "s" : "—"], ["Puddle slow", st.contagionSlow ? Math.round(st.contagionSlow * 100) + "%" : "—"]],
+    ["Pool burn", st.contagion ? Math.round(st.contagionHeat * 100) + "% of jet" : "—"], ["Drips every", st.contagion ? st.contagion.every + "s" : "—"],
+    ["Pool size", st.contagion ? st.contagion.r : "—"], ["Pool lasts", st.contagion ? st.contagion.life + "s" : "—"], ["Pool slow", st.contagionSlow ? Math.round(st.contagionSlow * 100) + "%" : "—"]],
   sol: st => [["Crit", Math.round(st.crit * 100) + "%"], ["Crit ×", st.critMul], ["Locks", st.targets],
     ["Beams", st.beams || 1], ...(st.skill ? [["Refract", st.refraction ? "+" + st.refraction + " in a " + SOL_CONE * 2 + "° cone" : "—"]] : []),
     // short enough for the card's right column (owner, 2026-10-07: "1 × (−1.5 armor, +1% crit) / hit" ran off it)
