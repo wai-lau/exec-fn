@@ -25,7 +25,7 @@ function axisRoom(t, id) {
   return { others, left, afford };
 }
 
-// ---------- the control: three sliders, and the chart beside them ----------
+// ---------- the control: three + / - steppers, and the chart beside them ----------
 // (owner, 2026-10-07; was handles dragged on the chart's own axes): each axis
 // is a REAL range slider with its full name and tier under it, the three
 // stacked to the LEFT of the chart; the chart is the picture - the tier rings,
@@ -44,9 +44,11 @@ function axisPt(i, k, n) {
 }
 const tierTxt = k => (k ? roman(k) : "0");
 const tierSpan = (lock, at) => (at > lock ? tierTxt(lock) + "→" + tierTxt(at) : tierTxt(lock));
-// a slider's thumb FLASHES while the bank covers one more point on its axis (owner: it must read as slidable)
+// an axis's + FLASHES while the bank covers one more point on it (owner: it must read as tappable)
 const canPull = (t, ax) => { const r = axisRoom(t, ax.id); return r.left > 0 && r.afford > 0; };
 const shapeOf = (axes, sk, n) => axes.map((ax, i) => axisPt(i, (sk && sk[ax.id]) || 0, n).map(v => v.toFixed(1)).join(",")).join(" ");
+// one pip a tier: filled = locked in, half-lit = pulled in the basket, hollow = still to buy
+const pipsHtml = (lock, at) => Array.from({ length: SKILL_TIERS }, (_, k) => '<i class="' + (k < lock ? "lock" : k < at ? "pull" : "") + '"></i>').join("");
 function sliderChart(t) {
   const axes = SKILL_TREES[t.kind], n = axes.length, add = basketFor(t), pv = previewTower(t);
   let svg = '<svg class="asp-chart asp-sliders" viewBox="0 ' + SL_TOP + ' 120 ' + SL_H + '">';
@@ -55,58 +57,53 @@ function sliderChart(t) {
   svg += '<polygon class="next" points="' + shapeOf(axes, pv.skills, n) + '"/><polygon class="now" points="' + shapeOf(axes, t.skills, n) + '"/>';
   axes.forEach((ax, i) => { const [tx, ty] = labelPt(i, n); svg += '<text x="' + tx.toFixed(1) + '" y="' + ty.toFixed(1) + '" text-anchor="middle">' + ax.name.slice(0, 4).toUpperCase() + "</text>"; });
   svg += "</svg>";
-  const sliders = axes.map((ax, i) => {
+  // each axis: its name and tier, then [-] pips [+] (owner, 2026-10-08: + and - buttons, were range sliders)
+  const rows = axes.map((ax, i) => {
     const lock = skillOf(t, ax.id), at = lock + (add[ax.id] || 0);
-    return '<label class="asp-axis-row"><span class="asp-axis-name">' + ax.name + '<b class="asp-axis-tier">' + tierSpan(lock, at) + "</b></span>" + // the name ABOVE its slider (owner)
-      '<input type="range" class="asp-axis' + (canPull(t, ax) ? " can" : "") + '" data-axis="' + i + '" min="0" max="' + SKILL_TIERS + '" step="1" value="' + at + '" aria-label="' + ax.name + '"></label>';
+    return '<div class="asp-axis-row"><span class="asp-axis-name">' + ax.name + '<b class="asp-axis-tier">' + tierSpan(lock, at) + "</b></span>" +
+      '<div class="asp-axis-ctl"><button class="asp-axis-btn minus" data-axis="' + i + '" data-d="-1" aria-label="' + ax.name + ' down">−</button>' +
+      '<span class="asp-pips">' + pipsHtml(lock, at) + "</span>" +
+      '<button class="asp-axis-btn plus' + (canPull(t, ax) ? " can" : "") + '" data-axis="' + i + '" data-d="1" aria-label="' + ax.name + ' up">+</button></div></div>';
   }).join("");
-  return '<div class="asp-ctl-row"><div class="asp-axes">' + sliders + '</div><div class="asp-chart-box">' + svg + '<div class="asp-slider-note" id="asp-slider-note"></div></div></div>';
+  return '<div class="asp-ctl-row"><div class="asp-axes">' + rows + '</div><div class="asp-chart-box">' + svg + '<div class="asp-slider-note" id="asp-slider-note"></div></div></div>';
 }
-// the control updated IN PLACE after a pull (a rebuilt input would lose the thumb under the finger)
+// the control updated IN PLACE after a tap (the chart, the tiers, the pips, the buttons' states)
 function updateSliderChart(t, svg) {
   const axes = SKILL_TREES[t.kind], n = axes.length, add = basketFor(t), pv = previewTower(t);
   svg.querySelector(".next").setAttribute("points", shapeOf(axes, pv.skills, n));
-  const inputs = document.querySelectorAll(".asp-axis"), tiers = document.querySelectorAll(".asp-axis-tier");
+  const rows = document.querySelectorAll(".asp-axis-row");
   axes.forEach((ax, i) => {
-    const lock = skillOf(t, ax.id), at = lock + (add[ax.id] || 0);
-    if (inputs[i]) { inputs[i].value = at; inputs[i].classList.toggle("can", canPull(t, ax)); }
-    if (tiers[i]) tiers[i].textContent = tierSpan(lock, at);
+    const lock = skillOf(t, ax.id), at = lock + (add[ax.id] || 0), row = rows[i];
+    if (!row) return;
+    row.querySelector(".asp-axis-tier").textContent = tierSpan(lock, at);
+    row.querySelector(".asp-pips").innerHTML = pipsHtml(lock, at);
+    row.querySelector(".minus").classList.toggle("dim", at <= lock); // nothing pulled to put back
+    const plus = row.querySelector(".plus");
+    plus.classList.toggle("can", canPull(t, ax)); plus.disabled = at >= SKILL_TIERS;
   });
 }
 // the HUD tick (aspira-ui.js updateHud): income may have brought a point within reach - the flash follows the bank
 function refreshHandleFlash(t) {
-  document.querySelectorAll(".asp-axis").forEach((s, i) => s.classList.toggle("can", canPull(t, SKILL_TREES[t.kind][i])));
+  document.querySelectorAll(".asp-axis-btn.plus").forEach((b, i) => b.classList.toggle("can", canPull(t, SKILL_TREES[t.kind][i])));
 }
 function bindSliders(t, root) {
-  for (const s of root.querySelectorAll(".asp-axis")) { s.oninput = () => pullAxis(t, Number(s.dataset.axis), Number(s.value)); s.onpointerdown = ev => dragAxis(t, s, ev); }
-}
-// a finger slides the axis from ANYWHERE on its track (owner, 2026-10-08: a native range
-// on iOS moves only when its thumb is caught): the tier nearest the finger, live, on
-// window listeners (no setPointerCapture - CLAUDE.md gesture rule). A mouse keeps the
-// native control, which already jumps on a click
-function dragAxis(t, s, ev) {
-  if (ev.pointerType === "mouse") return;
-  ev.preventDefault();
-  const i = Number(s.dataset.axis), id = ev.pointerId;
-  const tierAt = x => { const r = s.getBoundingClientRect(); return Math.round(Math.max(0, Math.min(1, (x - r.left) / r.width)) * SKILL_TIERS); };
-  let last = -1;
-  const move = e => { if (e.pointerId !== id) return; const k = tierAt(e.clientX); if (k !== last) { last = k; pullAxis(t, i, k); } };
-  const up = e => { if (e.pointerId !== id) return; removeEventListener("pointermove", move); removeEventListener("pointerup", up); removeEventListener("pointercancel", up); };
-  addEventListener("pointermove", move); addEventListener("pointerup", up); addEventListener("pointercancel", up);
-  move(ev);
+  for (const b of root.querySelectorAll(".asp-axis-btn")) {
+    const i = Number(b.dataset.axis), d = Number(b.dataset.d), ax = SKILL_TREES[t.kind][i];
+    b.onclick = () => pullAxis(t, i, skillOf(t, ax.id) + (basketFor(t)[ax.id] || 0) + d);
+  }
+  updateSliderChart(t, root.querySelector(".asp-sliders"));
 }
 // pull axis i to tier `want`, as far as the rules allow, and say what stopped it: a
-// pull below the locked-in tier snaps back (the bank is no limit - upgradeButton)
+// step below the locked-in tier is refused (the bank is no limit - upgradeButton)
 function pullAxis(t, i, want) {
   const ax = SKILL_TREES[t.kind][i], add = basketFor(t), lock = skillOf(t, ax.id);
   const to = Math.max(lock, Math.min(SKILL_TIERS, want)), why = want < lock ? ax.name + " " + roman(lock) + " is locked in · sell to undo" : "";
   const was = add[ax.id] || 0;
   add[ax.id] = to - lock;
   if (was !== to - lock) refreshUpgradePreview(t);
-  else { const s = document.querySelectorAll(".asp-axis")[i]; if (s) s.value = to; }
   const note = $("asp-slider-note");
   if (note) note.innerHTML = why; // (no "tap to lock it in" line: the button's flashing says it - owner)
-  document.querySelectorAll(".asp-axis").forEach((s, k) => s.classList.toggle("stuck", !!why && k === i));
+  document.querySelectorAll(".asp-axis-btn.minus").forEach((b, k) => b.classList.toggle("stuck", !!why && k === i));
 }
 // the card's preview parts, re-rendered: the chart (in place), the stats, the description, the button, the spend bar
 function refreshUpgradePreview(t) {
