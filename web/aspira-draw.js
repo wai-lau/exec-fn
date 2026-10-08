@@ -202,7 +202,7 @@ function drawTower(t, ghost) {
 }
 // one sprite per kind + level + colours + zoom + the hex's turn (Horizon orbits
 // the slots), drawn exactly as the tower used to be drawn each frame
-const SOL_BEAM_W = 1.2 /* bolder (owner, 2026-10-07; was 0.9) */, SOL_GLOW_A = 0.7 /* was 0.45 */, TOWER_LINE = 2.6, towerSprites = new Map(), TOWER_LABEL_PX = 23;
+const SOL_BEAM_W = 0.9, SOL_GLOW_A = 0.45 /* (bolder 1.2 / 0.7 tried 2026-10-07 and reverted - owner: "SOL was OK before") */, TOWER_LINE = 2.6, towerSprites = new Map(), TOWER_LABEL_PX = 23;
 function towerSprite(kind, lvl, c0) {
   const b = TOWERS[kind], turn = Math.round(Math.atan2(c0.pts[0].y - c0.y, c0.pts[0].x - c0.x) * 90 / Math.PI); // 2-degree steps
   const key = [kind, lvl, COL[b.color], COL.bg, cam.k.toFixed(4), turn].join("|");
