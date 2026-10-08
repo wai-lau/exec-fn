@@ -791,7 +791,7 @@
 
 /* the description's TRACK CHANGES (owner, 2026-10-07: like Word or Docs): removed
    words struck through in Ember red, added ones underlined in the acid green */
-.asp-desc { height: calc(5 * var(--lh-tight) * var(--fs-sm)); overflow: hidden; font-size: var(--fs-sm); line-height: var(--lh-tight); color: hsl(var(--green-hsl)); } /* a FIXED five lines (owner): the sentences run on, wrapping; nothing moves as a sentence grows */
+.asp-desc { height: calc(5 * var(--lh-tight) * var(--fs-2xs)); overflow: hidden; font-size: var(--fs-2xs); line-height: var(--lh-tight); color: hsl(var(--green-hsl)); } /* a FIXED five lines (owner): the sentences run on, wrapping; nothing moves as a sentence grows */
 .asp-desc del { color: hsl(var(--asp-bad-hsl)); text-decoration: line-through; }
 .asp-desc ins { color: hsl(var(--asp-good-hsl)); text-decoration: underline; }
 
