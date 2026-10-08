@@ -12,7 +12,7 @@ const ARC_KEEP = ["half", "most of", "nearly all of", "all of", "more than", "fa
 // hits, a colder or wider aura, faster pulses, a stronger acid, more or bigger puddles -
 // changes no words; the card's stat rows show that change (now -> next)
 const FRZ_RIME_TEXT = ["", ...Array(5).fill(" Rings of rime roll out, leaving behind a rime that layers and never thaws.")];
-const FRZ_MOONS = ["", " One moon orbits it, a copy of the tower.", " Two moons orbit it, copies of the tower.", " Three moons orbit it, copies of the tower.", " Four moons orbit it, copies of the tower.", " Five moons orbit it, copies of the tower."];
+const FRZ_MOONS = ["", " One moon orbits it, a copy of the tower.", " Two moons orbit it, copies of the tower.", " Three moons orbit it, copies of the tower.", " Four moons orbit it, copies of the tower.", " Five moons orbit it, copies of the tower, each with small moons of its own."];
 const SOL_RAYS = ["A ray", "Two rays", "Three rays", "Four rays", "Five rays", "Six rays"];
 const SOL_REFRACT = ["refracting from the first enemy struck on to one more ahead", "refracting from the first enemy struck on to three more ahead", "refracting from the first enemy struck on to six more ahead", "refracting from the first enemy struck on to ten more ahead", "refracting from the first enemy struck on to thirteen more ahead", "refracting from the first enemy struck on through every enemy ahead, and on out of sight"];
 const ACD_JETS = ["Two", "Three", "Four", "Six", "Seven", "Eight"]; // acidic terms, never heat (owner)

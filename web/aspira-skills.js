@@ -80,7 +80,7 @@ SKILL_TREES.frz = [
     { name: "Twin Moons", desc: "Two moons orbit the tower, near copies of it." },
     { name: "Desolation", desc: "Three moons orbit the tower, full copies of it." },
     { name: "Quad Moons", desc: "Four moons orbit it, copies of the tower." },
-    { name: "Eclipse", desc: "Five moons orbit it, copies of the tower." },
+    { name: "Eclipse", desc: "Five moons orbit it, copies of the tower, each with small moons of its own." },
   ] },
 ];
 // SOL (owner, 2026-10-05): Focus = more beams (the old Quad look: side by
@@ -337,7 +337,7 @@ const FRZ_TEMP_SLOW = [0.4, 0.41, 0.42, 0.43, 0.44, 0.45]; // a small ramp (over
 const FRZ_BRITTLE = [1, 1, 1, 1.15, 1.2, 1.25]; // from III (owner, 2026-10-08: kept at III)
 const FRZ_RIME = [0, 0.024, 0.035, 0.054, 0.064, 0.068]; // 2026-10-06: tier I was a dead point (was 1% / 1.9% / 3.7%) // each pulse's permanent stacking slow
 // FRZ's own levers (owner: no generic multipliers): Rime pulses MORE OFTEN each tier, the moons are STRONGER copies each tier
-const FRZ_RIME_PERIOD = [2, 2, 1.7, 1.4, 1.2, 1], FRZ_MOON_BY = [0.6, 0.485, 0.49, 0.508, 0.524, 0.539]; // weakened (owner, 2026-10-08; isolation: Moons V 499% team); was .78 .9 .95 1 1 1 // Moons IV / V: four and five full moons
+const FRZ_RIME_PERIOD = [2, 2, 1.7, 1.4, 1.2, 1], FRZ_MOON_BY = [0.6, 0.485, 0.515, 0.58, 0.58, 0.58]; /* refit for the 70 orbit at every tier and V's small moons (2026-10-08; were .485 .49 .508 .524 .539): isolation I..V ~110 125 149 176 ~200% */ // weakened (owner, 2026-10-08; isolation: Moons V 499% team); was .78 .9 .95 1 1 1 // Moons IV / V: four and five full moons
 const FRZ_TICK = 0.5, FRZ_RIME_GROW = 2.4; // a Rime ring takes FRZ_RIME_GROW game s to reach the edge (owner: much slower; was 0.6)
 const FRZ_AURA_HOLD = 0.06, FRZ_RIM_W = 16; // the frosted rim's width per unit of slow (owner: thicker the colder) // an aura slow outlasts one step only: it is gone the moment the enemy leaves
 const FRZ_TICK_HIT = { armorPierce: 1 }; // a tick's hit on a shield: no armor bite
@@ -345,12 +345,22 @@ function frzSkillStats(t, s, b) {
   const f = skillOf(t, "temp");
   s.range = b.range * RANGE_BONUS;
   s.aura = FRZ_TEMP_SLOW[f]; s.brittle = FRZ_BRITTLE[f]; s.dmg = b.dmg * b.rate * FRZ_TICK; s.rate = 1 / FRZ_TICK; // dmg / rate: a TICK
-  s.rime = FRZ_RIME[skillOf(t, "rime")]; s.rimeEvery = FRZ_RIME_PERIOD[skillOf(t, "rime")]; s.moonN = skillOf(t, "moons"); s.moonK = FRZ_MOON_BY[s.moonN]; s.skill = true;
+  s.rime = FRZ_RIME[skillOf(t, "rime")]; s.rimeEvery = FRZ_RIME_PERIOD[skillOf(t, "rime")]; s.moonN = skillOf(t, "moons"); s.moonK = FRZ_MOON_BY[s.moonN]; s.subMoons = s.moonN >= 5; s.skill = true;
 }
-// the aura's sources: the tower, then each moon at FRZ_MOON_SCALE of everything
+// Moons V: every moon has SMALL MOONS of its own (owner, 2026-10-08): FRZ_SUBMOON.n of them
+// circling it at r, the other way round and faster, each an aura at k x its moon's
+const FRZ_SUBMOON = { n: 2, r: 28, k: 0.3, spin: 2 }; // k 0.3: V at ~200% (0.35 -> 204, 0.5 -> 216)
+// the aura's sources: the tower, then each moon at FRZ_MOON_SCALE of everything, then their small moons
 function frzSources(t, st) {
   const out = [{ x: t.x, y: t.y, k: 1, id: t.id }];
-  if (st.moonN) moonSpots(t, { moons: st.moonN }).forEach((m, i) => out.push({ x: m.x, y: m.y, k: st.moonK, id: t.id + ":moon" + i }));
+  if (!st.moonN) return out;
+  const moons = moonSpots(t, { moons: st.moonN });
+  moons.forEach((m, i) => out.push({ x: m.x, y: m.y, k: st.moonK, id: t.id + ":moon" + i }));
+  if (st.subMoons) {
+    const a0 = -(t.spin || 0) * MOON_SPIN * FRZ_SUBMOON.spin, S = FRZ_SUBMOON;
+    moons.forEach((m, i) => { for (let j = 0; j < S.n; j++) { const a = a0 + j * 2 * Math.PI / S.n;
+      out.push({ x: m.x + Math.cos(a) * S.r, y: m.y + Math.sin(a) * S.r, k: st.moonK * S.k, id: t.id + ":moon" + i + ":" + j, small: true }); } });
+  }
   return out;
 }
 // every step (aspira-game.js): slow what is inside each aura, tick its damage,
@@ -409,7 +419,7 @@ function drawFrzSkill(t, st) {
     ctx.beginPath(); ctx.arc(s.x, s.y, st.range * s.k, 0, 6.283); ctx.stroke();
     // a MOON (every source after the tower; Moons III's are full strength, so
     // not "k < 1" - owner: they went missing) is a TRIANGLE pointing at the tower
-    if (i) { ctx.fillStyle = col; ctx.globalAlpha = 0.95; poly(s.x, s.y, MOON_TRI, 3, Math.atan2(t.y - s.y, t.x - s.x), false); ctx.fill(); }
+    if (i) { ctx.fillStyle = col; ctx.globalAlpha = 0.95; poly(s.x, s.y, s.small ? MOON_TRI * 0.55 : MOON_TRI, 3, Math.atan2(t.y - s.y, t.x - s.x), false); ctx.fill(); }
   });
   // Rime (owner): a THIN expanding ring with a GLOW
   ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.shadowColor = col; ctx.shadowBlur = 12 * cam.k;
