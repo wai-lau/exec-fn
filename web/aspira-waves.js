@@ -163,7 +163,7 @@ function drawSlotFlash() {
   if (!slotFlash || performance.now() > slotFlash.until) { slotFlash = null; return; }
   const on = blinkWave() > 0.5; // the one blink (2026-10-08; was 2 a second)
   cellPath(CELLS[slotFlash.ci], 0.94);
-  ctx.strokeStyle = COL.white; ctx.lineWidth = 4; ctx.globalAlpha = on ? 1 : 0.25; ctx.stroke(); ctx.globalAlpha = 1;
+  ctx.strokeStyle = COL.white; ctx.lineWidth = 4; ctx.globalAlpha = on ? 1 : 0.35; ctx.stroke(); ctx.globalAlpha = 1;
 }
 
 // ---------- the credits over the core (UI only; aspira-draw.js calls it) ----------

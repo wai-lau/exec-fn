@@ -48,7 +48,7 @@ function drawCoreHud() {
     const left = (t.relayUntil || 0) - (G.clock || 0);
     if (left <= 0) continue;
     ctx.strokeStyle = COL.white; glow(COL.white, 20); ctx.lineWidth = 6;
-    ctx.globalAlpha = 0.4 + 0.6 * blinkWave(); // the one blink (2026-10-08; was its own 2.5s sine)
+    ctx.globalAlpha = 0.5 + 0.5 * blinkWave(); // softer (was 0.4 + 0.6) // the one blink (2026-10-08; was its own 2.5s sine)
     ctx.beginPath(); ctx.arc(t.x, t.y, CELL_S * 1.7, 0, 6.283); ctx.stroke();
     ctx.shadowBlur = 0; ctx.globalAlpha = 1;
     text("RELAY ×" + RELAY_MUL + " · " + Math.ceil(left) + "s", t.x, t.y - CELL_S * 2.4, RELAY_TEXT, "white", true, true);
