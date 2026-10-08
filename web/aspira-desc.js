@@ -6,7 +6,7 @@
 // (A tower without a composer here would fall back to its axes' `base` / `desc`
 // sentences, aspira-skills.js, run together.)
 const cap = s => s[0].toUpperCase() + s.slice(1);
-const ARC_KEEP = ["half", "most of", "nearly all of", "all of", "more than", "far more than"], ARC_ARCS = ["", "once", "twice", "three times", "four times", "five times"];
+const ARC_KEEP = ["half", "most of", "nearly all of", "all of", "more than", "far more than"], ARC_ARCS = ["", "once", "twice", "three times", "four times", "five times"], ARC_RETURN = ["", "", "", "once", "twice", "three times"];
 // thematic words where they fit (owner): chill, rime, brittle, moons; rays, refract, pierce; jets, etch.
 // ONLY BEHAVIOUR is told here (owner, 2026-10-07): a tier that just moves a number - harder
 // hits, a colder or wider aura, faster pulses, a stronger acid, more or bigger puddles -
@@ -21,7 +21,7 @@ const DESCRIBE = {
   // three / twin; Voltage: most of .. all of (its harder hit is a stat row); Capacitance: the charge sentence (owner's words)
   arc(sk) {
     const c = sk.conductivity || 0, v = sk.voltage || 0, z = sk.capacitance || 0;
-    let s = [c >= 5 ? "three" : c >= 3 ? "twin" : "", "arcs", c >= 4 ? "chain twice and" : c >= 1 ? "chain once and" : "", "fork", c >= 2 ? "into three" : "", "on hit, each jump carrying", ARC_KEEP[v], "the hit."].filter(Boolean).join(" ");
+    let s = [c >= 5 ? "three" : c >= 3 ? "twin" : "", "arcs", c >= 4 ? "chain twice and" : c >= 1 ? "chain once and" : "", "fork", c >= 2 ? "into three" : "", c >= 3 ? "on hit, returning to struck enemies " + ARC_RETURN[c] + ", each jump carrying" : "on hit, each jump carrying", ARC_KEEP[v], "the hit."].filter(Boolean).join(" ");
     if (z) s += " Hits charge the target, charged targets arc " + ARC_ARCS[z] + " when hit by anything" + (z >= 3 ? ", slowing what they hit." : ".");
     return cap(s);
   },

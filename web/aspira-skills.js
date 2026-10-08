@@ -188,7 +188,9 @@ const ARC_VOLTAGE_DMG = [1, 1.4, 1.9, 2.8, 3.6, 4.6], ARC_VOLTAGE_FALL = [0.5, 0
 // and r, how much further each JUMP reaches (owner; Voltage owns the tower's range)
 // d: a damage multiplier, FITTED so each tier deals +25% / +50% / +100% over
 // the base (owner), like Voltage's (scripts/aspira-sim: arcfit)
-let ARC_CONDUCTIVITY = [{ s: 1, j: 1, f: 2, r: 1, d: 1 }, { s: 1, j: 2, f: 2, r: 1.2, d: 1 }, { s: 1, j: 2, f: 3, r: 1.4, d: 1 }, { s: 2, j: 2, f: 3, r: 1.6, d: 1 }, { s: 2, j: 3, f: 3, r: 1.8, d: 1 }, { s: 3, j: 3, f: 3, r: 2, d: 1 }]; // IV chains twice, V three arcs (2026-10-07) // owner 2026-10-06: a tier never lowers the hit (d was 1 / .775 / .613 / .394); the tree and the jump reach pay for it
+let ARC_CONDUCTIVITY = [{ s: 1, j: 1, f: 2, r: 1, d: 1, v: 0 }, { s: 1, j: 2, f: 2, r: 1.2, d: 1, v: 0 }, { s: 1, j: 2, f: 3, r: 1.4, d: 1, v: 0 }, { s: 2, j: 2, f: 3, r: 1.6, d: 1, v: 1 }, { s: 2, j: 3, f: 3, r: 1.8, d: 1, v: 2 }, { s: 3, j: 3, f: 3, r: 2, d: 1, v: 3 }]; // IV chains twice, V three arcs (2026-10-07) // owner 2026-10-06: a tier never lowers the hit (d was 1 / .775 / .613 / .394); the tree and the jump reach pay for it
+// v: how many times a bolt may RETURN to an enemy it already struck (owner, 2026-10-08): from III a jump may hit any
+// enemy but the one it leaps from - III once more (2 hits an enemy), IV twice (3), V three times (4)
 // Capacitance by tier (owner, 2026-10-07): the charge, x the hit that left it, and
 // how many times the charged enemy ARCS when next hit (dischargeStatic). The
 // charge shares are the old ring's fits (2026-10-06: +25 / +50 / +100%); refit later
@@ -205,7 +207,7 @@ function arcSkillStats(t, s, b) {
   const c = skillOf(t, "conductivity"), v = skillOf(t, "voltage"), z = skillOf(t, "capacitance");
   s.dmg = b.dmg * ARC_VOLTAGE_DMG[v] * ARC_CONDUCTIVITY[c].d; s.range = b.range * RANGE_BONUS;
   const sh = ARC_CONDUCTIVITY[c]; // Conductivity: strikes, jumps AND forks
-  s.arcRange = ARC_JUMP_BASE * ARC_VOLTAGE_JUMP[v] * sh.r; s.targets = sh.s; s.layers = sh.j; s.branch = sh.f;
+  s.arcRange = ARC_JUMP_BASE * ARC_VOLTAGE_JUMP[v] * sh.r; s.targets = sh.s; s.layers = sh.j; s.branch = sh.f; s.revisit = sh.v || 0;
   s.arcFall = ARC_VOLTAGE_FALL[v]; s.arcShrink = ARC_SHRINK; s.charge = ARC_CAPACITANCE[z]; s.statSlow = ARC_STAT_SLOW[z]; s.skill = true;
 }
 // what the upgrade cards offer: the next tier of each axis not yet full
@@ -242,8 +244,8 @@ function fireSkillChain(t, st, e, seen) {
   const v = skillOf(t, "voltage");
   if (v) root.fx.pierce = true;
   if (v >= SKILL_TIERS) burst(e.x, e.y, "white", 6);
-  const c = { t, st, col, skill: true, seen: seen || new Set() }; // shared by the attack's strikes
-  c.seen.add(e.id);
+  const c = { t, st, col, skill: true, seen: seen || new Set(), hits: new Map() }; // shared by the attack's strikes
+  c.seen.add(e.id); c.hits.set(e.id, 1);
   skillHit(c, e, d);
   branchFrom(c, root, 1);
 }
@@ -301,11 +303,13 @@ function chainPick(t, from, r2, skip) {
 }
 function skillHop(c, node, depth) {
   const r = c.st.arcRange * c.st.arcShrink ** (depth - 1);
-  return chainPick(c.t, node.e, r * r, o => c.seen.has(o.id));
+  // never the enemy it leaps from; an enemy already struck only while its hits are under 1 + st.revisit (Conductivity III+)
+  const max = 1 + (c.st.revisit || 0);
+  return chainPick(c.t, node.e, r * r, o => o.id === node.e.id || (c.hits.get(o.id) || 0) >= max);
 }
 function skillHopTo(c, node, nxt, depth) {
   const raw = c.st.dmg * c.st.arcFall ** depth, d = shotDamage(c.t, c.st, nxt, raw);
-  node.kids.add(nxt.id); c.seen.add(nxt.id);
+  node.kids.add(nxt.id); c.seen.add(nxt.id); c.hits.set(nxt.id, (c.hits.get(nxt.id) || 0) + 1);
   beam(node.e, nxt, c.col, CHAIN_BEAM_LIFE, 1.5, d);
   fx[fx.length - 1].alpha = Math.min(1, raw / c.st.dmg); // as opaque as the share of the strike it carries
   if (skillOf(c.t, "voltage")) fx[fx.length - 1].pierce = true; // Voltage's white-hot core
