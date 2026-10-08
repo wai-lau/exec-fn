@@ -103,7 +103,7 @@ function sendWave() {
     for (let j = 0; j < k; j++) {
       const part = list.slice(j * per, (j + 1) * per);
       if (!part.length) continue;
-      const ang = (j / k) * Math.PI * 2;
+      const ang = (laneTurn(G.wave) + (j / k) * Math.PI * 2) % (Math.PI * 2); // the wave's turn round the rim, then the split
       // a boss arrives BOSS_INTRO s into its wave, after its warning (owner)
       G.spawns.push({ n: G.wave, list: part, lanes, ang, idx: 0, timer: boss ? BOSS_INTRO : 0 });
       // each lane copy remembers how many it was sent, for its brightness
@@ -115,29 +115,20 @@ function sendWave() {
 }
 
 
-// Each enemy TYPE in a wave owns one lane for that wave. Type k of wave n
-// takes lane (n*5 + k*7) % 12: 7 is coprime with 12, so the (up to five)
-// types of one wave always land on five different lanes, and 5n rotates the
-// whole set round the rim from wave to wave.
+// Each enemy TYPE rides ITS OWN spiral pair (owner, 2026-10-08: one speed for all, the
+// spiral sets the pace - fast takes the most direct; turns solved per type, PAIR_TURNS
+// in aspira-defs.js), always the pair's CLOCKWISE twin (EVERYTHING rides clockwise,
+// owner 2026-10-05: the odd lane of a pair). So the entry still moves round the rim,
+// each wave turns the whole set laneTurn(n) about the core (5 slots a wave, as the
+// old (n*5 + k*7) % 12 rotation did) - the parts of a split group ride copies turned on from there.
+// (Was: type k of wave n took lane (n*5 + k*7) % 12, each type at its own speed.)
+const TYPE_PAIR = { fast: 0, bonus: 1, swarm: 2, shield: 3, armor: 4 };
 const TYPE_ORDER = Object.keys(ENEMIES);
-// a BOSS rides a lane of at least BOSS_MIN_TURNS loops round the core (owner):
-// a shorter pick moves on to the next lane that long (its HP scales with the
-// lane's length anyway - bossSpawn)
-const BOSS_MIN_TURNS = 5;
-// EVERYTHING rides CLOCKWISE (owner, 2026-10-05; bosses briefly had the
-// counter-clockwise lanes to themselves): lanes come in mirror pairs, the even
-// one of each winding counter-clockwise on screen (defs dir -1), the odd one
-// clockwise. A type landing on an even lane takes its pair's odd twin - the
-// same length, mirrored, so the balance holds - and a boss moves on to the next
-// clockwise lane of BOSS_MIN_TURNS+ turns.
 const isCcw = pi => pi % 2 === 0;
-function laneMap(n) {
+const laneTurn = n => ((n * 5) % N_PATHS) * 2 * Math.PI / N_PATHS;
+function laneMap() {
   const out = {};
-  TYPE_ORDER.forEach((type, k) => {
-    const pi = (n * 5 + k * 7) % N_PATHS;
-    out[type] = isCcw(pi) ? pi + 1 : pi;
-  });
-  while (isCcw(out.bonus) || PATHS[out.bonus].turns < BOSS_MIN_TURNS) out.bonus = (out.bonus + 1) % N_PATHS;
+  for (const type of TYPE_ORDER) out[type] = 2 * TYPE_PAIR[type] + 1;
   return out;
 }
 

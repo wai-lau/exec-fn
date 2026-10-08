@@ -10,8 +10,8 @@ const CANVAS_FONT = "'Iosevka Mayukai Monolite', monospace";
 // Twelve spirals, one entering every 30 degrees around the rim. A FIXED
 // layout, the same every game: lanes come in mirror pairs (2j, 2j+1) that wind
 // in opposite directions with the same turn count, so each pair is symmetric
-// about its own axis, and the six pairs climb from 3 full turns to 8 round the
-// clock (PAIR_TURNS). Archimedean (even spacing) from R0 in to the core.
+// about its own axis; each pair's turn count is its enemy TYPE's (PAIR_TURNS,
+// solved for time under fire). Archimedean (even spacing) from R0 in to the core.
 // R0 sits past the canvas corners (707 from centre), so every lane starts
 // off-screen and enemies drift in from beyond the chart; RIM_R is the chart's
 // graduated rim, where each lane's entry marker and numeral are drawn.
@@ -92,7 +92,13 @@ function cellAt(x, y) {
     return (q.x - p.x) * (y - p.y) - (q.y - p.y) * (x - p.x) >= 0;
   }));
 }
-const PAIR_TURNS = [3, 4, 5, 6, 7, 8];
+// ONE SPEED, ONE SPIRAL PER TYPE (owner, 2026-10-08): every enemy moves at ENEMY_BASE_SPEED and its TYPE picks
+// its spiral pair (TYPE_PAIR, aspira-waves.js) - fast takes the most direct one. Each pair's turns were SOLVED so
+// the type keeps the TIME UNDER FIRE (inside FIRE_R of the core) it had at its old speed, averaged over its old
+// lanes: fast 9.3 s, swarm 10, boss 27.3, shield 33.4, armor 41.7 - with at least 1.5 turns under fire on every
+// lane (fast exactly 1.5; that set the speed). Pairs: 0 fast, 1 boss, 2 swarm, 3 shield, 4 armor, 5 spare (as 3).
+// Was [3, 4, 5, 6, 7, 8] with each type riding a different lane every wave at its own speed.
+const PAIR_TURNS = [1.9, 5.86, 2.06, 7.22, 8.78, 7.22], FIRE_R = 250;
 // Winding is driven by the lane's PITCH (its angle off straight-in), not by
 // angle-vs-t: theta(t) = turns * 2pi * F(t) / F(1) with F' = t^TANGENT_Q / r(t).
 // The pitch then grows smoothly from 0 (tan pitch ~ t^q), so the lane leaves
@@ -104,9 +110,8 @@ const TANGENT_Q = 2;
 // uses 1 / (r + LANE_SOFT_R), so the same turns spread outward instead of
 // packing into the last few dozen units around the core
 const LANE_SOFT_R = 200;
-// An 8-turn lane is ~2.5x longer than a 3-turn one. Enemies on it move
-// faster (pace = (len / shortest)^0.6) so it takes ~1.4x as long, not 2.5x.
-const PACE_EXP = 0.6;
+// pace 1 on every lane (owner, 2026-10-08: one speed for all; was (len / shortest)^0.6, a long lane ridden faster)
+const PACE_EXP = 0;
 // Straight radial lead-in from LEAD_R to R0 ahead of every spiral, so on a
 // wide screen a lane never visibly BEGINS in open space. The spiral leaves R0
 // pointing straight outward (angle ~ t^2.2), so the join has no kink.
@@ -126,7 +131,7 @@ function ellipse(x, y, ax, stretch) {
 
 function buildSpiral(i) {
   const a0 = ((i + 0.5) / N_PATHS) * Math.PI * 2 - Math.PI / 2;
-  const dir = i % 2 ? 1 : -1, turns = PAIR_TURNS[i >> 1], steps = 160 * turns + 240;
+  const dir = i % 2 ? 1 : -1, turns = PAIR_TURNS[i >> 1], steps = Math.round(160 * turns) + 240; // (rounded: turns may be fractional)
   // odd pairs are elliptical: stretched along the pair's own mirror axis, so
   // the pair stays symmetric; ax = that axis, stretch = 0 for round pairs
   const ax = (((i >> 1) * 2 + 1) / N_PATHS) * Math.PI * 2 - Math.PI / 2;
@@ -283,18 +288,20 @@ const MODES = [["fresh", "Fresh"], ["biggest", "Biggest"], ["close", "Near"]];
 // shield shows as concentric outlines, armor as a thick outline (drawEnemy).
 // speeds (owner, 2026-10-02): fast doubled to 270, then eased to 220; shield and armor halved to
 // 37.5 and 30
+// every type's speed (x ENEMY_SPEED 1.5 = 114 units/s): fast's lane at exactly 1.5 turns under fire for its 9.3 s
+const ENEMY_BASE_SPEED = 76;
 const ENEMIES = {
-  fast:   { sides: 3, hp: 1.3,  speed: 135, /* 2026-10-08 (owner): just a bit faster than swarm (125), with a bit more HP (was 1.0 / 150) - SOL's slow heavy shot catches them.  2026-10-07: 187 -> 150 with x2 bodies (TYPE_COUNT_MUL): the top late leaker; still faster than swarm (125). 2026-10-06: 220 -> 187 */ bounty: 0.8, size: 12, color: "green" }, // owner 2026-10-02: hp 0.6 -> 1.0; green (was orange)
+  fast:   { sides: 3, hp: 1.3,  speed: ENEMY_BASE_SPEED, /* 2026-10-08 (owner): ONE SPEED for all; was 135 */ /* 2026-10-08 (owner): just a bit faster than swarm (125), with a bit more HP (was 1.0 / 150) - SOL's slow heavy shot catches them.  2026-10-07: 187 -> 150 with x2 bodies (TYPE_COUNT_MUL): the top late leaker; still faster than swarm (125). 2026-10-06: 220 -> 187 */ bounty: 0.8, size: 12, color: "green" }, // owner 2026-10-02: hp 0.6 -> 1.0; green (was orange)
   // swarms: twice as many again and faster (owner, 2026-10-02: 95 -> 125), the
   // bounty halved so a swarm wave pays what it did
-  swarm:  { sides: 4, hp: 0.14, speed: 125, bounty: 0.18, size: 6, color: "white" },
-  shield: { sides: 5, hp: 0.6,  speed: 37.5, bounty: 1.6, size: 13, color: "cyan", shield: 8 }, // owner 2026-10-02: less HP (0.9), more shield (5)
-  armor:  { sides: 7, hp: 1.0,  speed: 30, bounty: 2,   size: 15, color: "pink", armor: 12 }, // 2026-10-08: halved with all damage / HP (was 24) // owner: 6 -> 15; 2026-10-02 less HP (1.6), more armor (15)
+  swarm:  { sides: 4, hp: 0.14, speed: ENEMY_BASE_SPEED, /* was 125 */ bounty: 0.18, size: 6, color: "white" },
+  shield: { sides: 5, hp: 0.6,  speed: ENEMY_BASE_SPEED, /* was 37.5 */ bounty: 1.6, size: 13, color: "cyan", shield: 8 }, // owner 2026-10-02: less HP (0.9), more shield (5)
+  armor:  { sides: 7, hp: 1.0,  speed: ENEMY_BASE_SPEED, /* was 30 */ bounty: 2,   size: 15, color: "pink", armor: 12 }, // 2026-10-08: halved with all damage / HP (was 24) // owner: 6 -> 15; 2026-10-02 less HP (1.6), more armor (15)
   // the rare BOSS (owner, 2026-10-02): every 10th wave, ALONE; an octagon,
   // x5 HP, x2 size, half speed (100 -> 50), and letting it through costs 10 lives. `star` still marks
   // it as the bonus (lane, tracer, drop); `pointy` would draw a star shape.
   // cyan, so it reads RED on the inverted sky it brings (owner)
-  bonus: { sides: 8, hp: 3.5, speed: 50, bounty: 3,   size: 28, color: "cyan", star: true, leak: 10 }, // owner 2026-10-02: yellow = Marigold (was cyan)
+  bonus: { sides: 8, hp: 3.5, speed: ENEMY_BASE_SPEED, /* was 50 */ bounty: 3,   size: 28, color: "cyan", star: true, leak: 10 }, // owner 2026-10-02: yellow = Marigold (was cyan)
 };
 
 const POWERS = [

@@ -55,10 +55,9 @@ let EMPRESS_BROOD = 12; // fitted 2026-10-05 (was 30): her HP was never the leve
 const CHARIOT_EVERY = 4, CHARIOT_T = 1, CHARIOT_SPD = 3, LOVERS_SPD = 1.5;
 const TEMPERANCE_REGEN = 0.06, DEVIL_COPIES = 5, JUSTICE_CAP = 0.02, JUDGEMENT_REVIVE = 0.5;
 
-// how far an enemy on lane pi travels, entry to core, and the average over all lanes
-const laneTravel = pi => PATHS[pi].len - entryS(pi);
-let meanTravelV = 0;
-const meanTravel = () => meanTravelV || (meanTravelV = PATHS.reduce((a, p, i) => a + laneTravel(i), 0) / PATHS.length);
+// a boss's HP scaled with its lane's length while it rode a different lane each boss wave; it has ONE
+// spiral now (owner, 2026-10-08), so the old average factor (1.107 over the boss waves) stands as a constant
+const BOSS_LANE_HP = 1.107;
 // the game-over title when a BOSS gets through (owner: "overwhelmed by strength")
 const BOSS_BREACH = {
   star: "eclipsed by the star", empress: "smothered by the empress", strength: "overwhelmed by strength",
@@ -85,7 +84,7 @@ function bossSpawn(e, n) {
   // ...and by the DISTANCE its lane makes it travel (owner): a long lane keeps
   // it under fire longer, so it gets proportionally more HP (x0.5 .. x1.6, the
   // average lane x1)
-  e.max = Math.floor(e.max * laneTravel(e.pi) / meanTravel()); e.hp = e.max; // whole HP
+  e.max = Math.floor(e.max * BOSS_LANE_HP); e.hp = e.max; // whole HP
   // each boss a size bigger than the last (owner): Star x1.1 ... Death x2
   e.sizeMul = 1 + 0.1 * (ARCANA.findIndex(a => a.id === e.arcana) + 1);
   const mate = bossCount(n) === 2 && G.enemies.find(o => o !== e && !o.dead && o.arcana === e.arcana && o.n === n && !o.mate);
