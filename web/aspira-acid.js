@@ -14,7 +14,7 @@
 //   st.corrode    armor stripped from everything a tick burns, below zero
 //   st.allInRange no lines: every enemy in range burns on its own ramp
 // ACD_BASE_MAX 64 -> 32 (overnight phase 3, 2026-10-06): ACD dealt 52-99% of a late team's damage
-const ACD_BASE_DOUBLE = 1, ACD_BASE_MAX = 32;
+const ACD_BASE_DOUBLE = 1, ACD_BASE_MAX = 16; // halved (owner, 2026-10-08: ACD out-bossed SOL - a ramp that holds on a long-lived boss reached x32)
 const acdMulOf = (held, st) => Math.min(st.cap, 2 ** (held / st.double));
 const acdFrac = (l, st) => Math.log2(acdMulOf(l.held, st)) / Math.log2(st.cap); // 0 fresh .. 1 full burn
 function plagueRadius(l, st) {
