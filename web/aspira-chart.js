@@ -43,7 +43,7 @@ function boardChart(t, x, y, alpha, c0) {
     const k = skillOf(t, ax.id);
     if (!k) return;
     const [px, py] = pt(i, SKILL_TIERS);
-    text(roman(k), x + (px - x) * CORNER_NUMERAL_OUT, y + (py - y) * CORNER_NUMERAL_OUT, CORNER_NUMERAL_PX, "white", true, true);
+    text(roman(k), x + (px - x) * CORNER_NUMERAL_OUT, y + (py - y) * CORNER_NUMERAL_OUT, CORNER_NUMERAL_PX, TOWERS[t.kind].color, true, true); // in the tower's colour (owner)
   });
 }
 const CORNER_NUMERAL_OUT = 1.32, CORNER_NUMERAL_PX = 10; // the numeral sits just OUTSIDE its corner of the hex (owner)
