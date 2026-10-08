@@ -17,10 +17,10 @@ function powerTap(d) {
 }
 // while the Relay is armed, a flashing white ring round every tower says "tap one" - on the
 // same 0.7s beat as the online buttons (aspira.css asp-flash); drawScene calls it after the towers
-const RELAY_RING_K = 1.3, RELAY_RING_BEAT = 0.7;
+const RELAY_RING_K = 1.3;
 function drawRelayArm() {
   if (!ui.relayArm) return;
-  const p = (performance.now() / 1000 / RELAY_RING_BEAT) % 1, a = 0.15 + 0.85 * Math.abs(Math.cos(p * Math.PI));
+  const a = 0.15 + 0.85 * blinkWave(); // the one blink
   ctx.strokeStyle = COL.white; ctx.lineWidth = 3; ctx.shadowColor = COL.white; ctx.shadowBlur = 14 * cam.k * a;
   for (const t of G.towers) {
     const c0 = CELLS[t.cell], r = Math.hypot(c0.pts[0].x - c0.x, c0.pts[0].y - c0.y) * TOWER_K * RELAY_RING_K;

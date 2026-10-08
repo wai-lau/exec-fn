@@ -260,6 +260,10 @@ function resolveColors() {
 // sized by VIS_DMG x the damage, so they look as they did before the halving.
 const VIS_DMG = 2;
 const dmgUnits = v => Math.floor(v);
+// ONE BLINK for everything that blinks (owner, 2026-10-08): CSS --asp-blink (aspira.css) is the same 0.7s.
+// blinkWave(): 1 bright .. 0 dim, in phase with the CSS (its 0% is the bright end; syncBlinks pins it to t = 0)
+const BLINK_S = 0.7;
+const blinkWave = () => 0.5 + 0.5 * Math.cos(2 * Math.PI * performance.now() / 1000 / BLINK_S);
 const TOWERS = {
   arc:     { name: "Arc",     ab: "ARC", color: "orange",   cost: 40,  dmg: 48, rate: 1.5, /* 2026-10-08: every damage / HP / armor HALVED (owner, the display unit made real; was 96).  2026-10-06: was 42, then 48 (late), now 96 - a shot lands for half as long with the range halved (owner, 2026-10-06), so it hits twice as hard */  range: 130 /* owner 2026-10-06: 1.5x the halved 86.7, which felt too small */, blurb: "Arcs fork on hit, so one bolt leaps through a whole swarm.", up: "extra arcs" },
   frz:     { name: "Freeze",  ab: "FRZ", color: "cyan",   cost: 40,  dmg: 15, rate: 2.4, /* 2026-10-08: halved (was 30).  early-game balance 2026-10-06: was 2.5, then 5, then 12; 30 - the aura TICK is FRZ's own damage and pops a swarm (the Empress' children) the halved aura would otherwise miss */  range: 88,  blurb: "A chill slows all it holds, so every other tower gets more time to hit.", up: "slow strength" },

@@ -161,7 +161,7 @@ const SLOT_TEXT_S = 4, SLOT_FLASH_S = 12;
 let slotFlash = null;
 function drawSlotFlash() {
   if (!slotFlash || performance.now() > slotFlash.until) { slotFlash = null; return; }
-  const on = Math.floor(performance.now() / 250) % 2 === 0; // 2 flashes a second
+  const on = blinkWave() > 0.5; // the one blink (2026-10-08; was 2 a second)
   cellPath(CELLS[slotFlash.ci], 0.94);
   ctx.strokeStyle = COL.white; ctx.lineWidth = 4; ctx.globalAlpha = on ? 1 : 0.25; ctx.stroke(); ctx.globalAlpha = 1;
 }

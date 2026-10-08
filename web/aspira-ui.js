@@ -51,6 +51,12 @@ function placeTower(p) {
 }
 // a TAP on the board (aspira-camera.js decides tap vs drag/pinch): select a
 // tower, place the one being built, or clear the selection
+// every CSS blink on ONE phase (owner, 2026-10-08): an animation starts when its class lands, so two
+// blinkers drift apart - pin each to the timeline's zero, where blinkWave() is bright too
+const BLINKS = new Set(["asp-flash", "asp-build-pulse"]);
+function syncBlinks() {
+  for (const a of $("asp").getAnimations({ subtree: true })) if (BLINKS.has(a.animationName) && a.startTime !== 0) a.startTime = 0;
+}
 function onTap(ev) {
   if (G.over) return;
   const p = toWorld(ev);
@@ -430,7 +436,7 @@ function frame(now) {
   // so its CSS blur (aspira.css .asp-choosing) is computed once, not per frame
   if (!chooser.t) render();
   // the HUD's text and buttons 10x a second, not every frame (perf, 2026-10-05)
-  if (!(now < hudAt)) { hudAt = now + 100; updateHud(); }
+  if (!(now < hudAt)) { hudAt = now + 100; updateHud(); syncBlinks(); }
   placePop(); tickFps(now);
   // while a boss lives the board draws inverted (render, bossSkyStep); the HTML over it
   // flips too once the inversion fills the screen, so it stays readable
