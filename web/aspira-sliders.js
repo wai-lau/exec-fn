@@ -8,7 +8,7 @@
 // a basket it cannot cover shows its cost in red on a button that will not take
 // the tap (the handles flash only where a point IS affordable). The U key
 // locks in (1-3 stay the speed keys). UI only; loaded after aspira-chart.js and
-// before aspira-ui.js, whose helpers (statRow, button, noFunds, SPEC, ...) it
+// before aspira-ui.js, whose helpers (button, noFunds, ...) and aspira-stats.js's (statRow, SPEC) it
 // calls at run time.
 const basket = { id: null, add: {} }; // the pulled points per axis of the selected tower
 function basketFor(t) { if (basket.id !== t.id) { basket.id = t.id; basket.add = {}; } return basket.add; }

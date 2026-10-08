@@ -4314,6 +4314,7 @@ towers, draw, ui):
 | `web/aspira-lanes.js` | lane strokes, wave:track labels (non-overlapping), lit-lane fades |
 | `web/aspira-camera.js` | zoom (wheel / pinch) + drag-to-pan view; tap vs drag → `onTap` |
 | `web/aspira-ui.js` | HUD, decks, input, overlay, rAF loop (fixed 20ms substeps × speed) |
+| `web/aspira-stats.js` | the tower card's stat rows: `SPEC` (each kind's own rows), `worse()`, `statRow()` - split from aspira-ui.js at its 500-line cap (2026-10-08) |
 
 **Colours never live in the JS.** The template carries hidden `.asp-sw`
 swatches styled from chrome.css tokens; `resolveColors()` reads their computed
@@ -4586,7 +4587,7 @@ Every card (tower, build, upgrade) puts its TAGLINE right under the title (owner
 WIN and LOSS (owner, 2026-10-02): the game is WON when the 10th boss falls - no wave comes after wave 100 (`WIN_WAVE`); once its field clears, `winGame()` scores +1000 per life left and shows 'the core holds'. Any BOSS that reaches the core ends the game outright (lives to 0).
 The bonus STAR's lane draws 3x as opaque as other lit lanes (owner, 2026-10-02): `activeLanes` carries `star`, `drawLaneStrokes` multiplies both strokes by 3 (core 0.9, glow 0.09).
 The star also trails a shooting-star tracer (owner, 2026-10-02): `drawStarTrail` strokes 14 segments back along its lane over `STAR_TAIL` = 140, thinning and fading to nothing.
-Upgrade previews mark a stat that gets WORSE in red, bold (owner, 2026-10-02): `worse()` in aspira-ui.js compares the last number of each value (lower-is-better for `LOWER_BETTER`: Delay, Ramp; a number giving way to "—" counts as worse) and adds `.asp-worse` (`--orange-glow-hsl`, Ember, the palette's red). E.g. Contagion: Range 211 -> 138, Circle 45 -> —.
+Upgrade previews mark a stat that gets WORSE in red, bold (owner, 2026-10-02): `worse()` in aspira-stats.js compares the last number of each value (lower-is-better for `LOWER_BETTER`: Delay, Ramp; a number giving way to "—" counts as worse) and adds `.asp-worse` (`--orange-glow-hsl`, Ember, the palette's red). E.g. Contagion: Range 211 -> 138, Circle 45 -> —.
 Enemy colours (owner, 2026-10-02): Fast is green (was orange); the bonus star is Marigold, the palette's yellow (was cyan) - its lane, tracer and label follow.
 ARC's popup row "Leash" is now "Limit" (owner, 2026-10-02); the code keeps `CHAIN_LEASH`.
 Shield and armor enemies trade HP for defence (owner, 2026-10-02): shield hp 0.9 -> 0.6, shield 5 -> 8 charges; armor hp 1.6 -> 1.0, armor 15 -> 24 (both still scale with the HP curve).
@@ -4599,7 +4600,7 @@ level) only SELECTS (`ui.pick`) and previews its stat changes ("-> next") in bot
 popup columns; a `confirm · cost` button buys it. U picks the plain upgrade,
 then U again confirms. No preview shows until an option is picked.
 The tower popup has TWO stat columns (owner): left = every tower's Damage /
-Range / Rate / Kills / Dealt, right = that type's own (`SPEC` in aspira-ui.js:
+Range / Rate / Kills / Dealt, right = that type's own (`SPEC` in aspira-stats.js:
 ARC hits / arc dmg / arc reach / leash / delay, FRZ slow / lasts / targets /
 shields, RAY crit / crit x / locks / ignores), each with its "-> next" preview.
 FRZ's slow now lasts ~2.6s (owner: quartered again).
