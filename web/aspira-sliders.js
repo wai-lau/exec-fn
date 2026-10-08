@@ -106,17 +106,22 @@ function refreshUpgradePreview(t) {
 }
 
 // ---------- the card's preview: stats, description, button ----------
-// the two stat columns, "now -> next" where the pulled points change a value
-// (statRow paints a change for the worse red); rows the tower has not got yet ("—") are left out
+// the two stat columns (owner, 2026-10-07): the rows that MATTER for this kind on
+// the left, bigger (KEY_STATS, in that order), everything else on the right, small;
+// "now -> next" where the pulled points change a value (statRow paints a change for
+// the worse red); rows the tower has not got yet ("—") are left out
+const KEY_STATS = { arc: ["Damage", "Hits", "Arc dmg", "Charge", "Range"], frz: ["Aura slow", "Range", "Rime", "Moons", "Aura dmg"], sol: ["Damage", "Beams", "Crit", "Crit ×", "Breach", "Refract"], acd: ["Corrode", "Jets", "Peak", "Builds", "Puddles"] };
 function cardStats(t, pv) {
   const b = TOWERS[t.kind], st = towerStats(t), nx = pv ? towerStats(pv) : null, spN = nx ? SPEC[t.kind](nx, pv) : null;
-  const row = (label, now, next) => statRow(label, now, nx && String(next) !== String(now) ? next : null);
-  const base = (b.dmg ? row("Damage", Math.round(st.dmg), nx && Math.round(nx.dmg)) : "") +
-    row("Range", Math.round(st.range), nx && Math.round(nx.range)) + row("Rate", st.rate.toFixed(2) + "/s", nx && nx.rate.toFixed(2) + "/s") +
-    row("Slide", slideSpan(t), nx && slideSpan(pv)) + row("Speed", Math.round(moveSpeed(t)), nx && Math.round(moveSpeed(pv)));
-  const spec = SPEC[t.kind](st, t).map((r, k) => [r[0], r[1], spN ? spN[k][1] : null])
-    .filter(r => r[1] !== "—" || (r[2] != null && r[2] !== "—")).map(r => row(r[0], r[1], r[2])).join("");
-  return '<div class="asp-cols"><dl>' + base + '<dt>Kills</dt><dd id="asp-kills"></dd></dl><dl class="asp-spec">' + spec + "</dl></div>";
+  const rows = [];
+  if (b.dmg && t.kind !== "acd") rows.push(["Damage", Math.round(st.dmg), nx && Math.round(nx.dmg)]); // (ACD's Corrode row is its damage)
+  rows.push(["Range", Math.round(st.range), nx && Math.round(nx.range)], ["Rate", st.rate.toFixed(2) + "/s", nx && nx.rate.toFixed(2) + "/s"],
+    ["Slide", slideSpan(t), nx && slideSpan(pv)], ["Speed", Math.round(moveSpeed(t)), nx && Math.round(moveSpeed(pv))]);
+  SPEC[t.kind](st, t).forEach((r, k) => rows.push([r[0], r[1], spN ? spN[k][1] : null]));
+  const shown = rows.filter(r => r[1] !== "—" || (r[2] != null && r[2] !== "—")), key = KEY_STATS[t.kind] || [];
+  const left = key.map(l => shown.find(r => r[0] === l)).filter(Boolean), right = shown.filter(r => !key.includes(r[0]));
+  const row = ([label, now, next]) => statRow(label, now, nx && String(next) !== String(now) ? next : null);
+  return '<div class="asp-cols"><dl class="asp-key">' + left.map(row).join("") + '</dl><dl class="asp-spec">' + right.map(row).join("") + '<dt>Kills</dt><dd id="asp-kills"></dd></dl></div>';
 }
 // the description: ONE evolving sentence per axis (its `base` at tier 0, the
 // tier's `desc` above it - aspira-skills.js) and, while points are pulled, the
