@@ -19,6 +19,8 @@ caps it) and the single-threaded ones can run side by side.
 | `style.mjs` | upgrade appetite x interest reserve x tower cap |
 | `sim.mjs '<strategy json>' [seed] [maxWave]` | one game, JSON result (waves, leaks by type, damage by tower). `core: [power ids]` + `useCore: true` make the player pick (at the boss picks) and fire the core powers (`corepower.mjs`) |
 | `curve.mjs [seeds] [out.jsonl]` | the difficulty curve: 4 styles x 4 openings, full games with the core -> death-wave p10/p50/p90, lives lost by wave band, first leak, leaks by type |
+| `rand.mjs [games] [out.jsonl]` | RANDOM players (2026-10-08, "too easy to win randomly"): each game rolls its own mix, opening, appetite, axis per point, saver or not, core used or not; win rate split by kinds / economy / core / appetite (`BV_PATCH` patches the game) |
+| `countermx.mjs [seeds]` | the COUNTER MATRIX: every ordinary wave forced to one enemy type, N towers of one kind (spread, or one axis at V) - % of that type leaked (env N, POINTS, WINDOWS, KINDS, BV_PATCH) |
 | `chartvalue.mjs [seeds] [out.jsonl]` | each kind's 10 ways to spend its 6 chart points vs 2/2/2 (team damage + leaks over waves FROM..TO) and the value of every axis tier |
 | `corevalue.mjs [seeds] [out.jsonl]` | each core power (and all three) vs none, picked at the boss picks and used in a real game |
 | `late.mjs [evals] [seeds] [out.jsonl]` | late game from wave START, every open slot maxed, every core power: ten parallel hill-climbs; the mono starts show where each kind walls |
