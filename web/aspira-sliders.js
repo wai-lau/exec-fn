@@ -90,7 +90,7 @@ function pullAxis(t, i, want) {
   if (was !== to - lock) refreshUpgradePreview(t);
   else { const s = document.querySelectorAll(".asp-axis")[i]; if (s) s.value = to; }
   const note = $("asp-slider-note");
-  if (note) note.innerHTML = why || (basketPoints(t) ? "tap " + towerTitle(t) + " to lock it in" : ""); // the pull is not bought until the button is tapped (owner)
+  if (note) note.innerHTML = why; // (no "tap to lock it in" line: the button's flashing says it - owner)
   document.querySelectorAll(".asp-axis").forEach((s, k) => s.classList.toggle("stuck", !!why && k === i));
 }
 // the card's preview parts, re-rendered: the chart (in place), the stats, the description, the button, the spend bar
@@ -128,7 +128,11 @@ function cardStats(t, pv) {
 // change from the locked tier's sentence to the pulled one in TRACK CHANGES
 // The tower's prose (aspira-desc.js describeTower) for the locked tiers against the
 // pulled ones, in a box of FIXED height (owner, 2026-10-07)
-const words = s => (s ? s.split(" ") : []);
+// PUNCTUATION is its own token (owner: "holds." -> "holds, and ..." marked "holds" as changed),
+// so only the mark that changed is struck or inserted; it renders with no space before it
+const words = s => (s ? s.split(" ").flatMap(w => { const m = w.match(/^(.*?)([.,;:]+)$/); return m && m[1] ? [m[1], m[2]] : [w]; }) : []);
+const isPunct = w => /^[.,;:]+$/.test(w);
+const joinWords = ws => ws.reduce((acc, w) => (acc && !isPunct(w) ? acc + " " : acc) + w, "");
 function skillDesc(t, pv) {
   return '<div class="asp-desc">' + wordDiff(words(describeTower(t.kind, t.skills)), words(describeTower(t.kind, pv.skills))) + "</div>";
 }
@@ -141,14 +145,15 @@ function wordDiff(a, b) {
   for (let i = a.length - 1; i >= 0; i--) for (let j = b.length - 1; j >= 0; j--) L[i][j] = sameWord(a[i], b[j]) ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
   const out = [];
   let i = 0, j = 0, del = [], ins = [];
-  const flush = () => { if (del.length) out.push("<del>" + del.join(" ") + "</del>"); if (ins.length) out.push("<ins>" + ins.join(" ") + "</ins>"); del = []; ins = []; };
+  // out: [html, first token] pairs; a piece opening on punctuation takes no space before it
+  const flush = () => { if (del.length) out.push(["<del>" + joinWords(del) + "</del>", del[0]]); if (ins.length) out.push(["<ins>" + joinWords(ins) + "</ins>", ins[0]]); del = []; ins = []; };
   while (i < a.length || j < b.length) {
-    if (i < a.length && j < b.length && sameWord(a[i], b[j])) { flush(); out.push(b[j]); i++; j++; }
+    if (i < a.length && j < b.length && sameWord(a[i], b[j])) { flush(); out.push([b[j], b[j]]); i++; j++; }
     else if (j < b.length && (i >= a.length || L[i][j + 1] >= L[i + 1][j])) ins.push(b[j++]);
     else del.push(a[i++]);
   }
   flush();
-  return out.join(" ");
+  return out.reduce((acc, [h, w]) => (acc && !isPunct(w) ? acc + " " : acc) + h, "");
 }
 // CONFIRM and CANCEL (owner, 2026-10-07): the upgrade button IS the tower's title -
 // "Arc IV", its points locked in, on one line - and while axes are pulled it reads
