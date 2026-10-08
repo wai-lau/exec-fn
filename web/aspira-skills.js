@@ -413,11 +413,15 @@ function drawFrzSkill(t, st) {
 
 // ---------- SOL's chart: Focus beams, Refract cone, Scorch Breaches ----------
 // Breach stacks per hit (owner: "each beam permanently weakens the target's armor" - Breach is what strips it; the base SOL strips nothing)
-const SOL_BEAMS = [1, 2, 3, 4, 5, 6], SOL_REFRACTION = [0, 2, 5, 9, 12, 15], SOL_BREACH = [0, 1, 2, 6, 8, 10];
+const SOL_BEAMS = [1, 2, 3, 4, 5, 6], SOL_REFRACTION = [0, 2, 5, 9, 12, 15];
+// BREACH IS SOL'S OWN, from the start (owner, 2026-10-08): every hit strips SOL_BREACH_ARMOR armor for good
+// (below zero too: a flat bonus on every later hit from every tower); the Breach axis massively
+// increases the strip and adds crit chance for every tower, SOL_BREACH_CRIT a hit (none at base)
+const SOL_BREACH_ARMOR = [2, 5, 9, 14, 20, 28], SOL_BREACH_CRIT = [0, 0.01, 0.02, 0.03, 0.04, 0.05];
 // a refraction lands within SOL_CONE degrees of the first shot's direction (at
 // any distance); one Breach = BREACH_ARMOR armor off and BREACH_CRIT crit
 // chance for every tower
-const SOL_CONE = 8, /* greatly narrowed (owner, 2026-10-07; was 25) */ BREACH_ARMOR = 1.5, BREACH_CRIT = 0.01;
+const SOL_CONE = 8, /* greatly narrowed (owner, 2026-10-07; was 25) */ BREACH_CRIT = 0.01; // (the pre-chart path's per-stack crit; the chart SOL uses SOL_BREACH_CRIT)
 // SOL's own lever (owner: more crit): Breach also raises the crit MULTIPLIER, x3 at base
 const SOL_CRITMUL = [3, 4, 5, 7, 8, 9];
 // FITTED 2026-10-06 to +25 / +50 / +100% (on an HP-scaled field, so nothing
@@ -428,10 +432,13 @@ const SOL_HOP = [1, 0.29, 0.45, 0.7, 0.8, 0.9]; // II / III raised 2026-10-07 (w
 // Refraction peaked at I (107%) and fell by III (93%): range alone spread its fire
 // thin, so II / III also hit harder (owner, 2026-10-07)
 const SOL_REFRACTION_DMG = [1, 1, 1.3, 1.6, 1.8, 2];
+// each Focus tier's beam STRENGTH (2026-10-08, the tier fit's lever for Focus: more beams alone measured 168% at V)
+const SOL_FOCUS_DMG = [1, 1, 1, 1, 1, 1];
 function solSkillStats(t, s, b) {
-  s.dmg = b.dmg * SOL_REFRACTION_DMG[skillOf(t, "refraction")]; s.range = b.range * RANGE_BONUS; s.crit = LVL_SOL_CRIT[0]; s.rate = b.rate;
+  s.dmg = b.dmg * SOL_REFRACTION_DMG[skillOf(t, "refraction")] * SOL_FOCUS_DMG[skillOf(t, "focus")]; s.range = b.range * RANGE_BONUS; s.crit = LVL_SOL_CRIT[0]; s.rate = b.rate;
   s.beams = SOL_BEAMS[skillOf(t, "focus")]; s.refraction = SOL_REFRACTION[skillOf(t, "refraction")];
-  s.breach = SOL_BREACH[skillOf(t, "breach")]; s.critMul = SOL_CRITMUL[skillOf(t, "breach")]; s.bleedArmor = s.breach ? BREACH_ARMOR : 0; s.bleedCrit = BREACH_CRIT; s.skill = true;
+  const bk = skillOf(t, "breach");
+  s.breach = 1; s.critMul = SOL_CRITMUL[bk]; s.bleedArmor = SOL_BREACH_ARMOR[bk]; s.bleedCrit = SOL_BREACH_CRIT[bk]; s.skill = true;
 }
 // from fireRay: bend on from the first enemy hit to st.refraction more, each the
 // nearest not yet hit to the last one, ANYWHERE inside ONE light cone from the
