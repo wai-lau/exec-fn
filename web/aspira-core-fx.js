@@ -58,7 +58,7 @@ function drawCoreHud() {
 // each pulse an EVANGELION AT FIELD (owner, 2026-10-08): nested WHITE OCTAGONS, the power's colour (owner: field and button both white; was orange, then cyan) sweeping out together,
 // the outer one brightest, a faint fill inside it, the whole field shimmering fast; pulses still come
 // every TEMPORAL_RING_EVERY s for the whole freeze (owner, same day; it was one plain cyan ring)
-const AT_LAYERS = 5, AT_STEP = 0.12, AT_FILL = 0.06;
+const AT_LAYERS = 5, AT_STEP = 0.12, AT_FILL = 0.06, AT_EDGE = Math.cos(Math.PI / 8); // AT_EDGE: an octagon's side distance / its corner distance
 function drawTimeStop(c) {
   if (!c.freeze) return;
   const f = c.freeze, shimmer = 0.85 + 0.15 * Math.sin(performance.now() / 40);
@@ -66,7 +66,7 @@ function drawTimeStop(c) {
   for (let t0 = 0; t0 < f.dur && t0 <= f.t; t0 += TEMPORAL_RING_EVERY) {
     const a = f.t - t0; // this pulse's age
     if (a > TEMPORAL_GROW + TEMPORAL_FADE) continue;
-    const A = 0.85 * shimmer * (1 - Math.max(0, a - TEMPORAL_GROW) / TEMPORAL_FADE), R = Math.max(1, TEMPORAL_R * Math.min(1, a / TEMPORAL_GROW));
+    const A = 0.85 * shimmer * (1 - Math.max(0, a - TEMPORAL_GROW) / TEMPORAL_FADE), R = Math.max(1, TEMPORAL_R * Math.min(1, a / TEMPORAL_GROW)) / AT_EDGE; // the octagon's FLAT SIDES on the freeze front (owner: cover what the ring did)
     poly(CX, CY, R, 8, Math.PI / 8, false); ctx.globalAlpha = A * AT_FILL; ctx.fill();
     glow(COL.white, 22);
     for (let k = 0; k < AT_LAYERS; k++) {
