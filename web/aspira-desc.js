@@ -7,7 +7,7 @@
 // sentences, aspira-skills.js, run together.)
 const cap = s => s[0].toUpperCase() + s.slice(1);
 const ARC_KEEP = ["half", "most of", "nearly all of", "all of", "more than", "far more than"], ARC_ARCS = ["", "once", "twice", "three times", "four times", "five times"];
-// thematic words where they fit (owner): chill, rime, brittle, moons; rays, refract, scorch; jets, etch.
+// thematic words where they fit (owner): chill, rime, brittle, moons; rays, refract, pierce; jets, etch.
 // ONLY BEHAVIOUR is told here (owner, 2026-10-07): a tier that just moves a number - harder
 // hits, a colder or wider aura, faster pulses, a stronger acid, more or bigger puddles -
 // changes no words; the card's stat rows show that change (now -> next)
@@ -32,10 +32,10 @@ const DESCRIBE = {
   },
   // "A ray of light, stopping at the first enemy struck; each beam weakens its target's armor for
   // good." (Breach is SOL's own from the start, owner 2026-10-08) -> Focus: two .. six rays, each a
-  // full strike; Refraction: refracting on to more; Breach: armor *greatly*, and scorches it so every tower crits it more
+  // full strike; Refraction: refracting on to more; Breach: armor *greatly*, and pierces it so every tower crits it more
   sol(sk) {
     const f = sk.focus || 0, r = sk.refraction || 0, b = sk.breach || 0;
-    return SOL_RAYS[f] + " of light" + (f ? ", each a full strike" : "") + ", " + SOL_REFRACT[r] + "; each beam weakens its target's armor" + (b ? " greatly" : "") + " for good" + (b ? ", and scorches it so every tower crits it more." : ".");
+    return SOL_RAYS[f] + " of light" + (f ? ", each a full strike" : "") + ", " + SOL_REFRACT[r] + "; each beam weakens its target's armor" + (b ? " greatly" : "") + " for good" + (b ? ", and pierces it so every tower crits it more." : ".");
   },
   // "Two jets of acid, each corroding the enemy. Acid flow is reduced when switching targets."
   // (owner's words) -> Spray: three .. six jets; Corrosion I: the flow HOLDS on a switch;

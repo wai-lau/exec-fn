@@ -104,7 +104,7 @@ function drawStatus(e, d, size) {
     ctx.strokeStyle = COL.cyan; ctx.globalAlpha = 0.9; ctx.lineWidth = 2.5; ctx.stroke();
   }
   // BLEED (SOL's Impale): a pink outline, for good (owner)
-  // BREACH (SOL's Scorch; owner): thin spokes in SOL's colour sticking out of
+  // BREACH (SOL's Pierce; owner): thin spokes in SOL's colour sticking out of
   // the shape, one per stack (BREACH_SPOKES at most drawn), each at a RANDOM
   // angle (owner) fixed for that stack (a hash of the enemy and the stack), turning with it
   if (e.bleedCrit > 0) {
