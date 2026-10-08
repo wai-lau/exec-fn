@@ -249,6 +249,11 @@ function resolveColors() {
 // acd = ACD; older comments still call them chain/slower/reaper/acid (CHN/SLW/RPR)
 // each `blurb` (the build card's tagline) speaks the tower card's own vocabulary (owner,
 // 2026-10-07): arcs that fork, a chill, a ray of light, jets of acid (aspira-desc.js)
+// DISPLAY UNIT (owner, 2026-10-08): every damage, HP and armor number the player READS is the
+// real value / DMG_UNIT, rounded DOWN - so the smallest base hit (ACD's tick, 16.5) reads 1.
+// The game's math is untouched; only what is shown is divided.
+const DMG_UNIT = 16;
+const dmgUnits = v => Math.floor(v / DMG_UNIT);
 const TOWERS = {
   arc:     { name: "Arc",     ab: "ARC", color: "orange",   cost: 40,  dmg: 96, rate: 1.5, /* 2026-10-06: was 42, then 48 (late), now 96 - a shot lands for half as long with the range halved (owner, 2026-10-06), so it hits twice as hard */  range: 130 /* owner 2026-10-06: 1.5x the halved 86.7, which felt too small */, blurb: "Arcs fork on hit, so one bolt leaps through a whole swarm.", up: "extra arcs" },
   frz:     { name: "Freeze",  ab: "FRZ", color: "cyan",   cost: 40,  dmg: 30, rate: 2.4, /* early-game balance 2026-10-06: was 2.5, then 5, then 12; 30 - the aura TICK is FRZ's own damage and pops a swarm (the Empress' children) the halved aura would otherwise miss */  range: 88,  blurb: "A chill slows all it holds, so every other tower gets more time to hit.", up: "slow strength" },

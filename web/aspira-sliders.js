@@ -126,7 +126,7 @@ const KEY_STATS = { arc: ["Damage", "Hits", "Arc dmg", "Charge", "Range"], frz: 
 function cardStats(t, pv) {
   const b = TOWERS[t.kind], st = towerStats(t), nx = pv ? towerStats(pv) : null, spN = nx ? SPEC[t.kind](nx, pv) : null;
   const rows = [];
-  if (b.dmg && t.kind !== "acd") rows.push(["Damage", Math.round(st.dmg), nx && Math.round(nx.dmg)]); // (ACD's Corrode row is its damage)
+  if (b.dmg && t.kind !== "acd") rows.push(["Damage", dmgUnits(st.dmg), nx && dmgUnits(nx.dmg)]); // (ACD's Corrode row is its damage)
   rows.push(["Range", Math.round(st.range), nx && Math.round(nx.range)], ["Rate", st.rate.toFixed(2) + "/s", nx && nx.rate.toFixed(2) + "/s"],
     ["Slide", slideSpan(t), nx && slideSpan(pv)], ["Speed", Math.round(moveSpeed(t)), nx && Math.round(moveSpeed(pv))]);
   SPEC[t.kind](st, t).forEach((r, k) => rows.push([r[0], r[1], spN ? spN[k][1] : null]));
