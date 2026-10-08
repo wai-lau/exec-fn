@@ -41,9 +41,9 @@ const SKILL_TREES = {
       { name: "Vaporize", desc: "Hardest hits; each jump carries all of the hit." },
     ] },
     { id: "capacitance", name: "Capacitance", base: "", tiers: [
-      { name: "Static", desc: "Hits leave a share of themselves behind; the next hit from any tower bursts it." },
-      { name: "Charge", desc: "Hits leave a bigger share of themselves behind; the next hit from any tower bursts it." },
-      { name: "Overload", desc: "Hits leave the biggest share of themselves behind; the next hit from any tower bursts it and slows what it catches." },
+      { name: "Static", desc: "Hits charge the target, charged targets arc once when hit by anything." },
+      { name: "Charge", desc: "Hits charge the target, charged targets arc twice when hit by anything." },
+      { name: "Overload", desc: "Hits charge the target, charged targets arc three times when hit by anything, slowing what they hit." },
     ] },
   ],
 };
@@ -163,10 +163,10 @@ const ARC_VOLTAGE_DMG = [1, 1.4, 1.9, 2.8], ARC_VOLTAGE_FALL = [0.5, 0.65, 0.8, 
 // d: a damage multiplier, FITTED so each tier deals +25% / +50% / +100% over
 // the base (owner), like Voltage's (scripts/aspira-sim: arcfit)
 let ARC_CONDUCTIVITY = [{ s: 1, j: 1, f: 2, r: 1, d: 1 }, { s: 1, j: 2, f: 2, r: 1.2, d: 1 }, { s: 1, j: 2, f: 3, r: 1.4, d: 1 }, { s: 2, j: 2, f: 3, r: 1.6, d: 1 }]; // owner 2026-10-06: a tier never lowers the hit (d was 1 / .775 / .613 / .394); the tree and the jump reach pay for it
-// Static by tier: the blast's radius and its damage, x the hit that set it off
-// FITTED 2026-10-06 to +25 / +50 / +100% ARC-own dealt (tier III saturates -
-// a discharge can only take the HP in reach - so it needs a big charge)
-const ARC_CAPACITANCE = [null, { r: 18, frac: 0.22 }, { r: 37.6, frac: 0.255 }, { r: 55, frac: 0.32 }]; // owner 2026-10-06: every tier a gain (III's charge was below II's); III refitted to +200% with its radius held at 55
+// Capacitance by tier (owner, 2026-10-07): the charge, x the hit that left it, and
+// how many times the charged enemy ARCS when next hit (dischargeStatic). The
+// charge shares are the old ring's fits (2026-10-06: +25 / +50 / +100%); refit later
+const ARC_CAPACITANCE = [null, { arcs: 1, frac: 0.22 }, { arcs: 2, frac: 0.255 }, { arcs: 3, frac: 0.32 }];
 // each jump hits ARC_FALL as hard and reaches ARC_SHRINK as far as the one before (owner)
 const ARC_FALL = 0.5, ARC_SHRINK = 0.7;
 // a jump's reach, before Conductivity lengthens it (owner: longer by default). It
@@ -179,7 +179,7 @@ function arcSkillStats(t, s, b) {
   s.dmg = b.dmg * ARC_VOLTAGE_DMG[v] * ARC_CONDUCTIVITY[c].d; s.range = b.range * RANGE_BONUS;
   const sh = ARC_CONDUCTIVITY[c]; // Conductivity: strikes, jumps AND forks
   s.arcRange = ARC_JUMP_BASE * ARC_VOLTAGE_JUMP[v] * sh.r; s.targets = sh.s; s.layers = sh.j; s.branch = sh.f;
-  s.arcFall = ARC_VOLTAGE_FALL[v]; s.arcShrink = ARC_SHRINK; s.blast = ARC_CAPACITANCE[z]; s.statSlow = ARC_STAT_SLOW[z]; s.skill = true;
+  s.arcFall = ARC_VOLTAGE_FALL[v]; s.arcShrink = ARC_SHRINK; s.charge = ARC_CAPACITANCE[z]; s.statSlow = ARC_STAT_SLOW[z]; s.skill = true;
 }
 // what the upgrade cards offer: the next tier of each axis not yet full
 function skillOptions(t) {
@@ -199,13 +199,12 @@ const withSkills = (t, add) => { const s = { ...t.skills }; for (const [id, n] o
 // forks st.branch ways, st.layers jumps deep. A bolt NEVER hits the same
 // enemy twice (owner) - so it can never strike more enemies than are in
 // reach - and each jump hits ARC_FALL as hard and reaches ARC_SHRINK as far.
-// Static (owner, reworked 2026-10-05): an ARC hit does NO blast - it leaves a
-// CHARGE on the enemy it struck, worth st.blast.frac of the hit. Charges STACK.
-// The next hit on that enemy from ANY tower - the ARC that charged it too
-// (owner: it procs itself) - discharges them all at once as ONE blast around
-// it before the new charge lands, and they are gone; so
-// does its DEATH (owner). A discharge never sets off other charges, and an
-// enemy a blast kills does not explode (no chain reaction - staticQuiet).
+// Capacitance (owner, 2026-10-07: "Hits charge the target, charged targets arc
+// once when hit by anything"): an ARC hit leaves a CHARGE on the enemy it struck,
+// worth st.charge.frac of the hit; charges STACK. The next hit on that enemy from
+// ANY tower - the ARC that charged it too (owner: it procs itself) - makes it ARC
+// (dischargeStatic: st.charge.arcs leaps, each worth the whole charge) before the
+// new charge lands, and the charge is gone; so does its DEATH (owner).
 function fireSkillChain(t, st, e, seen) {
   if (seen && seen.has(e.id)) return; // a second strike never re-hits what the first took
   const col = TOWERS[t.kind].color, d = shotDamage(t, st, e, st.dmg);
@@ -223,51 +222,43 @@ function fireSkillChain(t, st, e, seen) {
 }
 function skillHit(c, e, d) {
   damage(e, d, c.t, false, false, c.st); onHit(e, c.t, c.st, d); // (discharges e's own charges, if any)
-  const b = c.st.blast;
+  const b = c.st.charge;
   if (!b || e.dead) return;
-  const ch = e.charge || (e.charge = { dmg: 0, n: 0, r: 0, t: c.t });
-  ch.dmg += d * b.frac; ch.n++; ch.r = Math.max(ch.r, b.r); ch.t = c.t; ch.slow = Math.max(ch.slow || 0, c.st.statSlow || 0);
+  const ch = e.charge || (e.charge = { dmg: 0, arcs: 0, t: c.t });
+  ch.dmg += d * b.frac; ch.arcs = Math.max(ch.arcs, b.arcs); ch.t = c.t; ch.slow = Math.max(ch.slow || 0, c.st.statSlow || 0);
 }
 let staticQuiet = false;
-// Capacitance III (Overload) rings SLOW what they hit (owner, 2026-10-06, the
-// no-FRZ niche search): 30% for STAT_SLOW_T s - a late team without FRZ can
-// answer the fast waves (ARC + SOL + a little ACD reached ~98, was ~83)
+// Overload's leaps SLOW what they hit (owner, 2026-10-06, the no-FRZ niche search):
+// 30% for STAT_SLOW_T s - a late team without FRZ can answer the fast waves
 const ARC_STAT_SLOW = [0, 0, 0, 0.3], STAT_SLOW_T = 0.6;
-// a DISCHARGE (owner): a RAPIDLY EXPANDING orange ring from the enemy, out to
-// its radius over STATIC_RING_T, damaging each enemy once as its edge reaches
-// it. Quiet: it sets off no other charges.
-const STATIC_RING_T = 0.25;
+// a DISCHARGE (owner, 2026-10-07: "charged targets arc once when hit by anything"):
+// the charged enemy ARCS - a bolt leaps from it to the nearest enemy not yet hit,
+// ch.arcs times in a chain, each leap worth the whole charge, drawn as ARC's beams.
+// Quiet: a leap neither charges nor sets off charges, so there is no chain reaction
+// (staticQuiet). (Was an expanding ring around the enemy.)
+const STATIC_ARC_REACH = ARC_JUMP_BASE;
 function dischargeStatic(e) {
   const ch = e.charge;
   e.charge = null;
-  (G.staticRings ||= []).push({ x: e.x, y: e.y, R: ch.r, dmg: ch.dmg, t: ch.t, slow: ch.slow || 0, age: 0, hit: new Set() });
-}
-// every step (stepChains): grow the rings and land their damage
-function stepStaticRings(dt) {
-  if (!G.staticRings || !G.staticRings.length) return;
   staticQuiet = true;
   try {
-    for (const g of G.staticRings) {
-      g.age += dt;
-      const r = g.R * Math.min(1, g.age / STATIC_RING_T);
+    let from = e;
+    const hit = new Set([e.id]);
+    for (let k = 0; k < ch.arcs; k++) {
+      let nxt = null, nd = STATIC_ARC_REACH * STATIC_ARC_REACH;
       for (const o of G.enemies) {
-        if (o.dead || g.hit.has(o.id) || (o.x - g.x) ** 2 + (o.y - g.y) ** 2 > r * r) continue;
-        g.hit.add(o.id); damage(o, g.dmg, g.t, false, false, null);
-        if (g.slow && !o.dead) applySlow(o, g.slow, STAT_SLOW_T, g.t.id + ":stat");
+        if (o.dead || hit.has(o.id)) continue;
+        const d2 = (o.x - from.x) ** 2 + (o.y - from.y) ** 2;
+        if (d2 < nd) { nd = d2; nxt = o; }
       }
+      if (!nxt) break;
+      hit.add(nxt.id);
+      beam(from, nxt, TOWERS.arc.color, CHAIN_BEAM_LIFE, 1.5, ch.dmg);
+      damage(nxt, ch.dmg, ch.t, false, false, null);
+      if (ch.slow && !nxt.dead) applySlow(nxt, ch.slow, STAT_SLOW_T, ch.t.id + ":stat");
+      from = nxt;
     }
   } finally { staticQuiet = false; }
-  G.staticRings = G.staticRings.filter(g => g.age < STATIC_RING_T * 1.6); // a short fade past full size
-}
-// UI (drawScene): each ring, bright while it grows, fading once it is full
-function drawStaticRings() {
-  ctx.strokeStyle = COL[TOWERS.arc.color]; ctx.lineWidth = 3;
-  for (const g of G.staticRings || []) {
-    const p = g.age / STATIC_RING_T;
-    ctx.globalAlpha = p < 1 ? 0.9 : Math.max(0, 0.9 * (1.6 - p) / 0.6);
-    ctx.beginPath(); ctx.arc(g.x, g.y, g.R * Math.min(1, p), 0, 6.283); ctx.stroke();
-  }
-  ctx.globalAlpha = 1;
 }
 // the nearest enemy this bolt has not hit yet, within this jump's (shrunk) reach
 function skillHop(c, node, depth) {

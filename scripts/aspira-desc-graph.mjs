@@ -17,7 +17,7 @@ const MECH = {
   arc: {
     conductivity: k => { const c = V("ARC_CONDUCTIVITY")[k], r = V("SKILL_MOVE").arc.conductivity[k][0]; return `${c.s} strike${c.s > 1 ? "s" : ""}, ${c.j} jump${c.j > 1 ? "s" : ""}, forking ${c.f} ways, jumps reach x${c.r}, range x${r}`; },
     voltage: k => `hit x${V("ARC_VOLTAGE_DMG")[k]}, each jump keeps ${pct(V("ARC_VOLTAGE_FALL")[k])} of the hit before it, range x${V("SKILL_MOVE").arc.voltage[k][0]}`,
-    capacitance: k => { const b = V("ARC_CAPACITANCE")[k]; return b ? `a charge worth ${pct(b.frac)} of the hit, burst radius ${b.r}${V("ARC_STAT_SLOW")[k] ? `, slows ${pct(V("ARC_STAT_SLOW")[k])} for ${V("STAT_SLOW_T")}s` : ""}, slide x${V("SKILL_MOVE").arc.capacitance[k][1]}` : "no charge"; },
+    capacitance: k => { const b = V("ARC_CAPACITANCE")[k]; return b ? `a charge worth ${pct(b.frac)} of the hit; when next hit the target arcs ${b.arcs} time${b.arcs > 1 ? "s" : ""}, each leap the whole charge${V("ARC_STAT_SLOW")[k] ? `, slowing ${pct(V("ARC_STAT_SLOW")[k])} for ${V("STAT_SLOW_T")}s` : ""}, slide x${V("SKILL_MOVE").arc.capacitance[k][1]}` : "no charge"; },
   },
   frz: {
     temp: k => `aura slow ${pct(V("FRZ_TEMP_SLOW")[k])}, aura width x${V("SKILL_MOVE").frz.temp[k][0]}${V("FRZ_BRITTLE")[k] > 1 ? `, what it chills takes x${V("FRZ_BRITTLE")[k]} from every tower` : ""}`,
