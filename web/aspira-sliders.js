@@ -90,7 +90,7 @@ function pullAxis(t, i, want) {
   if (was !== to - lock) refreshUpgradePreview(t);
   else { const s = document.querySelectorAll(".asp-axis")[i]; if (s) s.value = to; }
   const note = $("asp-slider-note");
-  if (note) note.innerHTML = why;
+  if (note) note.innerHTML = why || (basketPoints(t) ? "tap " + towerTitle(t) + " to lock it in" : ""); // the pull is not bought until the button is tapped (owner)
   document.querySelectorAll(".asp-axis").forEach((s, k) => s.classList.toggle("stuck", !!why && k === i));
 }
 // the card's preview parts, re-rendered: the chart (in place), the stats, the description, the button, the spend bar
@@ -161,7 +161,7 @@ function upgradeButton(t) {
   box.innerHTML = "";
   const n = basketPoints(t), cost = basketCost(t), pts = t.lvl - 1 + n;
   const label = towerTitle(t) + (pts ? " " + roman(pts) : "") + (n ? ' <span class="asp-spend-cost">(−' + cr(cost) + ")</span>" : "");
-  const btn = button(box, "asp-primary asp-up-big", label, () => lockIn(t), "asp-up");
+  const btn = button(box, "asp-primary asp-up-big" + (n && G.money >= cost ? " asp-confirm" : ""), label, () => lockIn(t), "asp-up"); // pulses while a pull waits to be locked in (owner)
   btn.classList.toggle("poor", n > 0 && G.money < cost); btn.disabled = !n || G.money < cost; // greyed until a slider moves; red, no tap, when the bank cannot cover it (owner)
   button(box, "asp-up-cancel", n ? "cancel" : "close", () => { if (basketPoints(t)) { basket.add = {}; refreshPanels(); } else closeCard(); }, "asp-up-cancel");
 }

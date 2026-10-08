@@ -158,8 +158,8 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
   if (e.slowT > 0 && e.brittle) amt *= e.brittle;
   // armor takes a flat bite out of every hit (never below 10% of it)
   const raw = amt;
-  // ... except from the Reaper, whose shots ignore armor (owner)
-  const pierce = t && t.kind === "sol" ? 1 : (st && st.armorPierce) || 0;
+  // (SOL ignored armor until 2026-10-07; owner: "SOL should no longer ignore armor" - its damage rose x1.3 to match, solarmor.mjs)
+  const pierce = (st && st.armorPierce) || 0;
   if (e.armor > 0 && !quiet && pierce < 1) amt = Math.max(amt * 0.1, amt - e.armor * (1 - pierce));
   // NEGATIVE armor (ACD's Corrosion, owner) is a flat bonus on every hit
   else if (e.armor < 0 && !quiet) amt -= e.armor;

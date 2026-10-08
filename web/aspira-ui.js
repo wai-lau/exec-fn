@@ -205,7 +205,7 @@ const SPEC = {
     ["Beams", st.beams || 1], ...(st.skill ? [["Refract", st.refraction ? "+" + st.refraction + " in a " + SOL_CONE * 2 + "° cone" : "—"]] : []),
     // short enough for the card's right column (owner, 2026-10-07: "1 × (−1.5 armor, +1% crit) / hit" ran off it)
     [st.skill ? "Breach" : "Bleed", st.bleedArmor ? "−" + st.bleedArmor + " armor" + (st.bleedCrit ? ", +" + Math.round(st.bleedCrit * 100) + "% crit" : "") + (st.breach > 1 ? " ×" + st.breach : "") + "/hit" : "—"],
-    ["Armor", "ignored"], ["Form", rayForm(st)]],
+    ["Form", rayForm(st)]],
 };
 
 // One stat row: "now" alone at max level, "now -> next" when an upgrade
