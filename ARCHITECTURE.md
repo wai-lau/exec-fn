@@ -4683,3 +4683,5 @@ freezes because the browser stops animation frames.
 **Trap:** `.asp-ov { display:flex }` beats the UA `[hidden]` rule, so
 `.asp-ov[hidden] { display:none }` is load-bearing — without it the overlay
 never leaves and swallows every tap on the board.
+
+**2026-10-08 — HALF AS MANY SWARMERS, DOUBLE HP; MORE WANDER (owner).** `TYPE_COUNT_MUL.swarm` 0.52 → 0.26 and `ENEMIES.swarm.hp` 0.07 → 0.14 (bounty unchanged, so swarm gold halves). Sim, FRZ+SOL+ACD without ARC: 0/6 → 1/6 won, avg wave 83.7 → 87.5; a third as many at triple hp reached 2/6 but was not chosen. Swarm wander amplitude doubled (`jit` 6–21 → 12–42 px), still faded to zero inside `JIT_FADE_R`.
