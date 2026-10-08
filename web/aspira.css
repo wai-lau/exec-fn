@@ -725,8 +725,7 @@
 #asp #asp-upbox button.asp-up-big.asp-confirm { animation: asp-flash 1.1s ease-in-out infinite; } /* a pull waits: tap to lock it in (owner) */
 @media (orientation: landscape) and (min-width: 700px) {
   .asp-pop.asp-tower { display: flex; flex-direction: column; width: 760px; } /* as tall as its content (no forced height: it left empty bands - owner) */
-  .asp-tower-grid { flex: 1; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 1fr; grid-template-areas: "desc desc" "ctl info"; gap: var(--space-3) var(--space-6); }
-  #asp-desc-box .asp-desc { height: calc(3 * var(--lh-tight) * var(--fs-sm)); } /* across the whole card: three lines hold it (an id, so the stacked five-line rule further down cannot win) */
+  .asp-tower-grid { flex: 1; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 1fr; grid-template-areas: "desc info" "ctl info"; gap: var(--space-3) var(--space-6); } /* the description heads the LEFT half, over the sliders (owner); the info runs down the right */
   /* the sliders and the chart at the TOP of the control half, the chart the full width of its column; the buttons at its foot */
 }
 #asp.asp-towercard .asp-spend { display: none; } /* the tower card has its own cancel / close, stacked or wide; the credits line above it stays */
