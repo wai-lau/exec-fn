@@ -701,14 +701,14 @@
 .asp-tower-ctl { grid-area: ctl; }
 .asp-tower-info { grid-area: info; }
 .asp-tower-ctl, .asp-tower-info { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
-/* confirm + cancel sit at the FOOT of the control half, sell at the foot of the
-   info half, so the two halves end level (owner: no gap under the triangle) */
-#asp-upbox { display: flex; gap: var(--space-2); margin-top: auto; }
-#asp-acts { margin-top: auto; }
+/* the BUTTON GROUP at the foot of the control half, CENTRED (owner): upgrade + cancel,
+   and sell under them, smaller */
+#asp-upbox { display: flex; justify-content: center; gap: var(--space-2); margin-top: auto; }
+#asp-acts { display: flex; justify-content: center; }
 /* SMALL buttons and a small targeting slider (owner, 2026-10-07): the triangle is the card's focus */
-#asp #asp-upbox button.asp-up-big { flex: 1; width: auto; min-width: 0; padding-block: var(--space-1-5); font-size: var(--fs-md); }
+#asp #asp-upbox button.asp-up-big { flex: 0 1 auto; width: auto; min-width: calc(var(--space-10) * 5); padding-block: var(--space-1-5); font-size: var(--fs-md); }
 #asp #asp-upbox button.asp-up-cancel { flex: 0 0 auto; padding-block: var(--space-1-5); padding-inline: var(--space-3); font-size: var(--fs-sm); background: hsl(var(--bg-hsl)); }
-#asp #asp-acts button { padding-block: var(--space-1-5); font-size: var(--fs-sm); }
+#asp #asp-acts button { flex: 0 0 auto; padding: var(--space-1) var(--space-4); font-size: var(--fs-2xs); }
 /* the targeting slider SMALLER than the triangle's sliders (owner), its caption kept, small */
 .asp-tower .asp-prio-slider { height: var(--space-5); }
 .asp-tower .asp-prio-slider::-webkit-slider-runnable-track { height: var(--space-1-5); }

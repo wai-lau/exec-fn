@@ -191,6 +191,7 @@ function inspectTower(el, t) {
     '<div class="asp-tower-ctl">' +
     (chart ? sliderChart(t) : "") + // the sliders and the chart (owner, 2026-10-07)
     '<div class="asp-row" id="asp-upbox"></div>' + // confirm + cancel (aspira-sliders.js upgradeButton)
+    '<div class="asp-row" id="asp-acts"></div>' + // sell, small, under them (owner)
     '</div><div class="asp-tower-info">' +
     // two columns (owner): what every tower has | what only this type has; kills and
     // damage dealt share ONE row, and stats the tower has not got yet ("—") are left out
@@ -200,7 +201,7 @@ function inspectTower(el, t) {
     '<div class="asp-prio"><b>Targeting priority:</b></div>' +
     '<input type="range" class="asp-prio-slider" id="asp-prio" min="0" max="' + (MODES.length - 1) + '" step="1" value="' + Math.max(0, MODES.findIndex(m => m[0] === t.mode)) + '">' +
     '<div class="asp-prio-labels">' + MODES.map(([m, label], i) => '<span data-i="' + i + '"' + (t.mode === m ? ' class="on"' : "") + ">" + label + "</span>").join("") + "</div>" +
-    '<div class="asp-row" id="asp-acts"></div></div></div>'; // sell, last (owner)
+    "</div></div>";
   const setMode = i => { t.mode = MODES[i][0]; refreshPanels(); };
   $("asp-prio").oninput = ev => setMode(Number(ev.target.value));
   el.querySelectorAll(".asp-prio-labels span").forEach(s => { s.onclick = () => setMode(Number(s.dataset.i)); });
