@@ -3,8 +3,9 @@
 A chart tower is upgraded by dragging each axis of its triangle outward, a
 stop per tier (owner, 2026-10-07). This pins the rules the sliders enforce:
 
-- a handle moves only outward from the LOCKED-IN tier, never past the top
-  tier, never past what the bank covers - and the card SAYS why it stopped;
+- a handle moves only outward from the LOCKED-IN tier and never past the top
+  tier - and the card SAYS why it stopped; the bank is no limit to a pull, but a
+  basket it cannot cover shows its cost red on a button that takes no tap;
 - the pulled points PREVIEW: stat rows show now -> next, the description shows
   the change as track changes (an <ins>), the button prices the basket;
 - the upgrade button locks every pulled point in at once; the U key locks in;
@@ -78,12 +79,12 @@ def test_sliders_preview_limits_and_lock_in(guest_page):
     assert page.evaluate("CORE_PICKS") == [30, 60]
     assert page.locator(".asp-sliders .handle").count() == 3
     up = page.locator("#asp-up")
-    assert up.is_disabled() and "pull an axis" in up.inner_text()
+    assert up.inner_text().strip() == "Arc"
 
     # one stop out on the first axis: a point in the basket, priced, previewed
     _drag_axis(page, 0, 0.42)
     assert _basket(page).get("conductivity") == 1
-    assert "1 point" in up.inner_text() and "100" in up.inner_text()
+    assert "Arc I" in up.inner_text() and "100" in up.inner_text()
     assert page.locator("#asp-stats-box .asp-next").count() >= 1
     assert page.locator("#asp-desc-box ins").count() >= 1
     assert page.locator("#asp-slider-note").inner_text().strip() == ""
@@ -92,14 +93,16 @@ def test_sliders_preview_limits_and_lock_in(guest_page):
     _drag_axis(page, 0, 1.6)
     assert _basket(page).get("conductivity") == 3
     assert "top" in page.locator("#asp-slider-note").inner_text()
-    assert "3 points" in up.inner_text()
+    assert "Arc III" in up.inner_text()
 
-    # a poor bank: the next axis cannot take a point, and the card says what it lacks
+    # a poor bank: the pull still lands, the button goes red and takes no tap
     page.evaluate("G.money = 150")
     _drag_axis(page, 1, 0.5)
-    assert not _basket(page).get("voltage")
-    assert "need" in page.locator("#asp-slider-note").inner_text()
-    assert "poor" in (up.get_attribute("class") or "")
+    assert _basket(page).get("voltage") == 1
+    assert "poor" in (up.get_attribute("class") or "") and up.is_disabled()
+    assert "4 points" not in up.inner_text() and "(" in up.inner_text()
+    _drag_axis(page, 1, 0.1)  # back to the locked tier: the basket is affordable again
+    assert not _basket(page).get("voltage") and not up.is_disabled()
 
     # lock in: every pulled point bought in order, each at its own step
     page.evaluate("G.money = 100000")
@@ -108,7 +111,7 @@ def test_sliders_preview_limits_and_lock_in(guest_page):
     assert t["skills"] == {"conductivity": 3} and t["lvl"] == 4
     assert t["money"] == 100000 - (100 + 160 + 280)
     assert _basket(page) == {}
-    assert up.is_disabled()
+    assert "III" in up.inner_text() and "(" not in up.inner_text()
 
     # pulling back below the locked tier: refused, and the reason shows
     _drag_axis(page, 0, 0.1)

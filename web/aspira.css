@@ -710,9 +710,11 @@
 .asp-tower .asp-prio-slider::-moz-range-thumb { width: var(--space-3); height: var(--space-4); }
 .asp-tower .asp-prio { margin-bottom: 0; font-size: calc(var(--fs-2xs) * 0.8); }
 .asp-tower .asp-prio b { font-weight: var(--fw-normal); }
-/* the upgrade button is ONE line (owner): "Arc IV", and while axes are pulled "Arc VI (-440c)" */
+/* the upgrade button is ONE line (owner): "Arc IV", and while axes are pulled "Arc VI (-440c)";
+   a basket the bank cannot cover: the cost red, the border red, no tap - but readable (owner) */
 #asp #asp-upbox button.asp-up-big { white-space: nowrap; }
 .asp-up-big .asp-spend-cost { font-weight: var(--fw-normal); }
+#asp #asp-upbox button.asp-up-big.poor { opacity: 1; border-color: hsl(var(--orange-glow-hsl)); cursor: not-allowed; }
 @media (orientation: landscape) and (min-width: 700px) {
   .asp-pop.asp-tower { display: flex; flex-direction: column; width: 760px; } /* its min-height is set by fitPop; the grid fills it */
   .asp-tower-grid { flex: 1; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "ctl info"; gap: var(--space-3) var(--space-6); }

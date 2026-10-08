@@ -351,7 +351,7 @@ function updateHud() {
   }
   for (const v of SPEEDS) $(speedId(v)).classList.toggle("on", !ui.paused && ui.speed === v);
   const up = $("asp-up"), t = ui.sel && G.towers.find(x => x.id === ui.sel);
-  if (up && t) up.classList.toggle("poor", hasSkills(t) ? basketPoints(t) > 0 && G.money < basketCost(t) : t.lvl < maxLvl(t) && G.money < upCost(t));
+  if (up && t) { const poor = hasSkills(t) ? basketPoints(t) > 0 && G.money < basketCost(t) : t.lvl < maxLvl(t) && G.money < upCost(t); up.classList.toggle("poor", poor); if (hasSkills(t)) up.disabled = poor; } // income may bring a pulled basket within reach
   if (t && hasSkills(t)) refreshHandleFlash(t); // the sliders flash while the bank covers a point (aspira-sliders.js)
   // the core's one-click options follow the money too (aspira-core.js)
   for (const btn of document.querySelectorAll("#asp-pop [data-cost]")) btn.disabled = G.money < Number(btn.dataset.cost);
