@@ -17,7 +17,7 @@ function drawAims() {
       // the shot's own cone flashes as before
       if (st.refraction || st.refraction) {
         const d = Math.hypot(l.e.x - t.x, l.e.y - t.y);
-        drawCone({ x: t.x, y: t.y, a: Math.atan2(l.e.y - t.y, l.e.x - t.x), half: SOL_CONE * Math.PI / 180, len: d * 1.6, color: TOWERS[t.kind].color }, Math.cbrt(p)); // up to half opacity at full charge
+        drawCone({ x: t.x, y: t.y, a: Math.atan2(l.e.y - t.y, l.e.x - t.x), half: ((towerStats(t).cone) || SOL_CONE) * Math.PI / 180, len: d * 1.6, color: TOWERS[t.kind].color }, Math.cbrt(p)); // up to half opacity at full charge
         ctx.strokeStyle = COL[TOWERS[t.kind].color];
       }
       ctx.globalAlpha = 0.32 + 0.32 * p * p; // never below half its full strength (owner)

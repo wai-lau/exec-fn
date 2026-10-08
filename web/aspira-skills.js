@@ -421,7 +421,9 @@ const SOL_BREACH_ARMOR = [2, 5, 9, 14, 20, 28], SOL_BREACH_CRIT = [0, 0.01, 0.02
 // a refraction lands within SOL_CONE degrees of the first shot's direction (at
 // any distance); one Breach = BREACH_ARMOR armor off and BREACH_CRIT crit
 // chance for every tower
-const SOL_CONE = 8, /* greatly narrowed (owner, 2026-10-07; was 25) */ BREACH_CRIT = 0.01; // (the pre-chart path's per-stack crit; the chart SOL uses SOL_BREACH_CRIT)
+// the cone's half-angle by Refraction tier (owner, 2026-10-08: it WIDENS with the tier and starts wider, since every hop
+// must now travel forward - see solRefraction; was a flat 8, before that 25)
+const SOL_CONE_BY = [12, 12, 15, 18, 22, 26], SOL_CONE = SOL_CONE_BY[0], BREACH_CRIT = 0.01; // (the pre-chart path's per-stack crit; the chart SOL uses SOL_BREACH_CRIT)
 // SOL's own lever (owner: more crit): Breach also raises the crit MULTIPLIER, x3 at base
 const SOL_CRITMUL = [3, 4, 5, 7, 8, 9];
 // FITTED 2026-10-06 to +25 / +50 / +100% (on an HP-scaled field, so nothing
@@ -436,7 +438,7 @@ const SOL_REFRACTION_DMG = [1, 1, 1.3, 1.6, 1.8, 2];
 const SOL_FOCUS_DMG = [1, 1, 1, 1, 1, 1];
 function solSkillStats(t, s, b) {
   s.dmg = b.dmg * SOL_REFRACTION_DMG[skillOf(t, "refraction")] * SOL_FOCUS_DMG[skillOf(t, "focus")]; s.range = b.range * RANGE_BONUS; s.crit = LVL_SOL_CRIT[0]; s.rate = b.rate;
-  s.beams = SOL_BEAMS[skillOf(t, "focus")]; s.refraction = SOL_REFRACTION[skillOf(t, "refraction")];
+  s.beams = SOL_BEAMS[skillOf(t, "focus")]; s.refraction = SOL_REFRACTION[skillOf(t, "refraction")]; s.cone = SOL_CONE_BY[skillOf(t, "refraction")];
   const bk = skillOf(t, "breach");
   s.breach = 1; s.critMul = SOL_CRITMUL[bk]; s.bleedArmor = SOL_BREACH_ARMOR[bk]; s.bleedCrit = SOL_BREACH_CRIT[bk]; s.skill = true;
 }
@@ -445,11 +447,15 @@ function solSkillStats(t, s, b) {
 // TOWER (owner), SOL_CONE degrees either side of the first shot - no reach
 // limit between hops, nor the tower's range: the cone is the only bound
 function solRefraction(t, st, e) {
-  const dir = Math.atan2(e.y - t.y, e.x - t.x), half = SOL_CONE * Math.PI / 180, hit = new Set([e]);
-  const inCone = o => Math.abs(((Math.atan2(o.y - t.y, o.x - t.x) - dir + 3 * Math.PI) % (2 * Math.PI)) - Math.PI) <= half;
+  const dir = Math.atan2(e.y - t.y, e.x - t.x), half = (st.cone || SOL_CONE) * Math.PI / 180, hit = new Set([e]);
+  const off = a => Math.abs(((a - dir + 3 * Math.PI) % (2 * Math.PI)) - Math.PI); // an angle's distance from the shot's line
+  const inCone = o => off(Math.atan2(o.y - t.y, o.x - t.x)) <= half;
   let prev = e, far = Math.hypot(e.x - t.x, e.y - t.y);
+  // every hop travels FORWARD (owner, 2026-10-08: "shots shouldn't go backwards"): further from the tower than the
+  // last hit, and the hop's own direction within the cone's half-angle of the shot - no beam bends back on itself
+  const forward = (from, o) => Math.hypot(o.x - t.x, o.y - t.y) > Math.hypot(from.x - t.x, from.y - t.y) && off(Math.atan2(o.y - from.y, o.x - from.x)) <= half;
   for (let k = 0; k < st.refraction; k++) {
-    const nxt = chainPick(t, prev, Infinity, o => hit.has(o) || !inCone(o)); // within the cone, by SOL's targeting
+    const from = prev, nxt = chainPick(t, prev, Infinity, o => hit.has(o) || !inCone(o) || !forward(from, o)); // within the cone, forward, by SOL's targeting
     if (!nxt) break;
     rayHit(t, st, nxt, st.dmg * SOL_HOP[SOL_REFRACTION.indexOf(st.refraction)], prev); hit.add(nxt); prev = nxt;
     far = Math.max(far, Math.hypot(nxt.x - t.x, nxt.y - t.y));
