@@ -88,7 +88,7 @@ function drawEnemy(e, solid) {
   if (e.markT > 0) {
     ctx.fillStyle = COL.orange; ctx.beginPath(); ctx.arc(e.x + size, e.y - size, 4, 0, 6.283); ctx.fill();
   }
-  drawStatus(e, d, size);
+  drawStatus(e, d, size, solid);
 }
 
 // the DIE's facet lines inside the outline (owner, 2026-10-09: each enemy a die seen from above, from a
@@ -116,7 +116,7 @@ function dieFacets(e, size) {
 //   Deep Freeze a frost HEXAGON around it while the 95% chill holds
 //   Corrosion  a DOTTED ring tight around it while its armor is being eaten
 // (Permafrost's thicker freeze outline is drawn with the outline itself)
-function drawStatus(e, d, size) {
+function drawStatus(e, d, size, solid) {
   if (e.biteT > 0) {
     poly(e.x, e.y, size, d.sides, e.rot, d.pointy);
     ctx.fillStyle = COL.cyan; ctx.globalAlpha = 0.45 * Math.min(1, e.biteT * 2); ctx.fill();
@@ -136,7 +136,7 @@ function drawStatus(e, d, size) {
   // BREACH (SOL's Pierce; owner): thin spokes in SOL's colour sticking out of
   // the shape, one per stack (BREACH_SPOKES at most drawn), each at a RANDOM
   // angle (owner) fixed for that stack (a hash of the enemy and the stack), turning with it
-  if (e.bleedCrit > 0) {
+  if (e.bleedCrit > 0 && !solid) { // (3D: one upright spike through the die, warpSolid)
     const n = Math.min(BREACH_SPOKES, Math.max(1, e.breachN || 1));
     ctx.beginPath();
     for (let i = 0; i < n; i++) {
