@@ -240,7 +240,7 @@ def test_the_split_is_rechecked_inside_the_lock(tmp_path, monkeypatch):
         with store._LOCK:
             p = store.load(s)
             p["halves"] = True
-            store._write(store._path(s), p)
+            store._write(s, p)
         return real_edit(s)
     monkeypatch.setattr(store, "edit", splitting_edit)
     with pytest.raises(votes.VoteError) as e:
@@ -267,7 +267,7 @@ def test_the_crop_is_rechecked_inside_the_lock(tmp_path, monkeypatch):
         with store._LOCK:
             p = store.load(s)
             p["from"], p["to"] = "2027-03-01", "2027-03-10"
-            store._write(store._path(s), p)
+            store._write(s, p)
         return real_edit(s)
     monkeypatch.setattr(store, "edit", narrowing_edit)
     with pytest.raises(votes.VoteError) as e:

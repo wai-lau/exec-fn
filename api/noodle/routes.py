@@ -174,9 +174,9 @@ async def noodle_new(request: Request):
 
 @owner_router.get("/api/noodle-polls")
 async def noodle_list():
-    polls = await asyncio.to_thread(store.all_polls)
-    return {"polls": [{"slug": p["slug"], "title": p["title"], "voters": len(p["voters"]),
-                       "created_at": p.get("created_at", "")} for p in polls]}
+    # ids + times only: the links are the keys and the server keeps none
+    # (store.py). The owner's browser puts titles on the ones it has opened.
+    return {"polls": await asyncio.to_thread(store.all_polls)}
 
 
 @owner_router.post("/api/noodle-polls")
@@ -191,11 +191,13 @@ async def noodle_create(request: Request):
     return {"slug": poll["slug"], "url": f"/noodle/{poll['slug']}"}
 
 
-@owner_router.delete("/api/noodle-polls/{slug}")
-async def noodle_delete(slug: str):
-    """Delete a poll and every vote in it. The owner page asks first."""
+@owner_router.delete("/api/noodle-polls/{ref}")
+async def noodle_delete(ref: str):
+    """Delete a poll and every vote in it, by its link's slug or its file id
+    (the list knows ids only). The owner page asks first."""
     try:
-        gone = await asyncio.to_thread(store.delete, slug)
+        fn = store.delete if store.valid_slug(ref) else store.delete_id
+        gone = await asyncio.to_thread(fn, ref)
     except KeyError:
         gone = False
     if not gone:

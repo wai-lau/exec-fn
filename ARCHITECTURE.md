@@ -3672,7 +3672,26 @@ choosing.
 
 ### 21d. Concurrency & storage
 
-One JSON file per poll under `DATA_DIR/polls/<slug>.json`. **One
+**Encrypted at rest, keyed by the link** (since 2026-10-08). The slug (128
+random bits, already the only access control) goes through HKDF-SHA256
+(salt = 32 zero bytes) twice: info `noodle poll file v1` -> the FILE id
+(`polls/<64 hex>.json`), info `noodle poll key v1` -> an AES-256-GCM key.
+Neither is stored; the id gives back neither slug nor key. A file is
+`{"v":1,"nonce","ct"}`, fresh nonce per write, the file id as associated
+data (a blob moved under another poll's name fails to open). The server
+can open a poll only while a request carrying its link is in flight; a copy
+of `data/noodle/` (backup, leaked disk, root browsing) is noise. **Not
+end-to-end**: a compromised RUNNING server sees each slug as it arrives
+(the `#key`-fragment design that would stop that was weighed and declined:
+it moves the offer/crop/trim checks into the browser and loses the OG
+title). Only `store.py` changed -- everything above it still gets a dict.
+Changing either HKDF label orphans every poll, and `web/noodle-admin.js`
+`ndmIdOf` mirrors the file label (pinned by `tests/test_noodle_crypt.py`).
+Pre-encryption `<slug>.json` files are sealed on first touch
+(`store._migrate`) or all at once by `store.migrate_all()` (run on the
+droplet 2026-10-08: 8 polls).
+
+One file per poll under `DATA_DIR/polls/`. **One
 process-wide `threading.RLock`** (`store._LOCK`) guards every
 read-modify-write; `store.edit()` is load → yield → write, raising inside
 skips the save. Every write is `mkstemp` + `fsync` + `os.replace` — fsync
@@ -3832,6 +3851,7 @@ every request, which would ship the passphrase to the server.
 | `noodle.lastpass.<name>` | fallback: that name's last passphrase on ANY poll, offered only where this poll has none yet, never overriding a hand-typed one |
 | `noodle.draft.<slug>.<name>` | unsaved calendar picks + a host's unsaved title/note |
 | `noodle.ask.<slug>.<name>` | the Ask textarea text (a Commit leaves it alone) |
+| `noodle.polls` | `{slug: {title, url, seen}}` for every poll this browser opened (`ndvRemember`) -- the ONLY list of links anywhere, since the server keeps none (21d); `/noodle` reads it |
 | `noodle.blankSeal.<slug>` | 32 random bytes made once per browser per poll, so the empty "you" seat wears the same placeholder seal every visit |
 
 A draft outranks the submitted vote on reopen (it's the newer of the two);
@@ -3876,9 +3896,14 @@ alone and the page says so.
 
 **Owner**: one `create poll` button (no title — routes through the same
 draft flow a guest uses; the draft starts `title` (a placeholder, was `untitled noodle`) until the host
-retitles by tapping the title) plus a table of polls (title, voter count,
-created, a delete button that confirms first; `DELETE /api/noodle-polls/{slug}`
-takes every vote with it).
+retitles by tapping the title) plus a table of polls. **The server lists
+file ids + mtimes only** (`GET /api/noodle-polls` -> `{polls:[{id,
+modified}]}`): it holds no links (21d). The page derives each remembered
+slug's id in the browser (`ndmIdOf`, WebCrypto HKDF) and puts a title +
+link on the ids it knows; the rest show as `sealed <id prefix>`. Delete
+confirms first; `DELETE /api/noodle-polls/{ref}` takes a slug or a file id
+and takes every vote with it. Polls a guest made that the owner never
+opened stay sealed to the owner too -- by design.
 
 **Guest**: no poll list (the list request 401s, the section stays hidden)
 -- just the title and the create button, centred in the screen above the

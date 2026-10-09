@@ -197,6 +197,7 @@ async function ndvLoadPoll() {
   NDV.poll = r.status === 404 && NDV.draft
     ? { slug: NDV.slug, title: 'title', halves: false, crop: null, voters: [], host: null }
     : await r.json();
+  if (NDV.poll.slug) ndvRemember(NDV.poll, r.ok ? '' : NDV.draft);
   NDV.seals = await window.NoodleRoster.seals(NDV.poll.voters);
   if (!NDV.blankSeal) NDV.blankSeal = ndvBlankSeal();
   ndvEnsureCal();
