@@ -44,6 +44,12 @@ function drawCoreHud() {
   const c = G.core, now = performance.now();
   ctx.lineCap = "round";
   if (!q3d()) drawTimeStop(c); // (3D: on the floor, in the board's picture - owner, 2026-10-09: "temporal drive should be on the plane in 3d")
+  if (!q3d()) drawRelayHalos(true);
+  ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+}
+// a Relayed tower's HALO; label: with "RELAY x3 . 5s" over it. In 3D it lies ON THE FLOOR, in the board's picture,
+// with no label (owner, 2026-10-09: "relay circle should be on plane, also no need for text")
+function drawRelayHalos(label) {
   for (const t of G.towers) {
     const left = (t.relayUntil || 0) - (G.clock || 0);
     if (left <= 0) continue;
@@ -51,7 +57,7 @@ function drawCoreHud() {
     ctx.globalAlpha = 0.5 + 0.5 * blinkWave(); // softer (was 0.4 + 0.6) // the one blink (2026-10-08; was its own 2.5s sine)
     ctx.beginPath(); ctx.arc(t.x, t.y, CELL_S * 1.7, 0, 6.283); ctx.stroke();
     ctx.shadowBlur = 0; ctx.globalAlpha = 1;
-    text("RELAY ×" + RELAY_MUL + " · " + Math.ceil(left) + "s", t.x, t.y - CELL_S * 2.4, RELAY_TEXT, "white", true, true);
+    if (label) text("RELAY ×" + RELAY_MUL + " · " + Math.ceil(left) + "s", t.x, t.y - CELL_S * 2.4, RELAY_TEXT, "white", true, true);
   }
   ctx.globalAlpha = 1; ctx.shadowBlur = 0;
 }
