@@ -8,10 +8,14 @@
 //   - no damage numbers, hit flashes, sparks, gradient discs, light cones,
 //     twinkling stars, lane glow, faint range rings or puddle bubbles
 //   - a boss sky snaps instead of spreading (one draw a frame, never two)
-// Remembered in localStorage ("spire.quality"); anything but "low" is high.
-const LOW_RES = 0.5;
-let lowQ = false;
-try { lowQ = localStorage.getItem("spire.quality") === "low"; } catch (e) { lowQ = false; }
+// THREE STEPS on a slider (owner, 2026-10-09: "change quality to a slider:
+// low, high, 3D"): 3D is high's picture laid on the spire (aspira-warp.js).
+// Remembered in localStorage ("spire.quality"); anything unknown is high.
+const LOW_RES = 0.5, QUALITIES = ["low", "high", "3d"], QUALITY_LABEL = { low: "low", high: "high", "3d": "3D" };
+let qMode = "high";
+try { const q = localStorage.getItem("spire.quality"); if (QUALITIES.includes(q)) qMode = q; } catch (e) { qMode = "high"; }
+let lowQ = qMode === "low";
+const q3d = () => qMode === "3d";
 
 // shadowBlur muted at the prototype, so every context (sprites, lane layers,
 // the main canvas) obeys without each draw site checking. The real setter is
@@ -23,8 +27,8 @@ try { lowQ = localStorage.getItem("spire.quality") === "low"; } catch (e) { lowQ
 })();
 
 function setQuality(q) {
-  lowQ = q === "low";
-  try { localStorage.setItem("spire.quality", lowQ ? "low" : "high"); } catch (e) { /* not remembered */ }
+  qMode = QUALITIES.includes(q) ? q : "high"; lowQ = qMode === "low";
+  try { localStorage.setItem("spire.quality", qMode); } catch (e) { /* not remembered */ }
   // every cache keyed on the canvas size rebuilds on its own once resize()
   // changes it; the tower sprites are keyed on cam.k, which changes with it
   if (typeof towerSprites !== "undefined") towerSprites.clear();
@@ -32,15 +36,20 @@ function setQuality(q) {
   if (typeof updateQuality === "function") updateQuality();
 }
 
-// the toggle, in the auto-wait row (aspira-ui.js autoWaitBox calls this)
+// the slider, in the auto-wait row (aspira-ui.js autoWaitBox calls this)
 function qualityBox(row) {
-  const btn = button(row, "asp-check", "", () => setQuality(lowQ ? "high" : "low"), "asp-quality");
-  btn.setAttribute("aria-label", "visual quality");
+  const box = document.createElement("label");
+  box.className = "asp-quality";
+  box.innerHTML = '<span>quality</span><input type="range" min="0" max="2" step="1" id="asp-quality" aria-label="visual quality"><b id="asp-quality-v"></b>';
+  row.append(box);
+  $("asp-quality").addEventListener("input", ev => setQuality(QUALITIES[ev.target.value]));
   updateQuality();
 }
 function updateQuality() {
-  const btn = $("asp-quality");
-  if (btn) btn.innerHTML = "<span>quality: " + (lowQ ? "low" : "high") + "</span>";
+  const sl = $("asp-quality");
+  if (sl) sl.value = QUALITIES.indexOf(qMode);
+  if ($("asp-quality-v")) $("asp-quality-v").textContent = QUALITY_LABEL[qMode];
+  $("asp").classList.toggle("asp-3d", q3d());
 }
 // the effect kinds drawFx leaves out while low (the beams, rings and texts stay)
 const LOW_SKIP_FX = { hit: 1, spark: 1, cone: 1, flash: 1, blast: 1, zen: 1 };

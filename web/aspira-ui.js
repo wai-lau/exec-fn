@@ -30,7 +30,9 @@ function canPlace(ci) {
 }
 function toWorld(ev) {
   const r = cv.getBoundingClientRect(), dpr = canvasDpr();
-  return { x: ((ev.clientX - r.left) * dpr - cam.ox) / cam.k, y: ((ev.clientY - r.top) * dpr - cam.oy) / cam.k };
+  let x = (ev.clientX - r.left) * dpr, y = (ev.clientY - r.top) * dpr;
+  if (q3d()) ({ x, y } = unwarp(x, y) || { x: -1e6, y: -1e6 }); // 3D: back through the spire to the 2D spot drawn there (aspira-warp.js); off it, nowhere
+  return { x: (x - cam.ox) / cam.k, y: (y - cam.oy) / cam.k };
 }
 function placeTower(p) {
   const ci = snapCell(p.x, p.y);
@@ -437,7 +439,7 @@ function frame(now) {
   }
   // while the upgrade cards are up the board is paused AND frozen: no redraw,
   // so its CSS blur (aspira.css .asp-choosing) is computed once, not per frame
-  if (!chooser.t) render();
+  if (!chooser.t) { render(); if (q3d()) warpDraw(dt); } // 3D lays the frame on the spire (aspira-warp.js)
   // the HUD's text and buttons 10x a second, not every frame (perf, 2026-10-05)
   if (!(now < hudAt)) { hudAt = now + 100; updateHud(); syncBlinks(); }
   placePop(); tickFps(now);
