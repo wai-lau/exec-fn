@@ -1,39 +1,30 @@
 // /spire — the 3D VIEW (owner, 2026-10-09: "change quality to a slider: low,
-// high, 3D"; "curved spacetime ... reverse the dip, so it's a tower"; "all
-// floors are angled upwards like a spiral - whenever there is a new floor the
-// angle gets steeper (and speeds adjusted) for existing enemies so that they
-// reach the core at the same time").
+// high, 3D"; "curved spacetime ... reverse the dip, so it's a tower").
 // A VIEW, never a rule: the 2D canvas still draws the game exactly as on high,
 // only hidden (opacity 0), and this WebGL canvas over it lays that picture on a
-// CONE whose peak is the core - the spiral lanes ramp up the spire. Every wave
-// is a new floor: the slope steepens (SLOPE_AT), eased over WARP.ease seconds.
-// An enemy keeps its 2D place and pace, so it still reaches the core on the same
-// beat - it just climbs a steeper ramp, faster in 3D. Taps map back through the
-// cone (unwarp), so every gesture lands on the 2D spot drawn under the finger.
-// Loads after aspira-draw.js and aspira-camera.js, before aspira-ui.js.
-// Past the TOWERS the ground falls away like a BLACK HOLE DIAGRAM turned upside
-// down (owner, 2026-10-09: "way steeper after the towers - think typical black
-// hole diagrams"): a near-vertical drop just outside the tower ring that
-// flattens toward the rim, depth x / (x + WARP.fall) of WARP.depth, x the
-// distance past the ring (softened over WARP.knee so the lip is rounded). The
-// drop deepens with the waves (WARP.depth[0] at wave 1 to [1] at the last),
-// so its wall steepens a little every floor.
+// BELL: a level plateau under the towers and the core ("the towers and core
+// don't rise"), then past the tower ring the ground falls away like a BLACK
+// HOLE DIAGRAM turned upside down ("think typical black hole diagrams"): a
+// near-vertical drop just outside the ring that flattens toward the rim, depth
+// WARP.depth x x / (x + WARP.fall), x the distance past the ring (softened over
+// WARP.knee so the lip is rounded). The bell never changes ("I don't want the
+// bell shape to change"). Ranges, hits and timing stay 2D. Taps map back
+// through the bell (unwarp), so every gesture lands on the 2D spot drawn under
+// the finger. Loads after aspira-draw.js and aspira-camera.js, before aspira-ui.js.
 //   tilt   the board leans back this far (radians; owner: "more top down", was 0.62)
-//   round  the peak's rounding (world units); edge the board fades between these radii
-const WARP = { tilt: 0.35, fov: 0.87, round: 60, edge: [760, 840], ease: 1, slope: [5, 25], depth: [220, 420], fall: 110, knee: 18 };
+//   edge   the board fades between these radii (world units from the core)
+const WARP = { tilt: 0.35, fov: 0.87, edge: [760, 840], depth: 460, fall: 110, knee: 18 }; // depth: always a DEEP classic bell (owner)
 // the tower ring's outer edge, world units from the core: the plateau the towers stand on
 const WARP_TOWERS = Math.max(...CELLS.map(c => Math.hypot(c.x - CX, c.y - CY))) + CELL_S * 1.5;
-// the ramp's angle on wave n, degrees: WARP.slope[0] at wave 1 to [1] at the last
-const SLOPE_AT = n => WARP.slope[0] + (WARP.slope[1] - WARP.slope[0]) * Math.min(1, Math.max(0, (n - 1) / (WIN_WAVE - 1)));
-const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, size: "", deg: null, p: null };
+const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, size: "", p: null };
 
 const WARP_VS = `
 attribute vec2 a;
-uniform vec2 core, size; uniform float m, D, L, r0, kw, b, c, s, f, k;
+uniform vec2 core, size; uniform float D, L, r0, kw, c, s, f, k;
 varying vec2 uv; varying float sh, rr;
 void main() {
   vec2 p = a - core; float r = length(p);
-  float u = (r - r0) / kw, x = kw * (u > 20.0 ? u : log(1.0 + exp(u))), g = x / (x + L), h = m * (b - sqrt(r * r + b * b)) - D * g;
+  float u = (r - r0) / kw, x = kw * (u > 20.0 ? u : log(1.0 + exp(u))), g = x / (x + L), h = -D * g;
   float qy = -c * p.y + s * h, qz = s * p.y + c * h, w = f - qz;
   vec2 sc = core + vec2(f * p.x, -f * qy) / w;
   uv = a / size; rr = r / k; sh = 1.0 - 0.45 * g;
@@ -85,27 +76,23 @@ function warpMesh(w, h) {
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(v), gl.STATIC_DRAW);
   warp.n = v.length / 2; warp.size = w + "x" + h;
 }
-// this frame's cone: the peak on the core's canvas spot, the slope eased
-// toward the wave's angle (a new floor steepens it)
-function warpParams(dt) {
-  const goal = SLOPE_AT(Math.max(1, G.wave));
-  warp.deg = warp.deg == null ? goal : warp.deg + (goal - warp.deg) * Math.min(1, dt / WARP.ease * 3);
+// this frame's bell, centred on the core's canvas spot
+function warpParams() {
   const f = cv.height / 2 / Math.tan(WARP.fov / 2);
-  const m = Math.tan(warp.deg * Math.PI / 180), t = (warp.deg - WARP.slope[0]) / (WARP.slope[1] - WARP.slope[0]); // t: 0 at wave 1, 1 at the last
-  return { core: [cam.ox + CX * cam.k, cam.oy + CY * cam.k], m, D: (WARP.depth[0] + (WARP.depth[1] - WARP.depth[0]) * t) * cam.k, L: WARP.fall * cam.k, r0: WARP_TOWERS * cam.k, kw: WARP.knee * cam.k, b: WARP.round * cam.k, c: Math.cos(WARP.tilt), s: Math.sin(WARP.tilt), f, k: cam.k };
+  return { core: [cam.ox + CX * cam.k, cam.oy + CY * cam.k], D: WARP.depth * cam.k, L: WARP.fall * cam.k, r0: WARP_TOWERS * cam.k, kw: WARP.knee * cam.k, c: Math.cos(WARP.tilt), s: Math.sin(WARP.tilt), f, k: cam.k };
 }
 // the spire's height (<= 0, canvas px) r px from the core - the vertex shader's twin
 function warpHeight(p, r) {
   const u = (r - p.r0) / p.kw, x = p.kw * (u > 20 ? u : Math.log1p(Math.exp(u)));
-  return p.m * (p.b - Math.hypot(r, p.b)) - p.D * x / (x + p.L);
+  return -p.D * x / (x + p.L);
 }
-// one frame: the 2D picture onto the cone (aspira-ui.js frame calls this after render)
-function warpDraw(dt) {
+// one frame: the 2D picture onto the bell (aspira-ui.js frame calls this after render)
+function warpDraw() {
   const gl = warpInit();
   if (!gl) return;
   if (warp.cv.width !== cv.width || warp.cv.height !== cv.height) { warp.cv.width = cv.width; warp.cv.height = cv.height; }
   if (warp.size !== cv.width + "x" + cv.height) warpMesh(cv.width, cv.height);
-  const p = warp.p = warpParams(dt), pr = warp.prog;
+  const p = warp.p = warpParams(), pr = warp.prog;
   gl.viewport(0, 0, cv.width, cv.height);
   gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.enable(gl.DEPTH_TEST); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
@@ -114,7 +101,7 @@ function warpDraw(dt) {
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv);
   const u = n => gl.getUniformLocation(pr, n);
   gl.uniform2f(u("core"), p.core[0], p.core[1]); gl.uniform2f(u("size"), cv.width, cv.height);
-  for (const n of ["m", "D", "L", "r0", "kw", "b", "c", "s", "f", "k"]) gl.uniform1f(u(n), p[n]);
+  for (const n of ["D", "L", "r0", "kw", "c", "s", "f", "k"]) gl.uniform1f(u(n), p[n]);
   gl.uniform2f(u("edge"), WARP.edge[0], WARP.edge[1]);
   const loc = gl.getAttribLocation(pr, "a");
   gl.bindBuffer(gl.ARRAY_BUFFER, warp.buf);
