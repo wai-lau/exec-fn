@@ -73,7 +73,7 @@ const isA = (e, id) => e.arcana === id;
 
 // from spawnEnemy: name the boss for its wave, and pair up the two of a pair
 function bossSpawn(e, n) {
-  e.arcana = arcanaOf(n).id;
+  e.arcana = arcanaOf(n).id; e.titleAt = typeof performance !== "undefined" ? performance.now() / 1000 : 0; // when its title went up (drawBossTitle)
   e.spd = (e.spd || 1) * (BOSS_SPEED[e.arcana] || 1);
   const grow = hpPow(n) + n * 4 / 18; // the armored enemy's armor curve (spawnEnemy)
   e.armor = e.armor0 = Math.floor((BOSS_ARMOR[e.arcana] || 0) * Math.pow(grow, ARMOR_EXP));
@@ -234,7 +234,7 @@ const BOSS_BAR_R = 400, BOSS_BAR_W = 21, BOSS_BAR_TRACK = 0.3; // 3x thicker (ow
 // the boss's NAME and mythic subtitle under the core: drawn LAST, over the
 // towers (owner) - so after the inverted sky, and in the colour the sky would
 // have given it: the boss red inside the inversion's circle, its own outside
-const BOSS_TITLE_PX = 22, BOSS_SUB_PX = 22; // the credits' size (owner, 2026-10-06; were 46 / 30)
+const BOSS_TITLE_PX = 22, BOSS_SUB_PX = 22, BOSS_TITLE_T = 10, BOSS_TITLE_FADE = 1; // the credits' size (owner, 2026-10-06; were 46 / 30)
 // the live boss's haiku for the HTML above the title (updateHud), or ""
 const bossHint = () => { const b = G.enemies.find(e => e.arcana && !e.dead); return b ? arcanaOf(b.n).hint.join("\n") : ""; };
 function drawBossTitle() {
@@ -242,10 +242,16 @@ function drawBossTitle() {
   if (!bosses.length) return;
   // the TITLE above the core, the haiku under it (owner), hugging its life rings
   // (owner, 2026-10-06: closer to the middle; was 24 further out)
-  const off = CORE_R + LIFE_GAP * LIFE_RINGS - 4, arc = arcanaOf(bosses[0].n), col = ENEMIES.bonus.color;
+  // the title FADES after BOSS_TITLE_T s on screen if the boss still lives (owner, 2026-10-09: "fade out boss title
+  // after 10s if boss is not dead yet"), over BOSS_TITLE_FADE s of real time
+  const age = performance.now() / 1000 - Math.min(...bosses.map(b => b.titleAt || 0)), fade = 1 - Math.max(0, Math.min(1, (age - BOSS_TITLE_T) / BOSS_TITLE_FADE));
+  if (fade <= 0) return;
+  const off = CORE_R + LIFE_GAP * LIFE_RINGS - 4, arc = arcanaOf(bosses[0].n), col = ENEMIES.bonus.color, a0 = ctx.globalAlpha;
+  ctx.globalAlpha = a0 * fade;
   // drawn in its own colours with a dark halo: inside the inverted sky the
   // inverted palette turns that red on a white halo (render, withPalette)
   text(arc.name, CX, CY - off - BOSS_TITLE_PX * 0.5, BOSS_TITLE_PX, col, true, true); // BOLD and bigger (owner); just the name, no "x2" (owner)
+  ctx.globalAlpha = a0;
   // (the haiku sits ABOVE THE SPIRE title now, owner - bossHint, the HUD tick)
 }
 function drawBossBar() {
