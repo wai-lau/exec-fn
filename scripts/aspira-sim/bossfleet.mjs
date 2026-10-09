@@ -66,8 +66,8 @@ for (let n = 10; n <= 100; n += 10) {
   let mul = mul0, d = d0;
   if (MODE === "tune") {
     // closest approach falls as the fleet grows: bisect on a log scale
-    let lo = 0.25, hi = 8;
-    for (let it = 0; it < 7; it++) { const mid = Math.sqrt(lo * hi); if (avg(s => boss(n, lvl, mid, s)) > target) lo = mid; else hi = mid; }
+    let lo = 0.25, hi = 32;
+    for (let it = 0; it < 9; it++) { const mid = Math.sqrt(lo * hi); if (avg(s => boss(n, lvl, mid, s)) > target) lo = mid; else hi = mid; }
     mul = +Math.sqrt(lo * hi).toPrecision(2); d = avg(s => boss(n, lvl, mul, s));
   }
   res[arc] = mul;
