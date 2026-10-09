@@ -219,7 +219,6 @@ function warpEntities() {
   const atCell = (cell, fn) => up(cell.x, cell.y, fn);
   const all = () => {
     drawFx("dmg", at); // damage numbers flat too (owner), under everything as in 2D
-    drawFx("shots", up, (x, y) => warpProject(x, y)); // beams straight between their ends, the rest flat at their spots
     drawCells(atCell); if (!G.towers.length && !ui.build) drawSlotArrow(atCell); // the slots too, flat
     if (ui.build && ui.hover) up(ui.hover.x, ui.hover.y, drawPlacement);
     for (const e of G.enemies) up(e.x, e.y, () => drawEnemy(e, true)); // tracers, shields and marks flat on the floor, through the die's centre
