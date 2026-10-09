@@ -144,6 +144,7 @@ function warpParams() {
 // r is a VIEW radius (warpView). The shoulder is SOFT (owner: "don't have a sharp shoulder"): a
 // softplus `shoulder` wide eases the level head into the neck, so the head dips a hair at its rim
 function warpHeight(p, r) {
+  if (!p.D) return 0; // the flat floor (WARP.depth 0): no funnel to climb (perf: this ran on every projection)
   const sp = t => p.e * Math.log(1 + Math.exp(t / p.e)), t = (r - p.hc * p.T) / (p.L - p.hc * p.T);
   return -p.D * (1 - Math.pow(1 - Math.min(1, Math.max(0, sp(t) / sp(1))), p.P));
 }
@@ -280,7 +281,7 @@ function warpEntities() {
       // the ones behind the core before its prism and the ones in front after (aspira-walls.js); the top is the plain
       // white hex and the credits
       // its shields IN FRONT go over its walls (owner, 2026-10-09: "core outline should not draw over shields"); the ones behind stay under
-      post: () => { if (warpBand && warpBand.lo === 0) warpShieldLines(warp.coreWalls.filter(coreFront), COL.white, 1); },
+      post: () => { if (warpBand && warpBand.lo === 0) warpShieldLines(warp.coreWalls.filter(coreFront), COL.white, 1, [CX, CY]); },
       top: () => { up(CX, CY, () => { poly(CX, CY, CORE_R, 6, Math.PI / 6, false); ctx.fillStyle = COL.white; ctx.globalAlpha = 1; ctx.fill(); drawCredits("count"); }, coreH / 2); up(CX, CY, drawCoreHud, coreH / 2); } });
     solids.sort((a, b) => warpProject(a.x, a.y).y - warpProject(b.x, b.y).y);
     const drawSolid = (o, tops) => { if (o.pre) o.pre(); warpPrism(o); if (tops) o.top(); if (o.post) o.post(); };
@@ -291,7 +292,7 @@ function warpEntities() {
     // BELOW the floor, fading slice by slice, then the tracers and marks on it, then ABOVE (aspira-fog.js; owner: "geometry
     // should just start losing opacity in a gradient when lower than the floor")
     warp.coreWalls = coreWallPieces(); // once a frame (it keeps the life segments in step)
-    warpBands(above => { if (above) for (const e of G.enemies) up(e.x, e.y, () => drawEnemy(e, true)); drawDice(); drawSolids(above); }, () => { warpLanesOver(); if (!lowQ) { ctx.setTransform(1, 0, 0, 1, 0, 0); drawStars(warpStar); } warpShieldLines(warp.coreWalls.filter(p => !coreFront(p)), COL.white, 1); for (const { w, col } of dice) if (w.length) warpShieldLines(w, col, 0.8); }); // the shields: lines on the floor, with the lanes // (the tracers and marks: flat on the floor, through the die's centre)
+    warpBands(above => { if (above) for (const e of G.enemies) up(e.x, e.y, () => drawEnemy(e, true)); drawDice(); drawSolids(above); }, () => { warpLanesOver(); if (!lowQ) { ctx.setTransform(1, 0, 0, 1, 0, 0); drawStars(warpStar); } warpShieldLines(warp.coreWalls.filter(p => !coreFront(p)), COL.white, 1, [CX, CY]); for (const { e, w, col } of dice) if (w.length) warpShieldLines(w, col, 0.8, [e.x, e.y]); }); // the shields: lines on the floor, with the lanes // (the tracers and marks: flat on the floor, through the die's centre)
     // every POP-UP text over all of it (owner: "make sure all pop up text, like interest, is above the rendering"),
     // facing the camera (at) so it stays readable: damage numbers, the floating texts, the banner and the boss's title
     // and with NO perspective (owner: "no perspective effects on that"): at its spot, the board's plain scale
