@@ -11,12 +11,16 @@
 // beat - it just climbs a steeper ramp, faster in 3D. Taps map back through the
 // cone (unwarp), so every gesture lands on the 2D spot drawn under the finger.
 // Loads after aspira-draw.js and aspira-camera.js, before aspira-ui.js.
-// Past the TOWERS the ramp falls away far steeper (owner: "make the curvature
-// way steeper after the towers"): +WARP.outer degrees beyond the tower ring,
-// at most WARP.maxDeg, blended in over WARP.knee world units.
+// Past the TOWERS the ground falls away like a BLACK HOLE DIAGRAM turned upside
+// down (owner, 2026-10-09: "way steeper after the towers - think typical black
+// hole diagrams"): a near-vertical drop just outside the tower ring that
+// flattens toward the rim, depth x / (x + WARP.fall) of WARP.depth, x the
+// distance past the ring (softened over WARP.knee so the lip is rounded). The
+// drop deepens with the waves (WARP.depth[0] at wave 1 to [1] at the last),
+// so its wall steepens a little every floor.
 //   tilt   the board leans back this far (radians; owner: "more top down", was 0.62)
 //   round  the peak's rounding (world units); edge the board fades between these radii
-const WARP = { tilt: 0.35, fov: 0.87, round: 60, edge: [760, 840], ease: 1, slope: [5, 25], outer: 35, maxDeg: 60, knee: 40 };
+const WARP = { tilt: 0.35, fov: 0.87, round: 60, edge: [760, 840], ease: 1, slope: [5, 25], depth: [220, 420], fall: 110, knee: 18 };
 // the tower ring's outer edge, world units from the core: the plateau the towers stand on
 const WARP_TOWERS = Math.max(...CELLS.map(c => Math.hypot(c.x - CX, c.y - CY))) + CELL_S * 1.5;
 // the ramp's angle on wave n, degrees: WARP.slope[0] at wave 1 to [1] at the last
@@ -25,14 +29,14 @@ const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, size:
 
 const WARP_VS = `
 attribute vec2 a;
-uniform vec2 core, size; uniform float m, m2, r0, kw, b, c, s, f, k;
+uniform vec2 core, size; uniform float m, D, L, r0, kw, b, c, s, f, k;
 varying vec2 uv; varying float sh, rr;
 void main() {
   vec2 p = a - core; float r = length(p);
-  float x = (r - r0) / kw, h = m * (b - sqrt(r * r + b * b)) - m2 * kw * (x > 20.0 ? x : log(1.0 + exp(x)));
+  float u = (r - r0) / kw, x = kw * (u > 20.0 ? u : log(1.0 + exp(u))), g = x / (x + L), h = m * (b - sqrt(r * r + b * b)) - D * g;
   float qy = -c * p.y + s * h, qz = s * p.y + c * h, w = f - qz;
   vec2 sc = core + vec2(f * p.x, -f * qy) / w;
-  uv = a / size; rr = r / k; sh = 1.0 - 0.35 * min(1.0, rr / 800.0);
+  uv = a / size; rr = r / k; sh = 1.0 - 0.45 * g;
   gl_Position = vec4((sc.x / size.x * 2.0 - 1.0) * w, (1.0 - sc.y / size.y * 2.0) * w, (w / (20.0 * size.y) * 2.0 - 1.0) * w, w);
 }`;
 const WARP_FS = `
@@ -87,13 +91,13 @@ function warpParams(dt) {
   const goal = SLOPE_AT(Math.max(1, G.wave));
   warp.deg = warp.deg == null ? goal : warp.deg + (goal - warp.deg) * Math.min(1, dt / WARP.ease * 3);
   const f = cv.height / 2 / Math.tan(WARP.fov / 2);
-  const rad = Math.PI / 180, m = Math.tan(warp.deg * rad), m2 = Math.tan(Math.min(WARP.maxDeg, warp.deg + WARP.outer) * rad) - m;
-  return { core: [cam.ox + CX * cam.k, cam.oy + CY * cam.k], m, m2, r0: WARP_TOWERS * cam.k, kw: WARP.knee * cam.k, b: WARP.round * cam.k, c: Math.cos(WARP.tilt), s: Math.sin(WARP.tilt), f, k: cam.k };
+  const m = Math.tan(warp.deg * Math.PI / 180), t = (warp.deg - WARP.slope[0]) / (WARP.slope[1] - WARP.slope[0]); // t: 0 at wave 1, 1 at the last
+  return { core: [cam.ox + CX * cam.k, cam.oy + CY * cam.k], m, D: (WARP.depth[0] + (WARP.depth[1] - WARP.depth[0]) * t) * cam.k, L: WARP.fall * cam.k, r0: WARP_TOWERS * cam.k, kw: WARP.knee * cam.k, b: WARP.round * cam.k, c: Math.cos(WARP.tilt), s: Math.sin(WARP.tilt), f, k: cam.k };
 }
 // the spire's height (<= 0, canvas px) r px from the core - the vertex shader's twin
 function warpHeight(p, r) {
-  const x = (r - p.r0) / p.kw;
-  return p.m * (p.b - Math.hypot(r, p.b)) - p.m2 * p.kw * (x > 20 ? x : Math.log1p(Math.exp(x)));
+  const u = (r - p.r0) / p.kw, x = p.kw * (u > 20 ? u : Math.log1p(Math.exp(u)));
+  return p.m * (p.b - Math.hypot(r, p.b)) - p.D * x / (x + p.L);
 }
 // one frame: the 2D picture onto the cone (aspira-ui.js frame calls this after render)
 function warpDraw(dt) {
@@ -110,7 +114,7 @@ function warpDraw(dt) {
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv);
   const u = n => gl.getUniformLocation(pr, n);
   gl.uniform2f(u("core"), p.core[0], p.core[1]); gl.uniform2f(u("size"), cv.width, cv.height);
-  for (const n of ["m", "m2", "r0", "kw", "b", "c", "s", "f", "k"]) gl.uniform1f(u(n), p[n]);
+  for (const n of ["m", "D", "L", "r0", "kw", "b", "c", "s", "f", "k"]) gl.uniform1f(u(n), p[n]);
   gl.uniform2f(u("edge"), WARP.edge[0], WARP.edge[1]);
   const loc = gl.getAttribLocation(pr, "a");
   gl.bindBuffer(gl.ARRAY_BUFFER, warp.buf);
