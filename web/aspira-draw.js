@@ -476,12 +476,12 @@ function drawScene([sx, sy], clipR) {
     drawCoreHud(); // the core powers' dial, freeze, copy and halos, over everything (aspira-core-fx.js)
   }
   if (!q3d()) drawFx("text");
-  if (bannerT > 0) {
+  if (bannerT > 0 && !q3d()) { // (3D: over everything, warpEntities)
     ctx.globalAlpha = Math.min(1, bannerT);
     text(bannerText, CX, 70, 30, bannerCol, true); // smaller (owner, 2026-10-06; was 44)
     ctx.globalAlpha = 1;
   }
-  drawBossTitle(); // the boss's name + subtitle, over the towers (owner)
+  if (!q3d()) drawBossTitle(); // the boss's name + subtitle, over the towers (owner)
   ctx.restore();
 }
 // the whole palette inverted while fn draws (invertColor keeps alpha); the
