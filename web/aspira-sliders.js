@@ -177,7 +177,7 @@ function upgradeButton(t) {
   if (!box) return;
   box.innerHTML = "";
   const n = basketPoints(t), cost = basketCost(t), pts = t.lvl - 1 + n;
-  const label = towerTitle(t) + (pts ? " " + roman(pts) : "") + (n ? ' <span class="asp-spend-cost">(−' + cr(cost) + ")</span>" : "");
+  const label = towerTitle(t) + (pts ? " " + roman(pts) : "") + (n ? ' <span class="asp-spend-cost' + (cost <= G.money ? " asp-cost-ok" : "") + '">(−' + cr(cost) + ")</span>" : ""); // affordable: just BOLD, its own colour (owner, 2026-10-09)
   const btn = button(box, "asp-primary asp-up-big" + (n && G.money >= cost ? " asp-confirm" : ""), label, () => lockIn(t), "asp-up"); // pulses while a pull waits to be locked in (owner)
   btn.classList.toggle("poor", n > 0 && G.money < cost); btn.disabled = !n || G.money < cost; // greyed until a slider moves; red, no tap, when the bank cannot cover it (owner)
   button(box, "asp-up-cancel", n ? "cancel" : "close", () => { if (basketPoints(t)) { basket.add = {}; refreshPanels(); } else closeCard(); }, "asp-up-cancel");

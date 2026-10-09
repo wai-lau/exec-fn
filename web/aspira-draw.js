@@ -467,7 +467,7 @@ function drawScene([sx, sy], clipR) {
   drawCoreFx(); // the core's struts and beams, under the towers (aspira-core.js)
   // in 3D the towers, the core and the enemies are drawn FLAT over the bell instead (warpEntities, aspira-warp.js)
   ownColours(() => { drawSpokes(); if (!q3d()) for (const t of G.towers) drawTower(t); drawRelayArm(); }); // towers keep their colours on a boss sky (owner); an armed Relay rings them (aspira-powers.js)
-  drawSlotFlash(); // a corner slot that just opened (aspira-waves.js)
+  drawSlotFlash(); drawCoins(); // a corner slot that just opened (aspira-waves.js); the credits flying home (aspira-floats.js)
   if (!q3d()) {
     if (ui.build && ui.hover) drawPlacement();
     drawCore();

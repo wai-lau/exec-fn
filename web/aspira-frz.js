@@ -70,7 +70,7 @@ function frzStep(t, dt) {
       if (e.shield > 0) { damage(e, st.dmg * s.k, t, false, false, FRZ_TICK_HIT); continue; }
       const hp = e.hp;
       damage(e, st.dmg * s.k * frzBite(e), t, true);
-      if (hp - e.hp > 0) dmgNumber(e, String(dmgUnits(hp - e.hp)), hp - e.hp, "white");
+      if (hp - e.hp > 0) dmgNumber(e, String(dmgUnits(hp - e.hp)), hp - e.hp, "white", t);
     }
   }
   if (ticked) sfx("frz"); // a tick that touched anything is HEARD (owner, 2026-10-07; was silent)

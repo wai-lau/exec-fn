@@ -273,6 +273,7 @@
 
 .asp-spend-cred[hidden] { display: none; }
 .asp-spend-cost { color: hsl(var(--pink-hsl)); } /* "(-40c)" in the palette's red (owner) */
+.asp-spend-cost.asp-cost-ok { color: inherit; font-weight: var(--fw-bold); } /* an upgrade you can afford: bold, no colour change (owner, 2026-10-09) */
 
 #asp .asp-spend button { width: 12ch; }
 
