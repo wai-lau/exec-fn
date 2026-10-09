@@ -13,30 +13,47 @@
 // the finger. Loads after aspira-draw.js and aspira-camera.js, before aspira-ui.js.
 //   tilt   the board leans back this far (radians; owner: "more top down", was 0.62)
 //   edge   the board fades between these radii (world units from the core)
-const WARP = { tilt: 0.35, fov: 0.87, edge: [760, 840], depth: 2300, fall: 110, knee: 18 }; // depth: always a DEEP classic bell (owner), then 5x taller (was 460)
+//   tilt, fov  the board leans back `tilt` (radians) under a `fov` lens (owner, "more top down", then
+//          with the bell 5x taller: tilt 0.62 -> 0.35 -> 0.15, fov 0.87 -> 0.45 - a longer lens from further
+//          back, so the drop's walls and the lanes below stay in sight)
+//   edge   the board's picture fades out between these radii (world units from the core)
+//   grid   the BLACK HOLE GRID (owner: "add more rings in the bg to make it look more like a black hole"):
+//          rings every `ring` world units and `spokes` radial lines on the bell past the towers, out to
+//          `far`, where the bell itself ends; over the board only `onBoard` as strong
+const WARP = { tilt: 0.15, fov: 0.45, edge: [760, 840], depth: 2300, fall: 110, knee: 18, grid: { ring: 110, spokes: 24, far: 2400, a: 0.3, onBoard: 0.25 } }; // depth: always a DEEP classic bell (owner), then 5x taller (was 460)
 // the tower ring's outer edge, world units from the core: the plateau the towers stand on
 const WARP_TOWERS = Math.max(...CELLS.map(c => Math.hypot(c.x - CX, c.y - CY))) + CELL_S * 1.5;
-const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, size: "", p: null };
+const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, p: null };
 
+// the mesh is POLAR, in world units round the core: a = (radius, angle)
 const WARP_VS = `
 attribute vec2 a;
 uniform vec2 core, size; uniform float D, L, r0, kw, c, s, f, k;
-varying vec2 uv; varying float sh, rr;
+varying vec2 uv; varying float sh, rr, th;
 void main() {
-  vec2 p = a - core; float r = length(p);
+  float r = a.x * k; vec2 p = r * vec2(cos(a.y), sin(a.y));
   float e0 = max(0.0, r - r0), x = e0 * e0 / (e0 + kw), g = x / (x + L), h = -D * g;
   float qy = -c * p.y + s * h, qz = s * p.y + c * h, w = f - qz;
   vec2 sc = core + vec2(f * p.x, -f * qy) / w;
-  uv = a / size; rr = r / k; sh = 1.0 - 0.45 * g;
-  gl_Position = vec4((sc.x / size.x * 2.0 - 1.0) * w, (1.0 - sc.y / size.y * 2.0) * w, (w / (20.0 * size.y) * 2.0 - 1.0) * w, w);
+  uv = (core + p) / size; rr = a.x; th = a.y; sh = 1.0 - 0.45 * g;
+  gl_Position = vec4((sc.x / size.x * 2.0 - 1.0) * w, (1.0 - sc.y / size.y * 2.0) * w, (w / (40.0 * size.y) * 2.0 - 1.0) * w, w);
 }`;
 const WARP_FS = `
 precision mediump float;
-uniform sampler2D tex; uniform vec2 edge;
-varying vec2 uv; varying float sh, rr;
+uniform sampler2D tex; uniform vec2 edge; uniform vec3 gridCol; uniform vec4 grid; // grid: ring, spoke angle, far, alpha
+uniform float towers, onBoard;
+varying vec2 uv; varying float sh, rr, th;
+float line(float d, float wd) { return 1.0 - smoothstep(wd * 0.5, wd * 1.5, d); }
 void main() {
-  float e = 1.0 - smoothstep(edge.x, edge.y, rr);
-  gl_FragColor = vec4(texture2D(tex, uv).rgb * sh, 1.0) * e;
+  vec2 inUv = step(vec2(0.0), uv) * step(uv, vec2(1.0));
+  float board = inUv.x * inUv.y * (1.0 - smoothstep(edge.x, edge.y, rr));
+  float wd = 0.8 + rr * 0.0025;
+  float ring = line(abs(fract(rr / grid.x + 0.5) - 0.5) * grid.x, wd);
+  float spoke = line(abs(fract(th / grid.y + 0.5) - 0.5) * grid.y * rr, wd);
+  float gk = max(ring, spoke) * grid.w * smoothstep(towers, towers + 30.0, rr) * (1.0 - smoothstep(grid.z * 0.7, grid.z, rr));
+  gk *= 1.0 - board * (1.0 - onBoard); // faint over the board itself: the lanes stay readable
+  vec3 col = texture2D(tex, uv).rgb * sh * board;
+  gl_FragColor = vec4(mix(col, gridCol * sh, gk), max(board, gk));
 }`;
 
 function warpShader(gl, type, src) {
@@ -64,18 +81,27 @@ function warpInit() {
   Object.assign(warp, { gl, cv: c, prog: pr, tex: t, buf: gl.createBuffer() });
   return gl;
 }
-// the cone's grid, in 2D canvas pixels - rebuilt when the canvas resizes
-const WARP_GRID = 96;
-function warpMesh(w, h) {
-  const gl = warp.gl, v = [];
-  const at = (i, j) => v.push(i / WARP_GRID * w, j / WARP_GRID * h);
-  for (let j = 0; j < WARP_GRID; j++) for (let i = 0; i < WARP_GRID; i++) {
-    at(i, j); at(i + 1, j); at(i, j + 1); at(i + 1, j); at(i + 1, j + 1); at(i, j + 1);
+// the bell's POLAR grid, once: dense across the drop's lip, sparser out to the far rim
+const WARP_SEG = 180;
+function warpRadii() {
+  const r0 = WARP_TOWERS, out = [];
+  for (let i = 0; i <= 8; i++) out.push(r0 * i / 8);
+  for (let i = 1; i <= 90; i++) out.push(r0 + 500 * Math.pow(i / 90, 1.6));
+  for (let i = 1; i <= 50; i++) out.push(r0 + 500 + (WARP.grid.far - r0 - 500) * i / 50);
+  return out;
+}
+function warpMesh() {
+  const gl = warp.gl, v = [], R = warpRadii(), da = Math.PI * 2 / WARP_SEG;
+  for (let i = 0; i + 1 < R.length; i++) for (let j = 0; j < WARP_SEG; j++) {
+    const a0 = j * da, a1 = (j + 1) * da;
+    v.push(R[i], a0, R[i + 1], a0, R[i], a1, R[i + 1], a0, R[i + 1], a1, R[i], a1);
   }
   gl.bindBuffer(gl.ARRAY_BUFFER, warp.buf);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(v), gl.STATIC_DRAW);
-  warp.n = v.length / 2; warp.size = w + "x" + h;
+  warp.n = v.length / 2;
 }
+// the grid's colour, the chart's own grid swatch (COL.grid, "rgb(r, g, b)") as 0..1
+const warpGridRgb = () => (String(COL.grid || COL.green).match(/[\d.]+/g) || [0, 255, 0]).slice(0, 3).map(n => n / 255);
 // this frame's bell, centred on the core's canvas spot
 function warpParams() {
   const f = cv.height / 2 / Math.tan(WARP.fov / 2);
@@ -91,7 +117,7 @@ function warpDraw() {
   const gl = warpInit();
   if (!gl) return;
   if (warp.cv.width !== cv.width || warp.cv.height !== cv.height) { warp.cv.width = cv.width; warp.cv.height = cv.height; }
-  if (warp.size !== cv.width + "x" + cv.height) warpMesh(cv.width, cv.height);
+  if (!warp.n) warpMesh();
   const p = warp.p = warpParams(), pr = warp.prog;
   gl.viewport(0, 0, cv.width, cv.height);
   gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -103,18 +129,21 @@ function warpDraw() {
   gl.uniform2f(u("core"), p.core[0], p.core[1]); gl.uniform2f(u("size"), cv.width, cv.height);
   for (const n of ["D", "L", "r0", "kw", "c", "s", "f", "k"]) gl.uniform1f(u(n), p[n]);
   gl.uniform2f(u("edge"), WARP.edge[0], WARP.edge[1]);
+  gl.uniform3fv(u("gridCol"), warpGridRgb());
+  gl.uniform4f(u("grid"), WARP.grid.ring, Math.PI * 2 / WARP.grid.spokes, WARP.grid.far, WARP.grid.a);
+  gl.uniform1f(u("towers"), WARP_TOWERS); gl.uniform1f(u("onBoard"), WARP.grid.onBoard);
   const loc = gl.getAttribLocation(pr, "a");
   gl.bindBuffer(gl.ARRAY_BUFFER, warp.buf);
   gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
   gl.drawArrays(gl.TRIANGLES, 0, warp.n);
 }
 // a screen point (2D canvas device px) back to the canvas spot drawn there:
-// march the eye's ray down to the cone, then bisect. null off the cone.
+// march the eye's ray down to the bell, then bisect. null off it.
 function unwarp(sx, sy) {
   const p = warp.p;
   if (!p) return { x: sx, y: sy };
   const dx = (sx - p.core[0]) / p.f, dy = -(sy - p.core[1]) / p.f;
-  const at = t => { // the ray at t, in the cone's frame, and its height above the cone
+  const at = t => { // the ray at t, in the bell's frame, and its height above it
     const qx = t * dx, qy = t * dy, qz = p.f - t, py = p.s * qz - p.c * qy, pz = p.s * qy + p.c * qz;
     return { x: qx, y: py, g: pz - warpHeight(p, Math.hypot(qx, py)) };
   };
