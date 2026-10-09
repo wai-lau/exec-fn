@@ -73,10 +73,11 @@ function warpSolid(e) {
     const n = [0, 1, 2].map(i => face.reduce((m, v) => m + R[v][i], 0) / face.length), nl = Math.hypot(...n);
     if (n[1] * p.s + n[2] * p.c <= 0) continue; // turned away from the camera
     const lit = Math.max(0, (n[0] * SOLID_LIGHT[0] + n[1] * SOLID_LIGHT[1] + n[2] * SOLID_LIGHT[2]) / nl);
-    if (!warpPath(face.map(v => { const [x, y] = scr(R[v]); return { x, y, z: R[v][2] }; }))) continue; // clipped to the half being drawn (aspira-fog.js)
-    ctx.globalAlpha = 1; ctx.fillStyle = COL.bg; ctx.fill();
-    ctx.globalAlpha = (0.2 + 0.7 * lit) * (0.5 + 0.5 * f); ctx.fillStyle = col; ctx.fill();
-    ctx.globalAlpha = 0.9; ctx.strokeStyle = col; ctx.stroke();
+    const poly3 = face.map(v => { const [x, y] = scr(R[v]); return { x, y, z: R[v][2] * size }; });
+    if (!warpPath(poly3)) continue; // clipped to the slice being drawn (aspira-fog.js)
+    ctx.globalAlpha = warpFade; ctx.fillStyle = COL.bg; ctx.fill();
+    ctx.globalAlpha = (0.2 + 0.7 * lit) * (0.5 + 0.5 * f) * warpFade; ctx.fillStyle = col; ctx.fill();
+    warpEdges(poly3); ctx.globalAlpha = 0.9 * warpFade; ctx.strokeStyle = col; ctx.stroke();
   }
   ctx.globalAlpha = 1;
 }

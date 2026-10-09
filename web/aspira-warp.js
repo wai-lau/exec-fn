@@ -255,16 +255,15 @@ function warpEntities() {
       // the core's SHIELDS (its life and level rings) stand on the FLOOR (owner: "core shields on plane level") as walls,
       // the ones behind the core before its prism and the ones in front after (aspira-walls.js); the top is the plain
       // white hex and the credits
-      pre: () => { warp.coreWalls = warp.coreWalls && warpHalf === "above" ? warp.coreWalls : coreWallPieces(); warpWalls(warp.coreWalls, CY, false, WALL_H.core, COL.white, 1); },
+      pre: () => { warpWalls(warp.coreWalls, CY, false, WALL_H.core, COL.white, 1); },
       post: () => warpWalls(warp.coreWalls, CY, true, WALL_H.core, COL.white, 1),
       top: () => { up(CX, CY, () => { poly(CX, CY, CORE_R, 6, Math.PI / 6, false); ctx.fillStyle = COL.white; ctx.globalAlpha = 1; ctx.fill(); drawCredits("count"); }, WARP.prism.core / 2); up(CX, CY, drawCoreHud, WARP.prism.core / 2); } });
     solids.sort((a, b) => warpProject(a.x, a.y).y - warpProject(b.x, b.y).y);
     const drawSolids = tops => { for (const o of solids) { if (o.pre) o.pre(); warpPrism(o); if (tops) o.top(); if (o.post) o.post(); } };
-    // BELOW the plane, then the plane as FOG over it, then ABOVE (aspira-fog.js; owner: "the plane should be a thick fog layer")
-    warpHalf = "below"; drawDice(); drawSolids(false);
-    warpHalf = null; ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = WARP_FOG; ctx.drawImage(warp.cv, 0, 0); ctx.globalAlpha = 1;
-    for (const e of G.enemies) up(e.x, e.y, () => drawEnemy(e, true)); // tracers, shields and marks flat on the floor, through the die's centre
-    warpHalf = "above"; drawDice(); drawSolids(true); warpHalf = null;
+    // BELOW the floor, fading slice by slice, then the tracers and marks on it, then ABOVE (aspira-fog.js; owner: "geometry
+    // should just start losing opacity in a gradient when lower than the floor")
+    warp.coreWalls = coreWallPieces(); // once a frame (it keeps the life segments in step)
+    warpBands(above => { if (above) for (const e of G.enemies) up(e.x, e.y, () => drawEnemy(e, true)); drawDice(); drawSolids(above); }); // (the tracers and marks: flat on the floor, through the die's centre)
     // every POP-UP text over all of it (owner: "make sure all pop up text, like interest, is above the rendering"),
     // facing the camera (at) so it stays readable: damage numbers, the floating texts, the banner and the boss's title
     // and with NO perspective (owner: "no perspective effects on that"): at its spot, the board's plain scale
@@ -306,19 +305,20 @@ function warpPrism(o) {
   const H = o.h * cam.k / 2, n = o.pts.length, frame = h => { const [a, b, c2, d, e, f] = warpFrame(o.x, o.y, h / cam.k); return p => ({ x: a * p.x + c2 * p.y + e, y: b * p.x + d * p.y + f }); };
   // ... and it comes to a POINT below (owner: "instead of hexagonal prisms, make them all come to a point at the bottom")
   // (a POINTED bottom was tried and dropped: "change the towers and core back to prisms instead of pointy")
-  const ft = frame(H), fb = frame(-H * WARP.prism.below), B = o.pts.map(p => ({ ...fb(p), z: -H * WARP.prism.below })), T = o.pts.map(p => ({ ...ft(p), z: H })); // below: x the half height under the floor (owner: "3x the distance below plane")
+  const ft = frame(H), fb = frame(-H * WARP.prism.below), B = o.pts.map(p => ({ ...fb(p), z: -o.h / 2 * WARP.prism.below })), T = o.pts.map(p => ({ ...ft(p), z: o.h / 2 })); // z in world units (aspira-fog.js) // below: x the half height under the floor (owner: "3x the distance below plane")
   const walls = o.pts.map((p, i) => { const q = o.pts[(i + 1) % n], mx = (p.x + q.x) / 2 - o.x, my = (p.y + q.y) / 2 - o.y; return { i, j: (i + 1) % n, face: my / (Math.hypot(mx, my) || 1) }; });
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.lineJoin = "round"; ctx.lineWidth = 1.5 * cam.k;
   if (o.dash) { // an empty slot: a DOTTED wireframe, nothing filled
-    ctx.setLineDash([2 * cam.k, 3 * cam.k]); ctx.strokeStyle = o.col; ctx.globalAlpha = 0.45; ctx.beginPath();
+    ctx.setLineDash([2 * cam.k, 3 * cam.k]); ctx.strokeStyle = o.col; ctx.globalAlpha = 0.45 * warpFade; ctx.beginPath();
     for (let i = 0; i < n; i++) { warpLine(B[i], B[(i + 1) % n]); warpLine(B[i], T[i]); } // (the top ring is the slot's own outline, drawn on it)
     ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; return;
   }
   for (const w of walls.sort((a, b) => a.face - b.face)) { // +y faces the camera
-    if (!warpPath([B[w.i], B[w.j], T[w.j], T[w.i]])) continue;
-    ctx.globalAlpha = 1; ctx.fillStyle = COL.bg; ctx.fill();
-    ctx.globalAlpha = 0.12 + 0.28 * Math.max(0, w.face); ctx.fillStyle = o.col; ctx.fill();
-    ctx.globalAlpha = 0.8; ctx.strokeStyle = o.col; ctx.stroke();
+    const quad = [B[w.i], B[w.j], T[w.j], T[w.i]];
+    if (!warpPath(quad)) continue;
+    ctx.globalAlpha = warpFade; ctx.fillStyle = COL.bg; ctx.fill();
+    ctx.globalAlpha = (0.12 + 0.28 * Math.max(0, w.face)) * warpFade; ctx.fillStyle = o.col; ctx.fill();
+    warpEdges(quad); ctx.globalAlpha = 0.8 * warpFade; ctx.strokeStyle = o.col; ctx.stroke();
   }
   ctx.globalAlpha = 1;
 }
