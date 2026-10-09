@@ -257,7 +257,7 @@ function warpEntities() {
       // white hex and the credits
       pre: () => { warp.coreWalls = warp.coreWalls && warpHalf === "above" ? warp.coreWalls : coreWallPieces(); warpWalls(warp.coreWalls, CY, false, WALL_H.core, COL.white, 1); },
       post: () => warpWalls(warp.coreWalls, CY, true, WALL_H.core, COL.white, 1),
-      top: () => { up(CX, CY, () => { poly(CX, CY, CORE_R, 6, Math.PI / 6, false); ctx.fillStyle = COL.white; ctx.globalAlpha = 1; ctx.fill(); drawCredits(); }, WARP.prism.core / 2); up(CX, CY, drawCoreHud, WARP.prism.core / 2); } });
+      top: () => { up(CX, CY, () => { poly(CX, CY, CORE_R, 6, Math.PI / 6, false); ctx.fillStyle = COL.white; ctx.globalAlpha = 1; ctx.fill(); drawCredits("count"); }, WARP.prism.core / 2); up(CX, CY, drawCoreHud, WARP.prism.core / 2); } });
     solids.sort((a, b) => warpProject(a.x, a.y).y - warpProject(b.x, b.y).y);
     const drawSolids = tops => { for (const o of solids) { if (o.pre) o.pre(); warpPrism(o); if (tops) o.top(); if (o.post) o.post(); } };
     // BELOW the plane, then the plane as FOG over it, then ABOVE (aspira-fog.js; owner: "the plane should be a thick fog layer")
@@ -273,7 +273,7 @@ function warpEntities() {
     const pop = (x, y, fn, far) => { const P = warpProject(x, y), k = cam.k * (far ? P.s : 1); ctx.setTransform(k, 0, 0, k, P.x - x * k, P.y - y * k); ctx.save(); fn(); ctx.restore(); };
     drawFx("dmg", (x, y, fn) => pop(x, y, fn, true)); drawFx("text", pop);
     if (bannerT > 0) pop(CX, 70, () => { ctx.globalAlpha = Math.min(1, bannerT); text(bannerText, CX, 70, 30, bannerCol, true); ctx.globalAlpha = 1; });
-    pop(CX, CY, drawBossTitle);
+    pop(CX, CY, drawBossTitle); pop(CX, CY, () => drawCredits("pop")); // (the interest pop-up too)
   };
   // the BOSS SKY's inversion is the TOP LAYER (owner: "color inversion is broken, have it as the top layer"): this canvas
   // carries the bell's picture under everything it draws, and the sky's circle - projected onto the floor, the whole

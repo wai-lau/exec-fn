@@ -173,15 +173,18 @@ function drawSlotFlash() {
 // CREDITS_FX_T s after an interest payout "+Xc (+r%)" shows just under the rings
 const CREDITS_FX_T = 2.5;
 let creditsFx = null;
-function drawCredits() {
+// part: "count" the number alone, "pop" the interest pop-up alone (3D draws the pop-up over everything, warpEntities)
+function drawCredits(part) {
   const fxOn = creditsFx && performance.now() / 1000 - creditsFx.t0 < CREDITS_FX_T;
   // just the NUMBER, centred on the core (owner: the CREDITS word is gone),
   // full with separators - counts run past 10k (owner)
   const n = Math.floor(fxOn ? G.money - creditsFx.gain : G.money).toLocaleString("en-US");
   // a little "CRED" UNDER it (owner, 2026-10-06; was a "c", first after it on the same line)
-  text(n, CX, CY - 3, 15, "bg", "white"); // BLACK with a white halo (owner); smaller (owner, 2026-10-06; was 22)
-  text("CRED", CX, CY + 9, 8, "bg", "white");
-  if (!fxOn || G.enemies.some(e => e.arcana && !e.dead)) return; // a boss's name takes this spot (drawBossBar)
+  if (part !== "pop") {
+    text(n, CX, CY - 3, 15, "bg", "white"); // BLACK with a white halo (owner); smaller (owner, 2026-10-06; was 22)
+    text("CRED", CX, CY + 9, 8, "bg", "white");
+  }
+  if (part === "count" || !fxOn || G.enemies.some(e => e.arcana && !e.dead)) return; // a boss's name takes this spot (drawBossBar)
   const parts = [["+" + creditsFx.gain + "c", "green"], [" (+" + creditsFx.pct.toFixed(1) + "%)", "green"]];
   ctx.font = "14px " + CANVAS_FONT; // the interest pop-up, smaller (owner; was 20)
   const ws = parts.map(p => ctx.measureText(p[0]).width);
