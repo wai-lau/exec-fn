@@ -5,9 +5,9 @@
 // BELL - a BLACK HOLE DIAGRAM turned upside down ("think typical black hole
 // diagrams"; "always a deep classic bell"), peaking at the core and never
 // changing: a BELL CURVE, height -WARP.depth x (1 - exp(-(r / L)^WARP.pow)), L =
-// R0 / WARP.flat - a broad, nearly flat top (pow 5: "a little too pointy" at 2,
-// then "reduce the curve near the top so the towers don't look super far" at 3)
-// and level (about 6 deg) by the lanes' mouths (R0), so enemies come in on the
+// R0 / WARP.flat - still a bell, with a gentler top (pow 3.5: "a little too
+// pointy" at 2, "reduce the curve near the top so the towers don't look super
+// far" at 3, too flat at 5) and level by the lanes' mouths (R0), so enemies come in on the
 // level floor and climb the wall to the core (owner: "when the bottom curvature
 // flattens that should be where the enemies spawn").
 // The TOWERS (and their slots), the CORE and the ENEMIES are not stretched with it (owner: "use
@@ -28,7 +28,7 @@
 //          rings every `ring` world units and `spokes` radial lines on the bell past the towers, out to
 //          `far`, where the bell itself ends; over the board only `onBoard` as strong, and outside
 //          the board's circle half as many (owner: "fewer curvature lines outside the circle")
-const WARP = { tilt: 0.15, fov: 0.45, edge: [760, 840], depth: 13800, flat: 1.55, pow: 5, zoom: 2, anchor: 0.25, grid: { ring: 110, spokes: 24, far: 2400, a: 0.3, onBoard: 0.25 } }; // depth: a DEEP classic bell (owner), 5x taller (was 460), then 3x again (was 2300), then x2 (was 6900)
+const WARP = { tilt: 0.15, fov: 0.45, edge: [760, 840], depth: 13800, flat: 1.873, pow: 3.5, zoom: 2, anchor: 0.25, grid: { ring: 110, spokes: 24, far: 2400, a: 0.3, onBoard: 0.25 } }; // depth: a DEEP classic bell (owner), 5x taller (was 460), then 3x again (was 2300), then x2 (was 6900)
 // the tower ring's outer edge, world units from the core: the plateau the towers stand on
 const WARP_TOWERS = Math.max(...CELLS.map(c => Math.hypot(c.x - CX, c.y - CY))) + CELL_S * 1.5;
 const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, p: null, ent: null };
