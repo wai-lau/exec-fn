@@ -392,7 +392,7 @@ function showOverlay(title, body, btn) {
 }
 $("asp-spend-btn").onclick = () => { if (spend.onClose) spend.onClose(); }; // the spend bar's cancel / close (aspira-chooser.js)
 $("asp-ov-btn").onclick = () => {
-  if (G.over) { G = newGame(); fx = []; dmgLive = []; ui.sel = null; ui.build = null; refreshPanels(); }
+  if (G.over) { G = newGame(); fx = []; dmgLive = []; coins = []; ui.sel = null; ui.build = null; refreshPanels(); }
   // no intro (owner): the overlay is only the game-over card; the first tower starts wave 1
   $("asp-ov").hidden = true;
 };

@@ -117,37 +117,6 @@ function pickTargets(t, st, count) {
 // crit: draw this hit's number PINK instead of a separate CRIT label (owner)
 // st (optional): the hitting tower's stats, for pierce - st.ignoreShield and
 // st.armorPierce (the share of armor ignored; ARC's Ion path, owner)
-// a floating damage number, sized RELATIVE to the biggest hit seen this game
-// (owner): the largest so far is 27px / 2s, a tiny one 11px / 0.8s, spaced by
-// sqrt(size / maxHit) - size being the hit before armor or shield
-// At most DMG_MAX on screen, a HARD cap (owner, 2026-10-06): every hit gets a
-// number, small ones too, and past the cap the SMALLEST number on screen is
-// culled to make room - unless the new hit is smaller still, which then goes
-// unshown. (They age in REAL time while the game runs up to 20x, so late
-// waves at speed piled thousands up - drawing them was most of the frame;
-// profiled 2026-10-05, waves 80-85, 9 max towers.)
-const DMG_MAX = 120;
-let dmgLive = []; // the live damage-number floats, each carrying its hit size `v`
-// a number's size follows its hit against the biggest hit yet - steeper and wider than it was (owner, 2026-10-08:
-// "big numbers bigger!!"; was sqrt, 11..27px)
-const DMG_SIZE_EXP = 0.7, DMG_PX_MIN = 10, DMG_PX_SPAN = 28;
-function dmgNumber(e, label, size, color) {
-  G.maxHit = Math.max(G.maxHit || 1, size);
-  const rel = (size / G.maxHit) ** DMG_SIZE_EXP;
-  if (dmgLive.length >= DMG_MAX) {
-    dmgLive = dmgLive.filter(f => f.t < f.life);
-    if (dmgLive.length >= DMG_MAX) {
-      let lo = 0;
-      for (let i = 1; i < dmgLive.length; i++) if (dmgLive[i].v < dmgLive[lo].v) lo = i;
-      if (dmgLive[lo].v >= size) return; // this hit is the smallest: no number
-      dmgLive[lo].t = dmgLive[lo].life; // cull the smallest on screen
-      dmgLive.splice(lo, 1);
-    }
-  }
-  float(e.x + (Math.random() - 0.5) * 24, e.y - 14, label, color, Math.round(DMG_PX_MIN + DMG_PX_SPAN * rel), 0.8 + 1.2 * rel, 1, 30, true);
-  const f = fx[fx.length - 1];
-  f.v = size; dmgLive.push(f);
-}
 const BLEED_CRIT_MUL = 2;
 function damage(e, amt, t, quiet = false, crit = false, st = null) {
   if (e.dead) return;
@@ -159,7 +128,7 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
     e.shield--;
     fx.push({ k: "hit", x: e.x, y: e.y, r: 18, m: 1, color: "cyan", t: 0, life: 0.07 });
     // all of it soaked: a "0" in SHIELD blue, as BIG as the hit it swallowed (owner)
-    dmgNumber(e, "0", amt, "cyan");
+    dmgNumber(e, "0", amt, "cyan", t);
     return;
   }
   // BLEED (SOL's Impale): every OTHER tower may crit a bleeding enemy too, for
@@ -189,7 +158,7 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
     // damage number, jittered so rapid hits don't stack
     // armor-blunted hits read dim grey (the graticule's Silver), the rest white
     // sized by the hit BEFORE armor (owner): a big hit blunted to little still reads big, in grey
-    dmgNumber(e, String(dmgUnits(amt)), raw, crit ? "orange" : blunted ? "grid" : "white");
+    dmgNumber(e, String(dmgUnits(amt)), raw, crit ? "orange" : blunted ? "grid" : "white", t);
   }
   if (e.hp <= 0) kill(e, t);
 }
@@ -285,10 +254,8 @@ function kill(e, t) {
   if (t) t.kills = (t.kills || 0) + 1;
   const mul = (e.markT > 0 ? e.markMul : 1) * (G.power.MNY > 0 ? 2 : 1) * (e.slowT > 0 && e.siphon ? e.siphon : 1);
   const b = e.bounty * mul;
-  G.money += b;
   sfx("kill");
-  float(e.x, e.y - 30, "+" + (b < 10 ? +b.toFixed(1) : Math.round(b)) + "c", "orange", 18, 2.0); // small (owner); credits read "Nc", all gold here
-  fx[fx.length - 1].shrink = true; // it holds, then shrinks + fades like a damage number (owner)
+  creditDot(e.x, e.y, b); // the credits FLY to the core and land there (aspira-floats.js)
   addScore(Math.round(b * 10));
   G.charge = Math.min(POWER_FULL, G.charge + 1);
   burst(e.x, e.y, ENEMIES[e.type].color, 14);
@@ -342,21 +309,6 @@ function beam(a, b, color, life, w = 1.5, dmg = 0, slim = false, follow = true) 
     a: follow ? a : null, b: follow ? b : null });
 }
 function ring(x, y, r, color, life = 0.12, grad = false, outline = true) { fx.push({ k: "ring", x, y, r, color, t: 0, life, grad, outline }); }
-// vy: upward drift (units/s); long-lived floats drift slowly so they stay on screen
-// every pop-up has the black outline + dark glow (owner); `under` marks the
-// damage numbers, which draw beneath everything but the background
-function float(x, y, text, color, size = 28, life = 1.1, alpha = 1, vy = 30, under = false) {
-  fx.push({ k: "text", x, y, text, color, t: 0, life, size, alpha, vy, outline: true, under });
-}
-function burst(x, y, color, n) {
-  for (let i = 0; i < n; i++) {
-    const a = Math.random() * 6.283, v = 40 + Math.random() * 120;
-    fx.push({ k: "spark", x, y, vx: Math.cos(a) * v * 3, vy: Math.sin(a) * v * 3, color, t: 0, life: (0.4 + Math.random() * 0.3) / 3 });
-  }
-}
-let bannerText = "", bannerT = 0, bannerCol = "orange";
-// a banner across the top; `life` in seconds, `col` a palette key
-function banner(t, col = "orange", life = 2 / 3) { bannerText = t; bannerT = life; bannerCol = col; }
 
 // ---------- update ----------
 function stepSpawns(dt) {
@@ -432,6 +384,7 @@ function step(dt) {
   if (G.over || !G.started) return;
   G.clock = (G.clock || 0) + dt; // game time (aspira-positioning.js paces its predictions on it)
   for (const k in G.power) if (G.power[k] > 0) G.power[k] = Math.max(0, G.power[k] - dt);
+  stepCoins(dt); // the credits flying home bank on arrival (aspira-floats.js) - game time, so the simulator banks them too
   stepCore(dt); // the core's powers: cooldowns, Temporal's ring, Fortifications' copy firing (aspira-core.js)
   // the next wave goes when its timer runs out, or the moment the field
   // clears (owner): nothing alive, nothing still queued to spawn
@@ -467,25 +420,6 @@ function step(dt) {
 }
 
 // Beams, rings and sparks age in GAME time (they follow the 1/2/3x speed);
-// floating text ages in REAL time (stepFloats) so a 1s damage number is 1s
-// on screen at any speed (owner).
-function stepFx(dt) {
-  for (const f of fx) {
-    if (f.k === "text") continue;
-    f.t += dt;
-    if (f.k === "spark") { f.x += f.vx * dt; f.y += f.vy * dt; }
-  }
-  // beams run their full life and keep following their target, ghost or not
-  fx = fx.filter(f => f.t < f.life);
-  if (bannerT > 0) bannerT -= dt;
-}
-
-function stepFloats(dt) {
-  for (const f of fx) if (f.k === "text") { f.t += dt; f.y -= f.vy * dt; }
-  fx = fx.filter(f => f.k !== "text" || f.t < f.life);
-  dmgLive = dmgLive.filter(f => f.t < f.life);
-}
-
 const WIN_WAVE = 100; // the 10th boss
 function winGame() {
   G.over = true; G.won = true;

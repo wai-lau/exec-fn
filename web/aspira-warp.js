@@ -305,16 +305,17 @@ function warpPrism(o) {
   // sits exactly on the walls (owner: "tower tops are not sitting on top")
   const H = o.h * cam.k / 2, n = o.pts.length, frame = h => { const [a, b, c2, d, e, f] = warpFrame(o.x, o.y, h / cam.k); return p => ({ x: a * p.x + c2 * p.y + e, y: b * p.x + d * p.y + f }); };
   // ... and it comes to a POINT below (owner: "instead of hexagonal prisms, make them all come to a point at the bottom")
-  const ft = frame(H), apex = { ...frame(-H * WARP.prism.below)({ x: o.x, y: o.y }), z: -H * WARP.prism.below }, B = o.pts.map(() => apex), T = o.pts.map(p => ({ ...ft(p), z: H })); // below: x the half height under the floor (owner: "3x the distance below plane")
+  // (a POINTED bottom was tried and dropped: "change the towers and core back to prisms instead of pointy")
+  const ft = frame(H), fb = frame(-H * WARP.prism.below), B = o.pts.map(p => ({ ...fb(p), z: -H * WARP.prism.below })), T = o.pts.map(p => ({ ...ft(p), z: H })); // below: x the half height under the floor (owner: "3x the distance below plane")
   const walls = o.pts.map((p, i) => { const q = o.pts[(i + 1) % n], mx = (p.x + q.x) / 2 - o.x, my = (p.y + q.y) / 2 - o.y; return { i, j: (i + 1) % n, face: my / (Math.hypot(mx, my) || 1) }; });
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.lineJoin = "round"; ctx.lineWidth = 1.5 * cam.k;
   if (o.dash) { // an empty slot: a DOTTED wireframe, nothing filled
     ctx.setLineDash([2 * cam.k, 3 * cam.k]); ctx.strokeStyle = o.col; ctx.globalAlpha = 0.45; ctx.beginPath();
-    for (let i = 0; i < n; i++) warpLine(B[i], T[i]); // (the top ring is the slot's own outline, drawn on it)
+    for (let i = 0; i < n; i++) { warpLine(B[i], B[(i + 1) % n]); warpLine(B[i], T[i]); } // (the top ring is the slot's own outline, drawn on it)
     ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; return;
   }
   for (const w of walls.sort((a, b) => a.face - b.face)) { // +y faces the camera
-    if (!warpPath([B[w.i], T[w.j], T[w.i]])) continue; // (the pyramid's wall: a triangle down to the apex)
+    if (!warpPath([B[w.i], B[w.j], T[w.j], T[w.i]])) continue;
     ctx.globalAlpha = 1; ctx.fillStyle = COL.bg; ctx.fill();
     ctx.globalAlpha = 0.12 + 0.28 * Math.max(0, w.face); ctx.fillStyle = o.col; ctx.fill();
     ctx.globalAlpha = 0.8; ctx.strokeStyle = o.col; ctx.stroke();
