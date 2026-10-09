@@ -26,13 +26,16 @@ function hexPieces(x, y, r, n, rot, ring) {
   });
 }
 // (since: "keep all shields as lines on plane instead of 3d objects, incl core") the pieces as LINES on the floor
-function warpShieldLines(pieces, col, a0) {
+// at: [x, y] the pieces cluster round - they go through warpFrame's local frame there, the same to a hair over a
+// shield's few units and three projections instead of two per piece (perf, 2026-10-09)
+function warpShieldLines(pieces, col, a0, at) {
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.lineCap = "round"; ctx.lineWidth = 1.4 * cam.k; ctx.strokeStyle = col;
+  const F = at && warpFrame(at[0], at[1], 0), pt = F ? (x, y) => ({ x: F[0] * x + F[2] * y + F[4], y: F[1] * x + F[3] * y + F[5] }) : (x, y) => warpProject(x, y, 0);
   const byRing = new Map();
   for (const p of pieces) (byRing.get(p.r) || byRing.set(p.r, []).get(p.r)).push(p);
   for (const [r, ps] of byRing) {
     ctx.globalAlpha = a0 * Math.max(SHIELD_RING_MIN, SHIELD_RING_FADE ** (r - 1)); ctx.beginPath();
-    for (const p of ps) { const A = warpProject(p.a[0], p.a[1], 0), B = warpProject(p.b[0], p.b[1], 0); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); }
+    for (const p of ps) { const A = pt(p.a[0], p.a[1]), B = pt(p.b[0], p.b[1]); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); }
     ctx.stroke();
   }
   ctx.globalAlpha = 1;
