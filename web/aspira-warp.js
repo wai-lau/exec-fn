@@ -158,7 +158,23 @@ function warpUnview(p, v) { return v < p.hc * p.T ? v / p.hc : v < p.L ? p.T + (
 // fits the WHOLE board (WARP_TEX_R world units round the core) in the canvas; the view keeps the player's camera
 const WARP_TEX_R = 860, WARP_TEX_MAX = 3072;
 // the VIEW's size, device px: the 2D canvas's own size is the picture's in 3D
-const warpScreen = () => { const r = cv.getBoundingClientRect(), d = canvasDpr(); return { w: Math.round(r.width * d), h: Math.round(r.height * d) }; };
+// LOWER RESOLUTION in 3D (owner, 2026-10-09: "reduce reso to match phone"): the 3D view's canvases (picture, bell and
+// sprites) are WARP_RES of the 2D canvas's pixels a side, the CSS stretching them back - on a phone at 2x, 1.5x. The
+// frame runs with the camera scaled by it (warp3d), so all the 3D maths stays in the smaller canvas's pixels.
+const WARP_RES = 0.75;
+const warpScreenFull = () => { const r = cv.getBoundingClientRect(), d = canvasDpr(); return { w: Math.round(r.width * d), h: Math.round(r.height * d) }; };
+const warpScreen = () => { const s = warpScreenFull(); return { w: Math.round(s.w * WARP_RES), h: Math.round(s.h * WARP_RES) }; };
+// one 3D frame (aspira-ui.js frame), the camera scaled to the smaller canvases
+function warp3d() {
+  const c0 = { k: cam.k, ox: cam.ox, oy: cam.oy };
+  cam.k *= WARP_RES; cam.ox *= WARP_RES; cam.oy *= WARP_RES;
+  try { warpRender(); warpDraw(); } finally { Object.assign(cam, c0); }
+}
+// a 2D-canvas pixel (full resolution) back to the canvas spot under it, through the bell; null off it
+function unwarpFull(x, y) {
+  const q = unwarp(x * WARP_RES, y * WARP_RES);
+  return q && { x: q.x / WARP_RES, y: q.y / WARP_RES };
+}
 function warpRender() {
   // SHARP (owner: "all these are so blurry, make them sharp"): the picture is a SQUARE as fine as the view's own scale
   // (capped at WARP_TEX_MAX px), not the screen-sized canvas squeezed to fit the board - that was ~3x coarser than the view
