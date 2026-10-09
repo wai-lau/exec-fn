@@ -153,8 +153,10 @@ function ndvOfferPass() {
 function ndvRemember(poll, draft) {
   try {
     var all = JSON.parse(localStorage.getItem('noodle.polls') || '{}');
+    // an end-to-end poll's link keeps its key, or it would open nothing
     all[poll.slug] = { title: poll.title || '', seen: Date.now(),
-      url: '/noodle/' + poll.slug + (draft ? '?t=' + encodeURIComponent(draft) : '') };
+      url: '/noodle/' + poll.slug + (draft ? '?t=' + encodeURIComponent(draft) : '') +
+        (NDV.keyStr ? '#k=' + NDV.keyStr : '') };
     localStorage.setItem('noodle.polls', JSON.stringify(all));
   } catch (e) { /* storage blocked: the poll is still open, just not listed */ }
 }

@@ -47,17 +47,25 @@ def _kdf_attrs() -> str:
 
 
 def vote_page(poll: dict, draft: str = "") -> str:
+    # an END-TO-END poll's title and note are sealed (e2e.py): the server has
+    # none to write, so the page and its link preview say just "noodle" and
+    # the browser fills the real ones in once it has opened them. A draft
+    # still shows the placeholder the host types over.
+    sealed = bool(poll.get("e2e"))
+    shown = poll.get("title", "") if draft or not sealed else ""
+    note = "" if sealed else poll.get("note", "")
     body = _fill(
         _tmpl("noodle-vote.html"),
         SLUG=html.escape(poll["slug"], quote=True),
         DRAFT=html.escape(draft, quote=True),
-        TITLE=html.escape(poll["title"]),
-        NOTE=html.escape(poll.get("note", "")),
+        E2E="1" if sealed else "",
+        TITLE=html.escape(shown),
+        NOTE=html.escape(note),
         KDF=_kdf_attrs(),
         ASK_MAX=str(config.ASK_MAX_CHARS),
     )
-    og = _og(poll["title"], poll.get("note", ""), "/noodle/" + poll["slug"])
-    return _page(f"noodle: {poll['title']}", body, og)
+    og = _og("noodle" if sealed else shown, note, "/noodle/" + poll["slug"])
+    return _page("noodle" if sealed else f"noodle: {shown}", body, og)
 
 
 # The site's nav bar, HANDED IN by the app (routers.py set_nav): noodle

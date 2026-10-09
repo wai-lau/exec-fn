@@ -16,7 +16,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
-from noodle import ask, config, drafts, host, pages, rekey, store, votes
+from noodle import ask, config, drafts, e2e, host, pages, rekey, store, votes
 
 router = APIRouter()
 guest_router = APIRouter()   # mounted on the site's Turnstile-gated guest tier
@@ -77,10 +77,14 @@ def _poll_or_404(slug: str) -> dict:
 # ── public: anyone holding the link ─────────────────────────────────────────
 @router.get("/noodle/{slug}", response_class=HTMLResponse)
 async def noodle_vote_page(slug: str, t: str | None = None):
-    # a DRAFT: no poll yet, but the owner's token for this slug (drafts.py)
-    if not store.exists(slug) and drafts.valid(slug, t):
-        return HTMLResponse(pages.vote_page({"slug": slug, "title": drafts.UNTITLED}, draft=t),
-                            headers=_PRIVATE_PAGE)
+    # a DRAFT: no poll yet, but the owner's token for this slug (drafts.py),
+    # which also says whether it will be end-to-end
+    kind = None if store.exists(slug) else drafts.kind(slug, t)
+    if kind:
+        draft = {"slug": slug, "title": drafts.UNTITLED}
+        if kind == "e2e":
+            draft["e2e"] = 1
+        return HTMLResponse(pages.vote_page(draft, draft=t), headers=_PRIVATE_PAGE)
     return HTMLResponse(pages.vote_page(_poll_or_404(slug)), headers=_PRIVATE_PAGE)
 
 
@@ -94,7 +98,9 @@ async def noodle_results_page(slug: str):
 
 @router.get("/api/noodle/{slug}")
 async def noodle_poll(slug: str):
-    return JSONResponse(pages.public_poll(_poll_or_404(slug)), headers=_NO_STORE)
+    poll = _poll_or_404(slug)
+    view = e2e.public(poll) if poll.get("e2e") else pages.public_poll(poll)
+    return JSONResponse(view, headers=_NO_STORE)
 
 
 @router.post("/api/noodle/{slug}/vote")
@@ -102,17 +108,24 @@ async def noodle_vote(slug: str, request: Request):
     body = await _json_body(request, config.BODY_MAX_VOTE)
     await asyncio.to_thread(drafts.ensure, slug, body)   # a draft's first commit writes it
     try:
+        if await asyncio.to_thread(e2e.is_e2e, slug):
+            return {"ok": True, **await asyncio.to_thread(e2e.vote, slug, body)}
         rec = await asyncio.to_thread(votes.submit, slug, body)
     except votes.VoteError as e:
         return JSONResponse({"error": e.msg}, status_code=e.status)
     return {"ok": True, "name": rec["name"], "slots": rec["slots"]}
 
 
-async def _signed(fn, slug: str, request: Request):
+async def _signed(plain, sealed, slug: str, request: Request):
+    """One signed action, on whichever path the poll is: plain (the server
+    reads it) or end-to-end (e2e.py -- it cannot)."""
     body = await _json_body(request, config.BODY_MAX_VOTE)
-    if fn is host.settings:
-        await asyncio.to_thread(drafts.ensure, slug, body)   # a draft's first commit writes it
+    if plain is host.settings:
+        # a draft's first commit writes it -- a plain one; an end-to-end poll is
+        # created by its host's first VOTE, which always comes first
+        await asyncio.to_thread(drafts.ensure, slug, body, False)
     try:
+        fn = sealed if await asyncio.to_thread(e2e.is_e2e, slug) else plain
         return await asyncio.to_thread(fn, slug, body)
     except votes.VoteError as e:
         return JSONResponse({"error": e.msg}, status_code=e.status)
@@ -120,20 +133,20 @@ async def _signed(fn, slug: str, request: Request):
 
 @router.post("/api/noodle/{slug}/settings")
 async def noodle_settings(slug: str, request: Request):
-    """Host only (the first to save it claims the poll): split or not."""
-    return await _signed(host.settings, slug, request)
+    """Host only (the first to save it claims a plain poll): split, crop, title, note."""
+    return await _signed(host.settings, e2e.head, slug, request)
 
 
 @router.post("/api/noodle/{slug}/remove")
 async def noodle_remove(slug: str, request: Request):
     """Host only: remove a guest and their vote."""
-    return await _signed(host.remove, slug, request)
+    return await _signed(host.remove, e2e.remove, slug, request)
 
 
 @router.post("/api/noodle/{slug}/rekey")
 async def noodle_rekey(slug: str, request: Request):
     """Any voter: change their passphrase (the old key signs the new one)."""
-    return await _signed(rekey.rekey, slug, request)
+    return await _signed(rekey.rekey, e2e.rekey, slug, request)
 
 
 @router.post("/api/noodle/{slug}/ask")

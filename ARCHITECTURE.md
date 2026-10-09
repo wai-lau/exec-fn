@@ -3471,6 +3471,7 @@ auth. The browser derives an Ed25519 key from the passphrase
 | `votes.py` | `VoteError`, `now_ms`, `check_action` (shared signed-action envelope), `host_of`, `_admit`, `submit`. |
 | `host.py` | Host-only: `settings` (split/crop/title/note), `remove`. |
 | `rekey.py` | Passphrase/name change: old key signs the new one. |
+| `e2e.py` | END-TO-END polls (21m): sealed vote/head/remove/rekey + `public()`; the server never holds their key. |
 | `sig.py` | Ed25519 verify, `canonical()` / `canonical_action()`. |
 | `slots.py` | `normalize_name`, `codes`, `parse_window`, `clean_slots`, `convert`. |
 | `rules.py` | Ask noodle's rule language + `apply()`. |
@@ -3493,7 +3494,7 @@ matters**: `noodle-vote.js` runs `ndvInit()` as it loads, so everything it
 calls must already be loaded: `qc-holidays` → `noodle-toggle` →
 `noodle-seal` → `noodle-cal` → `noodle-cal-view` → `noodle-kdf` (+
 `noodle-kdf-worker`) → `noodle-esc` → `noodle-roster` → `noodle-crop` →
-`noodle-storage` → `noodle-identity` → `noodle-commit` → `noodle-vote` →
+`noodle-storage` → `noodle-identity` → `noodle-e2e` → `noodle-commit` → `noodle-vote` →
 `noodle-ask` → `noodle-host` → `noodle-rekey` → `noodle-top` →
 `noodle-share`. `/noodle` (`noodle-admin.html`) loads only `noodle-esc` +
 `noodle-admin`.
@@ -3680,11 +3681,11 @@ Neither is stored; the id gives back neither slug nor key. A file is
 `{"v":1,"nonce","ct"}`, fresh nonce per write, the file id as associated
 data (a blob moved under another poll's name fails to open). The server
 can open a poll only while a request carrying its link is in flight; a copy
-of `data/noodle/` (backup, leaked disk, root browsing) is noise. **Not
-end-to-end**: a compromised RUNNING server sees each slug as it arrives
-(the `#key`-fragment design that would stop that was weighed and declined:
-it moves the offer/crop/trim checks into the browser and loses the OG
-title). Only `store.py` changed -- everything above it still gets a dict.
+of `data/noodle/` (backup, leaked disk, root browsing) is noise. On its
+own this is NOT end-to-end -- a compromised RUNNING server sees each slug
+as it arrives -- which is why every poll started since 2026-10-09 is ALSO
+end-to-end (21m), sealed inside this layer. Only `store.py` changed for it
+-- everything above it still gets a dict.
 Changing either HKDF label orphans every poll, and `web/noodle-admin.js`
 `ndmIdOf` mirrors the file label (pinned by `tests/test_noodle_crypt.py`).
 Pre-encryption `<slug>.json` files are sealed on first touch
@@ -3851,7 +3852,7 @@ every request, which would ship the passphrase to the server.
 | `noodle.lastpass.<name>` | fallback: that name's last passphrase on ANY poll, offered only where this poll has none yet, never overriding a hand-typed one |
 | `noodle.draft.<slug>.<name>` | unsaved calendar picks + a host's unsaved title/note |
 | `noodle.ask.<slug>.<name>` | the Ask textarea text (a Commit leaves it alone) |
-| `noodle.polls` | `{slug: {title, url, seen}}` for every poll this browser opened (`ndvRemember`) -- the ONLY list of links anywhere, since the server keeps none (21d); `/noodle` reads it |
+| `noodle.polls` | `{slug: {title, url, seen}}` for every poll this browser opened (`ndvRemember`) -- the ONLY list of links anywhere, since the server keeps none (21d); `/noodle` reads it. An end-to-end poll's `url` carries its `#k=` key (21m) |
 | `noodle.blankSeal.<slug>` | 32 random bytes made once per browser per poll, so the empty "you" seat wears the same placeholder seal every visit |
 
 A draft outranks the submitted vote on reopen (it's the newer of the two);
@@ -3970,7 +3971,68 @@ failed by the order they last ran in.
   browser regardless.
 - No in-app password recovery by design: a forgotten passphrase is a
   forgotten key. Only the owner's `python -m noodle.reset` CLI re-opens a
-  name for a fresh bind.
+  name for a fresh bind -- on a PLAIN poll. On an end-to-end one the host
+  removes the forgotten seat and the voter commits again (21m).
+
+### 21m. End-to-end polls
+
+**Every poll started since 2026-10-09 is end-to-end; older polls are
+untouched** (owner: existing links must keep working, and only new noodles
+change). Plain = `votes.py`/`host.py`/`rekey.py`, server reads the poll;
+end-to-end = `e2e.py`, server cannot. The two never mix: `routes.py`
+dispatches every write by the STORED poll's `e2e` flag (`e2e.is_e2e`), and
+each e2e signature carries an `e2e-*` kind, so nothing signed for one path
+or action verifies as another.
+
+**The key** is 32 random bytes made by the creator's BROWSER on the draft
+page (`noodle-e2e.js ndeInit`) and written into the link's fragment
+(`/noodle/<slug>#k=<43 b64url>`) -- the part a browser never sends, so the
+server never holds it, not even in flight. The draft token says which kind
+a draft becomes (`drafts.kind`: HMAC over `e2e\0`+slug for new drafts, the
+old HMAC over slug for drafts handed out before -- those still make plain
+polls). The owner's titled `POST /api/noodle-polls` stays plain (the server
+is handed the title). Every place that hands a link on carries the key:
+`ndeLink()` (share box, the host's clipboard copy, the post-draft
+`replaceState`), and `noodle.polls` in localStorage. A link without the key
+shows a banner and locks; a key that opens nothing says so too.
+
+**Sealed** (AES-256-GCM, WebCrypto, `iv(12)||ct` base64; AAD =
+`noodle e2e v1|<slug>|<kind>|<pub>`, so the server cannot move a vote to
+another voter or pass one off as the settings): `head` = `{title, note,
+halves, from, to}`, sealed WHOLE each time (no server copy to merge into);
+each voter = `{name, slots}`, keyed by their pub. **The server still sees
+and enforces**, by key alone: public keys, vote order, timestamps; only you
+change your seat; the FIRST key to vote is the host (order 0, so the host's
+first Commit sends the VOTE before the head -- reversed from plain polls,
+where a split must convert stored votes first); only the host seals the
+head or removes a guest (`target` = pub); only your old key moves your seat
+to a new key (`e2e-rekey`, the vote re-sealed to the new pub, order kept);
+replay (strictly newer ts per key) and the skew window.
+
+**What moved into the browser** (`ndeView`, mirroring the server rules
+byte for byte -- `tests/test_noodle_e2e_view.py` runs it in node against
+`slots.convert`): the split conversion, the crop filter, the host's offer
+(guests' dots only within it), one seat per name (the FIRST key to claim a
+name keeps it; a later seat with the same name is not drawn, and its
+owner's page locks as "sealed with a different passphrase", as before).
+Every opened field is shape-checked: anyone holding the link holds the
+key. Title/note/`document.title` are filled in after opening
+(`ndeShowTexts`); the server's HTML and link preview say only "noodle".
+
+**KDF salt** on an e2e poll is `SHA-256(slug + NUL + key + NUL + name)`
+(`ndeScope()` passed as NoodleKdf's slug), so the server -- which knows the
+slug -- cannot test guessed names (or name + passphrase) against stored
+public keys.
+
+**Accepted limits**: Ask noodle still sends its text + the pickable dates
+through the server to Haiku (never stored); a link holder can post a seat
+whose sealed contents are junk (dropped when drawn) or claim a name first;
+a malicious server can still withhold or roll back records (it cannot
+forge or read them); no owner reset (above). Tests:
+`tests/test_noodle_e2e.py` (server), `test_noodle_e2e_view.py` (node),
+`test_noodle_browser_e2e.py` (WebKit, draft -> host -> guest -> rekey ->
+keyless link -> remove, asserting the server never serves a name, title or
+note).
 
 ### Rate limits never fail the test suite
 

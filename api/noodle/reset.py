@@ -8,10 +8,14 @@ it, as root):
 
 The voter keeps their slots and their dot column; their NEXT signed
 submission binds whatever key it is signed with.
+
+Plain polls only. An END-TO-END poll (noodle/e2e.py) holds no names, so there
+is nothing here to look one up by: there the HOST removes the forgotten seat
+and the voter commits again under a new passphrase.
 """
 import sys
 
-from noodle import store, votes
+from noodle import e2e, store, votes
 
 
 def main(argv: list[str]) -> int:
@@ -21,6 +25,10 @@ def main(argv: list[str]) -> int:
     slug, name = argv
     if not store.valid_slug(slug):
         print(f"not a poll slug: {slug!r}")
+        return 1
+    if e2e.is_e2e(slug):
+        print("end-to-end poll: the server holds no names. The host removes the old seat on the "
+              "poll page; the voter then commits again with a new passphrase.")
         return 1
     try:
         done = votes.reset_voter(slug, name)

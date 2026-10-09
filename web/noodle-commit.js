@@ -1,7 +1,8 @@
 // noodle's COMMIT: why the button is off (ndvWhyNot), whether anything is
 // unsaved (ndvDirty), the button + its lines (ndvSyncSubmit), the signed
-// submit itself -- a rekey, then pending host settings, then the vote, each
-// strictly newer -- and the "approved by" stamp. Same global scope as
+// submit itself -- a rekey, then pending host settings and the vote (in the
+// order the poll's kind needs), each strictly newer -- and the "approved by"
+// stamp. Same global scope as
 // noodle-vote.js; loaded before it, called once it has run.
 
 // Why submit cannot be pressed right now, or '' when it can. A disabled
@@ -66,13 +67,21 @@ function ndvApproved(seal, name, copied) {
   setTimeout(function () { ov.hidden = true; ov.classList.remove('show'); }, 2200);
 }
 
+async function ndvSendVote(name, slots, ts) {
+  if (NDV.e2e) return ndeSendVote(name, slots, ts);
+  // keys written in sorted order: the same bytes noodle/sig.py canonical() builds
+  var text = JSON.stringify({ name: name, poll: NDV.slug, slots: slots, ts: ts });
+  var sig = await NDV.kdf.sign(text);
+  return ndvPost('/vote', { name: name, pub: NDV.kdf.pub(), slots: slots, ts: ts, sig: sig });
+}
+
 async function ndvSubmit() {
   if (ndvWhyNot()) return;
   // the HOST's commit copies the poll's link for sending. Started HERE, in the
   // tap itself: Safari refuses a clipboard write that comes after the awaits
   // below (the tap's permission has lapsed by then)
   var copying = window.ndxIsHost && window.ndxIsHost() && navigator.clipboard
-    ? navigator.clipboard.writeText(location.origin + '/noodle/' + NDV.slug).then(function () { return true; },
+    ? navigator.clipboard.writeText(ndeLink()).then(function () { return true; },
       function () { return false; })
     : Promise.resolve(false);
   ndvSyncSubmit(true);
@@ -85,21 +94,28 @@ async function ndvSubmit() {
     var rk = await ndrCommit(ts);
     if (!rk.ok) { ndvStatus(rk.data.error || 'could not make the change', 'err'); await ndvLoadPoll(); return; }
     if (rk.did) ts += 1;
-    var set = await ndhCommitSettings(ts);
-    if (!set.ok) { ndvStatus(set.data.error || 'could not save the split, crop or title', 'err'); await ndvLoadPoll(); return; }
-    if (set.sent) ts += 1;
-    // keys written in sorted order: the same bytes noodle/sig.py canonical() builds
-    var text = JSON.stringify({ name: name, poll: NDV.slug, slots: slots, ts: ts });
-    // (every failure above reloads the poll: a refusal usually means someone
-    // else changed it -- took the host role, moved the crop -- and the page
-    // must show that rather than let the same Commit fail again)
-    var sig = await NDV.kdf.sign(text);
-    var res = await ndvPost('/vote', { name: name, pub: NDV.kdf.pub(), slots: slots, ts: ts, sig: sig });
-    if (!res.ok) { ndvStatus(res.data.error || 'could not commit', 'err'); await ndvLoadPoll(); return; }
+    // A plain poll takes the settings first (a split converts every stored
+    // vote, and this one must arrive in the new shape). An END-TO-END poll
+    // takes the vote first: it creates the poll and makes this key its host,
+    // and only the host may seal the settings (noodle/e2e.py).
+    // (every failure reloads the poll: a refusal usually means someone else
+    // changed it -- took the host role, moved the crop -- and the page must
+    // show that rather than let the same Commit fail again)
+    var steps = NDV.e2e ? ['vote', 'settings'] : ['settings', 'vote'];
+    for (var i = 0; i < steps.length; i++) {
+      var vote = steps[i] === 'vote';
+      var res = vote ? await ndvSendVote(name, slots, ts) : await ndhCommitSettings(ts);
+      if (!res.ok) {
+        ndvStatus(res.data.error || (vote ? 'could not commit' : 'could not save the split, crop or title'), 'err');
+        await ndvLoadPoll();
+        return;
+      }
+      if (vote || res.sent) ts += 1;
+    }
     ndvClearDraft();
-    if (NDV.draft) {   // the poll exists now: its plain link is the one to keep
+    if (NDV.draft) {   // the poll exists now: its plain link (+ key) is the one to keep
       NDV.draft = '';
-      history.replaceState(null, '', '/noodle/' + NDV.slug);
+      history.replaceState(null, '', ndeLink().slice(location.origin.length));
     }
     // never let the clipboard hold a commit up: some browsers leave the write
     // pending forever (no focus, no permission) -- 800ms, then carry on

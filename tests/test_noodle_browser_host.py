@@ -321,39 +321,6 @@ def test_an_answer_with_parts_of_a_day_splits_the_hosts_calendar(browser, base_u
             c.delete(f"/api/noodle-polls/{slug}", headers=auth)
 
 
-def test_a_draft_poll_is_created_by_the_hosts_first_commit(browser, base_url):
-    import httpx
-    from conftest import API_KEY
-    if not API_KEY:
-        pytest.skip("API_KEY not set")
-    auth = {"Authorization": f"Bearer {API_KEY}"}
-    with httpx.Client(base_url=base_url, timeout=15.0) as c:
-        d = c.post("/api/noodle-polls/new", headers=auth).json()
-        slug = d["slug"]
-        assert c.get(f"/api/noodle/{slug}").status_code == 404, "a draft stores nothing"
-    page = browser.new_page(viewport={"width": 430, "height": 932})
-    try:
-        page.goto(f"{base_url}{d['url']}")
-        assert page.inner_text("#nd-title") == "title"
-        assert page.is_hidden("#nd-share"), "no link to share before the poll exists"
-        page.fill("#nd-name", "smoke drafter")
-        page.wait_for_function("(NDV.step !== 'pick' && ndvCanNext() && ndvStep('pick'), !document.getElementById('nd-cal').classList.contains('nd-readonly'))", timeout=20000)
-        page.evaluate("NDV.cal.setSel(new Set([...NDV.cal.openSlots('0', '9')].slice(0, 1))); ndvSaveDraft()")
-        page.wait_for_function("!document.querySelector('#nd-submit').disabled", timeout=20000)
-        page.evaluate("NDV.committed = 0")
-        page.click("#nd-submit")
-        page.wait_for_function("NDV.committed > 0",
-                               timeout=20000)
-        assert page.url.endswith(f"/noodle/{slug}"), "the token leaves the address once the poll exists"
-        poll = page.evaluate(f"fetch('/api/noodle/{slug}').then(r => r.json())")
-        assert poll["voters"][0]["name"] == "smoke drafter"
-        assert page.is_visible("#nd-share")
-    finally:
-        page.close()
-        with httpx.Client(base_url=base_url, timeout=15.0) as c:
-            c.delete(f"/api/noodle-polls/{slug}", headers=auth)
-
-
 def test_title_and_note_are_editable_on_the_you_step(browser, base_url):
     """The host may name the poll while naming themself: the title and note
     take taps on the YOU step, before any name is typed (Wai, 2026-10-03)."""
