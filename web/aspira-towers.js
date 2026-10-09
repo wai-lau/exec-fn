@@ -383,10 +383,12 @@ const slideOut = (kind, r0, slide = 1) => Math.max(0, TOWER_REACH[kind] - r0) * 
 // end NEAR_R from the core's centre (a corner slot's CORNER_NEAR, so it clears
 // the ring towers beside it) - and runs out from there. Offsets are along the
 // spoke from the slot (negative = inward).
-const MOVE_SPAN = 0.75, NEAR_R = 68, CORNER_NEAR = 100;
+// the inner stop is the slot itself since the slots moved in snug (NEAR_R = SLOT_R, was 68), and the span is worked
+// from TRAVEL_R0, the ring's old radius, so a tower's travel did not change with it (aspira-defs.js)
+const MOVE_SPAN = 0.75, NEAR_R = SLOT_R, CORNER_NEAR = 100;
 function slideLimits(c, kind, sl = 1) {
-  const r0 = Math.hypot(c.x - CX, c.y - CY) || 1;
-  const span = (slideOut(kind, r0, sl) + r0 - innerR(c, r0, sl, kind)) * MOVE_SPAN;
+  const r0 = Math.hypot(c.x - CX, c.y - CY) || 1, rt = c.unlock ? r0 : TRAVEL_R0;
+  const span = (slideOut(kind, rt, sl) + rt - innerR(c, rt, sl, kind)) * MOVE_SPAN;
   const min = (c.unlock ? CORNER_NEAR : NEAR_R) - r0;
   return { r0, min, max: min + span };
 }

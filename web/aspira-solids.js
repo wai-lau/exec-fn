@@ -55,7 +55,7 @@ const solidSize = e => { const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max
 // it was rebuilt in each of warpBands' nine passes, half the 3D frame with 130 enemies (profiled 2026-10-09)
 function solidGeom(e) {
   const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max), size = solidSize(e);
-  if (!(size > 0.5)) return null;
+  if (!(size > 0.5) || !Number.isFinite(e.x) || !Number.isFinite(e.y)) return null; // (a NaN spot would make a gradient throw)
   const p = warp.p, P = warpProject(e.x, e.y), k = cam.k * P.s;
   // FAINTER FARTHER from the camera (owner, 2026-10-09: "enemy opacity should also be relative to their distance to camera"):
   // its perspective size against the core's, squared, never under SOLID_FAR_MIN
