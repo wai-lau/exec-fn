@@ -303,6 +303,7 @@ function warpFrame(x, y, h) {
 // one hexagonal PRISM's walls: its floor hex `pts` raised `h` world units, the walls farthest first, each
 // filled with the background and tinted by how squarely it faces the camera, its edges in the colour
 function warpPrism(o) {
+  const pf = 1 - (1 - warpFade) * WARP_PRISM_FADE; // they fade less below the floor than the dice
   // CENTRED on the floor (owner: "their center is on the plane, not the bottom"): half below it, half above
   // its top and bottom outlines in the SAME frame the top's drawing gets (up: one squash for all), so the drawing
   // sits exactly on the walls (owner: "tower tops are not sitting on top")
@@ -313,16 +314,16 @@ function warpPrism(o) {
   const walls = o.pts.map((p, i) => { const q = o.pts[(i + 1) % n], mx = (p.x + q.x) / 2 - o.x, my = (p.y + q.y) / 2 - o.y; const ml = Math.hypot(mx, my) || 1, lx = CX - o.x, ly = CY - o.y, ll = Math.hypot(lx, ly); return { i, j: (i + 1) % n, face: my / ml, lit: ll < 1 ? 1 : Math.max(0, (mx * lx + my * ly) / (ml * ll)) }; }); // lit: the wall faces the core (the core's own: all lit)
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.lineJoin = "round"; ctx.lineWidth = 1.5 * cam.k;
   if (o.dash) { // an empty slot: a DOTTED wireframe, nothing filled
-    ctx.setLineDash([2 * cam.k, 3 * cam.k]); ctx.strokeStyle = o.col; ctx.globalAlpha = 0.45 * warpFade; ctx.beginPath();
+    ctx.setLineDash([2 * cam.k, 3 * cam.k]); ctx.strokeStyle = o.col; ctx.globalAlpha = 0.45 * pf; ctx.beginPath();
     for (let i = 0; i < n; i++) { warpLine(B[i], B[(i + 1) % n]); warpLine(B[i], T[i]); } // (the top ring is the slot's own outline, drawn on it)
     ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; return;
   }
   for (const w of walls.sort((a, b) => a.face - b.face)) { // +y faces the camera
     const quad = [B[w.i], B[w.j], T[w.j], T[w.i]];
     if (!warpPath(quad)) continue;
-    ctx.globalAlpha = warpFade; ctx.fillStyle = COL.bg; ctx.fill();
-    ctx.globalAlpha = (0.12 + 0.28 * w.lit) * warpFade; ctx.fillStyle = o.col; ctx.fill(); // lit from the CORE (owner: "the light source should come from the core")
-    warpEdges(quad); ctx.globalAlpha = 0.8 * warpFade; ctx.strokeStyle = o.col; ctx.stroke();
+    ctx.globalAlpha = pf; ctx.fillStyle = COL.bg; ctx.fill();
+    ctx.globalAlpha = (0.12 + 0.28 * w.lit) * pf; ctx.fillStyle = o.col; ctx.fill(); // lit from the CORE (owner: "the light source should come from the core")
+    warpEdges(quad); ctx.globalAlpha = 0.8 * pf; ctx.strokeStyle = o.col; ctx.stroke();
   }
   ctx.globalAlpha = 1;
 }
