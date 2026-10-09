@@ -95,27 +95,34 @@ function bossSpawn(e, n) {
 // "don't reduce boss hps", "don't add a huge fleet, maybe the equivalent of 1 wave"): ONE plain wave's worth of its
 // escort's types below (waveCount at that wave, plain HP and bounty), split among the bodies of a pair or the Devil's
 // six, ahead of and behind it on its lane, its own kin (the inverted sky holds till they die too). The Chariot's
-// outriders sprint when she does (bossStep)
+// outriders sprint when she does (bossStep). The fleet keeps the boss's pace, spaced clear of it (FLEET_GAP)
 const FLEET = {
   star: ["fast"], empress: ["shield"], strength: ["armor"], chariot: ["fast"], lovers: ["swarm"], // shooting stars, handmaidens, lions, outriders, couples
   temperance: ["shield"], devil: ["swarm"], justice: ["armor"], judgement: ["swarm"], death: ["fast", "swarm", "armor", "shield"], // the cup, imps, guards, the risen, four horsemen
 };
-const FLEET_GAP = 14;
+const FLEET_GAP = 10; // clear space between bodies, world units
 function bossFleet(e, n) {
   const kinds = FLEET[e.arcana];
   if (!kinds) return;
   e.fleet = [];
-  const bodies = bossCount(n);
+  const bodies = bossCount(n), reach = [ENEMIES.bonus.size * (e.sizeMul || 1), ENEMIES.bonus.size * (e.sizeMul || 1)]; // how far ahead / behind is taken
   let i = 0;
   for (const k of kinds) {
     const count = Math.max(1, Math.round(waveCount(k, n) / kinds.length / bodies));
     for (let c = 0; c < count; c++, i++) {
       spawnEnemy(k, n, e.pi, e.ang || 0);
-      const m = G.enemies[G.enemies.length - 1], step = Math.floor(i / 2) + 1;
-      m.s = Math.max(0, e.s + (i % 2 ? -1 : 1) * FLEET_GAP * step); // ahead, behind, ahead...
+      // spaced so NOTHING OVERLAPS (owner, 2026-10-09: "increase spacing between all units and boss during boss waves so
+      // that they don't overlap"): each clears the boss and the one before it by FLEET_GAP, ahead, behind, ahead...
+      const m = G.enemies[G.enemies.length - 1], side = i % 2, r = ENEMIES[k].size;
+      reach[side] += FLEET_GAP + r;
+      m.s = Math.max(0, e.s + (side ? -1 : 1) * reach[side]);
+      reach[side] += r;
+      // in FORMATION: at the boss's own pace, so the spacing holds (a fast escort behind would run through it)
+      m.spd = (e.spd || 1) * ENEMIES.bonus.speed / ENEMIES[k].speed; m.jit = 0; // (a swarmer's wander would carry it into its neighbours)
       m.bossKin = true; m.fleetSpd = m.spd; e.fleet.push(m);
     }
   }
+  e.fleetSpan = reach[0] + reach[1]; G.lastBoss = e; // how much lane it takes, ahead + behind (stepSpawns spaces a second boss by it)
 }
 // each step, for a live boss: Empress's brood, the sprint, regeneration
 function bossStep(e, dt) {
