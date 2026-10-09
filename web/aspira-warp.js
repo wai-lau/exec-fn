@@ -360,8 +360,12 @@ function warpPrism(o) {
   const H = o.h * cam.k / 2, n = o.pts.length, frame = h => { const [a, b, c2, d, e, f] = warpFrame(o.x, o.y, h / cam.k); return p => ({ x: a * p.x + c2 * p.y + e, y: b * p.x + d * p.y + f }); };
   // ... and it comes to a POINT below (owner: "instead of hexagonal prisms, make them all come to a point at the bottom")
   // (a POINTED bottom was tried and dropped: "change the towers and core back to prisms instead of pointy")
+  // (perf: built once a frame - the object is this frame's - though it is drawn in two passes, below and above the floor)
+  if (!o.geo) o.geo = (() => {
   const ft = frame(H), fb = frame(-H * WARP.prism.below), B = o.pts.map(p => ({ ...fb(p), z: -o.h / 2 * WARP.prism.below })), T = o.pts.map(p => ({ ...ft(p), z: o.h / 2 })); // z in world units (aspira-fog.js) // below: x the half height under the floor (owner: "3x the distance below plane")
-  const walls = o.pts.map((p, i) => { const q = o.pts[(i + 1) % n], mx = (p.x + q.x) / 2 - o.x, my = (p.y + q.y) / 2 - o.y; const ml = Math.hypot(mx, my) || 1, lx = CX - o.x, ly = CY - o.y, ll = Math.hypot(lx, ly); return { i, j: (i + 1) % n, face: my / ml, lit: ll < 1 ? 1 : Math.max(0, (mx * lx + my * ly) / (ml * ll)) }; }); // lit: the wall faces the core (the core's own: all lit)
+  return { B, T, grads: {}, walls: o.pts.map((p, i) => { const q = o.pts[(i + 1) % n], mx = (p.x + q.x) / 2 - o.x, my = (p.y + q.y) / 2 - o.y; const ml = Math.hypot(mx, my) || 1, lx = CX - o.x, ly = CY - o.y, ll = Math.hypot(lx, ly); return { i, j: (i + 1) % n, face: my / ml, lit: ll < 1 ? 1 : Math.max(0, (mx * lx + my * ly) / (ml * ll)) }; }).sort((a, b) => a.face - b.face) }; // lit: the wall faces the core (the core's own: all lit); +y faces the camera
+  })();
+  const { B, T, walls, grads } = o.geo;
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.lineJoin = "round"; ctx.lineWidth = 1.5 * cam.k;
   if (o.dash) { // an empty slot: a DOTTED wireframe, nothing filled
     ctx.setLineDash([2 * cam.k, 3 * cam.k]); ctx.strokeStyle = o.col; ctx.globalAlpha = 0.45 * pf; ctx.beginPath();
@@ -380,14 +384,17 @@ function warpPrism(o) {
   const top = o.h / 2, end = top - WARP_PRISM_GONE * (o.h / 2 + o.h / 2 * WARP.prism.below);
   // the point of an upright P -> Q at height `end`
   const at = (P, Q) => { const t = (top - end) / (P.z - Q.z); return { x: P.x + (Q.x - P.x) * t, y: P.y + (Q.y - P.y) * t }; };
-  for (const w of walls.sort((a, b) => a.face - b.face)) { // +y faces the camera
+  for (const w of walls) {
     const quad = [B[w.i], B[w.j], T[w.j], T[w.i]];
     if (warpPath(quad)) {
-      const P = T[w.i], E = at(P, B[w.i]), dx = T[w.j].x - P.x, dy = T[w.j].y - P.y, nn = dx * dx + dy * dy;
-      const k = nn > 1e-6 ? ((E.x - P.x) * -dy + (E.y - P.y) * dx) / nn : 0, gx = k ? P.x - dy * k : E.x, gy = k ? P.y + dx * k : E.y;
-      const g = ctx.createLinearGradient(P.x, P.y, gx, gy), l = 0.12 + 0.28 * w.lit; // lit from the CORE (owner: "the light source should come from the core")
-      for (let s = 0; s <= WARP_PRISM_STOPS; s++) { const a = 1 - s / WARP_PRISM_STOPS; g.addColorStop(s / WARP_PRISM_STOPS, blendFill([[COL.bg, a], [o.col, l * a]])); }
-      ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.fill();
+      ctx.globalAlpha = 1; ctx.fillStyle = grads[w.i] ||= (() => {
+        const P = T[w.i], E = at(P, B[w.i]), dx = T[w.j].x - P.x, dy = T[w.j].y - P.y, nn = dx * dx + dy * dy;
+        const k = nn > 1e-6 ? ((E.x - P.x) * -dy + (E.y - P.y) * dx) / nn : 0, gx = k ? P.x - dy * k : E.x, gy = k ? P.y + dx * k : E.y;
+        const g = ctx.createLinearGradient(P.x, P.y, gx, gy), l = 0.12 + 0.28 * w.lit; // lit from the CORE (owner: "the light source should come from the core")
+        for (let s = 0; s <= WARP_PRISM_STOPS; s++) { const a = 1 - s / WARP_PRISM_STOPS; g.addColorStop(s / WARP_PRISM_STOPS, blendFill([[COL.bg, a], [o.col, l * a]])); }
+        return g;
+      })();
+      ctx.fill();
     }
     // the edges whole, once, with the parts above the floor (stroked per floor slice they showed every cut as a gap)
     ctx.globalAlpha = 0.8;

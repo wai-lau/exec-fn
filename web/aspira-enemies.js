@@ -18,7 +18,17 @@ function drawStarTrail(e, size) {
   // CURVED: the lane behind it (owner, 2026-10-09: "they should be curved" - a straight tail along the heading was
   // tried and dropped), shifted by how far it wanders off the lane (a swarmer's jitter) so the tail meets the body
   const here = pathAt(e.pi, e.s, e.ang || 0), ox = e.x - here.x, oy = e.y - here.y;
-  for (let d = 0; d <= tail; d += TRAIL_STEP) { const q = pathAt(e.pi, Math.max(0, e.s - d), e.ang || 0); pts.push({ x: q.x + ox, y: q.y + oy }); }
+  // (perf: one search for the head, then a walk back down the lane's points - was a binary search per sample)
+  const lp = PATHS[e.pi].pts, ca = Math.cos(e.ang || 0), sa = Math.sin(e.ang || 0);
+  let j;
+  { let lo = 0, hi = lp.length - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (lp[m].s <= e.s) lo = m; else hi = m; } j = lo; }
+  for (let d = 0; d <= tail; d += TRAIL_STEP) {
+    const sd = Math.max(0, e.s - d);
+    while (j > 0 && lp[j].s > sd) j--;
+    const a = lp[j], b = lp[Math.min(lp.length - 1, j + 1)], f = sd >= b.s ? 1 : Math.max(0, (sd - a.s) / (b.s - a.s || 1));
+    const px = a.x + (b.x - a.x) * f - CX, py = a.y + (b.y - a.y) * f - CY;
+    pts.push({ x: CX + px * ca - py * sa + ox, y: CY + px * sa + py * ca + oy });
+  }
   const n = pts.length - 1, L = [], R = [];
   for (let i = 0; i <= n; i++) {
     const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n, i + 1)], len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
