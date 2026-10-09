@@ -256,7 +256,8 @@ function resolveColors() {
 // ids = display names (owner, 2026-10-06): arc = ARC, frz = FRZ, sol = SOL (was RAY),
 // acd = ACD; older comments still call them chain/slower/reaper/acid (CHN/SLW/RPR)
 // each `blurb` (the build card's tagline) is FLAVOUR, short, not a spec (owner, 2026-10-09: "descriptions should be more
-// flavourful and short, no need to be super accurate"; were plain how-it-works lines, 2026-10-07)
+// flavourful and short, no need to be super accurate"; the lines are the owner's own; were plain how-it-works lines,
+// 2026-10-07); the "good vs" line above it on the card stays
 // ONE SCALE (owner, 2026-10-08): every damage, HP and armor number was HALVED in the game itself
 // (tower dmg, the HP curve, armor, Breach), so the smallest number shown (Breach I, -1 armor) is 1
 // and what the player reads is the real value, rounded DOWN. Hit flashes and beam widths are
@@ -268,11 +269,11 @@ const dmgUnits = v => Math.floor(v);
 const BLINK_S = 0.7;
 const blinkWave = () => 0.5 + 0.5 * Math.cos(2 * Math.PI * performance.now() / 1000 / BLINK_S);
 const TOWERS = {
-  arc:     { name: "Arc",     ab: "ARC", color: "orange",   cost: 40,  dmg: 48, rate: 1.5, /* 2026-10-08: every damage / HP / armor HALVED (owner, the display unit made real; was 96).  2026-10-06: was 42, then 48 (late), now 96 - a shot lands for half as long with the range halved (owner, 2026-10-06), so it hits twice as hard */  range: 130 /* owner 2026-10-06: 1.5x the halved 86.7, which felt too small */, blurb: "Lightning that never picks just one.", up: "extra arcs" },
-  frz:     { name: "Freeze",  ab: "FRZ", color: "cyan",   cost: 40,  dmg: 15, rate: 2.4, /* 2026-10-08: halved (was 30).  early-game balance 2026-10-06: was 2.5, then 5, then 12; 30 - the aura TICK is FRZ's own damage and pops a swarm (the Empress' children) the halved aura would otherwise miss */  range: 88,  blurb: "Winter, held in a ring. Nothing hurries here.", up: "slow strength" },
-  sol:     { name: "Sol",      ab: "SOL", color: "pink",   cost: 40,  dmg: 110, /* 2026-10-08: halved (was 220).  2026-10-07: x1.3 (was 170) - armor now bites SOL (owner); solarmor.mjs: 170 piercing dealt 1.10M, unpierced x1.25 1.05M, x1.5 1.39M */  rate: 1, /* 2026-10-06: slower, harder shots (was 140 / 1.35) - an armor and boss specialist, not a swarm answer; 170 with every Focus beam a FULL hit (4 x 170 is about the old 7 shared beams); range 200 (was 175): the fast waves 14 / 18 outran the halved range */  range: 260 /* owner 2026-10-06: 200 still felt too small (was 350, halved) */, blurb: "A sliver of sun, aimed. Giants fall.", up: "crit chance" },
+  arc:     { name: "Arc",     ab: "ARC", color: "orange",   cost: 40,  dmg: 48, rate: 1.5, /* 2026-10-08: every damage / HP / armor HALVED (owner, the display unit made real; was 96).  2026-10-06: was 42, then 48 (late), now 96 - a shot lands for half as long with the range halved (owner, 2026-10-06), so it hits twice as hard */  range: 130 /* owner 2026-10-06: 1.5x the halved 86.7, which felt too small */, blurb: "Positively shocking!", up: "extra arcs" },
+  frz:     { name: "Freeze",  ab: "FRZ", color: "cyan",   cost: 40,  dmg: 15, rate: 2.4, /* 2026-10-08: halved (was 30).  early-game balance 2026-10-06: was 2.5, then 5, then 12; 30 - the aura TICK is FRZ's own damage and pops a swarm (the Empress' children) the halved aura would otherwise miss */  range: 88,  blurb: "Negative kinetic energy.", up: "slow strength" },
+  sol:     { name: "Sol",      ab: "SOL", color: "pink",   cost: 40,  dmg: 110, /* 2026-10-08: halved (was 220).  2026-10-07: x1.3 (was 170) - armor now bites SOL (owner); solarmor.mjs: 170 piercing dealt 1.10M, unpierced x1.25 1.05M, x1.5 1.39M */  rate: 1, /* 2026-10-06: slower, harder shots (was 140 / 1.35) - an armor and boss specialist, not a swarm answer; 170 with every Focus beam a FULL hit (4 x 170 is about the old 7 shared beams); range 200 (was 175): the fast waves 14 / 18 outran the halved range */  range: 260 /* owner 2026-10-06: 200 still felt too small (was 350, halved) */, blurb: "Concentrated sun.", up: "crit chance" },
   // dmg = damage per SECOND at x1; rate = ticks per second (owner: a DoT line)
-  acd:     { name: "Acid",    ab: "ACD", color: "chatsubo", cost: 40,  dmg: 23,  rate: 4, /* 2026-10-08: halved (was 46).  early-game balance 2026-10-06: was 18, then 26; 46 with the range halved (and a faster base ramp, ACD_DOUBLE) */    range: 115, blurb: "Green rain. Armour weeps, shields burst.", up: "burn" },
+  acd:     { name: "Acid",    ab: "ACD", color: "chatsubo", cost: 40,  dmg: 23,  rate: 4, /* 2026-10-08: halved (was 46).  early-game balance 2026-10-06: was 18, then 26; 46 with the range halved (and a faster base ramp, ACD_DOUBLE) */    range: 115, blurb: "Definitely not basic.", up: "burn" },
 };
 // which enemies each tower is GOOD AGAINST (owner), on its build card
 const GOOD_VS = { arc: "swarms", frz: "fast, shields", sol: "armor, bosses", acd: "shields, bosses" };
