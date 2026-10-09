@@ -34,6 +34,11 @@ function entryS(pi) {
 // quadrupled every 10 waves and walled every build by ~70), armor with the
 // curve's 0.4 power (was 0.5); shields keep the old 1.15 curve (owner)
 const HP_GROWTH = 1.10, ARMOR_EXP = 0.4, SHIELD_EXP = 0.335;
+// HARDER AFTER WAVE 20 (owner, 2026-10-08: "make the difficulty ramp harder after wave 20"): x HP_LATE a wave
+// past HP_KNEE (x1.10 before). Sim on the 2026-10-08 build: random players won 11% -> 5%, the curve's
+// scripted players 61 -> 48 of 80 (x1.12 cut them to 30 / 80)
+const HP_LATE = 1.11, HP_KNEE = 20;
+const hpPow = n => Math.pow(HP_GROWTH, Math.min(n, HP_KNEE) - 1) * Math.pow(HP_LATE, Math.max(0, n - HP_KNEE));
 // one enemy's HP on wave n (before a boss's own multiplier); the wave list shows it too
 // shields GROW SLOWER (owner, 2026-10-06): to the SHIELD_EXP power of the old
 // steeper curve (was 0.4) - the same early (8 on wave 3, 11 on 10), about HALF
@@ -47,7 +52,7 @@ function shieldsOf(type, n) {
   const r = sCurve(n) / sCurve(3), old = Math.max(b, b * Math.pow(r, 0.4)), shield = Math.max(b, Math.round(b * Math.pow(r, SHIELD_EXP)));
   return { shield, hpMul: old / shield };
 }
-const enemyHp = (type, n) => (9 * Math.pow(HP_GROWTH, n - 1) + n * 2) * ENEMIES[type].hp * 2 * shieldsOf(type, n).hpMul; // x2: half as many enemies (owner); 9 / 2 (2026-10-08: all HP halved, was 18 / 4)
+const enemyHp = (type, n) => (9 * hpPow(n) + n * 2) * ENEMIES[type].hp * 2 * shieldsOf(type, n).hpMul; // x2: half as many enemies (owner); 9 / 2 (2026-10-08: all HP halved, was 18 / 4)
 function spawnEnemy(type, n, pi, ang = 0) {
   const d = ENEMIES[type], s0 = entryS(pi), p0 = pathAt(pi, s0, ang);
   const hp = Math.floor(enemyHp(type, n)); // WHOLE numbers (owner, 2026-10-08): HP, armor and every hit round down
@@ -55,7 +60,7 @@ function spawnEnemy(type, n, pi, ang = 0) {
   // armor/shields, late waves were pure dps and ARC spam won. Armor grows with
   // the curve to ARMOR_EXP (0.4; was the square root), shields with its 0.4 power - normalised so
   // shields still start at exactly their base (8) on their first wave (3).
-  const grow = Math.pow(HP_GROWTH, n - 1) + n * 4 / 18, grow3 = Math.pow(HP_GROWTH, 2) + 3 * 4 / 18;
+  const grow = hpPow(n) + n * 4 / 18, grow3 = Math.pow(HP_GROWTH, 2) + 3 * 4 / 18;
   const { shield } = shieldsOf(type, n); // fewer late shields, more HP (shieldsOf)
   const armor = d.armor ? Math.floor(d.armor * Math.pow(grow, ARMOR_EXP)) : 0;
   G.enemies.push({

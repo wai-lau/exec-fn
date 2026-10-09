@@ -75,7 +75,7 @@ const isA = (e, id) => e.arcana === id;
 function bossSpawn(e, n) {
   e.arcana = arcanaOf(n).id;
   e.spd = (e.spd || 1) * (BOSS_SPEED[e.arcana] || 1);
-  const grow = Math.pow(HP_GROWTH, n - 1) + n * 4 / 18; // the armored enemy's armor curve (spawnEnemy)
+  const grow = hpPow(n) + n * 4 / 18; // the armored enemy's armor curve (spawnEnemy)
   e.armor = e.armor0 = Math.floor((BOSS_ARMOR[e.arcana] || 0) * Math.pow(grow, ARMOR_EXP));
   e.baseSpd = e.spd; e.broodAt = 0.8; e.sprintT = CHARIOT_EVERY;
   e.shield = e.shieldMax = BOSS_SHIELD[e.arcana] || 0; e.shieldBuf = 0;
