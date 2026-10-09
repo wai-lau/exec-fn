@@ -51,14 +51,15 @@ const SOLID_ROLL = 10, SOLID_FAR_MIN = 0.2, SOLID_BREACH_LEN = 0.25, SOLID_BREAC
 // the die's size (drawEnemy's)
 const solidSize = e => { const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max); return d.size * (e.arcana ? f : 0.45 + 0.55 * f) * (e.sizeMul || 1); };
 // one enemy as its die: P its projected floor spot, k / c / s the local scale and the camera's lean
-function warpSolid(e) {
-  if (e.dead || !SOLIDS[e.type]) return;
+// its GEOMETRY is built once a frame (solidGeom, cached on the enemy by warp.frame) and only DRAWN per floor slice -
+// it was rebuilt in each of warpBands' nine passes, half the 3D frame with 130 enemies (profiled 2026-10-09)
+function solidGeom(e) {
   const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max), size = solidSize(e);
-  if (!(size > 0.5)) return;
+  if (!(size > 0.5)) return null;
   const p = warp.p, P = warpProject(e.x, e.y), k = cam.k * P.s;
   // FAINTER FARTHER from the camera (owner, 2026-10-09: "enemy opacity should also be relative to their distance to camera"):
   // its perspective size against the core's, squared, never under SOLID_FAR_MIN
-  const fa = warpFade * Math.max(SOLID_FAR_MIN, Math.min(1, P.s / p.z) ** 2);
+  const fa = Math.max(SOLID_FAR_MIN, Math.min(1, P.s / p.z) ** 2);
   // it ROLLS about its direction of travel (owner: "rotate about the axis of movement, proportional to move
   // speed"): the angle is the distance it has come over its size, so a fast one spins fast and a frozen one stops.
   // Its own resting pose (e.rot about z, a fixed lean about x) varies the dice
@@ -72,30 +73,46 @@ function warpSolid(e) {
   const L = unit([[CX - e.x, CY - e.y, (warp.lightZ || 1)]])[0];
   // world offset (x, y on the floor, z up) to the screen, the die's CENTRE on the floor (owner: "their center is on the plane")
   const scr = ([x, y, z]) => [P.x + k * x * size, P.y + k * (p.c * y * size - p.s * z * size)];
-  // FROZEN: its own colour with FRZ's cyan laid over at SOLID_FROZEN_A (owner, 2026-10-09: "FRZ color change should just be
-  // 50% opaque, not 100" - it was all cyan)
-  const col = COL[d.color], frz = e.slowT > 0 ? SOLID_FROZEN_A : 0;
-  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.lineJoin = "round"; ctx.lineWidth = (e.armor ? 2.2 : 1.2) * cam.k;
-  // BREACH in 3D (owner, 2026-10-09: "breach effect should look like vertical spoke going through the enemy center of
-  // mass, increasing in size the more breach"): one upright spike through the die's centre, longer and thicker per stack
-  // (to BREACH_SPOKES), drawn before the faces so the die hides its middle
-  if (e.bleedCrit > 0) {
-    const n = Math.min(BREACH_SPOKES, Math.max(1, e.breachN || 1)), L = size * (1.3 + SOLID_BREACH_LEN * n);
-    const [x0, y0] = scr([0, 0, -L / size]), [x1, y1] = scr([0, 0, L / size]);
-    ctx.beginPath(); warpLine({ x: x0, y: y0, z: -L }, { x: x1, y: y1, z: L });
-    ctx.strokeStyle = COL[TOWERS.sol.color]; ctx.globalAlpha = 0.9 * fa; ctx.lineWidth = (1.2 + SOLID_BREACH_W * n) * cam.k; ctx.stroke();
-  }
+  const faces = [];
   for (const face of S.F) {
     const n = [0, 1, 2].map(i => face.reduce((m, v) => m + R[v][i], 0) / face.length), nl = Math.hypot(...n);
     if (n[1] * p.s + n[2] * p.c <= 0) continue; // turned away from the camera
     const lit = Math.max(0, (n[0] * L[0] + n[1] * L[1] + n[2] * L[2]) / nl);
     const poly3 = face.map(v => { const [x, y] = scr(R[v]); return { x, y, z: R[v][2] * size }; });
-    if (!warpPath(poly3)) continue; // clipped to the slice being drawn (aspira-fog.js)
+    faces.push({ poly3, lo: Math.min(...poly3.map(v => v.z)), hi: Math.max(...poly3.map(v => v.z)), fA: (0.2 + 0.7 * lit) * (0.5 + 0.5 * f) });
+  }
+  // BREACH in 3D (owner, 2026-10-09: "breach effect should look like vertical spoke going through the enemy center of
+  // mass, increasing in size the more breach"): one upright spike through the die's centre, longer and thicker per stack
+  // (to BREACH_SPOKES), drawn before the faces so the die hides its middle
+  let spike = null;
+  if (e.bleedCrit > 0) {
+    const n = Math.min(BREACH_SPOKES, Math.max(1, e.breachN || 1)), H = size * (1.3 + SOLID_BREACH_LEN * n);
+    const [x0, y0] = scr([0, 0, -H / size]), [x1, y1] = scr([0, 0, H / size]);
+    spike = { a: { x: x0, y: y0, z: -H }, b: { x: x1, y: y1, z: H }, w: (1.2 + SOLID_BREACH_W * n) * cam.k };
+  }
+  // FROZEN: its own colour with FRZ's cyan laid over at SOLID_FROZEN_A (owner, 2026-10-09: "FRZ color change should just be
+  // 50% opaque, not 100" - it was all cyan)
+  return { faces, spike, size, fa, col: COL[d.color], frz: e.slowT > 0 ? SOLID_FROZEN_A : 0, lw: (e.armor ? 2.2 : 1.2) * cam.k };
+}
+function warpSolid(e) {
+  if (e.dead || !SOLIDS[e.type]) return;
+  if (e.geomAt !== warp.frame) { e.geomAt = warp.frame; e.geom = solidGeom(e); }
+  const g = e.geom, band = warpBand;
+  if (!g) return;
+  const H = g.spike ? g.spike.b.z : g.size;
+  if (band && (H < band.lo || -H > band.hi)) return; // nothing of it in this slice
+  const fa = warpFade * g.fa, col = g.col, frz = g.frz;
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.lineJoin = "round";
+  if (g.spike) { ctx.beginPath(); warpLine(g.spike.a, g.spike.b); ctx.strokeStyle = COL[TOWERS.sol.color]; ctx.globalAlpha = 0.9 * fa; ctx.lineWidth = g.spike.w; ctx.stroke(); }
+  ctx.lineWidth = g.lw;
+  for (const F of g.faces) {
+    if (band && (F.hi < band.lo || F.lo > band.hi)) continue;
+    if (!warpPath(F.poly3)) continue; // clipped to the slice being drawn (aspira-fog.js)
     ctx.globalAlpha = fa; ctx.fillStyle = COL.bg; ctx.fill();
-    const fA = (0.2 + 0.7 * lit) * (0.5 + 0.5 * f) * fa;
+    const fA = F.fA * fa;
     ctx.globalAlpha = fA; ctx.fillStyle = col; ctx.fill();
     if (frz) { ctx.globalAlpha = fA * frz; ctx.fillStyle = COL.cyan; ctx.fill(); }
-    warpEdges(poly3); ctx.globalAlpha = 0.9 * fa; ctx.strokeStyle = col; ctx.stroke();
+    warpEdges(F.poly3); ctx.globalAlpha = 0.9 * fa; ctx.strokeStyle = col; ctx.stroke();
     if (frz) { ctx.globalAlpha = 0.9 * fa * frz; ctx.strokeStyle = COL.cyan; ctx.stroke(); }
   }
   ctx.globalAlpha = 1;
