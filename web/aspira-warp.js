@@ -27,7 +27,7 @@
 //          rings every `ring` world units and `spokes` radial lines on the bell past the towers, out to
 //          `far`, where the bell itself ends; over the board only `onBoard` as strong, and outside
 //          the board's circle half as many (owner: "fewer curvature lines outside the circle")
-const WARP = { tilt: 0.6, fov: 1.0 /* a wide lens, close: a real VANISHING POINT (owner, was 0.45) */, edge: [760, 840], depth: 1800, pow: 3, zoom: 1.3, anchor: 0.15, alpha: 0.6, grid: { ring: 110, neck: 16, spokes: 24, far: 2400, a: 0.6, onBoard: 0.8 } }; // depth: a DEEP classic bell (owner), 5x taller (was 460), then 3x again (was 2300), then x2 (was 6900), then a more gradual slope (was 13800), then 1800 as the flipped funnel seen from the side (tilt 0.15 -> 0.6, zoom 2 -> 1.3, anchor 0.25 -> 0.15: straight down the needle it read flat)
+const WARP = { tilt: 0.6, fov: 1.0 /* a wide lens, close: a real VANISHING POINT (owner, was 0.45) */, edge: [760, 840], depth: 1500, pow: 2, zoom: 1.3, anchor: 0.15, alpha: 0.6, grid: { ring: 110, neck: 16, spokes: 24, far: 2400, a: 0.6, onBoard: 0.8 } }; // depth: a DEEP classic bell (owner), 5x taller (was 460), then 3x again (was 2300), then x2 (was 6900), then a more gradual slope (was 13800), then 1800 as the flipped funnel seen from the side, then 1500 with pow 3 -> 2 (owner: "make slope more gradual") (tilt 0.15 -> 0.6, zoom 2 -> 1.3, anchor 0.25 -> 0.15: straight down the needle it read flat)
 // the tower ring's outer edge, world units from the core: the plateau the towers stand on
 const WARP_TOWERS = Math.max(...CELLS.map(c => Math.hypot(c.x - CX, c.y - CY))) + CELL_S * 1.5;
 const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, p: null, ent: null };
