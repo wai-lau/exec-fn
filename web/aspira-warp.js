@@ -27,7 +27,7 @@
 //          rings every `ring` world units and `spokes` radial lines on the bell past the towers, out to
 //          `far`, where the bell itself ends; over the board only `onBoard` as strong, and outside
 //          the board's circle half as many (owner: "fewer curvature lines outside the circle")
-const WARP = { tilt: 0.6, fov: 0.45, edge: [760, 840], depth: 1800, pow: 3, zoom: 1.3, anchor: 0.15, alpha: 0.6, grid: { ring: 110, neck: 16, spokes: 24, far: 2400, a: 0.6, onBoard: 0.8 } }; // depth: a DEEP classic bell (owner), 5x taller (was 460), then 3x again (was 2300), then x2 (was 6900), then a more gradual slope (was 13800), then 1800 as the flipped funnel seen from the side (tilt 0.15 -> 0.6, zoom 2 -> 1.3, anchor 0.25 -> 0.15: straight down the needle it read flat)
+const WARP = { tilt: 0.6, fov: 1.0 /* a wide lens, close: a real VANISHING POINT (owner, was 0.45) */, edge: [760, 840], depth: 1800, pow: 3, zoom: 1.3, anchor: 0.15, alpha: 0.6, grid: { ring: 110, neck: 16, spokes: 24, far: 2400, a: 0.6, onBoard: 0.8 } }; // depth: a DEEP classic bell (owner), 5x taller (was 460), then 3x again (was 2300), then x2 (was 6900), then a more gradual slope (was 13800), then 1800 as the flipped funnel seen from the side (tilt 0.15 -> 0.6, zoom 2 -> 1.3, anchor 0.25 -> 0.15: straight down the needle it read flat)
 // the tower ring's outer edge, world units from the core: the plateau the towers stand on
 const WARP_TOWERS = Math.max(...CELLS.map(c => Math.hypot(c.x - CX, c.y - CY))) + CELL_S * 1.5;
 const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, p: null, ent: null };
@@ -154,10 +154,10 @@ function warpDraw() {
 }
 // a world point to the screen: its canvas spot lifted onto the bell and seen by the camera;
 // s is the perspective scale there (1 at the core's height)
-function warpProject(x, y) {
+function warpProject(x, y, hAt) { // hAt: a height of your own (canvas px) instead of the surface's
   const p = warp.p, px = cam.ox + x * cam.k - p.core[0], py = cam.oy + y * cam.k - p.core[1];
-  const h = warpHeight(p, Math.hypot(px, py)), qy = -p.c * py + p.s * h, qz = p.s * py + p.c * h, w = p.f - qz;
-  return { x: p.core[0] + p.z * p.f * px / w, y: p.core[1] + p.oy - p.z * p.f * qy / w, s: p.z * p.f / w };
+  const h = hAt ?? warpHeight(p, Math.hypot(px, py)), qy = -p.c * py + p.s * h, qz = p.s * py + p.c * h, w = p.f - qz;
+  return { x: p.core[0] + p.z * p.f * px / w, y: p.core[1] + p.oy - p.z * p.f * qy / w, s: p.z * p.f / w, h };
 }
 // the TOWERS, the CORE and the ENEMIES, flat, each at its projected point (owner: "drawn separately,
 // as if on a flat plane"): the usual draw calls on a 2D canvas over the bell, each under a transform
@@ -178,15 +178,24 @@ function warpEntities() {
     ctx.setTransform(k, 0, 0, k, P.x - x * k, P.y - y * k);
     ctx.save(); fn(); ctx.restore();
   };
-  const atCell = (cell, fn) => at(cell.x, cell.y, fn);
+  // LYING FLAT, facing UP (owner: "render towers and enemies as if facing up, not toward the camera"):
+  // the sprite's own plane is the level one at its spot's height, foreshortened by the camera's lean -
+  // the transform is that plane's projection at the spot (one world unit along x and y)
+  const up = (x, y, fn) => {
+    const P = warpProject(x, y), X = warpProject(x + 1, y, P.h), Y = warpProject(x, y + 1, P.h);
+    const a = X.x - P.x, b = X.y - P.y, c2 = Y.x - P.x, d = Y.y - P.y;
+    ctx.setTransform(a, b, c2, d, P.x - a * x - c2 * y, P.y - b * x - d * y);
+    ctx.save(); fn(); ctx.restore();
+  };
+  const atCell = (cell, fn) => up(cell.x, cell.y, fn);
   const all = () => {
     drawFx("dmg", at); // damage numbers flat too (owner), under everything as in 2D
     drawCells(atCell); if (!G.towers.length && !ui.build) drawSlotArrow(atCell); // the slots too, flat
-    ownColours(() => { for (const t of G.towers) at(t.x, t.y, () => drawTower(t)); });
-    if (ui.build && ui.hover) at(ui.hover.x, ui.hover.y, drawPlacement);
-    at(CX, CY, () => { drawCore(); drawCredits(); });
-    for (const e of G.enemies) at(e.x, e.y, () => drawEnemy(e));
-    at(CX, CY, drawCoreHud);
+    ownColours(() => { for (const t of G.towers) up(t.x, t.y, () => drawTower(t)); });
+    if (ui.build && ui.hover) up(ui.hover.x, ui.hover.y, drawPlacement);
+    up(CX, CY, () => { drawCore(); drawCredits(); });
+    for (const e of G.enemies) up(e.x, e.y, () => drawEnemy(e));
+    up(CX, CY, drawCoreHud); // the floating texts alone still face the camera (at), so they stay readable
     drawFx("text", at);
   };
   try { if (bossInv.full) withPalette(all); else all(); } finally { ctx = main; }
