@@ -439,7 +439,7 @@ function frame(now) {
   }
   // while the upgrade cards are up the board is paused AND frozen: no redraw,
   // so its CSS blur (aspira.css .asp-choosing) is computed once, not per frame
-  if (!chooser.t) { render(); if (q3d()) warpDraw(dt); } // 3D lays the frame on the spire (aspira-warp.js)
+  if (!chooser.t) { render(); if (q3d()) warpDraw(); } // 3D lays the frame on the spire (aspira-warp.js)
   // the HUD's text and buttons 10x a second, not every frame (perf, 2026-10-05)
   if (!(now < hudAt)) { hudAt = now + 100; updateHud(); syncBlinks(); }
   placePop(); tickFps(now);
