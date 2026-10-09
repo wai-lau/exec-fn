@@ -1,7 +1,6 @@
 // /spire — the ENEMIES AS REAL DICE in the 3D view (owner, 2026-10-09: "the enemies should actually be 3d,
 // not just look like it"): each enemy is its die as a solid - d4 tetrahedron, d6 cube, d8 octahedron, d10
-// pentagonal trapezohedron, d20 icosahedron - rolling as it goes, lit from above, hovering its own size over
-// the floor. Only the faces turned to the camera are drawn (every die is convex, so no sorting). Its
+// pentagonal trapezohedron, d20 icosahedron - rolling as it goes, lit from above, its centre on the floor. Only the faces turned to the camera are drawn (every die is convex, so no sorting). Its
 // tracer, shield segments and status marks stay flat on the floor (drawEnemy(e, true)).
 // Loaded after aspira-warp.js; warpEntities calls warpSolid.
 
@@ -31,17 +30,25 @@ const SOLIDS = (() => {
     const r = j => 2 + (j % 10);
     d10f.push([0, r(i), r(i + 1), r(i + 2)], [1, r(i + 1), r(i + 2), r(i + 3)]);
   }
+  // each die turned so the corner on its axis of symmetry - `apex` - lies on +x: that is its FRONT (owner, 2026-10-09:
+  // "the point which causes the shape to be radially symmetric pointed forward"), and it rolls about that axis
+  const nose = (V, apex) => {
+    const A = V[apex], ax = [0, A[2], -A[1]], al = Math.hypot(...ax), th = Math.acos(Math.max(-1, Math.min(1, A[0]))); // A x X, angle A.X
+    if (al < 1e-9) return V;
+    const k = ax.map(c => c / al), c = Math.cos(th), s = Math.sin(th);
+    return V.map(v => { const dot = k[0] * v[0] + k[1] * v[1] + k[2] * v[2], cr = [k[1] * v[2] - k[2] * v[1], k[2] * v[0] - k[0] * v[2], k[0] * v[1] - k[1] * v[0]]; return v.map((x, i) => x * c + cr[i] * s + k[i] * dot * (1 - c)); });
+  };
   return {
-    fast: { V: unit(tet), F: facesByEdge(tet, 3, Math.sqrt(8)) },
-    swarm: { V: unit(cube), F: [[0, 1, 2, 3], [4, 5, 6, 7], [0, 1, 5, 4], [2, 3, 7, 6], [1, 2, 6, 5], [0, 3, 7, 4]] },
-    armor: { V: oct, F: facesByEdge(oct, 3, Math.SQRT2) },
-    shield: { V: d10, F: d10f },
-    bonus: { V: unit(ico), F: facesByEdge(ico, 3, 2) },
+    fast: { V: nose(unit(tet), 0), F: facesByEdge(tet, 3, Math.sqrt(8)) },
+    swarm: { V: nose(unit(cube), 6), F: [[0, 1, 2, 3], [4, 5, 6, 7], [0, 1, 5, 4], [2, 3, 7, 6], [1, 2, 6, 5], [0, 3, 7, 4]] },
+    armor: { V: nose(oct, 0), F: facesByEdge(oct, 3, Math.SQRT2) },
+    shield: { V: nose(d10, 0), F: d10f },
+    bonus: { V: nose(unit(ico), 0), F: facesByEdge(ico, 3, 2) },
   };
 })();
-const SOLID_LIGHT = unit([[-0.4, -0.5, 0.8]])[0], SOLID_ROLL = 1, SOLID_LEAN = 0.6; // light from up and back-left; ROLL: radians per (distance / size); LEAN: the resting tilt
+const SOLID_LIGHT = unit([[-0.4, -0.5, 0.8]])[0], SOLID_ROLL = 1; // light from up and back-left; ROLL: radians per (distance / size)
 
-// the die's size (drawEnemy's): it hovers this high, so its flat tracer and marks ride at this height too
+// the die's size (drawEnemy's)
 const solidSize = e => { const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max); return d.size * (e.arcana ? f : 0.45 + 0.55 * f) * (e.sizeMul || 1); };
 // one enemy as its die: P its projected floor spot, k / c / s the local scale and the camera's lean
 function warpSolid(e) {
@@ -52,16 +59,14 @@ function warpSolid(e) {
   // it ROLLS about its direction of travel (owner: "rotate about the axis of movement, proportional to move
   // speed"): the angle is the distance it has come over its size, so a fast one spins fast and a frozen one stops.
   // Its own resting pose (e.rot about z, a fixed lean about x) varies the dice
-  const q = pathAt(e.pi, Math.max(0, e.s - 2), e.ang || 0), ul = Math.hypot(e.x - q.x, e.y - q.y), ux = ul ? (e.x - q.x) / ul : 1, uy = ul ? (e.y - q.y) / ul : 0;
-  const th = (e.s || 0) / (d.size * SOLID_ROLL), ct = Math.cos(th), st = Math.sin(th), ca = Math.cos(e.rot), sa = Math.sin(e.rot), cb = Math.cos(SOLID_LEAN), sb = Math.sin(SOLID_LEAN);
-  const rot = ([x, y, z]) => {
-    const y1 = y * cb - z * sb, z1 = y * sb + z * cb, x2 = x * ca - y1 * sa, y2 = x * sa + y1 * ca; // the resting pose
-    const dot = ux * x2 + uy * y2; // Rodrigues about (ux, uy, 0)
-    return [x2 * ct + uy * z1 * st + ux * dot * (1 - ct), y2 * ct - ux * z1 * st + uy * dot * (1 - ct), z1 * ct + (ux * y2 - uy * x2) * st];
-  };
+  // the heading is its lane's tangent (a swarmer's wander does not turn it)
+  const q = pathAt(e.pi, Math.max(0, e.s - 2), e.ang || 0), h = pathAt(e.pi, e.s || 0, e.ang || 0), hx = Math.atan2(h.y - q.y, h.x - q.x) || 0;
+  const th = (e.s || 0) / (d.size * SOLID_ROLL) + (e.rot || 0), ct = Math.cos(th), st = Math.sin(th), ch = Math.cos(hx), sh = Math.sin(hx);
+  // roll about the nose (+x), then turn the nose to the heading
+  const rot = ([x, y, z]) => { const y1 = y * ct - z * st, z1 = y * st + z * ct; return [x * ch - y1 * sh, x * sh + y1 * ch, z1]; };
   const S = SOLIDS[e.type], R = S.V.map(rot);
-  // world offset (x, y on the floor, z up) to the screen, the die hovering its own size over the floor
-  const scr = ([x, y, z]) => [P.x + k * x * size, P.y + k * (p.c * y * size - p.s * (z + 1) * size)];
+  // world offset (x, y on the floor, z up) to the screen, the die's CENTRE on the floor (owner: "their center is on the plane")
+  const scr = ([x, y, z]) => [P.x + k * x * size, P.y + k * (p.c * y * size - p.s * z * size)];
   const col = COL[e.slowT > 0 ? "cyan" : d.color];
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.lineJoin = "round"; ctx.lineWidth = (e.armor ? 2.2 : 1.2) * cam.k;
   for (const face of S.F) {
