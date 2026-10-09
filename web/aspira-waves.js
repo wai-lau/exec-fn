@@ -12,6 +12,8 @@ const WAVE_TIMER = 16; // owner: 10 -> 13 -> 16s to thin the field
 const bossUp = () => G.enemies.some(e => !e.dead && ENEMIES[e.type].star) ||
   G.spawns.some(w => w.list.slice(w.idx).some(t => ENEMIES[t].star));
 const waveClear = () => !G.enemies.some(e => !e.dead) && G.spawns.length === 0;
+// the NEXT wave is a boss's: it waits for a clear field, no timer (aspira-game.js step, the wave list)
+const bossNext = () => (G.wave + 1) % STAR_EVERY === 0;
 // ONE enemy type per wave (owner, 2026-10-02, back from the 1-5 type mix):
 // a random unlocked type, never the same as the wave before. Types unlock in
 // order: swarm w1, shield w2, armor w3, fast w4 (fixed). makeWave returns the spawn
