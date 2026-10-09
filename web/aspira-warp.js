@@ -223,7 +223,13 @@ function warpEntities() {
     drawCells(atCell); if (!G.towers.length && !ui.build) drawSlotArrow(atCell); // the slots too, flat
     if (ui.build && ui.hover) up(ui.hover.x, ui.hover.y, drawPlacement);
     for (const e of G.enemies) up(e.x, e.y, () => drawEnemy(e, true)); // tracers, shields and marks flat on the floor, through the die's centre
-    for (const e of [...G.enemies].sort((a, b) => a.y - b.y)) warpSolid(e); // the bodies as real dice, the farthest first (aspira-solids.js)
+    // the bodies as real dice, the farthest first (aspira-solids.js), each inside its shield's walls (aspira-walls.js)
+    for (const e of [...G.enemies].sort((a, b) => a.y - b.y)) {
+      const w = enemyWallPieces(e), col = COL[ENEMIES[e.type].color];
+      if (w.length) warpWalls(w, e.y, false, WALL_H.enemy, col, 0.8);
+      warpSolid(e);
+      if (w.length) warpWalls(w, e.y, true, WALL_H.enemy, col, 0.8);
+    }
     // the towers and the core STAND UP as hexagonal prisms (owner: "core taller than towers"), the farthest
     // first, each one's usual drawing on its raised top; over the enemies, which walk on the floor
     const solids = G.towers.map(t => {
@@ -232,12 +238,13 @@ function warpEntities() {
         top: () => ownColours(() => up(x, y, () => drawTower(t), WARP.prism.tower / 2)) };
     });
     solids.push({ x: CX, y: CY, h: WARP.prism.core, col: COL.white, pts: Array.from({ length: 6 }, (_, i) => ({ x: CX + CORE_R * Math.cos(Math.PI / 6 + i * Math.PI / 3), y: CY + CORE_R * Math.sin(Math.PI / 6 + i * Math.PI / 3) })),
-      // the core's SHIELDS (its life and level rings) lie on the FLOOR (owner: "core shields on plane level"): the whole
-      // core drawn there first, its prism then stands in it; the top is the plain white hex and the credits
-      floor: () => up(CX, CY, drawCore),
+      // the core's SHIELDS (its life and level rings) stand on the FLOOR (owner: "core shields on plane level") as walls,
+      // the ones behind the core before its prism and the ones in front after (aspira-walls.js); the top is the plain
+      // white hex and the credits
+      pre: () => { warp.coreWalls = coreWallPieces(); warpWalls(warp.coreWalls, CY, false, WALL_H.core, COL.white, 1); },
+      post: () => warpWalls(warp.coreWalls, CY, true, WALL_H.core, COL.white, 1),
       top: () => { up(CX, CY, () => { poly(CX, CY, CORE_R, 6, Math.PI / 6, false); ctx.fillStyle = COL.white; ctx.globalAlpha = 1; ctx.fill(); drawCredits(); }, WARP.prism.core / 2); up(CX, CY, drawCoreHud, WARP.prism.core / 2); } });
-    for (const o of solids) if (o.floor) o.floor();
-    for (const o of solids.sort((a, b) => warpProject(a.x, a.y).y - warpProject(b.x, b.y).y)) { warpPrism(o); o.top(); }
+    for (const o of solids.sort((a, b) => warpProject(a.x, a.y).y - warpProject(b.x, b.y).y)) { if (o.pre) o.pre(); warpPrism(o); o.top(); if (o.post) o.post(); }
     // the floating texts alone still face the camera (at), so they stay readable
     drawFx("text", at);
   };
@@ -260,7 +267,10 @@ function warpEntities() {
 // filled with the background and tinted by how squarely it faces the camera, its edges in the colour
 function warpPrism(o) {
   // CENTRED on the floor (owner: "their center is on the plane, not the bottom"): half below it, half above
-  const H = o.h * cam.k / 2, n = o.pts.length, B = o.pts.map(p => warpProject(p.x, p.y, -H)), T = o.pts.map(p => warpProject(p.x, p.y, H));
+  // its top and bottom outlines in the SAME frame the top's drawing gets (up: one squash for all), so the drawing
+  // sits exactly on the walls (owner: "tower tops are not sitting on top")
+  const H = o.h * cam.k / 2, n = o.pts.length, frame = h => { const P = warpProject(o.x, o.y, h), k = cam.k * P.s; return p => ({ x: P.x + k * (p.x - o.x), y: P.y + k * warp.p.c * (p.y - o.y) }); };
+  const fb = frame(-H), ft = frame(H), B = o.pts.map(fb), T = o.pts.map(ft);
   const walls = o.pts.map((p, i) => { const q = o.pts[(i + 1) % n], mx = (p.x + q.x) / 2 - o.x, my = (p.y + q.y) / 2 - o.y; return { i, j: (i + 1) % n, face: my / (Math.hypot(mx, my) || 1) }; });
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.lineJoin = "round"; ctx.lineWidth = 1.5 * cam.k;
   for (const w of walls.sort((a, b) => a.face - b.face)) { // +y faces the camera
