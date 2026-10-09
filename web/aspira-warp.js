@@ -31,7 +31,7 @@
 // camera pointed isometrically to the core"): the board stays FLAT (depth 0, head 1 - the funnel's knobs
 // left at rest), seen from 35.3 deg above it (tilt = atan(sqrt 2), the isometric elevation) through a lens
 // so long (fov 0.02) it is all but orthographic, centred on the core (anchor 0); the surface opaque again
-const WARP = { tilt: 0.55 /* owner: "much more top down instead" (was 0.9553, isometric), then "a little bit less top down" (was 0.4) */, fov: 0.9 /* owner: "increase size changes based on distance from camera" (was 0.02, near-orthographic); the scale AT the core is the same for any fov */, edge: [760, 840], depth: 0, pow: 2, zoom: 1, anchor: 0, alpha: 1, bgA: 1, prism: { tower: 24, core: 60, below: 3 }, head: 1, shoulder: 0.12, grid: { ring: 110, neck: 0, spokes: 24, far: 2400, a: 0, onBoard: 0.8 } }; // grid.a 0: no gravity-well grid (owner: "get rid of gravity well curvature indicators")
+const WARP = { tilt: 0.55 /* owner: "much more top down instead" (was 0.9553, isometric), then "a little bit less top down" (was 0.4) */, fov: 0.9 /* owner: "increase size changes based on distance from camera" (was 0.02, near-orthographic); the scale AT the core is the same for any fov */, edge: [760, 840], depth: 0, pow: 2, zoom: 1, anchor: 0, alpha: 1, bgA: 1, prism: { tower: 8 /* per level (was 24 flat) */, core: 60, below: 3 }, head: 1, shoulder: 0.12, grid: { ring: 110, neck: 0, spokes: 24, far: 2400, a: 0, onBoard: 0.8 } }; // grid.a 0: no gravity-well grid (owner: "get rid of gravity well curvature indicators")
 // the tower ring's outer edge, world units from the core: the plateau the towers stand on
 const WARP_TOWERS = Math.max(...CELLS.map(c => Math.hypot(c.x - CX, c.y - CY))) + CELL_S * 1.5;
 const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, p: null, ent: null };
@@ -39,7 +39,7 @@ const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, p: nu
 // the mesh is POLAR, in world units round the core: a = (radius, angle)
 const WARP_VS = `
 attribute vec2 a;
-uniform vec2 core, size; uniform float D, L, P, T, c, s, f, k, z, oy, hc, e;
+uniform vec2 core, size; uniform vec3 texCam; uniform float D, L, P, T, c, s, f, k, z, oy, hc, e; // texCam: the picture's own core (px) and scale
 varying vec2 uv; varying float sh, rr, th;
 void main() {
   float r = a.x * k; vec2 dir = vec2(cos(a.y), sin(a.y)), wp = r * dir;
@@ -49,7 +49,7 @@ void main() {
   float g = 1.0 - pow(1.0 - clamp(sm, 0.0, 1.0), P), h = -D * g;
   float qy = -c * p.y + s * h, qz = s * p.y + c * h, w = f - qz;
   vec2 sc = core + vec2(0.0, oy) + z * vec2(f * p.x, -f * qy) / w;
-  uv = (core + wp) / size; rr = a.x; th = a.y; sh = 1.0 - 0.45 * g;
+  uv = (texCam.xy + a.x * texCam.z * dir) / size; rr = a.x; th = a.y; sh = 1.0 - 0.45 * g;
   gl_Position = vec4((sc.x / size.x * 2.0 - 1.0) * w, (1.0 - sc.y / size.y * 2.0) * w, (w / (80.0 * size.y) * 2.0 - 1.0) * w, w);
 }`;
 const WARP_FS = `
@@ -152,6 +152,15 @@ function warpHeight(p, r) {
 // it; a view, so ranges and the game keep the world's. warpUnview is its inverse.
 function warpView(p, r) { return r < p.T ? p.hc * r : r < p.L ? p.hc * p.T + (r - p.T) * (p.L - p.hc * p.T) / (p.L - p.T) : r; }
 function warpUnview(p, v) { return v < p.hc * p.T ? v / p.hc : v < p.L ? p.T + (v - p.hc * p.T) * (p.L - p.T) / (p.L - p.hc * p.T) : v; }
+// the PICTURE for the 3D view (owner, 2026-10-09: "render randomly cuts off at the top"): leaned back, the view shows
+// far more of the board than the 2D screen held, so the frame is drawn for the texture with a camera of its own that
+// fits the WHOLE board (WARP_TEX_R world units round the core) in the canvas; the view keeps the player's camera
+const WARP_TEX_R = 860;
+function warpRender() {
+  const view = { ...cam }, k = Math.min(cv.width, cv.height) / (2 * WARP_TEX_R);
+  Object.assign(cam, { k, ox: cv.width / 2 - CX * k, oy: cv.height / 2 - CY * k });
+  try { render(); } finally { warp.texCam = { ...cam }; Object.assign(cam, view); }
+}
 // one frame: the 2D picture onto the bell (aspira-ui.js frame calls this after render)
 function warpDraw() {
   const gl = warpInit();
@@ -161,12 +170,13 @@ function warpDraw() {
   const p = warp.p = warpParams(), pr = warp.prog;
   gl.viewport(0, 0, cv.width, cv.height);
   gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  gl.disable(gl.DEPTH_TEST); gl.enable(gl.BLEND); // no depth: the far side shows through the near (owner: "should not occlude") gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+  gl.disable(gl.DEPTH_TEST); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); // no depth: the far side shows through the near (owner: "should not occlude")
   gl.useProgram(pr);
   gl.bindTexture(gl.TEXTURE_2D, warp.tex);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv);
   const u = n => gl.getUniformLocation(pr, n);
   gl.uniform2f(u("core"), p.core[0], p.core[1]); gl.uniform2f(u("size"), cv.width, cv.height);
+  const tc = warp.texCam || cam; gl.uniform3f(u("texCam"), tc.ox + CX * tc.k, tc.oy + CY * tc.k, tc.k);
   for (const n of ["D", "L", "P", "T", "hc", "e", "c", "s", "f", "k", "z", "oy"]) gl.uniform1f(u(n), p[n]);
   gl.uniform2f(u("edge"), WARP.edge[0], WARP.edge[1]);
   gl.uniform3fv(u("gridCol"), warpGridRgb()); gl.uniform3fv(u("bgCol"), warpGridRgb("bg"));
@@ -236,8 +246,9 @@ function warpEntities() {
     // first, each one's usual drawing on its raised top; over the enemies, which walk on the floor
     const solids = G.towers.map(t => {
       const c0 = CELLS[t.cell], x = t.x ?? c0.x, y = t.y ?? c0.y;
-      return { x, y, h: WARP.prism.tower, col: COL[TOWERS[t.kind].color], pts: c0.pts.map(p => ({ x: x + (p.x - c0.x) * TOWER_K, y: y + (p.y - c0.y) * TOWER_K })),
-        top: () => ownColours(() => up(x, y, () => drawTower(t), WARP.prism.tower / 2)) };
+      const h = WARP.prism.tower * shownLvl(t); // as TALL as its level (owner: "make towers shorter, but make their height proportional to their level")
+      return { x, y, h, col: COL[TOWERS[t.kind].color], pts: c0.pts.map(p => ({ x: x + (p.x - c0.x) * TOWER_K, y: y + (p.y - c0.y) * TOWER_K })),
+        top: () => ownColours(() => up(x, y, () => drawTower(t), h / 2)) };
     });
     CELLS.forEach((c, ci) => {
       if (!cellOpen(ci) || G.towers.some(t => t.cell === ci)) return;
@@ -279,7 +290,8 @@ function warpPrism(o) {
   // its top and bottom outlines in the SAME frame the top's drawing gets (up: one squash for all), so the drawing
   // sits exactly on the walls (owner: "tower tops are not sitting on top")
   const H = o.h * cam.k / 2, n = o.pts.length, frame = h => { const P = warpProject(o.x, o.y, h), k = cam.k * P.s; return p => ({ x: P.x + k * (p.x - o.x), y: P.y + k * warp.p.c * (p.y - o.y) }); };
-  const fb = frame(-H * WARP.prism.below), ft = frame(H), B = o.pts.map(fb), T = o.pts.map(ft); // below: x the half height under the floor (owner: "3x the distance below plane")
+  // ... and it comes to a POINT below (owner: "instead of hexagonal prisms, make them all come to a point at the bottom")
+  const ft = frame(H), apex = frame(-H * WARP.prism.below)({ x: o.x, y: o.y }), B = o.pts.map(() => apex), T = o.pts.map(ft); // below: x the half height under the floor (owner: "3x the distance below plane")
   const walls = o.pts.map((p, i) => { const q = o.pts[(i + 1) % n], mx = (p.x + q.x) / 2 - o.x, my = (p.y + q.y) / 2 - o.y; return { i, j: (i + 1) % n, face: my / (Math.hypot(mx, my) || 1) }; });
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.lineJoin = "round"; ctx.lineWidth = 1.5 * cam.k;
   if (o.dash) { // an empty slot: a DOTTED wireframe, nothing filled
