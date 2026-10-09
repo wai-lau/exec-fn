@@ -31,9 +31,10 @@ function warpWalls(pieces, cy, front, hh, col, a0) {
   for (const p of pieces) {
     if (((p.a[1] + p.b[1]) / 2 > cy) !== front) continue;
     const A0 = warpProject(p.a[0], p.a[1], -H), B0 = warpProject(p.b[0], p.b[1], -H), A1 = warpProject(p.a[0], p.a[1], H), B1 = warpProject(p.b[0], p.b[1], H);
-    const a = a0 * Math.max(SHIELD_RING_MIN, SHIELD_RING_FADE ** (p.r - 1));
-    if (!warpPath([{ ...A0, z: -1 }, { ...B0, z: -1 }, { ...B1, z: 1 }, { ...A1, z: 1 }])) continue; // clipped to the half being drawn (aspira-fog.js)
-    ctx.globalAlpha = a * 0.35; ctx.fill(); ctx.globalAlpha = a; ctx.stroke();
+    const a = a0 * Math.max(SHIELD_RING_MIN, SHIELD_RING_FADE ** (p.r - 1)) * warpFade;
+    const quad = [{ ...A0, z: -hh }, { ...B0, z: -hh }, { ...B1, z: hh }, { ...A1, z: hh }];
+    if (!warpPath(quad)) continue; // clipped to the slice being drawn (aspira-fog.js)
+    ctx.globalAlpha = a * 0.35; ctx.fill(); warpEdges(quad); ctx.globalAlpha = a; ctx.stroke();
   }
   ctx.globalAlpha = 1;
 }
