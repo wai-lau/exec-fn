@@ -27,7 +27,7 @@
 //          rings every `ring` world units and `spokes` radial lines on the bell past the towers, out to
 //          `far`, where the bell itself ends; over the board only `onBoard` as strong, and outside
 //          the board's circle half as many (owner: "fewer curvature lines outside the circle")
-const WARP = { tilt: 0.2 /* owner: "much more top down" (was 0.6) */, fov: 1.0 /* a wide lens, close: a real VANISHING POINT (owner, was 0.45) */, edge: [760, 840], depth: 1500, pow: 2, zoom: 1.3, anchor: 0.15, alpha: 0.6, bgA: 0.35, grid: { ring: 110, neck: 16, spokes: 24, far: 2400, a: 0.6, onBoard: 0.8 } }; // depth: a DEEP classic bell (owner), 5x taller (was 460), then 3x again (was 2300), then x2 (was 6900), then a more gradual slope (was 13800), then 1800 as the flipped funnel seen from the side, then 1500 with pow 3 -> 2 (owner: "make slope more gradual") (tilt 0.15 -> 0.6, zoom 2 -> 1.3, anchor 0.25 -> 0.15: straight down the needle it read flat)
+const WARP = { tilt: 0.2 /* owner: "much more top down" (was 0.6) */, fov: 1.0 /* a wide lens, close: a real VANISHING POINT (owner, was 0.45) */, edge: [760, 840], depth: 1500, pow: 2, zoom: 1.3, anchor: 0.15, alpha: 0.6, bgA: 0.35, head: 0.6, shoulder: 0.12, grid: { ring: 110, neck: 16, spokes: 24, far: 2400, a: 0.6, onBoard: 0.8 } }; // depth: a DEEP classic bell (owner), 5x taller (was 460), then 3x again (was 2300), then x2 (was 6900), then a more gradual slope (was 13800), then 1800 as the flipped funnel seen from the side, then 1500 with pow 3 -> 2 (owner: "make slope more gradual") (tilt 0.15 -> 0.6, zoom 2 -> 1.3, anchor 0.25 -> 0.15: straight down the needle it read flat)
 // the tower ring's outer edge, world units from the core: the plateau the towers stand on
 const WARP_TOWERS = Math.max(...CELLS.map(c => Math.hypot(c.x - CX, c.y - CY))) + CELL_S * 1.5;
 const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, p: null, ent: null };
@@ -35,14 +35,17 @@ const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, p: nu
 // the mesh is POLAR, in world units round the core: a = (radius, angle)
 const WARP_VS = `
 attribute vec2 a;
-uniform vec2 core, size; uniform float D, L, P, T, c, s, f, k, z, oy;
+uniform vec2 core, size; uniform float D, L, P, T, c, s, f, k, z, oy, hc, e;
 varying vec2 uv; varying float sh, rr, th;
 void main() {
-  float r = a.x * k; vec2 p = r * vec2(cos(a.y), sin(a.y));
-  float g = 1.0 - pow(1.0 - clamp((r - T) / (L - T), 0.0, 1.0), P), h = -D * g;
+  float r = a.x * k; vec2 dir = vec2(cos(a.y), sin(a.y)), wp = r * dir;
+  float v = r < T ? hc * r : r < L ? hc * T + (r - T) * (L - hc * T) / (L - T) : r; // warpView's twin
+  vec2 p = v * dir;
+  float t = (v - hc * T) / (L - hc * T), sm = e * log(1.0 + exp(t / e)) / (e * log(1.0 + exp(1.0 / e)));
+  float g = 1.0 - pow(1.0 - clamp(sm, 0.0, 1.0), P), h = -D * g;
   float qy = -c * p.y + s * h, qz = s * p.y + c * h, w = f - qz;
   vec2 sc = core + vec2(0.0, oy) + z * vec2(f * p.x, -f * qy) / w;
-  uv = (core + p) / size; rr = a.x; th = a.y; sh = 1.0 - 0.45 * g;
+  uv = (core + wp) / size; rr = a.x; th = a.y; sh = 1.0 - 0.45 * g;
   gl_Position = vec4((sc.x / size.x * 2.0 - 1.0) * w, (1.0 - sc.y / size.y * 2.0) * w, (w / (80.0 * size.y) * 2.0 - 1.0) * w, w);
 }`;
 const WARP_FS = `
@@ -124,12 +127,20 @@ const warpGridRgb = (key = "grid") => (String(COL[key] || COL.green).match(/[\d.
 function warpParams() {
   const f = cv.height / 2 / Math.tan(WARP.fov / 2), D = WARP.depth * cam.k, c = Math.cos(WARP.tilt), s = Math.sin(WARP.tilt);
   const oy = -WARP.anchor * WARP.zoom * f * s * D / (f + c * D); // the bell's foot sits this far below the tip on screen
-  return { core: [cam.ox + CX * cam.k, cam.oy + CY * cam.k], D, L: R0 * cam.k, T: WARP_TOWERS * cam.k, P: WARP.pow, c, s, f, k: cam.k, z: WARP.zoom, oy };
+  return { core: [cam.ox + CX * cam.k, cam.oy + CY * cam.k], D, L: R0 * cam.k, T: WARP_TOWERS * cam.k, hc: WARP.head, e: WARP.shoulder, P: WARP.pow, c, s, f, k: cam.k, z: WARP.zoom, oy };
 }
 // the spire's height (<= 0, canvas px) r px from the core - the vertex shader's twin
+// r is a VIEW radius (warpView). The shoulder is SOFT (owner: "don't have a sharp shoulder"): a
+// softplus `shoulder` wide eases the level head into the neck, so the head dips a hair at its rim
 function warpHeight(p, r) {
-  return -p.D * (1 - Math.pow(1 - Math.min(1, Math.max(0, (r - p.T) / (p.L - p.T))), p.P));
+  const sp = t => p.e * Math.log(1 + Math.exp(t / p.e)), t = (r - p.hc * p.T) / (p.L - p.hc * p.T);
+  return -p.D * (1 - Math.pow(1 - Math.min(1, Math.max(0, sp(t) / sp(1))), p.P));
 }
+// the 3D view draws the HEAD smaller (owner: "move towers closer to core"): world radius r (canvas
+// px) -> view radius, x WARP.head inside the tower ring, the neck stretched to meet R0, the same past
+// it; a view, so ranges and the game keep the world's. warpUnview is its inverse.
+function warpView(p, r) { return r < p.T ? p.hc * r : r < p.L ? p.hc * p.T + (r - p.T) * (p.L - p.hc * p.T) / (p.L - p.T) : r; }
+function warpUnview(p, v) { return v < p.hc * p.T ? v / p.hc : v < p.L ? p.T + (v - p.hc * p.T) * (p.L - p.T) / (p.L - p.hc * p.T) : v; }
 // one frame: the 2D picture onto the bell (aspira-ui.js frame calls this after render)
 function warpDraw() {
   const gl = warpInit();
@@ -145,7 +156,7 @@ function warpDraw() {
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv);
   const u = n => gl.getUniformLocation(pr, n);
   gl.uniform2f(u("core"), p.core[0], p.core[1]); gl.uniform2f(u("size"), cv.width, cv.height);
-  for (const n of ["D", "L", "P", "T", "c", "s", "f", "k", "z", "oy"]) gl.uniform1f(u(n), p[n]);
+  for (const n of ["D", "L", "P", "T", "hc", "e", "c", "s", "f", "k", "z", "oy"]) gl.uniform1f(u(n), p[n]);
   gl.uniform2f(u("edge"), WARP.edge[0], WARP.edge[1]);
   gl.uniform3fv(u("gridCol"), warpGridRgb()); gl.uniform3fv(u("bgCol"), warpGridRgb("bg"));
   gl.uniform4f(u("grid"), WARP.grid.ring, Math.PI * 2 / WARP.grid.spokes, WARP.grid.far, WARP.grid.a);
@@ -159,8 +170,13 @@ function warpDraw() {
 // a world point to the screen: its canvas spot lifted onto the bell and seen by the camera;
 // s is the perspective scale there (1 at the core's height)
 function warpProject(x, y, hAt) { // hAt: a height of your own (canvas px) instead of the surface's
-  const p = warp.p, px = cam.ox + x * cam.k - p.core[0], py = cam.oy + y * cam.k - p.core[1];
-  const h = hAt ?? warpHeight(p, Math.hypot(px, py)), qy = -p.c * py + p.s * h, qz = p.s * py + p.c * h, w = p.f - qz;
+  const p = warp.p, wx = cam.ox + x * cam.k - p.core[0], wy = cam.oy + y * cam.k - p.core[1];
+  const r = Math.hypot(wx, wy), m = r ? warpView(p, r) / r : p.hc;
+  return warpProjectV(wx * m, wy * m, hAt);
+}
+// the same from a VIEW spot (canvas px from the core, after warpView)
+function warpProjectV(px, py, hAt) {
+  const p = warp.p, h = hAt ?? warpHeight(p, Math.hypot(px, py)), qy = -p.c * py + p.s * h, qz = p.s * py + p.c * h, w = p.f - qz;
   return { x: p.core[0] + p.z * p.f * px / w, y: p.core[1] + p.oy - p.z * p.f * qy / w, s: p.z * p.f / w, h };
 }
 // the TOWERS, the CORE and the ENEMIES, flat, each at its projected point (owner: "drawn separately,
@@ -186,7 +202,9 @@ function warpEntities() {
   // the sprite's own plane is the level one at its spot's height, foreshortened by the camera's lean -
   // the transform is that plane's projection at the spot (one world unit along x and y)
   const up = (x, y, fn) => {
-    const P = warpProject(x, y), X = warpProject(x + 1, y, P.h), Y = warpProject(x, y + 1, P.h);
+    // the frame is one world unit (cam.k px) along x and y IN THE VIEW, so the head's squeeze neither shrinks nor stretches a sprite
+    const p = warp.p, wx = (x - CX) * cam.k, wy = (y - CY) * cam.k, r = Math.hypot(wx, wy), m = r ? warpView(p, r) / r : p.hc;
+    const vx = wx * m, vy = wy * m, P = warpProjectV(vx, vy), X = warpProjectV(vx + cam.k, vy, P.h), Y = warpProjectV(vx, vy + cam.k, P.h);
     const a = X.x - P.x, b = X.y - P.y, c2 = Y.x - P.x, d = Y.y - P.y;
     ctx.setTransform(a, b, c2, d, P.x - a * x - c2 * y, P.y - b * x - d * y);
     ctx.save(); fn(); ctx.restore();
@@ -221,8 +239,8 @@ function unwarp(sx, sy) {
     if (Math.sign(cur.g) !== Math.sign(prev.g)) {
       let hi = t;
       for (let j = 0; j < 24; j++) { const mid = (lo + hi) / 2, m = at(mid); if (Math.sign(m.g) === Math.sign(prev.g)) lo = mid; else hi = mid; }
-      const hit = at((lo + hi) / 2);
-      return { x: p.core[0] + hit.x, y: p.core[1] + hit.y };
+      const hit = at((lo + hi) / 2), v = Math.hypot(hit.x, hit.y), m = v ? warpUnview(p, v) / v : 1 / p.hc; // back to the world's radius
+      return { x: p.core[0] + hit.x * m, y: p.core[1] + hit.y * m };
     }
     lo = t; prev = cur;
   }
