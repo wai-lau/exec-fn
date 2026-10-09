@@ -314,7 +314,7 @@ const TWIN_GAP = 3.5; // Charge's parallel beams sit 2 x this apart
 // Passes: "dmg" = damage numbers (`under` text), drawn right over the
 // background beneath everything else (owner); "shots" = beams/rings/sparks;
 // "text" = every other floating text, on top.
-function drawFx(pass) {
+function drawFx(pass, at = (x, y, fn) => fn()) { // at: 3D draws each floating text flat over the bell (warpEntities)
   for (const f of fx) {
     const kind = f.k !== "text" ? "shots" : f.under ? "dmg" : "text";
     if (kind !== pass || f.t >= f.life || (lowQ && (kind === "dmg" || LOW_SKIP_FX[f.k]))) continue; // a retired damage number (dmgNumber) is not drawn; low quality skips the decoration
@@ -394,7 +394,7 @@ function drawFx(pass) {
       const g = sh ? (f.t < DMG_HOLD ? 1 : Math.max(0, (f.life - f.t) / Math.max(0.01, f.life - DMG_HOLD))) : 1;
       if (sh) ctx.globalAlpha = g;
       ctx.globalAlpha *= f.alpha ?? 1;
-      text(f.text, f.x, f.y, f.size * g, f.color, f.outline);
+      at(f.x, f.y, () => text(f.text, f.x, f.y, f.size * g, f.color, f.outline));
     }
   }
   ctx.globalAlpha = 1;
@@ -446,7 +446,7 @@ function drawScene([sx, sy], clipR) {
   ctx.save();
   if (clipR) { ctx.beginPath(); ctx.arc(bossInv.x, bossInv.y, clipR, 0, 6.283); ctx.clip(); }
   ctx.fillStyle = COL.bg; ctx.globalAlpha = 1; ctx.fillRect(CX - 4000, CY - 4000, 8000, 8000);
-  drawFx("dmg"); // damage numbers just above the background, under all else (the cooldown dial moved to buttons above the title - aspira-powers.js)
+  if (!q3d()) drawFx("dmg"); // (3D: flat, warpEntities) damage numbers just above the background, under all else (the cooldown dial moved to buttons above the title - aspira-powers.js)
   drawBoard();
   drawBossBar(); // a live boss's HP line along the horizon, UNDER the towers and their effects (owner)
   const sel = ui.sel && G.towers.find(t => t.id === ui.sel);
@@ -469,7 +469,7 @@ function drawScene([sx, sy], clipR) {
     for (const e of G.enemies) drawEnemy(e); // ENEMIES over the towers and the core (owner)
     drawCoreHud(); // the core powers' dial, freeze, copy and halos, over everything (aspira-core-fx.js)
   }
-  drawFx("text");
+  if (!q3d()) drawFx("text");
   if (bannerT > 0) {
     ctx.globalAlpha = Math.min(1, bannerT);
     text(bannerText, CX, 70, 30, bannerCol, true); // smaller (owner, 2026-10-06; was 44)
