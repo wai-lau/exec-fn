@@ -24,10 +24,10 @@ const CORE_POWERS = [
   { id: "temporal", name: "Temporal Drive", /* (owner; was Temporal Manipulation) */ how: "press and hold the core",
     desc: "Every enemy stops dead at once, and stays stopped while rings pulse out from the core." },
 ];
-const TEMPORAL = [null, { dur: 5, cd: 60 }, { dur: 8, cd: 45 }, { dur: 12, cd: 35 }], /* owner 2026-10-06: longer stop, longer cooldown (was 2 / 30, 4 / 20) */ TEMPORAL_GROW = 0.6, TEMPORAL_R = 560, TEMPORAL_FADE = 0.4, TEMPORAL_RING_EVERY = 0.5; // a ring shot out every TEMPORAL_RING_EVERY s for the whole freeze (owner, 2026-10-08)
+const TEMPORAL = [null, { dur: 5, cd: 90 }, { dur: 8, cd: 65 }, { dur: 12, cd: 50 }], /* owner 2026-10-06: longer stop, longer cooldown (was 2 / 30, 4 / 20); 2026-10-09 "increase cooldown of powers": x1.5 (was 60 / 45 / 35) */ TEMPORAL_GROW = 0.6, TEMPORAL_R = 560, TEMPORAL_FADE = 0.4, TEMPORAL_RING_EVERY = 0.5; // a ring shot out every TEMPORAL_RING_EVERY s for the whole freeze (owner, 2026-10-08)
 // the Relay: RELAY_MUL x the tower for `dur` s, the cooldown counted from when
 // it wears off (per tier for the dial's sake; only III is ever owned)
-const RELAY_MUL = 3, RELAY = [null, { dur: 22.5, cd: 40 }, { dur: 22.5, cd: 40 }, { dur: 22.5, cd: 40 }]; // 22.5 s: halved (owner, 2026-10-07; was 45 s)
+const RELAY_MUL = 3, RELAY = [null, { dur: 22.5, cd: 60 }, { dur: 22.5, cd: 60 }, { dur: 22.5, cd: 60 }]; /* cooldown x1.5 (owner, 2026-10-09; was 40) */ // 22.5 s: halved (owner, 2026-10-07; was 45 s)
 
 const powerLvl = id => (G.core && G.core.pw ? G.core.pw[id] || 0 : 0);
 const coreLvl = () => (G.core && G.core.pw ? Object.values(G.core.pw).reduce((a, b) => a + b, 0) : 0);

@@ -14,7 +14,8 @@ import { pickNext, usePowers } from "./corepower.mjs";
 const WEB = (process.env.ASPIRA_WEB || path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "web")) + "/";
 const FILES = ["aspira-defs.js", "aspira-upgrades.js", "aspira-game.js", "aspira-floats.js", "aspira-waves.js", "aspira-bosses.js", "aspira-towers.js", "aspira-acid.js", "aspira-skills.js", "aspira-frz.js", "aspira-desc.js", "aspira-positioning.js", "aspira-core.js"];
 
-export function makeGame(seed, patch = process.env.ASPIRA_PATCH || "") { // ASPIRA_PATCH: a balance experiment for every game of a run
+export function makeGame(seed, patch = "") {
+  patch = [process.env.ASPIRA_PATCH, patch].filter(Boolean).join("\n"); // ASPIRA_PATCH: a balance experiment for every game of a run
   let a = seed >>> 0 || 1;
   const rand = () => { a = (a + 0x6D2B79F5) >>> 0; let t = Math.imul(a ^ (a >>> 15), a | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   const M = Object.create(Math); M.random = rand;
