@@ -28,7 +28,7 @@
 //          rings every `ring` world units and `spokes` radial lines on the bell past the towers, out to
 //          `far`, where the bell itself ends; over the board only `onBoard` as strong, and outside
 //          the board's circle half as many (owner: "fewer curvature lines outside the circle")
-const WARP = { tilt: 0.15, fov: 0.45, edge: [760, 840], depth: 13800, flat: 1.873, pow: 3.5, zoom: 2, anchor: 0.25, grid: { ring: 110, spokes: 24, far: 2400, a: 0.3, onBoard: 0.25 } }; // depth: a DEEP classic bell (owner), 5x taller (was 460), then 3x again (was 2300), then x2 (was 6900)
+const WARP = { tilt: 0.15, fov: 0.45, edge: [760, 840], depth: 9000, flat: 1.873, pow: 3.5, zoom: 2, anchor: 0.25, grid: { ring: 110, spokes: 24, far: 2400, a: 0.3, onBoard: 0.25 } }; // depth: a DEEP classic bell (owner), 5x taller (was 460), then 3x again (was 2300), then x2 (was 6900), then a more gradual slope (owner, was 13800)
 // the tower ring's outer edge, world units from the core: the plateau the towers stand on
 const WARP_TOWERS = Math.max(...CELLS.map(c => Math.hypot(c.x - CX, c.y - CY))) + CELL_S * 1.5;
 const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, p: null, ent: null };
@@ -174,12 +174,14 @@ function warpEntities() {
   };
   const atCell = (cell, fn) => at(cell.x, cell.y, fn);
   const all = () => {
+    drawFx("dmg", at); // damage numbers flat too (owner), under everything as in 2D
     drawCells(atCell); if (!G.towers.length && !ui.build) drawSlotArrow(atCell); // the slots too, flat
     ownColours(() => { for (const t of G.towers) at(t.x, t.y, () => drawTower(t)); });
     if (ui.build && ui.hover) at(ui.hover.x, ui.hover.y, drawPlacement);
     at(CX, CY, () => { drawCore(); drawCredits(); });
     for (const e of G.enemies) at(e.x, e.y, () => drawEnemy(e));
     at(CX, CY, drawCoreHud);
+    drawFx("text", at);
   };
   try { if (bossInv.full) withPalette(all); else all(); } finally { ctx = main; }
 }
