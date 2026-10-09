@@ -73,12 +73,14 @@ function solidGeom(e) {
   const L = unit([[CX - e.x, CY - e.y, (warp.lightZ || 1)]])[0];
   // world offset (x, y on the floor, z up) to the screen, the die's CENTRE on the floor (owner: "their center is on the plane")
   const scr = ([x, y, z]) => [P.x + k * x * size, P.y + k * (p.c * y * size - p.s * z * size)];
-  const faces = [];
-  for (const face of S.F) {
+  const faces = [], slot = new Array(S.F.length).fill(-1); // slot: a face of S.F -> its index in faces (visible), or -1
+  const Q = R.map(v => { const [x, y] = scr(v); return { x, y, z: v[2] * size }; }); // every corner projected once
+  for (const [fi, face] of S.F.entries()) {
     const n = [0, 1, 2].map(i => face.reduce((m, v) => m + R[v][i], 0) / face.length), nl = Math.hypot(...n);
     if (n[1] * p.s + n[2] * p.c <= 0) continue; // turned away from the camera
     const lit = Math.max(0, (n[0] * L[0] + n[1] * L[1] + n[2] * L[2]) / nl);
-    const poly3 = face.map(v => { const [x, y] = scr(R[v]); return { x, y, z: R[v][2] * size }; });
+    const poly3 = face.map(v => Q[v]);
+    slot[fi] = faces.length;
     faces.push({ poly3, lo: Math.min(...poly3.map(v => v.z)), hi: Math.max(...poly3.map(v => v.z)), fA: (0.2 + 0.7 * lit) * (0.5 + 0.5 * f) });
   }
   // BREACH in 3D (owner, 2026-10-09: "breach effect should look like vertical spoke going through the enemy center of
@@ -93,11 +95,41 @@ function solidGeom(e) {
   // FROZEN: its own colour with FRZ's cyan laid over at SOLID_FROZEN_A (owner, 2026-10-09: "FRZ color change should just be
   // 50% opaque, not 100" - it was all cyan)
   // its EDGES once: each with how many visible faces share it (1: the outline, 2: an inner edge)
-  const edges = new Map();
-  faces.forEach((F, fi) => F.poly3.forEach((v, i) => { const w = F.poly3[(i + 1) % F.poly3.length], k = edgeKey(v, w), had = edges.get(k); edges.set(k, had ? { v, w, n: 2, f: had.f.concat(fi) } : { v, w, n: 1, f: [fi] }); }));
-  return { faces, edges: [...edges.values()], spike, size, fa, col: COL[d.color], frz: e.slowT > 0 ? SOLID_FROZEN_A : 0, lw: (e.armor ? 2.2 : 1.2) * cam.k };
+  // (the die's edge TOPOLOGY is fixed per kind - solidEdges - so only which faces show changes)
+  const edges = [];
+  for (const [i, j, a, b] of solidEdges(e.type)) {
+    const f = [slot[a], slot[b]].filter(x => x >= 0);
+    if (f.length) edges.push({ v: Q[i], w: Q[j], n: f.length, f });
+  }
+  return { faces, edges, spike, size, fa, col: COL[d.color], frz: e.slowT > 0 ? SOLID_FROZEN_A : 0, lw: (e.armor ? 2.2 : 1.2) * cam.k };
 }
-// an edge's key, the same both ways round (two faces share it in opposite order)
+// the opacity the floor's slices give depth z (aspira-fog.js warpBands): 1 at the floor, down to the deepest slice's
+const belowFade = z => Math.max(1 - (WARP_FADE_BANDS - 0.5) / WARP_FADE_BANDS, Math.min(1, 1 + z / WARP_FADE_Z));
+// everything of a die BELOW the floor in one go (warpBand clips it to z <= 0): each face at ONE fade, its clipped part's
+// mean depth's - the slices stepped a face 2-4 times; a face is small against WARP_FADE_Z, so it reads the same
+function warpSolidBelow(g) {
+  const col = g.col, frz = g.frz, bgR = rgbOf(COL.bg), colR = rgbOf(col), cyR = rgbOf(COL.cyan);
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.lineJoin = "round"; ctx.globalAlpha = 1;
+  if (g.spike) {
+    const { a, b } = g.spike, f = belowFade(a.z / 2);
+    ctx.beginPath(); warpLine(a, b); ctx.strokeStyle = blendFill([[rgbOf(COL[TOWERS.sol.color]), 0.9 * g.fa * f]]); ctx.lineWidth = g.spike.w; ctx.stroke();
+  }
+  ctx.lineWidth = g.lw;
+  for (const F of g.faces) {
+    if (F.lo > 0 || !warpPath(F.poly3)) continue;
+    const fa = g.fa * belowFade((F.lo + Math.min(0, F.hi)) / 2), fA = F.fA * fa;
+    ctx.fillStyle = blendFill([[bgR, fa], [colR, fA], [cyR, fA * frz]]); ctx.fill();
+    warpEdges(F.poly3); ctx.strokeStyle = blendFill([[colR, 0.9 * fa], [cyR, 0.9 * fa * frz]]); ctx.stroke();
+  }
+}
+// a die kind's edges, once: [corner i, corner j, face a, face b] (every edge of these closed solids has two faces)
+const solidEdgeCache = {};
+function solidEdges(type) {
+  if (solidEdgeCache[type]) return solidEdgeCache[type];
+  const m = new Map();
+  SOLIDS[type].F.forEach((face, fi) => face.forEach((v, k) => { const w = face[(k + 1) % face.length], key = Math.min(v, w) + "," + Math.max(v, w); const had = m.get(key); if (had) had[3] = fi; else m.set(key, [v, w, fi, -1]); }));
+  return (solidEdgeCache[type] = [...m.values()]);
+}
 // layers [[css colour, alpha], ...] composited source-over onto nothing, as ONE rgba (cached by its rounded inputs)
 const rgbOf = (() => { const m = new Map(); return c => { let v = m.get(c); if (!v) { const n = (c || "").match(/[\d.]+/g) || [0, 0, 0]; v = n.slice(0, 3).map(Number); m.set(c, v); } return v; }; })();
 const blendCache = new Map();
@@ -106,7 +138,7 @@ function blendFill(layers) {
   for (const [c, a0] of layers) {
     const a = Math.max(0, Math.min(1, a0));
     if (!(a > 0)) continue;
-    const [cr, cg, cb] = rgbOf(c), na = a + A * (1 - a);
+    const [cr, cg, cb] = typeof c === "string" ? rgbOf(c) : c, na = a + A * (1 - a);
     r = (cr * a + r * A * (1 - a)) / na; g = (cg * a + g * A * (1 - a)) / na; b = (cb * a + b * A * (1 - a)) / na; A = na;
   }
   const a = Math.round(A * 1000), key = (((r | 0) * 256 + (g | 0)) * 256 + (b | 0)) * 1001 + a; // a number: no string built per call
@@ -114,15 +146,18 @@ function blendFill(layers) {
   if (!s) { if (blendCache.size > 4000) blendCache.clear(); s = "rgba(" + (r | 0) + "," + (g | 0) + "," + (b | 0) + "," + a / 1000 + ")"; blendCache.set(key, s); }
   return s;
 }
-const edgeKey = (v, w) => (v.x < w.x || (v.x === w.x && v.y < w.y) ? v.x + "," + v.y + "," + w.x + "," + w.y : w.x + "," + w.y + "," + v.x + "," + v.y);
 function warpSolid(e) {
   if (e.dead || !SOLIDS[e.type]) return;
   if (e.geomAt !== warp.frame) { e.geomAt = warp.frame; e.geom = solidGeom(e); }
   const g = e.geom, band = warpBand;
   if (!g) return;
+  // TWO passes, not one per floor slice (perf, 2026-10-09): deeper slices skip it, and the slice AT the floor (hi -0)
+  // draws all of it below the floor at once (warpSolidBelow)
+  if (band && band.hi < 0) return;
+  if (band && band.hi === 0 && band.lo > -Infinity) { warpBand = { lo: -Infinity, hi: 0 }; try { warpSolidBelow(g); } finally { warpBand = band; } return; }
   const H = g.spike ? g.spike.b.z : g.size;
   if (band && (H < band.lo || -H > band.hi)) return; // nothing of it in this slice
-  const fa = warpFade * g.fa, col = g.col, frz = g.frz;
+  const fa = warpFade * g.fa, col = g.col, frz = g.frz, bgR = rgbOf(COL.bg), colR = rgbOf(col), cyR = rgbOf(COL.cyan);
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.lineJoin = "round";
   if (g.spike) { ctx.beginPath(); warpLine(g.spike.a, g.spike.b); ctx.strokeStyle = COL[TOWERS.sol.color]; ctx.globalAlpha = 0.9 * fa; ctx.lineWidth = g.spike.w; ctx.stroke(); }
   // PERF (2026-10-09): each face ONE fill of its layers blended up front (background, colour, frost - source-over
@@ -133,7 +168,7 @@ function warpSolid(e) {
     if (band && (F.hi < band.lo || F.lo > band.hi)) return false;
     if (!warpPath(F.poly3)) return false; // clipped to the slice being drawn (aspira-fog.js)
     const fA = F.fA * fa;
-    ctx.fillStyle = blendFill([[COL.bg, fa], [col, fA], [COL.cyan, fA * frz]]); ctx.fill();
+    ctx.fillStyle = blendFill([[bgR, fa], [colR, fA], [cyR, fA * frz]]); ctx.fill();
     return true;
   });
   if (drawn.some(Boolean)) {
@@ -142,7 +177,7 @@ function warpSolid(e) {
       ctx.beginPath(); let any = false;
       for (const E of g.edges) if (E.n === n && E.f.some(fi => drawn[fi])) { warpLine(E.v, E.w); any = true; }
       if (!any) continue;
-      const one = [[col, sa], [COL.cyan, sa * frz]];
+      const one = [[colR, sa], [cyR, sa * frz]];
       ctx.strokeStyle = blendFill(n === 1 ? one : one.concat(one)); ctx.stroke();
     }
   }
