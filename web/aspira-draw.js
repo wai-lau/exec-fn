@@ -463,7 +463,7 @@ function drawScene([sx, sy], clipR) {
   drawTethers();
   drawAcd();
   drawAims();
-  if (!q3d()) drawFx("shots"); // (3D: warpEntities)
+  drawFx("shots"); // on the board in 3D too (owner: "beams and tower effects can appear on the plane")
   drawCoreFx(); // the core's struts and beams, under the towers (aspira-core.js)
   // in 3D the towers, the core and the enemies are drawn FLAT over the bell instead (warpEntities, aspira-warp.js)
   ownColours(() => { drawSpokes(); if (!q3d()) for (const t of G.towers) drawTower(t); drawRelayArm(); }); // towers keep their colours on a boss sky (owner); an armed Relay rings them (aspira-powers.js)
