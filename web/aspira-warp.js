@@ -31,7 +31,7 @@
 // camera pointed isometrically to the core"): the board stays FLAT (depth 0, head 1 - the funnel's knobs
 // left at rest), seen from 35.3 deg above it (tilt = atan(sqrt 2), the isometric elevation) through a lens
 // so long (fov 0.02) it is all but orthographic, centred on the core (anchor 0); the surface opaque again
-const WARP = { tilt: 0.55 /* owner: "much more top down instead" (was 0.9553, isometric), then "a little bit less top down" (was 0.4) */, fov: 0.9 /* owner: "increase size changes based on distance from camera" (was 0.02, near-orthographic); the scale AT the core is the same for any fov */, edge: [760, 840], depth: 0, pow: 2, zoom: 1, anchor: 0, alpha: 1, bgA: 1, prism: { tower: 6 /* a fresh tower and an empty slot (was 24) */, perPoint: 4, core: 60, below: 3 }, head: 1, shoulder: 0.12, grid: { ring: 110, neck: 0, spokes: 24, far: 2400, a: 0, onBoard: 0.8 } }; // grid.a 0: no gravity-well grid (owner: "get rid of gravity well curvature indicators")
+const WARP = { tilt: 0.55 /* owner: "much more top down instead" (was 0.9553, isometric), then "a little bit less top down" (was 0.4) */, fov: 0.9 /* owner: "increase size changes based on distance from camera" (was 0.02, near-orthographic); the scale AT the core is the same for any fov */, edge: [760, 840], depth: 0, pow: 2, zoom: 1, anchor: 0, alpha: 1, bgA: 1, prism: { tower: 6 /* a fresh tower and an empty slot (was 24) */, perPoint: 4, below: 3 } /* the core's height: towerH's sum / 6 + the tallest (warpEntities) */, head: 1, shoulder: 0.12, grid: { ring: 110, neck: 0, spokes: 24, far: 2400, a: 0, onBoard: 0.8 } }; // grid.a 0: no gravity-well grid (owner: "get rid of gravity well curvature indicators")
 // the tower ring's outer edge, world units from the core: the plateau the towers stand on
 const WARP_TOWERS = Math.max(...CELLS.map(c => Math.hypot(c.x - CX, c.y - CY))) + CELL_S * 1.5;
 const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, p: null, ent: null };
@@ -238,9 +238,7 @@ function warpEntities() {
     // first, each one's usual drawing on its raised top; over the enemies, which walk on the floor
     const solids = G.towers.map(t => {
       const c0 = CELLS[t.cell], x = t.x ?? c0.x, y = t.y ?? c0.y;
-      // as TALL as its level (owner: "make towers shorter, but make their height proportional to their level"): every chart POINT
-      // (t.lvl - 1) adds WARP.prism.perPoint - the look's own level (shownLvl) moves only every five points, so it hardly grew
-      const h = WARP.prism.tower + WARP.prism.perPoint * (t.lvl - 1);
+      const h = towerH(t);
       return { x, y, h, col: COL[TOWERS[t.kind].color], pts: c0.pts.map(p => ({ x: x + (p.x - c0.x) * TOWER_K, y: y + (p.y - c0.y) * TOWER_K })),
         top: () => ownColours(() => up(x, y, () => drawTower(t), h / 2)) };
     });
@@ -251,13 +249,15 @@ function warpEntities() {
         pts: c.pts.map(p => ({ x: c.x + (p.x - c.x) * TOWER_K, y: c.y + (p.y - c.y) * TOWER_K })),
         top: () => { up(c.x, c.y, cellDraw.get(c), hh); if (!G.towers.length && !ui.build) drawSlotArrow((cc, fn) => (cc === c ? up(c.x, c.y, fn, hh) : null)); } });
     });
-    solids.push({ x: CX, y: CY, h: WARP.prism.core, col: COL.white, pts: Array.from({ length: 6 }, (_, i) => ({ x: CX + CORE_R * Math.cos(Math.PI / 6 + i * Math.PI / 3), y: CY + CORE_R * Math.sin(Math.PI / 6 + i * Math.PI / 3) })),
+    const hs = G.towers.map(towerH), coreH = hs.length ? hs.reduce((a, b) => a + b, 0) / 6 + Math.max(...hs) : WARP.prism.tower;
+    warp.lightZ = coreH / 2; // the dice are lit from the core's top (aspira-solids.js)
+    solids.push({ x: CX, y: CY, h: coreH, col: COL.white, pts: Array.from({ length: 6 }, (_, i) => ({ x: CX + CORE_R * Math.cos(Math.PI / 6 + i * Math.PI / 3), y: CY + CORE_R * Math.sin(Math.PI / 6 + i * Math.PI / 3) })),
       // the core's SHIELDS (its life and level rings) stand on the FLOOR (owner: "core shields on plane level") as walls,
       // the ones behind the core before its prism and the ones in front after (aspira-walls.js); the top is the plain
       // white hex and the credits
       pre: () => { warpWalls(warp.coreWalls, CY, false, WALL_H.core, COL.white, 1); },
       post: () => warpWalls(warp.coreWalls, CY, true, WALL_H.core, COL.white, 1),
-      top: () => { up(CX, CY, () => { poly(CX, CY, CORE_R, 6, Math.PI / 6, false); ctx.fillStyle = COL.white; ctx.globalAlpha = 1; ctx.fill(); drawCredits("count"); }, WARP.prism.core / 2); up(CX, CY, drawCoreHud, WARP.prism.core / 2); } });
+      top: () => { up(CX, CY, () => { poly(CX, CY, CORE_R, 6, Math.PI / 6, false); ctx.fillStyle = COL.white; ctx.globalAlpha = 1; ctx.fill(); drawCredits("count"); }, coreH / 2); up(CX, CY, drawCoreHud, coreH / 2); } });
     solids.sort((a, b) => warpProject(a.x, a.y).y - warpProject(b.x, b.y).y);
     const drawSolids = tops => { for (const o of solids) { if (o.pre) o.pre(); warpPrism(o); if (tops) o.top(); if (o.post) o.post(); } };
     // BELOW the floor, fading slice by slice, then the tracers and marks on it, then ABOVE (aspira-fog.js; owner: "geometry
@@ -289,6 +289,10 @@ function warpEntities() {
     }
   } finally { ctx = main; }
 }
+// a tower's height: as TALL as its level (owner: "make towers shorter, but make their height proportional to their level"):
+// every chart POINT (t.lvl - 1) adds WARP.prism.perPoint - the look's own level (shownLvl) moves only every five points.
+// The CORE stands (all towers' heights) / 6 + the tallest's (owner, 2026-10-09), a fresh tower's with none built
+const towerH = t => WARP.prism.tower + WARP.prism.perPoint * (t.lvl - 1);
 // the canvas transform that lays world (x, y) on the level plane h world units up, as seen at (x, y): its
 // projection there and one world unit along x and along y
 function warpFrame(x, y, h) {
@@ -306,7 +310,7 @@ function warpPrism(o) {
   // ... and it comes to a POINT below (owner: "instead of hexagonal prisms, make them all come to a point at the bottom")
   // (a POINTED bottom was tried and dropped: "change the towers and core back to prisms instead of pointy")
   const ft = frame(H), fb = frame(-H * WARP.prism.below), B = o.pts.map(p => ({ ...fb(p), z: -o.h / 2 * WARP.prism.below })), T = o.pts.map(p => ({ ...ft(p), z: o.h / 2 })); // z in world units (aspira-fog.js) // below: x the half height under the floor (owner: "3x the distance below plane")
-  const walls = o.pts.map((p, i) => { const q = o.pts[(i + 1) % n], mx = (p.x + q.x) / 2 - o.x, my = (p.y + q.y) / 2 - o.y; return { i, j: (i + 1) % n, face: my / (Math.hypot(mx, my) || 1) }; });
+  const walls = o.pts.map((p, i) => { const q = o.pts[(i + 1) % n], mx = (p.x + q.x) / 2 - o.x, my = (p.y + q.y) / 2 - o.y; const ml = Math.hypot(mx, my) || 1, lx = CX - o.x, ly = CY - o.y, ll = Math.hypot(lx, ly); return { i, j: (i + 1) % n, face: my / ml, lit: ll < 1 ? 1 : Math.max(0, (mx * lx + my * ly) / (ml * ll)) }; }); // lit: the wall faces the core (the core's own: all lit)
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.lineJoin = "round"; ctx.lineWidth = 1.5 * cam.k;
   if (o.dash) { // an empty slot: a DOTTED wireframe, nothing filled
     ctx.setLineDash([2 * cam.k, 3 * cam.k]); ctx.strokeStyle = o.col; ctx.globalAlpha = 0.45 * warpFade; ctx.beginPath();
@@ -317,7 +321,7 @@ function warpPrism(o) {
     const quad = [B[w.i], B[w.j], T[w.j], T[w.i]];
     if (!warpPath(quad)) continue;
     ctx.globalAlpha = warpFade; ctx.fillStyle = COL.bg; ctx.fill();
-    ctx.globalAlpha = (0.12 + 0.28 * Math.max(0, w.face)) * warpFade; ctx.fillStyle = o.col; ctx.fill();
+    ctx.globalAlpha = (0.12 + 0.28 * w.lit) * warpFade; ctx.fillStyle = o.col; ctx.fill(); // lit from the CORE (owner: "the light source should come from the core")
     warpEdges(quad); ctx.globalAlpha = 0.8 * warpFade; ctx.strokeStyle = o.col; ctx.stroke();
   }
   ctx.globalAlpha = 1;
