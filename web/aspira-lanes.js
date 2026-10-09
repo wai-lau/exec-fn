@@ -76,7 +76,7 @@ function blit(c) { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlp
 const laneSeen = new Map(), LANE_FADE_IN_MS = 2000;
 const LIT_MIN_MS = 200;
 const LIT_STEPS = 16;
-const BOSS_LANE_W = 3.5, BOSS_LANE_BLUR = 28; // a boss lane: x widths, and its glow (world px)
+const BOSS_LANE_W = 3.5, BOSS_LANE_BLUR = 28, BOSS_LANE_K = 1.5; // a boss lane: x widths, its glow (world px), x brightness (owner, 2026-10-09: "make boss lanes half as intense"; was 3)
 function drawLaneStrokes(live) {
   const S = laneSet(), { laneCv, lctx, glowCv, gctx, baseCv, bctx } = S;
   // forget lanes that went dark, so they fade in again next time
@@ -120,7 +120,7 @@ function drawLaneStrokes(live) {
     // the bonus STAR's lane burns three times as bright as the rest (owner),
     // and a BOSS lane is much THICKER with much more GLOW (owner): w scales
     // every width, and its line carries a wide shadow-blur halo
-    const k = u.star ? 3 : 1, w = u.star ? BOSS_LANE_W : 1;
+    const k = u.star ? BOSS_LANE_K : 1, w = u.star ? BOSS_LANE_W : 1;
     lctx.strokeStyle = gctx.strokeStyle = COL[u.color];
     // a wide GLOW that grows in intensity toward the core (owner), on its own
     // layer with a much steeper fade outward (owner: "stronger gradient")
