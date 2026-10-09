@@ -37,7 +37,8 @@ function drawStarTrail(e, size) {
   ctx.fill();
   ctx.shadowBlur = 0; ctx.globalAlpha = 1;
 }
-function drawEnemy(e) {
+// solid: the 3D view draws the body itself as a real die (warpSolid, aspira-solids.js) - here only its tracer, shields and marks
+function drawEnemy(e, solid) {
   // damage shows as both size and opacity: full HP = full size, solid;
   // near death = 45% size, faint
   // a ghost (dead enemy) is INVISIBLE: it only carries the beams that follow it
@@ -48,14 +49,14 @@ function drawEnemy(e) {
     drawStarTrail(e, size);
     // the body is see-through, so blank its shape first: the tracer must not
     // show through the enemy it trails (owner)
-    poly(e.x, e.y, size, d.sides, e.rot, d.pointy); ctx.fillStyle = COL.bg; ctx.globalAlpha = 1; ctx.fill();
+    if (!solid) { poly(e.x, e.y, size, d.sides, e.rot, d.pointy); ctx.fillStyle = COL.bg; ctx.globalAlpha = 1; ctx.fill(); }
   }
   poly(e.x, e.y, size, d.sides, e.rot, d.pointy);
   // a boss GLOWS in its colour (owner); the tracer is the boss type's own
-  if (e.arcana) { ctx.shadowColor = COL[d.color]; ctx.shadowBlur = 28 * cam.k; }
-  ctx.fillStyle = COL[d.color]; ctx.globalAlpha = 0.15 + 0.6 * f; ctx.fill();
+  if (e.arcana && !solid) { ctx.shadowColor = COL[d.color]; ctx.shadowBlur = 28 * cam.k; }
+  if (!solid) { ctx.fillStyle = COL[d.color]; ctx.globalAlpha = 0.15 + 0.6 * f; ctx.fill(); }
   ctx.shadowBlur = 0;
-  if (e.arcana) drawBossEye(e, size);
+  if (e.arcana && !solid) drawBossEye(e, size);
   // outlines brighten as the enemy closes on the core (faint beyond the rim,
   // full at the core), still dimmed by lost HP
   const near = 1 - Math.min(1, Math.max(0, (Math.hypot(e.x - CX, e.y - CY) - CORE_R) / (RIM_R - CORE_R)));
@@ -63,8 +64,7 @@ function drawEnemy(e) {
   // armor = a thick outline
   // Permafrost (a slow that never ends) draws the freeze outline thicker (owner)
   const perma = e.slowT === Infinity;
-  ctx.strokeStyle = COL[e.slowT > 0 ? "cyan" : d.color]; ctx.lineWidth = (e.armor ? 6.5 : 3) + (perma ? 3 : 0); ctx.stroke();
-  dieFacets(e, size);
+  if (!solid) { ctx.strokeStyle = COL[e.slowT > 0 ? "cyan" : d.color]; ctx.lineWidth = (e.armor ? 6.5 : 3) + (perma ? 3 : 0); ctx.stroke(); dieFacets(e, size); }
   // shield = SEGMENTS (owner): one per charge, on rings of its own shape
   if (e.shield > 0 || e.shSegs) {
     e.shSegs = syncSegs(e.shSegs || [], Math.max(0, e.shield), d.sides);
