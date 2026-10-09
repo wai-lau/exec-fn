@@ -222,20 +222,20 @@ function warpEntities() {
     drawFx("shots", up, (x, y) => warpProject(x, y)); // beams straight between their ends, the rest flat at their spots
     drawCells(atCell); if (!G.towers.length && !ui.build) drawSlotArrow(atCell); // the slots too, flat
     if (ui.build && ui.hover) up(ui.hover.x, ui.hover.y, drawPlacement);
-    for (const e of G.enemies) up(e.x, e.y, () => drawEnemy(e, true), e.dead ? 0 : solidSize(e)); // tracers, shields and marks flat, at the die's centre height
+    for (const e of G.enemies) up(e.x, e.y, () => drawEnemy(e, true)); // tracers, shields and marks flat on the floor, through the die's centre
     for (const e of [...G.enemies].sort((a, b) => a.y - b.y)) warpSolid(e); // the bodies as real dice, the farthest first (aspira-solids.js)
     // the towers and the core STAND UP as hexagonal prisms (owner: "core taller than towers"), the farthest
     // first, each one's usual drawing on its raised top; over the enemies, which walk on the floor
     const solids = G.towers.map(t => {
       const c0 = CELLS[t.cell], x = t.x ?? c0.x, y = t.y ?? c0.y;
       return { x, y, h: WARP.prism.tower, col: COL[TOWERS[t.kind].color], pts: c0.pts.map(p => ({ x: x + (p.x - c0.x) * TOWER_K, y: y + (p.y - c0.y) * TOWER_K })),
-        top: () => ownColours(() => up(x, y, () => drawTower(t), WARP.prism.tower)) };
+        top: () => ownColours(() => up(x, y, () => drawTower(t), WARP.prism.tower / 2)) };
     });
     solids.push({ x: CX, y: CY, h: WARP.prism.core, col: COL.white, pts: Array.from({ length: 6 }, (_, i) => ({ x: CX + CORE_R * Math.cos(Math.PI / 6 + i * Math.PI / 3), y: CY + CORE_R * Math.sin(Math.PI / 6 + i * Math.PI / 3) })),
       // the core's SHIELDS (its life and level rings) lie on the FLOOR (owner: "core shields on plane level"): the whole
       // core drawn there first, its prism then stands in it; the top is the plain white hex and the credits
       floor: () => up(CX, CY, drawCore),
-      top: () => { up(CX, CY, () => { poly(CX, CY, CORE_R, 6, Math.PI / 6, false); ctx.fillStyle = COL.white; ctx.globalAlpha = 1; ctx.fill(); drawCredits(); }, WARP.prism.core); up(CX, CY, drawCoreHud, WARP.prism.core); } });
+      top: () => { up(CX, CY, () => { poly(CX, CY, CORE_R, 6, Math.PI / 6, false); ctx.fillStyle = COL.white; ctx.globalAlpha = 1; ctx.fill(); drawCredits(); }, WARP.prism.core / 2); up(CX, CY, drawCoreHud, WARP.prism.core / 2); } });
     for (const o of solids) if (o.floor) o.floor();
     for (const o of solids.sort((a, b) => warpProject(a.x, a.y).y - warpProject(b.x, b.y).y)) { warpPrism(o); o.top(); }
     // the floating texts alone still face the camera (at), so they stay readable
@@ -259,7 +259,8 @@ function warpEntities() {
 // one hexagonal PRISM's walls: its floor hex `pts` raised `h` world units, the walls farthest first, each
 // filled with the background and tinted by how squarely it faces the camera, its edges in the colour
 function warpPrism(o) {
-  const H = o.h * cam.k, n = o.pts.length, B = o.pts.map(p => warpProject(p.x, p.y, 0)), T = o.pts.map(p => warpProject(p.x, p.y, H));
+  // CENTRED on the floor (owner: "their center is on the plane, not the bottom"): half below it, half above
+  const H = o.h * cam.k / 2, n = o.pts.length, B = o.pts.map(p => warpProject(p.x, p.y, -H)), T = o.pts.map(p => warpProject(p.x, p.y, H));
   const walls = o.pts.map((p, i) => { const q = o.pts[(i + 1) % n], mx = (p.x + q.x) / 2 - o.x, my = (p.y + q.y) / 2 - o.y; return { i, j: (i + 1) % n, face: my / (Math.hypot(mx, my) || 1) }; });
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.lineJoin = "round"; ctx.lineWidth = 1.5 * cam.k;
   for (const w of walls.sort((a, b) => a.face - b.face)) { // +y faces the camera
