@@ -211,7 +211,13 @@ function warpProjectV(px, py, hAt) {
 // as if on a flat plane"): the usual draw calls on a 2D canvas over the bell, each under a transform
 // that puts its world point on the projected one at the perspective's scale
 // a background star's spot on the screen, its size by the perspective there (drawStars, aspira-lanes.js)
-const warpStar = (x, y) => { const P = warpProject(x, y, 0); return { x: P.x, y: P.y, k: cam.k * P.s }; };
+// cached per camera: the stars never move, and projecting all ~1100 every frame was most of their cost
+const starAt = { key: "", pts: [] };
+const warpStar = (x, y, i) => {
+  const key = [cam.k, cam.ox, cam.oy, warp.cv.width, warp.cv.height].join();
+  if (key !== starAt.key) { starAt.key = key; starAt.pts = []; }
+  return starAt.pts[i] ||= (P => ({ x: P.x, y: P.y, k: cam.k * P.s }))(warpProject(x, y, 0));
+};
 // a core shield piece IN FRONT of the core: the camera looks from +y
 const coreFront = p => p.a[1] + p.b[1] > 2 * CY;
 function warpEntities() {
@@ -222,6 +228,7 @@ function warpEntities() {
     warp.ent = c;
   }
   const c = warp.ent, main = ctx;
+  warp.frame = (warp.frame || 0) + 1; // per-frame caches (aspira-solids.js)
   const sc = warpScreen();
   if (c.width !== sc.w || c.height !== sc.h) { c.width = sc.w; c.height = sc.h; }
   ctx = c.getContext("2d");

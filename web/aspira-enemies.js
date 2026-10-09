@@ -29,7 +29,10 @@ function drawStarTrail(e, size) {
   // by a radial gradient from it, the rest by a straight one from the body to the tail's end (the fast ones were a
   // plain fill while a gradient each looked like a late-game frame cost, 2026-10-05)
   const col = COL[ENEMIES[e.type].color], star = e.type === "bonus";
-  const g = star ? ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, tail) : ctx.createLinearGradient(pts[0].x, pts[0].y, pts[n].x, pts[n].y);
+  // (a point off the lane is NaN: a gradient on it THROWS and took the whole 3D overlay's frame down with it - no tracer then)
+  const ends = star ? [e.x, e.y, tail] : [pts[0].x, pts[0].y, pts[n].x, pts[n].y];
+  if (!ends.every(Number.isFinite)) return;
+  const g = star ? ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, tail) : ctx.createLinearGradient(...ends);
   g.addColorStop(0, col); g.addColorStop(1, "transparent");
   ctx.beginPath(); ctx.moveTo(L[0].x, L[0].y);
   for (const p of L) ctx.lineTo(p.x, p.y);
