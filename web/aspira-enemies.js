@@ -14,11 +14,10 @@ const TRAIL = { bonus: 160, fast: 120, shield: 40, armor: 40, swarm: 24 }, TRAIL
 const BREACH_SPOKES = 24; // the most Breach spokes drawn on one enemy
 function drawStarTrail(e, size) {
   const tail = TRAIL[e.type], pts = [];
-  // STRAIGHT back along its axis of movement (owner, 2026-10-09: "they should be based on the axis of movement"; was
-  // the lane's curve behind it), from the body itself
-  const q = pathAt(e.pi, Math.max(0, e.s - 2), e.ang || 0), here = pathAt(e.pi, e.s, e.ang || 0), ul = Math.hypot(here.x - q.x, here.y - q.y);
-  const ux = ul ? (here.x - q.x) / ul : 1, uy = ul ? (here.y - q.y) / ul : 0;
-  for (let d = 0; d <= tail; d += TRAIL_STEP) pts.push({ x: e.x - ux * d, y: e.y - uy * d });
+  // CURVED: the lane behind it (owner, 2026-10-09: "they should be curved" - a straight tail along the heading was
+  // tried and dropped), shifted by how far it wanders off the lane (a swarmer's jitter) so the tail meets the body
+  const here = pathAt(e.pi, e.s, e.ang || 0), ox = e.x - here.x, oy = e.y - here.y;
+  for (let d = 0; d <= tail; d += TRAIL_STEP) { const q = pathAt(e.pi, Math.max(0, e.s - d), e.ang || 0); pts.push({ x: q.x + ox, y: q.y + oy }); }
   const n = pts.length - 1, L = [], R = [];
   for (let i = 0; i <= n; i++) {
     const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n, i + 1)], len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
@@ -71,7 +70,7 @@ function drawEnemy(e, solid) {
   if (e.shield > 0 || e.shSegs) {
     e.shSegs = syncSegs(e.shSegs || [], Math.max(0, e.shield), d.sides);
     ctx.lineWidth = 1.4;
-    drawSegs(e.x, e.y, e.shSegs, d.sides, e.rot, size, 2.5); // layers tight (owner: much thinner gap; was 5)
+    if (!solid) drawSegs(e.x, e.y, e.shSegs, d.sides, e.rot, size, 2.5); // (3D: walls round the die, aspira-walls.js) // layers tight (owner: much thinner gap; was 5)
   }
   ctx.globalAlpha = 1;
   if (e.charged || e.charge) { // ARC's Static charge: a border in ARC's colour just outside the outline (owner) - ONE PER CHARGE held (Capacitance, 2026-10-08)
