@@ -70,11 +70,17 @@ void main() {
   // up to the core (the spokes fade where they crowd it), half as strong over the head
   float gk = max(ring, spoke * smoothstep(20.0, 60.0, rr)) * grid.w * (0.5 + 0.5 * smoothstep(towers, towers + 30.0, rr)) * (1.0 - smoothstep(grid.z * 0.7, grid.z, rr));
   gk *= 1.0 - board * (1.0 - onBoard); // faint over the board itself: the lanes stay readable
-  vec3 col = texture2D(tex, uv).rgb * sh * board;
+  vec3 raw = texture2D(tex, uv).rgb;
+  // a BOSS SKY inverts the board (white ground, dark ink): back to the plain palette here, or its white reads as ink
+  // and the bell turns into a grey slab (owner, 2026-10-09)
+  vec3 dB = abs(raw - bgCol), dI = abs(raw - (1.0 - bgCol));
+  if (max(max(dI.r, dI.g), dI.b) < max(max(dB.r, dB.g), dB.b)) raw = 1.0 - raw;
+  vec3 col = raw * sh * board;
   vec3 ink = max(col - bgCol * sh * board, 0.0); // what is DRAWN on the board, over its background
   float lit = clamp(max(max(ink.r, ink.g), ink.b) * 3.0, 0.0, 1.0); // the background itself is see-through: seen from above, the wall stacks a hundred layers of it over the top
-  lit = max(lit, bgA * board); // the board's background TRANSLUCENT, not clear (owner): it dims what lies behind it
-  gl_FragColor = vec4(mix(col, gridCol * sh, gk), max(lit, gk)) * op; // premultiplied
+  float A = max(lit, bgA * board); // the board's background TRANSLUCENT, not clear (owner): it dims what lies behind it
+  vec3 c = col * lit + bgCol * sh * (A - lit); // premultiplied: the ink over a translucent fill of the plain background
+  gl_FragColor = vec4(mix(c, gridCol * sh, gk), max(A, gk)) * op;
 }`;
 
 function warpShader(gl, type, src) {
@@ -198,15 +204,12 @@ function warpEntities() {
     ctx.setTransform(k, 0, 0, k, P.x - x * k, P.y - y * k);
     ctx.save(); fn(); ctx.restore();
   };
-  // LYING FLAT, facing UP (owner: "render towers and enemies as if facing up, not toward the camera"):
-  // the sprite's own plane is the level one at its spot's height, foreshortened by the camera's lean -
-  // the transform is that plane's projection at the spot (one world unit along x and y)
+  // FACING UP (owner: "render towers and enemies as if facing up, not toward the camera"), and ONE SHAPE
+  // everywhere ("towers should not change shape based on distance from core"): the camera's lean squashes
+  // every sprite alike (cos tilt) and only its size follows the perspective - no per-spot skew
   const up = (x, y, fn) => {
-    // the frame is one world unit (cam.k px) along x and y IN THE VIEW, so the head's squeeze neither shrinks nor stretches a sprite
-    const p = warp.p, wx = (x - CX) * cam.k, wy = (y - CY) * cam.k, r = Math.hypot(wx, wy), m = r ? warpView(p, r) / r : p.hc;
-    const vx = wx * m, vy = wy * m, P = warpProjectV(vx, vy), X = warpProjectV(vx + cam.k, vy, P.h), Y = warpProjectV(vx, vy + cam.k, P.h);
-    const a = X.x - P.x, b = X.y - P.y, c2 = Y.x - P.x, d = Y.y - P.y;
-    ctx.setTransform(a, b, c2, d, P.x - a * x - c2 * y, P.y - b * x - d * y);
+    const P = warpProject(x, y), k = cam.k * P.s, ky = k * warp.p.c;
+    ctx.setTransform(k, 0, 0, ky, P.x - x * k, P.y - y * ky);
     ctx.save(); fn(); ctx.restore();
   };
   const atCell = (cell, fn) => up(cell.x, cell.y, fn);
