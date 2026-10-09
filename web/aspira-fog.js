@@ -7,6 +7,13 @@
 // Loaded before aspira-warp.js.
 let warpBand = null, warpFade = 1; // null: all of it; { lo, hi }: only lo <= z <= hi; warpFade: that slice's opacity
 const WARP_FADE_Z = 30, WARP_FADE_BANDS = 8;
+// the LANES (all the floor's light) lie over what is below the floor (owner: "lanes should partially occlude the towers"):
+// the board's picture laid over it in SCREEN mode at WARP_LANES_A - its black adds nothing, so the floor stays clear
+const WARP_LANES_A = 0.6;
+function warpLanesOver() {
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = "screen"; ctx.globalAlpha = WARP_LANES_A;
+  ctx.drawImage(warp.cv, 0, 0); ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = 1;
+}
 const zCut = (a, b, z) => { const t = (a.z - z) / (a.z - b.z); return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, z }; };
 // Sutherland-Hodgman against one bound: keep points on `keep`'s side of z
 function clipZ(pts, z, above) {
@@ -41,11 +48,13 @@ function warpLine(a, b) {
 // every slice's cut shows as a line
 function warpEdges(pts) { ctx.beginPath(); pts.forEach((p, i) => warpLine(p, pts[(i + 1) % pts.length])); }
 // draw(): every shape, once whole ABOVE the floor and once per fading slice below it
-function warpBands(draw) {
+// between(): drawn after the parts below the floor, before those above it
+function warpBands(draw, between) {
   for (let i = WARP_FADE_BANDS - 1; i >= 0; i--) {
     warpBand = { lo: -WARP_FADE_Z * (i + 1) / WARP_FADE_BANDS, hi: -WARP_FADE_Z * i / WARP_FADE_BANDS }; warpFade = 1 - (i + 0.5) / WARP_FADE_BANDS;
     draw(false);
   }
-  warpBand = { lo: 0, hi: Infinity }; warpFade = 1; draw(true);
+  warpBand = null; warpFade = 1; if (between) between();
+  warpBand = { lo: 0, hi: Infinity }; draw(true);
   warpBand = null;
 }
