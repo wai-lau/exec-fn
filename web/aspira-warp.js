@@ -2,14 +2,13 @@
 // high, 3D"; "curved spacetime ... reverse the dip, so it's a tower").
 // A VIEW, never a rule: the 2D canvas still draws the board exactly as on high,
 // only hidden (opacity 0), and this WebGL canvas over it lays that picture on a
-// BELL - a BLACK HOLE DIAGRAM turned upside down ("think typical black hole
-// diagrams"; "always a deep classic bell"), peaking at the core and never
-// changing: a BELL CURVE, height -WARP.depth x (1 - exp(-(r / L)^WARP.pow)), L =
-// R0 / WARP.flat - still a bell, with a gentler top (pow 3.5: "a little too
-// pointy" at 2, "reduce the curve near the top so the towers don't look super
-// far" at 3, too flat at 5) and level by the lanes' mouths (R0), so enemies come in on the
-// level floor and climb the wall to the core (owner: "when the bottom curvature
-// flattens that should be where the enemies spawn").
+// FUNNEL - a GRAVITY WELL flipped upside down (owner, 2026-10-09: a black hole diagram's funnel,
+// "flipped, towers like angels dancing on the top"): the towers and core stand on a level HEAD
+// (out to WARP_TOWERS), then the neck falls away, steep first and flattening to the floor at the
+// lanes' mouths (R0): height -WARP.depth x (1 - (1 - t)^WARP.pow), t = 0 at the head's rim, 1 at R0.
+// Enemies come in on the level floor and climb the spire to the core.
+// SEMI-TRANSPARENT (owner: "should not occlude"): no depth test, the whole surface at WARP.alpha,
+// and the board's own background is clear - only what is drawn on it shows, front and back.
 // The TOWERS (and their slots), the CORE and the ENEMIES are not stretched with it (owner: "use
 // positions based on the bell, but the enemies and towers are drawn separately,
 // as if on a flat plane"): each is drawn undistorted on a 2D canvas over the
@@ -28,7 +27,7 @@
 //          rings every `ring` world units and `spokes` radial lines on the bell past the towers, out to
 //          `far`, where the bell itself ends; over the board only `onBoard` as strong, and outside
 //          the board's circle half as many (owner: "fewer curvature lines outside the circle")
-const WARP = { tilt: 0.15, fov: 0.45, edge: [760, 840], depth: 9000, flat: 1.873, pow: 3.5, zoom: 2, anchor: 0.25, grid: { ring: 110, spokes: 24, far: 2400, a: 0.3, onBoard: 0.25 } }; // depth: a DEEP classic bell (owner), 5x taller (was 460), then 3x again (was 2300), then x2 (was 6900), then a more gradual slope (owner, was 13800)
+const WARP = { tilt: 0.6, fov: 0.45, edge: [760, 840], depth: 1800, pow: 3, zoom: 1.3, anchor: 0.15, alpha: 0.6, grid: { ring: 110, spokes: 24, far: 2400, a: 0.3, onBoard: 0.25 } }; // depth: a DEEP classic bell (owner), 5x taller (was 460), then 3x again (was 2300), then x2 (was 6900), then a more gradual slope (was 13800), then 1800 as the flipped funnel seen from the side (tilt 0.15 -> 0.6, zoom 2 -> 1.3, anchor 0.25 -> 0.15: straight down the needle it read flat)
 // the tower ring's outer edge, world units from the core: the plateau the towers stand on
 const WARP_TOWERS = Math.max(...CELLS.map(c => Math.hypot(c.x - CX, c.y - CY))) + CELL_S * 1.5;
 const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, p: null, ent: null };
@@ -36,11 +35,11 @@ const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, p: nu
 // the mesh is POLAR, in world units round the core: a = (radius, angle)
 const WARP_VS = `
 attribute vec2 a;
-uniform vec2 core, size; uniform float D, L, P, c, s, f, k, z, oy;
+uniform vec2 core, size; uniform float D, L, P, T, c, s, f, k, z, oy;
 varying vec2 uv; varying float sh, rr, th;
 void main() {
   float r = a.x * k; vec2 p = r * vec2(cos(a.y), sin(a.y));
-  float g = 1.0 - exp(-pow(r / L, P)), h = -D * g;
+  float g = 1.0 - pow(1.0 - clamp((r - T) / (L - T), 0.0, 1.0), P), h = -D * g;
   float qy = -c * p.y + s * h, qz = s * p.y + c * h, w = f - qz;
   vec2 sc = core + vec2(0.0, oy) + z * vec2(f * p.x, -f * qy) / w;
   uv = (core + p) / size; rr = a.x; th = a.y; sh = 1.0 - 0.45 * g;
@@ -49,7 +48,7 @@ void main() {
 const WARP_FS = `
 precision mediump float;
 uniform sampler2D tex; uniform vec2 edge; uniform vec3 gridCol; uniform vec4 grid; // grid: ring, spoke angle, far, alpha
-uniform float towers, onBoard;
+uniform float towers, onBoard, op; uniform vec3 bgCol; // op: the whole bell SEMI-TRANSPARENT, nothing occluded (owner)
 varying vec2 uv; varying float sh, rr, th;
 float line(float d, float wd) { return 1.0 - smoothstep(wd * 0.5, wd * 1.5, d); }
 void main() {
@@ -62,7 +61,9 @@ void main() {
   float gk = max(ring, spoke) * grid.w * smoothstep(towers, towers + 30.0, rr) * (1.0 - smoothstep(grid.z * 0.7, grid.z, rr));
   gk *= 1.0 - board * (1.0 - onBoard); // faint over the board itself: the lanes stay readable
   vec3 col = texture2D(tex, uv).rgb * sh * board;
-  gl_FragColor = vec4(mix(col, gridCol * sh, gk), max(board, gk));
+  vec3 ink = max(col - bgCol * sh * board, 0.0); // what is DRAWN on the board, over its background
+  float lit = clamp(max(max(ink.r, ink.g), ink.b) * 3.0, 0.0, 1.0); // the background itself is see-through: seen from above, the wall stacks a hundred layers of it over the top
+  gl_FragColor = vec4(mix(col, gridCol * sh, gk), max(lit, gk)) * op; // premultiplied
 }`;
 
 function warpShader(gl, type, src) {
@@ -109,16 +110,16 @@ function warpMesh() {
   warp.n = v.length / 2;
 }
 // the grid's colour, the chart's own grid swatch (COL.grid, "rgb(r, g, b)") as 0..1
-const warpGridRgb = () => (String(COL.grid || COL.green).match(/[\d.]+/g) || [0, 255, 0]).slice(0, 3).map(n => n / 255);
+const warpGridRgb = (key = "grid") => (String(COL[key] || COL.green).match(/[\d.]+/g) || [0, 255, 0]).slice(0, 3).map(n => n / 255);
 // this frame's bell, centred on the core's canvas spot
 function warpParams() {
   const f = cv.height / 2 / Math.tan(WARP.fov / 2), D = WARP.depth * cam.k, c = Math.cos(WARP.tilt), s = Math.sin(WARP.tilt);
   const oy = -WARP.anchor * WARP.zoom * f * s * D / (f + c * D); // the bell's foot sits this far below the tip on screen
-  return { core: [cam.ox + CX * cam.k, cam.oy + CY * cam.k], D, L: R0 / WARP.flat * cam.k, P: WARP.pow, c, s, f, k: cam.k, z: WARP.zoom, oy };
+  return { core: [cam.ox + CX * cam.k, cam.oy + CY * cam.k], D, L: R0 * cam.k, T: WARP_TOWERS * cam.k, P: WARP.pow, c, s, f, k: cam.k, z: WARP.zoom, oy };
 }
 // the spire's height (<= 0, canvas px) r px from the core - the vertex shader's twin
 function warpHeight(p, r) {
-  return -p.D * (1 - Math.exp(-Math.pow(r / p.L, p.P)));
+  return -p.D * (1 - Math.pow(1 - Math.min(1, Math.max(0, (r - p.T) / (p.L - p.T))), p.P));
 }
 // one frame: the 2D picture onto the bell (aspira-ui.js frame calls this after render)
 function warpDraw() {
@@ -129,17 +130,17 @@ function warpDraw() {
   const p = warp.p = warpParams(), pr = warp.prog;
   gl.viewport(0, 0, cv.width, cv.height);
   gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  gl.enable(gl.DEPTH_TEST); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+  gl.disable(gl.DEPTH_TEST); gl.enable(gl.BLEND); // no depth: the far side shows through the near (owner: "should not occlude") gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
   gl.useProgram(pr);
   gl.bindTexture(gl.TEXTURE_2D, warp.tex);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv);
   const u = n => gl.getUniformLocation(pr, n);
   gl.uniform2f(u("core"), p.core[0], p.core[1]); gl.uniform2f(u("size"), cv.width, cv.height);
-  for (const n of ["D", "L", "P", "c", "s", "f", "k", "z", "oy"]) gl.uniform1f(u(n), p[n]);
+  for (const n of ["D", "L", "P", "T", "c", "s", "f", "k", "z", "oy"]) gl.uniform1f(u(n), p[n]);
   gl.uniform2f(u("edge"), WARP.edge[0], WARP.edge[1]);
-  gl.uniform3fv(u("gridCol"), warpGridRgb());
+  gl.uniform3fv(u("gridCol"), warpGridRgb()); gl.uniform3fv(u("bgCol"), warpGridRgb("bg"));
   gl.uniform4f(u("grid"), WARP.grid.ring, Math.PI * 2 / WARP.grid.spokes, WARP.grid.far, WARP.grid.a);
-  gl.uniform1f(u("towers"), WARP_TOWERS); gl.uniform1f(u("onBoard"), WARP.grid.onBoard);
+  gl.uniform1f(u("towers"), WARP_TOWERS); gl.uniform1f(u("onBoard"), WARP.grid.onBoard); gl.uniform1f(u("op"), WARP.alpha);
   const loc = gl.getAttribLocation(pr, "a");
   gl.bindBuffer(gl.ARRAY_BUFFER, warp.buf);
   gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
