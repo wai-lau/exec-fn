@@ -59,7 +59,8 @@ async def aspira_page(request: Request):
     html = _tmpl("aspira.html").replace("__SPIRE_VERSION__", spire_version())
     # no nav bar (owner): the game takes the whole screen; a favicon button
     # top-left goes home to the landing page instead
-    return _render_page("aspira", html, full_height=True, guest=not is_full_auth, show_nav=False)
+    # no CRT stack either (owner, 2026-10-09: "just get rid of the crt effects for this game")
+    return _render_page("aspira", html, full_height=True, guest=not is_full_auth, show_nav=False, crt=False)
 
 
 @guest_protected.get("/aspira-sfx/{filename:path}")

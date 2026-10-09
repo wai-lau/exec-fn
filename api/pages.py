@@ -342,7 +342,7 @@ _FULL_HEIGHT_STYLE = "<style>body{display:block;height:100vh;overflow:hidden!imp
 
 
 def _render_page(active: str | None, content: str, full_height: bool = False, guest: bool = False,
-                 show_nav: bool = True) -> str:
+                 show_nav: bool = True, crt: bool = True) -> str:
     no_form, bare = _index_pages()
     base = bare if active else no_form
     preconnect = _JSDELIVR_PRECONNECT if active in _JSDELIVR_PAGES else ""
@@ -357,10 +357,11 @@ def _render_page(active: str | None, content: str, full_height: bool = False, gu
     # inner scrollers (body overflow:hidden) and don't get the wrapper.
     body = content if full_height else '<div class="page-scroll">' + content + "</div>"
     # cyberpunk ambient fx on every page (nightfall composes separately and is
-    # excluded; landing + graph inject the same _CRT_FX)
+    # excluded; landing + graph inject the same _CRT_FX) - except crt=False
+    # (/spire, owner 2026-10-09: "just get rid of the crt effects for this game")
     return (base
         .replace("</head>", head_inject + "</head>", 1)
-        .replace("</body>", _CRT_FX + body + nav + "</body>", 1))
+        .replace("</body>", (_CRT_FX if crt else "") + body + nav + "</body>", 1))
 
 
 _tmpl_cache: dict[str, tuple[float, str]] = {}

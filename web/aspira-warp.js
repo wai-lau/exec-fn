@@ -39,7 +39,7 @@ const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, p: nu
 // the mesh is POLAR, in world units round the core: a = (radius, angle)
 const WARP_VS = `
 attribute vec2 a;
-uniform vec2 core, size; uniform vec3 texCam; uniform float D, L, P, T, c, s, f, k, z, oy, hc, e; // texCam: the picture's own core (px) and scale
+uniform vec2 core, size, texSize; uniform vec3 texCam; uniform float D, L, P, T, c, s, f, k, z, oy, hc, e; // texCam: the picture's own core (px) and scale
 varying vec2 uv; varying float sh, rr, th;
 void main() {
   float r = a.x * k; vec2 dir = vec2(cos(a.y), sin(a.y)), wp = r * dir;
@@ -49,7 +49,7 @@ void main() {
   float g = 1.0 - pow(1.0 - clamp(sm, 0.0, 1.0), P), h = -D * g;
   float qy = -c * p.y + s * h, qz = s * p.y + c * h, w = f - qz;
   vec2 sc = core + vec2(0.0, oy) + z * vec2(f * p.x, -f * qy) / w;
-  uv = (texCam.xy + a.x * texCam.z * dir) / size; rr = a.x; th = a.y; sh = 1.0 - 0.45 * g;
+  uv = (texCam.xy + a.x * texCam.z * dir) / texSize; rr = a.x; th = a.y; sh = 1.0 - 0.45 * g;
   gl_Position = vec4((sc.x / size.x * 2.0 - 1.0) * w, (1.0 - sc.y / size.y * 2.0) * w, (w / (80.0 * size.y) * 2.0 - 1.0) * w, w);
 }`;
 const WARP_FS = `
@@ -136,7 +136,7 @@ function warpMesh() {
 const warpGridRgb = (key = "grid") => (String(COL[key] || COL.green).match(/[\d.]+/g) || [0, 255, 0]).slice(0, 3).map(n => n / 255);
 // this frame's bell, centred on the core's canvas spot
 function warpParams() {
-  const f = cv.height / 2 / Math.tan(WARP.fov / 2), D = WARP.depth * cam.k, c = Math.cos(WARP.tilt), s = Math.sin(WARP.tilt);
+  const f = warpScreen().h / 2 / Math.tan(WARP.fov / 2), D = WARP.depth * cam.k, c = Math.cos(WARP.tilt), s = Math.sin(WARP.tilt);
   const oy = -WARP.anchor * WARP.zoom * f * s * D / (f + c * D); // the bell's foot sits this far below the tip on screen
   return { core: [cam.ox + CX * cam.k, cam.oy + CY * cam.k], D, L: R0 * cam.k, T: WARP_TOWERS * cam.k, hc: WARP.head, e: WARP.shoulder, P: WARP.pow, c, s, f, k: cam.k, z: WARP.zoom, oy };
 }
@@ -155,27 +155,34 @@ function warpUnview(p, v) { return v < p.hc * p.T ? v / p.hc : v < p.L ? p.T + (
 // the PICTURE for the 3D view (owner, 2026-10-09: "render randomly cuts off at the top"): leaned back, the view shows
 // far more of the board than the 2D screen held, so the frame is drawn for the texture with a camera of its own that
 // fits the WHOLE board (WARP_TEX_R world units round the core) in the canvas; the view keeps the player's camera
-const WARP_TEX_R = 860;
+const WARP_TEX_R = 860, WARP_TEX_MAX = 3072;
+// the VIEW's size, device px: the 2D canvas's own size is the picture's in 3D
+const warpScreen = () => { const r = cv.getBoundingClientRect(), d = canvasDpr(); return { w: Math.round(r.width * d), h: Math.round(r.height * d) }; };
 function warpRender() {
-  const view = { ...cam }, k = Math.min(cv.width, cv.height) / (2 * WARP_TEX_R);
-  Object.assign(cam, { k, ox: cv.width / 2 - CX * k, oy: cv.height / 2 - CY * k });
+  // SHARP (owner: "all these are so blurry, make them sharp"): the picture is a SQUARE as fine as the view's own scale
+  // (capped at WARP_TEX_MAX px), not the screen-sized canvas squeezed to fit the board - that was ~3x coarser than the view
+  const S = Math.min(WARP_TEX_MAX, Math.ceil(2 * WARP_TEX_R * cam.k));
+  if (cv.width !== S || cv.height !== S) { cv.width = S; cv.height = S; } // (resize() sets it back for 2D)
+  const view = { ...cam }, k = S / (2 * WARP_TEX_R);
+  Object.assign(cam, { k, ox: S / 2 - CX * k, oy: S / 2 - CY * k });
   try { render(); } finally { warp.texCam = { ...cam }; Object.assign(cam, view); }
 }
 // one frame: the 2D picture onto the bell (aspira-ui.js frame calls this after render)
 function warpDraw() {
   const gl = warpInit();
   if (!gl) return;
-  if (warp.cv.width !== cv.width || warp.cv.height !== cv.height) { warp.cv.width = cv.width; warp.cv.height = cv.height; }
+  const sc = warpScreen();
+  if (warp.cv.width !== sc.w || warp.cv.height !== sc.h) { warp.cv.width = sc.w; warp.cv.height = sc.h; }
   if (!warp.n) warpMesh();
   const p = warp.p = warpParams(), pr = warp.prog;
-  gl.viewport(0, 0, cv.width, cv.height);
+  gl.viewport(0, 0, sc.w, sc.h);
   gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.disable(gl.DEPTH_TEST); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); // no depth: the far side shows through the near (owner: "should not occlude")
   gl.useProgram(pr);
   gl.bindTexture(gl.TEXTURE_2D, warp.tex);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv);
   const u = n => gl.getUniformLocation(pr, n);
-  gl.uniform2f(u("core"), p.core[0], p.core[1]); gl.uniform2f(u("size"), cv.width, cv.height);
+  gl.uniform2f(u("core"), p.core[0], p.core[1]); gl.uniform2f(u("size"), sc.w, sc.h); gl.uniform2f(u("texSize"), cv.width, cv.height);
   const tc = warp.texCam || cam; gl.uniform3f(u("texCam"), tc.ox + CX * tc.k, tc.oy + CY * tc.k, tc.k);
   for (const n of ["D", "L", "P", "T", "hc", "e", "c", "s", "f", "k", "z", "oy"]) gl.uniform1f(u(n), p[n]);
   gl.uniform2f(u("edge"), WARP.edge[0], WARP.edge[1]);
@@ -211,7 +218,8 @@ function warpEntities() {
     warp.ent = c;
   }
   const c = warp.ent, main = ctx;
-  if (c.width !== cv.width || c.height !== cv.height) { c.width = cv.width; c.height = cv.height; }
+  const sc = warpScreen();
+  if (c.width !== sc.w || c.height !== sc.h) { c.width = sc.w; c.height = sc.h; }
   ctx = c.getContext("2d");
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, c.width, c.height);
   // FACING UP (owner: "render towers and enemies as if facing up, not toward the camera"), and ONE SHAPE
@@ -281,8 +289,12 @@ function warpEntities() {
     all();
     if (bossInv.phase !== "off" && (bossInv.full || bossInv.r > 1)) {
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = "difference"; ctx.fillStyle = COL.white; ctx.beginPath();
-      if (bossInv.full) ctx.rect(0, 0, c.width, c.height);
-      else for (let i = 0; i < 64; i++) { const a = i * Math.PI / 32, Q = warpProject(bossInv.x + Math.cos(a) * bossInv.r, bossInv.y + Math.sin(a) * bossInv.r, 0); if (i) ctx.lineTo(Q.x, Q.y); else ctx.moveTo(Q.x, Q.y); }
+      // the circle on the floor; a point of it BEHIND the camera (a big circle, spreading or collapsing) would make a
+      // garbage polygon that flips the colours frame to frame (owner: "colors rapidly switch as the boss dies") - such a
+      // circle covers the whole view, so the whole view is inverted
+      const ring = bossInv.full ? null : Array.from({ length: 64 }, (_, i) => { const a = i * Math.PI / 32; return warpProject(bossInv.x + Math.cos(a) * bossInv.r, bossInv.y + Math.sin(a) * bossInv.r, 0); });
+      if (!ring || ring.some(Q => !(Q.s > 0) || !isFinite(Q.x) || !isFinite(Q.y))) ctx.rect(0, 0, c.width, c.height);
+      else ring.forEach((Q, i) => (i ? ctx.lineTo(Q.x, Q.y) : ctx.moveTo(Q.x, Q.y)));
       ctx.fill(); ctx.globalCompositeOperation = "source-over";
     }
   } finally { ctx = main; }
