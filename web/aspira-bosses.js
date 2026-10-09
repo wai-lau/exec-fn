@@ -278,3 +278,30 @@ function drawBossBar() {
   ctx.globalAlpha = 1;
   if (half > 0) { ctx.beginPath(); ctx.moveTo(CX - half, by); ctx.lineTo(CX + half, by); ctx.stroke(); }
 }
+
+// THE SKY'S FLIP (owner, 2026-10-09: "make inversion animation way less laggy, need like 10x improvement"): the frame is
+// drawn ONCE and the sky's circle (the whole canvas once full, or at once on low quality) turned over with a single
+// `difference` fill of white - the same colours the inverted palette gave (inverting a blend = blending the inverted
+// colours), where the old way drew the whole scene twice while the sky spread and kept a second set of lane layers
+const skyOn = () => bossInv.phase !== "off" && (bossInv.full || bossInv.r > 1);
+const skyAll = () => bossInv.full || lowQ; // low quality: the sky snaps
+// ...but NOT in 3D (the shader would only turn the picture back; warpEntities flips the view on top), and not once full
+// in 2D: the canvas then carries a CSS invert (#asp.asp-sky, aspira.css) - a full-canvas `difference` fill made the
+// GPU copy the whole canvas to read it, ~5 ms a frame on the 3D picture (measured 2026-10-09)
+const skyCss = () => skyOn() && skyAll() && !q3d();
+function skyFlip([sx, sy]) {
+  if (!skyOn() || q3d() || skyAll()) return;
+  ctx.save(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = "difference"; ctx.fillStyle = COL.white; ctx.shadowBlur = 0;
+  ctx.setTransform(cam.k, 0, 0, cam.k, cam.ox + sx, cam.oy + sy); ctx.beginPath(); ctx.arc(bossInv.x, bossInv.y, bossInv.r, 0, 6.283); ctx.fill();
+  ctx.restore();
+}
+// the TOWERS keep their own colours on the sky (owner): inside the circle they are drawn in the INVERTED palette (with
+// ownColours disarmed), so the flip turns them back; outside it, as they are
+function skyKeep(fn) {
+  if (!skyOn()) { ownColours(fn); return; }
+  const flipped = () => withPalette(() => { inverted = false; try { fn(); } finally { inverted = true; } });
+  if (skyAll()) { flipped(); return; }
+  const circle = () => { ctx.beginPath(); ctx.arc(bossInv.x, bossInv.y, bossInv.r, 0, 6.283); };
+  ctx.save(); circle(); ctx.rect(CX - 4000, CY - 4000, 8000, 8000); ctx.clip("evenodd"); fn(); ctx.restore();
+  ctx.save(); circle(); ctx.clip(); flipped(); ctx.restore();
+}

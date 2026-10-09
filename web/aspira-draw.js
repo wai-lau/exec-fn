@@ -440,12 +440,10 @@ function shakeOffset() {
 // normal frame is drawn and then the inverted one again, CLIPPED to the circle
 // - two plain draws, nothing composited. Towers and their tracks keep their
 // own colours either way (ownColours).
-function render() {
+function render() { // round 4 (2026-10-09, "way less laggy, 10x"): ONE draw, then the sky's circle flipped (skyFlip, aspira-bosses.js)
   bossSkyStep(); // the sky's state: phase, radius, full (aspira-bosses.js)
-  const shake = shakeOffset(), sky = bossInv.phase !== "off";
-  if (sky && (bossInv.full || (lowQ && bossInv.r > 1))) { withPalette(() => drawScene(shake, 0)); return; } // low quality: the sky snaps, one draw
-  drawScene(shake, 0);
-  if (sky && bossInv.r > 1) withPalette(() => drawScene(shake, bossInv.r));
+  const shake = shakeOffset();
+  drawScene(shake, 0); skyFlip(shake);
 }
 function drawScene([sx, sy], clipR) {
   ctx.setTransform(cam.k, 0, 0, cam.k, cam.ox + sx, cam.oy + sy);
@@ -466,7 +464,7 @@ function drawScene([sx, sy], clipR) {
   drawFx("shots"); // on the board in 3D too (owner: "beams and tower effects can appear on the plane")
   drawCoreFx(); if (q3d() && G.core) { drawTimeStop(G.core); drawRelayHalos(false); } // the core's struts and beams, under the towers (aspira-core.js); 3D: Temporal Drive's field ON the floor
   // in 3D the towers, the core and the enemies are drawn FLAT over the bell instead (warpEntities, aspira-warp.js)
-  ownColours(() => { drawSpokes(); if (!q3d()) for (const t of G.towers) drawTower(t); drawRelayArm(); }); // towers keep their colours on a boss sky (owner); an armed Relay rings them (aspira-powers.js)
+  skyKeep(() => { drawSpokes(); if (!q3d()) for (const t of G.towers) drawTower(t); drawRelayArm(); }); // towers keep their colours on a boss sky (owner); an armed Relay rings them (aspira-powers.js)
   drawSlotFlash(); drawCoins(); // a corner slot that just opened (aspira-waves.js); the credits flying home (aspira-floats.js)
   if (!q3d()) {
     if (ui.build && ui.hover) drawPlacement();

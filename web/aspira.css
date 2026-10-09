@@ -695,6 +695,7 @@
 #asp .asp-quality b { min-width: 2.5em; font-weight: var(--fw-normal); }
 /* 3D (aspira-warp.js): the 2D canvas still draws and takes every touch, unseen; the spire is drawn over it and lets touches through */
 #asp.asp-3d #asp-cv { opacity: 0; }
+#asp.asp-sky #asp-cv { filter: invert(1); } /* the boss sky full in 2D: the canvas turned over whole on the compositor (skyFlip, aspira-bosses.js) */
 #asp-gl { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; background: hsl(var(--bg-hsl)); }
 #asp-ent { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; } /* 3D: the towers, core and enemies, flat over the bell */
 #asp:not(.asp-3d) #asp-gl, #asp:not(.asp-3d) #asp-ent { display: none; }

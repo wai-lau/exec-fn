@@ -401,7 +401,9 @@ function step(dt) {
   // the game is WON when the 10th boss (wave WIN_WAVE) falls (owner)
   // (no wave after it: the field plays out, then the clear wins)
   if (G.wave >= WIN_WAVE) { if (waveClear()) { winGame(); return; } }
-  else if (!stopped && ((G.nextIn <= 0 && !bossNext()) || waveClear())) { sendWave(); return; } // a BOSS wave never comes on the timer, only on a clear field (owner, 2026-10-09: "no time for boss waves")
+  // ...and not while the boss's inverted sky is still CLOSING (owner, 2026-10-09: "wait until boss inversion circle closes
+  // before sending in next wave"; bossInv runs in the UI's render, so the simulator never waits)
+  else if (!stopped && bossInv.phase !== "out" && ((G.nextIn <= 0 && !bossNext()) || waveClear())) { sendWave(); return; } // a BOSS wave never comes on the timer, only on a clear field (owner, 2026-10-09: "no time for boss waves")
   if (!stopped) stepSpawns(dt);
   stepEnemies(dt);
   if (G.over) return;
