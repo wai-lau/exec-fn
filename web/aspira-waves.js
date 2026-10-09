@@ -46,7 +46,7 @@ const TYPE_COUNT_MUL = { swarm: 0.26 /* 2026-10-08 owner: half as many, double h
 // SOL-heavy build must find a swarm answer; x2 past 60 cost ARC+SOL+FRZ teams 20 waves
 const SWARM_MID_MUL = 2, SWARM_MID = [11, 60], SWARM_LATE_MUL = 1.5;
 const swarmMul = n => (n < SWARM_MID[0] ? 1 : n <= SWARM_MID[1] ? SWARM_MID_MUL : SWARM_LATE_MUL);
-const WAVE_COUNT_MUL = {};
+const WAVE_COUNT_MUL = { 1: 2 }; // wave 1 DOUBLED (owner, 2026-10-09)
 function wavePlan(n, prev) {
   // every STAR_EVERY-th wave is the boss, ALONE (owner, 2026-10-02)
   if (n % STAR_EVERY === 0) return { type: "bonus", count: bossCount(n), split: bossSplit(n), star: true }; // the Lovers and Death come as two, the Devil as six (aspira-bosses.js)

@@ -33,9 +33,12 @@ function entryS(pi) {
 // gentler late ramp (owner, 2026-10-02): HP x1.10 a wave (was 1.15, which
 // quadrupled every 10 waves and walled every build by ~70), armor with the
 // curve's 0.4 power (was 0.5); shields keep the old 1.15 curve (owner)
-const HP_GROWTH = 1.10, ARMOR_EXP = 0.4, SHIELD_EXP = 0.335;
+// x1.13 a wave through wave 20 (owner, 2026-10-09: "1.13 1-20 good, then 1.11"; was 1.10) - every wave
+// from 20 on x1.67 the 2026-10-08 build. Sim (e13): random players 0 / 100 won, death p10 35 p50 60;
+// the curve's scripted players 44 -> 29 of 80 (SOL-SOL openings first leak on wave 4)
+const HP_GROWTH = 1.13, ARMOR_EXP = 0.4, SHIELD_EXP = 0.335;
 // HARDER AFTER WAVE 20 (owner, 2026-10-08: "make the difficulty ramp harder after wave 20"): x HP_LATE a wave
-// past HP_KNEE (x1.10 before). Sim on the 2026-10-08 build: random players won 11% -> 5%, the curve's
+// past HP_KNEE (HP_GROWTH before). Sim on the 2026-10-08 build: random players won 11% -> 5%, the curve's
 // scripted players 61 -> 48 of 80 (x1.12 cut them to 30 / 80)
 const HP_LATE = 1.11, HP_KNEE = 20;
 const hpPow = n => Math.pow(HP_GROWTH, Math.min(n, HP_KNEE) - 1) * Math.pow(HP_LATE, Math.max(0, n - HP_KNEE));
