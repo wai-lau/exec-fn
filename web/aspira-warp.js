@@ -214,11 +214,6 @@ function warpEntities() {
   if (c.width !== cv.width || c.height !== cv.height) { c.width = cv.width; c.height = cv.height; }
   ctx = c.getContext("2d");
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, c.width, c.height);
-  const at = (x, y, fn) => {
-    const P = warpProject(x, y), k = cam.k * P.s;
-    ctx.setTransform(k, 0, 0, k, P.x - x * k, P.y - y * k);
-    ctx.save(); fn(); ctx.restore();
-  };
   // FACING UP (owner: "render towers and enemies as if facing up, not toward the camera"), and ONE SHAPE
   // everywhere ("towers should not change shape based on distance from core"): the camera's lean squashes
   // every sprite alike (cos tilt) and only its size follows the perspective - no per-spot skew
@@ -232,7 +227,6 @@ function warpEntities() {
   };
   const atCell = (cell, fn) => up(cell.x, cell.y, fn);
   const all = () => {
-    drawFx("dmg", at); // damage numbers flat too (owner), under everything as in 2D
     // the slots: each one's drawing caught here, drawn on the top of its own DOTTED prism below (owner: "empty tower slots
     // should have prisms too, just use dotted lines")
     const cellDraw = new Map(); drawCells((c, fn) => cellDraw.set(c, fn));
@@ -271,8 +265,13 @@ function warpEntities() {
     warpHalf = null; ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = WARP_FOG; ctx.drawImage(warp.cv, 0, 0); ctx.globalAlpha = 1;
     for (const e of G.enemies) up(e.x, e.y, () => drawEnemy(e, true)); // tracers, shields and marks flat on the floor, through the die's centre
     warpHalf = "above"; drawDice(); drawSolids(true); warpHalf = null;
-    // the floating texts alone still face the camera (at), so they stay readable
-    drawFx("text", at);
+    // every POP-UP text over all of it (owner: "make sure all pop up text, like interest, is above the rendering"),
+    // facing the camera (at) so it stays readable: damage numbers, the floating texts, the banner and the boss's title
+    // and with NO perspective (owner: "no perspective effects on that"): at its spot, the board's plain scale
+    const pop = (x, y, fn) => { const P = warpProject(x, y), k = cam.k; ctx.setTransform(k, 0, 0, k, P.x - x * k, P.y - y * k); ctx.save(); fn(); ctx.restore(); };
+    drawFx("dmg", pop); drawFx("text", pop);
+    if (bannerT > 0) pop(CX, 70, () => { ctx.globalAlpha = Math.min(1, bannerT); text(bannerText, CX, 70, 30, bannerCol, true); ctx.globalAlpha = 1; });
+    pop(CX, CY, drawBossTitle);
   };
   // the BOSS SKY's inversion is the TOP LAYER (owner: "color inversion is broken, have it as the top layer"): this canvas
   // carries the bell's picture under everything it draws, and the sky's circle - projected onto the floor, the whole
