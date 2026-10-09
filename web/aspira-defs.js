@@ -287,7 +287,9 @@ const MODES = [["fresh", "Fresh"], ["biggest", "Biggest"], ["close", "Near"]];
 // shield = hits absorbed (any size) before the
 // enemy takes damage; armor = flat damage removed from every hit (floor 10%).
 // Both scale with the wave number in spawnEnemy.
-// SHAPE SHOWS SPEED (owner): triangle = fastest, more sides = slower, and the
+// DICE (owner, 2026-10-09: "fast -> d4, swarm -> d6, armor -> d8, shield -> d10, boss -> d20"): each enemy is its die
+// seen from above - the outline here, the facet lines in dieFacets (aspira-enemies.js).
+// (was) SHAPE SHOWS SPEED (owner): triangle = fastest, more sides = slower, and the
 // hexagon is reserved for the towers (bosses were removed). Swarms read by size + count;
 // shield shows as concentric outlines, armor as a thick outline (drawEnemy).
 // speeds (owner, 2026-10-02): fast doubled to 270, then eased to 220; shield and armor halved to
@@ -295,17 +297,17 @@ const MODES = [["fresh", "Fresh"], ["biggest", "Biggest"], ["close", "Near"]];
 // every type's speed (x ENEMY_SPEED 1.5 = 114 units/s): fast's lane at exactly 1.5 turns under fire for its 9.3 s
 const ENEMY_BASE_SPEED = 76;
 const ENEMIES = {
-  fast:   { sides: 3, hp: 0.87, speed: ENEMY_BASE_SPEED * 1.5, /* 2026-10-08 (owner): the one exception to ONE SPEED - fast is 1.5x, its HP x2/3 to match the 2/3 time under fire (6.2 s; was 1.3 HP at the shared speed, 135 before that) */ /* 2026-10-08 (owner): just a bit faster than swarm (125), with a bit more HP (was 1.0 / 150) - SOL's slow heavy shot catches them.  2026-10-07: 187 -> 150 with x2 bodies (TYPE_COUNT_MUL): the top late leaker; still faster than swarm (125). 2026-10-06: 220 -> 187 */ bounty: 0.8, size: 12, color: "green" }, // owner 2026-10-02: hp 0.6 -> 1.0; green (was orange)
+  fast:   { sides: 3 /* d4 */, hp: 0.87, speed: ENEMY_BASE_SPEED * 1.5, /* 2026-10-08 (owner): the one exception to ONE SPEED - fast is 1.5x, its HP x2/3 to match the 2/3 time under fire (6.2 s; was 1.3 HP at the shared speed, 135 before that) */ /* 2026-10-08 (owner): just a bit faster than swarm (125), with a bit more HP (was 1.0 / 150) - SOL's slow heavy shot catches them.  2026-10-07: 187 -> 150 with x2 bodies (TYPE_COUNT_MUL): the top late leaker; still faster than swarm (125). 2026-10-06: 220 -> 187 */ bounty: 0.8, size: 12, color: "green" }, // owner 2026-10-02: hp 0.6 -> 1.0; green (was orange)
   // swarms: twice as many again and faster (owner, 2026-10-02: 95 -> 125), the
   // bounty halved so a swarm wave pays what it did
-  swarm:  { sides: 4, hp: 0.14, speed: ENEMY_BASE_SPEED, /* was 125 */ bounty: 0.18, size: 6, color: "white" },
-  shield: { sides: 5, hp: 0.6,  speed: ENEMY_BASE_SPEED, /* was 37.5 */ bounty: 1.6, size: 13, color: "cyan", shield: 8 }, // owner 2026-10-02: less HP (0.9), more shield (5)
-  armor:  { sides: 7, hp: 1.0,  speed: ENEMY_BASE_SPEED, /* was 30 */ bounty: 2,   size: 15, color: "pink", armor: 12 }, // 2026-10-08: halved with all damage / HP (was 24) // owner: 6 -> 15; 2026-10-02 less HP (1.6), more armor (15)
+  swarm:  { sides: 6 /* d6 (was 4) */, hp: 0.14, speed: ENEMY_BASE_SPEED, /* was 125 */ bounty: 0.18, size: 6, color: "white" },
+  shield: { sides: 5, pointy: 0.78 /* d10: ten corners, five of them a little in (was a plain pentagon) */, hp: 0.6,  speed: ENEMY_BASE_SPEED, /* was 37.5 */ bounty: 1.6, size: 13, color: "cyan", shield: 8 }, // owner 2026-10-02: less HP (0.9), more shield (5)
+  armor:  { sides: 4 /* d8 (was 7) */, hp: 1.0,  speed: ENEMY_BASE_SPEED, /* was 30 */ bounty: 2,   size: 15, color: "pink", armor: 12 }, // 2026-10-08: halved with all damage / HP (was 24) // owner: 6 -> 15; 2026-10-02 less HP (1.6), more armor (15)
   // the rare BOSS (owner, 2026-10-02): every 10th wave, ALONE; an octagon,
   // x5 HP, x2 size, half speed (100 -> 50), and letting it through costs 10 lives. `star` still marks
   // it as the bonus (lane, tracer, drop); `pointy` would draw a star shape.
   // cyan, so it reads RED on the inverted sky it brings (owner)
-  bonus: { sides: 8, hp: 3.5, speed: ENEMY_BASE_SPEED, /* was 50 */ bounty: 3,   size: 28, color: "cyan", star: true, leak: 10 }, // owner 2026-10-02: yellow = Marigold (was cyan)
+  bonus: { sides: 10 /* d20 (was 8) */, hp: 3.5, speed: ENEMY_BASE_SPEED, /* was 50 */ bounty: 3,   size: 28, color: "cyan", star: true, leak: 10 }, // owner 2026-10-02: yellow = Marigold (was cyan)
 };
 
 const POWERS = [

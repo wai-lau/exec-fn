@@ -49,7 +49,7 @@ function poly(x, y, r, n, rot, star) {
   ctx.beginPath();
   const pts = star ? n * 2 : n;
   for (let i = 0; i < pts; i++) {
-    const a = rot + i * Math.PI * 2 / pts, rr = star && i % 2 ? r * 0.45 : r;
+    const a = rot + i * Math.PI * 2 / pts, rr = star && i % 2 ? r * (star === true ? 0.45 : star) : r; // star: true, or the inner corners' share
     const px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr;
     if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py);
   }
