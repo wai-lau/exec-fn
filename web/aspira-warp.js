@@ -6,14 +6,14 @@
 // don't rise"), then past the tower ring the ground falls away like a BLACK
 // HOLE DIAGRAM turned upside down ("think typical black hole diagrams"): a
 // near-vertical drop just outside the ring that flattens toward the rim, depth
-// WARP.depth x x / (x + WARP.fall), x the distance past the ring (softened over
-// WARP.knee so the lip is rounded). The bell never changes ("I don't want the
+// WARP.depth x x / (x + WARP.fall), x the distance past the ring (eased in over
+// WARP.knee so the lip is rounded, and exactly level inside the ring). The bell never changes ("I don't want the
 // bell shape to change"). Ranges, hits and timing stay 2D. Taps map back
 // through the bell (unwarp), so every gesture lands on the 2D spot drawn under
 // the finger. Loads after aspira-draw.js and aspira-camera.js, before aspira-ui.js.
 //   tilt   the board leans back this far (radians; owner: "more top down", was 0.62)
 //   edge   the board fades between these radii (world units from the core)
-const WARP = { tilt: 0.35, fov: 0.87, edge: [760, 840], depth: 460, fall: 110, knee: 18 }; // depth: always a DEEP classic bell (owner)
+const WARP = { tilt: 0.35, fov: 0.87, edge: [760, 840], depth: 2300, fall: 110, knee: 18 }; // depth: always a DEEP classic bell (owner), then 5x taller (was 460)
 // the tower ring's outer edge, world units from the core: the plateau the towers stand on
 const WARP_TOWERS = Math.max(...CELLS.map(c => Math.hypot(c.x - CX, c.y - CY))) + CELL_S * 1.5;
 const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, size: "", p: null };
@@ -24,7 +24,7 @@ uniform vec2 core, size; uniform float D, L, r0, kw, c, s, f, k;
 varying vec2 uv; varying float sh, rr;
 void main() {
   vec2 p = a - core; float r = length(p);
-  float u = (r - r0) / kw, x = kw * (u > 20.0 ? u : log(1.0 + exp(u))), g = x / (x + L), h = -D * g;
+  float e0 = max(0.0, r - r0), x = e0 * e0 / (e0 + kw), g = x / (x + L), h = -D * g;
   float qy = -c * p.y + s * h, qz = s * p.y + c * h, w = f - qz;
   vec2 sc = core + vec2(f * p.x, -f * qy) / w;
   uv = a / size; rr = r / k; sh = 1.0 - 0.45 * g;
@@ -83,7 +83,7 @@ function warpParams() {
 }
 // the spire's height (<= 0, canvas px) r px from the core - the vertex shader's twin
 function warpHeight(p, r) {
-  const u = (r - p.r0) / p.kw, x = p.kw * (u > 20 ? u : Math.log1p(Math.exp(u)));
+  const e0 = Math.max(0, r - p.r0), x = e0 * e0 / (e0 + p.kw);
   return -p.D * x / (x + p.L);
 }
 // one frame: the 2D picture onto the bell (aspira-ui.js frame calls this after render)
@@ -118,7 +118,7 @@ function unwarp(sx, sy) {
     const qx = t * dx, qy = t * dy, qz = p.f - t, py = p.s * qz - p.c * qy, pz = p.s * qy + p.c * qz;
     return { x: qx, y: py, g: pz - warpHeight(p, Math.hypot(qx, py)) };
   };
-  const end = p.f * 4, steps = 200;
+  const end = p.f * 12, steps = 600;
   let lo = 0, prev = at(0);
   for (let i = 1; i <= steps; i++) {
     const t = end * i / steps, cur = at(t);
