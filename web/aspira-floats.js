@@ -85,7 +85,10 @@ function stepCoins(dt) {
     const dx = CX - c.x, dy = CY - c.y, d = Math.hypot(dx, dy), step = (COIN_V0 + COIN_ACC * c.t) * dt;
     if (d <= CORE_R || step >= d) {
       c.done = true; G.money += c.b;
-      float(CX, CY - 30, "+" + (c.b < 10 ? +c.b.toFixed(1) : Math.round(c.b)) + "c", "orange", 18, 2.0); // small (owner); credits read "Nc"
+      // SMALLER and from ABOVE the core, so it never hides it (owner, 2026-10-09): in 3D above its raised top too - a height
+      // h stands h x tan(tilt) floor units up the screen
+      const lift = typeof q3d === "function" && q3d() && warp.lightZ ? warp.lightZ * Math.tan(WARP.tilt) : 0;
+      float(CX, CY - CORE_R - 22 - lift, "+" + (c.b < 10 ? +c.b.toFixed(1) : Math.round(c.b)) + "c", "orange", 12, 2.0); // credits read "Nc"
       fx[fx.length - 1].shrink = true; // it holds, then shrinks + fades like a damage number (owner)
     } else { c.x += dx / d * step; c.y += dy / d * step; }
   }
