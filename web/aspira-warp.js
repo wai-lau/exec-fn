@@ -31,7 +31,7 @@
 // camera pointed isometrically to the core"): the board stays FLAT (depth 0, head 1 - the funnel's knobs
 // left at rest), seen from 35.3 deg above it (tilt = atan(sqrt 2), the isometric elevation) through a lens
 // so long (fov 0.02) it is all but orthographic, centred on the core (anchor 0); the surface opaque again
-const WARP = { tilt: 0.55 /* owner: "much more top down instead" (was 0.9553, isometric), then "a little bit less top down" (was 0.4) */, fov: 0.9 /* owner: "increase size changes based on distance from camera" (was 0.02, near-orthographic); the scale AT the core is the same for any fov */, edge: [760, 840], depth: 0, pow: 2, zoom: 1, anchor: 0, alpha: 1, bgA: 1, head: 1, shoulder: 0.12, grid: { ring: 110, neck: 0, spokes: 24, far: 2400, a: 0, onBoard: 0.8 } }; // grid.a 0: no gravity-well grid (owner: "get rid of gravity well curvature indicators")
+const WARP = { tilt: 0.55 /* owner: "much more top down instead" (was 0.9553, isometric), then "a little bit less top down" (was 0.4) */, fov: 0.9 /* owner: "increase size changes based on distance from camera" (was 0.02, near-orthographic); the scale AT the core is the same for any fov */, edge: [760, 840], depth: 0, pow: 2, zoom: 1, anchor: 0, alpha: 1, bgA: 1, prism: { tower: 24, core: 60 }, head: 1, shoulder: 0.12, grid: { ring: 110, neck: 0, spokes: 24, far: 2400, a: 0, onBoard: 0.8 } }; // grid.a 0: no gravity-well grid (owner: "get rid of gravity well curvature indicators")
 // the tower ring's outer edge, world units from the core: the plateau the towers stand on
 const WARP_TOWERS = Math.max(...CELLS.map(c => Math.hypot(c.x - CX, c.y - CY))) + CELL_S * 1.5;
 const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, p: null, ent: null };
@@ -211,8 +211,8 @@ function warpEntities() {
   // FACING UP (owner: "render towers and enemies as if facing up, not toward the camera"), and ONE SHAPE
   // everywhere ("towers should not change shape based on distance from core"): the camera's lean squashes
   // every sprite alike (cos tilt) and only its size follows the perspective - no per-spot skew
-  const up = (x, y, fn) => {
-    const P = warpProject(x, y), k = cam.k * P.s, ky = k * warp.p.c;
+  const up = (x, y, fn, h) => { // h: raised this high (world units) - a prism's top
+    const P = warpProject(x, y, h ? h * cam.k : undefined), k = cam.k * P.s, ky = k * warp.p.c;
     ctx.setTransform(k, 0, 0, ky, P.x - x * k, P.y - y * ky);
     ctx.save(); fn(); ctx.restore();
   };
@@ -221,14 +221,36 @@ function warpEntities() {
     drawFx("dmg", at); // damage numbers flat too (owner), under everything as in 2D
     drawFx("shots", up, (x, y) => warpProject(x, y)); // beams straight between their ends, the rest flat at their spots
     drawCells(atCell); if (!G.towers.length && !ui.build) drawSlotArrow(atCell); // the slots too, flat
-    ownColours(() => { for (const t of G.towers) up(t.x, t.y, () => drawTower(t)); });
     if (ui.build && ui.hover) up(ui.hover.x, ui.hover.y, drawPlacement);
-    up(CX, CY, () => { drawCore(); drawCredits(); });
     for (const e of G.enemies) up(e.x, e.y, () => drawEnemy(e));
-    up(CX, CY, drawCoreHud); // the floating texts alone still face the camera (at), so they stay readable
+    // the towers and the core STAND UP as hexagonal prisms (owner: "core taller than towers"), the farthest
+    // first, each one's usual drawing on its raised top; over the enemies, which walk on the floor
+    const solids = G.towers.map(t => {
+      const c0 = CELLS[t.cell], x = t.x ?? c0.x, y = t.y ?? c0.y;
+      return { x, y, h: WARP.prism.tower, col: COL[TOWERS[t.kind].color], pts: c0.pts.map(p => ({ x: x + (p.x - c0.x) * TOWER_K, y: y + (p.y - c0.y) * TOWER_K })),
+        top: () => ownColours(() => up(x, y, () => drawTower(t), WARP.prism.tower)) };
+    });
+    solids.push({ x: CX, y: CY, h: WARP.prism.core, col: COL.white, pts: Array.from({ length: 6 }, (_, i) => ({ x: CX + CORE_R * Math.cos(Math.PI / 6 + i * Math.PI / 3), y: CY + CORE_R * Math.sin(Math.PI / 6 + i * Math.PI / 3) })),
+      top: () => { up(CX, CY, () => { drawCore(); drawCredits(); }, WARP.prism.core); up(CX, CY, drawCoreHud, WARP.prism.core); } });
+    for (const o of solids.sort((a, b) => warpProject(a.x, a.y).y - warpProject(b.x, b.y).y)) { warpPrism(o); o.top(); }
+    // the floating texts alone still face the camera (at), so they stay readable
     drawFx("text", at);
   };
   try { if (bossInv.full) withPalette(all); else all(); } finally { ctx = main; }
+}
+// one hexagonal PRISM's walls: its floor hex `pts` raised `h` world units, the walls farthest first, each
+// filled with the background and tinted by how squarely it faces the camera, its edges in the colour
+function warpPrism(o) {
+  const H = o.h * cam.k, n = o.pts.length, B = o.pts.map(p => warpProject(p.x, p.y, 0)), T = o.pts.map(p => warpProject(p.x, p.y, H));
+  const walls = o.pts.map((p, i) => { const q = o.pts[(i + 1) % n], mx = (p.x + q.x) / 2 - o.x, my = (p.y + q.y) / 2 - o.y; return { i, j: (i + 1) % n, face: my / (Math.hypot(mx, my) || 1) }; });
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.lineJoin = "round"; ctx.lineWidth = 1.5 * cam.k;
+  for (const w of walls.sort((a, b) => a.face - b.face)) { // +y faces the camera
+    ctx.beginPath(); ctx.moveTo(B[w.i].x, B[w.i].y); ctx.lineTo(B[w.j].x, B[w.j].y); ctx.lineTo(T[w.j].x, T[w.j].y); ctx.lineTo(T[w.i].x, T[w.i].y); ctx.closePath();
+    ctx.globalAlpha = 1; ctx.fillStyle = COL.bg; ctx.fill();
+    ctx.globalAlpha = 0.12 + 0.28 * Math.max(0, w.face); ctx.fillStyle = o.col; ctx.fill();
+    ctx.globalAlpha = 0.8; ctx.strokeStyle = o.col; ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
 }
 // a screen point (2D canvas device px) back to the canvas spot drawn there:
 // march the eye's ray down to the bell, then bisect. null off it.
