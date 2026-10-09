@@ -205,13 +205,13 @@
     "semantic_hash": ""
   },
   "ARCHITECTURE.md": {
-    "mtime": 1791510382.2459698,
-    "ast_hash": "49737576c25fb50c0ee1179b25a6490c",
+    "mtime": 1791445002.2953253,
+    "ast_hash": "6d46127ca97608e20fdc4bbbb5d12dd9",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1791510382.2519698,
-    "ast_hash": "fa1a2b482e58900ee93b179a88bb73bc",
+    "mtime": 1791419098.790227,
+    "ast_hash": "b624c377e25c2b2d17372920afcceded",
     "semantic_hash": ""
   },
   "README.md": {
@@ -1170,7 +1170,7 @@
     "semantic_hash": ""
   },
   "api/data/activity_log.json": {
-    "mtime": 1791534605.6905942,
+    "mtime": 1791448207.070247,
     "ast_hash": "d751713988987e9331980363e24189ce",
     "semantic_hash": ""
   },
@@ -2005,13 +2005,13 @@
     "semantic_hash": ""
   },
   "api/data/profile.json": {
-    "mtime": 1791534613.003629,
+    "mtime": 1791448210.0372598,
     "ast_hash": "83e60edb2785eac743c01f86c170118d",
     "semantic_hash": ""
   },
   "api/data/rd.json": {
-    "mtime": 1791534623.7236798,
-    "ast_hash": "23fb581485626e83aa048a4edc0cd578",
+    "mtime": 1791448229.3033428,
+    "ast_hash": "d410b2fd6bc6a8f2c7979b78fb1b1fbb",
     "semantic_hash": ""
   },
   "api/data/rd_log.json": {
@@ -6265,12 +6265,12 @@
     "semantic_hash": ""
   },
   "api/data/geo_cache.json": {
-    "mtime": 1791450617.4998405,
+    "mtime": 1791364217.414389,
     "ast_hash": "",
     "semantic_hash": ""
   },
   "api/data/security.json": {
-    "mtime": 1791450617.5128405,
+    "mtime": 1791364217.424389,
     "ast_hash": "",
     "semantic_hash": ""
   },
@@ -9435,8 +9435,8 @@
     "semantic_hash": ""
   },
   "api/noodle/routes.py": {
-    "mtime": 1791510172.78006,
-    "ast_hash": "0ac56da5e03eb60bf084ff24510a60ad",
+    "mtime": 1790898143.6856806,
+    "ast_hash": "966eebb419366c2aa1b2e024dbb185f8",
     "semantic_hash": ""
   },
   "api/noodle/rules.py": {
@@ -9455,8 +9455,8 @@
     "semantic_hash": ""
   },
   "api/noodle/store.py": {
-    "mtime": 1791510382.2489698,
-    "ast_hash": "c7de37d8434c5c98a90e511a4af591cf",
+    "mtime": 1790561608.5632665,
+    "ast_hash": "73c4004a85887e945067f2093822332e",
     "semantic_hash": ""
   },
   "api/noodle/votes.py": {
@@ -9515,8 +9515,8 @@
     "semantic_hash": ""
   },
   "tests/test_noodle_votes.py": {
-    "mtime": 1791510207.5292132,
-    "ast_hash": "ca1811e9640a2730730af2a4c887acc5",
+    "mtime": 1790711074.5753047,
+    "ast_hash": "6ab6b5aba1437c338f196a5ce19ceaa3",
     "semantic_hash": ""
   },
   "tests/test_printer_camera.py": {
@@ -9530,8 +9530,8 @@
     "semantic_hash": ""
   },
   "web/noodle-admin.js": {
-    "mtime": 1791510201.6631875,
-    "ast_hash": "96b235d6ee9e7fb1b2e95618a46747b8",
+    "mtime": 1791065839.941636,
+    "ast_hash": "4e140a299bbb7d71f3298447ddded2ca",
     "semantic_hash": ""
   },
   "web/noodle-ask.js": {
@@ -9575,13 +9575,13 @@
     "semantic_hash": ""
   },
   "web/noodle-vote.js": {
-    "mtime": 1791510186.2291195,
-    "ast_hash": "809398d1dba6321aa5b6faf8fb6190fd",
+    "mtime": 1791066135.0428717,
+    "ast_hash": "2eb462d13cf78e8a47dcbcd7637fa298",
     "semantic_hash": ""
   },
   "api/templates/noodle-admin.html": {
-    "mtime": 1791510201.6631875,
-    "ast_hash": "202870b5c7c299835598ad2c1bdba1dc",
+    "mtime": 1791065839.9636362,
+    "ast_hash": "1a9e63bb59922a093f3f459d42f0be45",
     "semantic_hash": ""
   },
   "api/templates/noodle-shell.html": {
@@ -9590,8 +9590,8 @@
     "semantic_hash": ""
   },
   "api/templates/noodle-vote.html": {
-    "mtime": 1791510207.5242133,
-    "ast_hash": "6f618acfee33c703abbacc6b33ca7f7e",
+    "mtime": 1791067183.6942105,
+    "ast_hash": "2c70c1b89a259e7a45c59943299b29c5",
     "semantic_hash": ""
   },
   "docs/plan-exec-cc-merge.md": {
@@ -9602,6 +9602,11 @@
   "api/data/activity_log_20260928.json": {
     "mtime": 1790569200.4892006,
     "ast_hash": "07899d4ad23aa3a16496a089db4678a0",
+    "semantic_hash": ""
+  },
+  "api/data/noodle/polls/164ELIlxlJjEgBCdgxQ3jg.json": {
+    "mtime": 1790716301.1467807,
+    "ast_hash": "",
     "semantic_hash": ""
   },
   "api/noodle/drafts.py": {
@@ -9687,6 +9692,11 @@
   "api/data/activity_log_20260929.json": {
     "mtime": 1790644695.4168684,
     "ast_hash": "5474f8a62fd23783ad080bcbf5bede83",
+    "semantic_hash": ""
+  },
+  "api/data/noodle/polls/ahhiJH2G39kTgAPx_S_j-w.json": {
+    "mtime": 1790717670.3123229,
+    "ast_hash": "",
     "semantic_hash": ""
   },
   "api/exec_board.py": {
@@ -9805,13 +9815,13 @@
     "semantic_hash": ""
   },
   "web/noodle-identity.js": {
-    "mtime": 1791508675.4804704,
-    "ast_hash": "87615de478170e93e3a3d7ee5858b64f",
+    "mtime": 1791066147.2759225,
+    "ast_hash": "94039586cf358c35d6fe9e4c54142097",
     "semantic_hash": ""
   },
   "web/noodle-storage.js": {
-    "mtime": 1791510181.7220995,
-    "ast_hash": "2ecf507b4aaf548110b1838a1c70839b",
+    "mtime": 1790713114.896293,
+    "ast_hash": "682c9841fdf5e2c8427d7563cd110091",
     "semantic_hash": ""
   },
   "api/data/activity_log_20261001.json": {
@@ -9855,8 +9865,8 @@
     "semantic_hash": ""
   },
   "scripts/aspira-sim/sim.mjs": {
-    "mtime": 1791495525.1265383,
-    "ast_hash": "dad7f062c5dafcf6d32e93906e1a4818",
+    "mtime": 1791423788.053995,
+    "ast_hash": "03ebfe66c6d35fe2b524603f97ec54ce",
     "semantic_hash": ""
   },
   "scripts/aspira-sim/style.mjs": {
@@ -9875,23 +9885,23 @@
     "semantic_hash": ""
   },
   "web/aspira-defs.js": {
-    "mtime": 1791492103.551424,
-    "ast_hash": "2fd63208ff22a2b7040b994952a55253",
+    "mtime": 1791433648.411158,
+    "ast_hash": "61f813be2538809a7156dbe9ecbe5231",
     "semantic_hash": ""
   },
   "web/aspira-draw.js": {
-    "mtime": 1791495745.4275408,
-    "ast_hash": "7c0067b4021ea04aed0614964e7a63a6",
+    "mtime": 1791433466.6784143,
+    "ast_hash": "8b5241df4b964e658a5faa5f9e158460",
     "semantic_hash": ""
   },
   "web/aspira-game.js": {
-    "mtime": 1791507063.0854692,
-    "ast_hash": "24fe510d189da4059d1d22c6704e266f",
+    "mtime": 1791421903.3655784,
+    "ast_hash": "e7389b8cb64c6289e645f2908033a8e8",
     "semantic_hash": ""
   },
   "web/aspira-lanes.js": {
-    "mtime": 1791489270.2644312,
-    "ast_hash": "1025dc8dc6a697998ac9b93ddad26ce6",
+    "mtime": 1791394967.420553,
+    "ast_hash": "d06c08f4c512f333402c21b2866fca1a",
     "semantic_hash": ""
   },
   "web/aspira-sfx.js": {
@@ -9900,18 +9910,18 @@
     "semantic_hash": ""
   },
   "web/aspira-towers.js": {
-    "mtime": 1791507016.5562894,
-    "ast_hash": "3a5bf935dec4a3eb1989fa11449bc367",
+    "mtime": 1791423788.056995,
+    "ast_hash": "894cd7783bb4068881acdacd3722b1f8",
     "semantic_hash": ""
   },
   "web/aspira-ui.js": {
-    "mtime": 1791492617.2284744,
-    "ast_hash": "484b7b337fec9cf0ce6dd9082dbefeae",
+    "mtime": 1791435259.402764,
+    "ast_hash": "5b2034fe08e2d68723750ab0e778f56c",
     "semantic_hash": ""
   },
   "web/aspira-upgrades.js": {
-    "mtime": 1791485562.0421104,
-    "ast_hash": "789103947f115fb7e40ce83e54a8bd5a",
+    "mtime": 1791347775.4130716,
+    "ast_hash": "f3c6ceb3d35fa71d7b0ecd8f6bc6f61a",
     "semantic_hash": ""
   },
   "web/exec-attach.js": {
@@ -9920,13 +9930,13 @@
     "semantic_hash": ""
   },
   "api/templates/aspira.html": {
-    "mtime": 1791507063.0824695,
-    "ast_hash": "5c6f4c513525d5a66d6c3c8ddbcb1a51",
+    "mtime": 1791445002.2963252,
+    "ast_hash": "00eae8ba56d4b58d6c7f067289bddb8f",
     "semantic_hash": ""
   },
   "scripts/aspira-sim/README.md": {
-    "mtime": 1791494700.2007446,
-    "ast_hash": "0dc057a9d823f390ea66ebb0c62c2907",
+    "mtime": 1791394391.0836053,
+    "ast_hash": "f18533c548be5ea22e20ec869b8462a0",
     "semantic_hash": ""
   },
   "api/data/activity_log_20261003.json": {
@@ -9960,23 +9970,23 @@
     "semantic_hash": ""
   },
   "web/aspira-bosses.js": {
-    "mtime": 1791507063.0834694,
-    "ast_hash": "b11fcf5cc9c34dcafc1b6acda8dffe66",
+    "mtime": 1791435259.399764,
+    "ast_hash": "55d140aed2177aa0c1a2544fc7070bb4",
     "semantic_hash": ""
   },
   "web/aspira-core.js": {
-    "mtime": 1791492617.2274745,
-    "ast_hash": "58f3c66834a657b4ec0d662cac15c961",
+    "mtime": 1791417817.2728882,
+    "ast_hash": "aa99d9ca9e8839439c0d5a3d48eae9e2",
     "semantic_hash": ""
   },
   "web/aspira-enemies.js": {
-    "mtime": 1791493056.1125546,
-    "ast_hash": "731c6a7809e63ea0026ff65e7dbce51e",
+    "mtime": 1791433837.509913,
+    "ast_hash": "35574e9dd3067fda5d75861148c1d2b8",
     "semantic_hash": ""
   },
   "web/aspira-waves.js": {
-    "mtime": 1791492350.0084064,
-    "ast_hash": "5228cfb63debc54612809bc68bef332f",
+    "mtime": 1791395004.5436711,
+    "ast_hash": "2472f861bdb9c70fabce6abda27d81d6",
     "semantic_hash": ""
   },
   "api/data/aspira-sfx/README.txt": {
@@ -14779,6 +14789,21 @@
     "ast_hash": "d751713988987e9331980363e24189ce",
     "semantic_hash": ""
   },
+  "api/data/noodle/polls/AFvjWA881Mt3peyRLx3GOg.json": {
+    "mtime": 1791064196.2146075,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "api/data/noodle/polls/Kj-sz1jXKswNKl5QRvL_2A.json": {
+    "mtime": 1791064132.6903522,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "api/data/noodle/polls/SREwIjhlmjDMKMTxyLOV0w.json": {
+    "mtime": 1791064163.1454747,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
   ".archaeology/media/noodle-demo.2026-10-03-prev.mp4": {
     "mtime": 1790622484.1483767,
     "ast_hash": "89a39c20e133115c3b5e06b89501a93c",
@@ -14815,13 +14840,13 @@
     "semantic_hash": ""
   },
   "web/aspira-positioning.js": {
-    "mtime": 1791495525.0985382,
-    "ast_hash": "2a41d1a167dedbbf285b5d0d51274240",
+    "mtime": 1791417817.2758882,
+    "ast_hash": "f552eec6aa160ada37556dd61d0b904c",
     "semantic_hash": ""
   },
   "web/aspira-wavelist.js": {
-    "mtime": 1791489618.8676963,
-    "ast_hash": "b06b9a700f6269f9ffdd6bab290ef01a",
+    "mtime": 1791346027.174007,
+    "ast_hash": "c6f7e5af9daf3fc5895c1f45b421a810",
     "semantic_hash": ""
   },
   "api/data/activity_log_20261006.json": {
@@ -14835,8 +14860,8 @@
     "semantic_hash": ""
   },
   "web/aspira-acid.js": {
-    "mtime": 1791485843.4413118,
-    "ast_hash": "41c129a8b56f9070c0718f9ecc45bc56",
+    "mtime": 1791445002.2963252,
+    "ast_hash": "fff2f9f8df84042363afb3c9a8cdbded",
     "semantic_hash": ""
   },
   "web/aspira-effects.js": {
@@ -14845,8 +14870,8 @@
     "semantic_hash": ""
   },
   "web/aspira-skills.js": {
-    "mtime": 1791495525.1275382,
-    "ast_hash": "16bb3381ec7842ffee28c5ca13c4ce54",
+    "mtime": 1791443092.0037086,
+    "ast_hash": "01dcd5692d4f2d60bbcde985a9d8bd89",
     "semantic_hash": ""
   },
   "api/data/activity_log_20261007.json": {
@@ -14900,8 +14925,8 @@
     "semantic_hash": ""
   },
   "web/aspira-core-fx.js": {
-    "mtime": 1791500421.6175218,
-    "ast_hash": "9bb5049ca8f12d2195c12e186b34b6fd",
+    "mtime": 1791410657.7036061,
+    "ast_hash": "7bf6387c9d146952db976076c21f67f6",
     "semantic_hash": ""
   },
   "web/aspira-endstats.js": {
@@ -14917,6 +14942,11 @@
   "api/data/activity_log_20261008.json": {
     "mtime": 1791448207.0102468,
     "ast_hash": "af6d01043eff97b5852ba6b5b90201dd",
+    "semantic_hash": ""
+  },
+  "api/data/noodle/polls/Iz4y0UAL2oRlnh1q72Yecg.json": {
+    "mtime": 1791407071.6102657,
+    "ast_hash": "",
     "semantic_hash": ""
   },
   "scripts/aspira-desc-graph.mjs": {
@@ -14950,8 +14980,8 @@
     "semantic_hash": ""
   },
   "scripts/aspira-sim/mbti.mjs": {
-    "mtime": 1791494700.2007446,
-    "ast_hash": "27fa37b147ea3430d7ea0bb5ae311cf7",
+    "mtime": 1791423788.053995,
+    "ast_hash": "b28c800beb5e2fdaffe1d808c0c34fc1",
     "semantic_hash": ""
   },
   "scripts/aspira-sim/nosol.mjs": {
@@ -14975,8 +15005,8 @@
     "semantic_hash": ""
   },
   "scripts/aspira-sim/tierfit.mjs": {
-    "mtime": 1791458620.3014054,
-    "ast_hash": "4dc43fc2767034d4a5205bfb3dc51f3a",
+    "mtime": 1791443092.0017085,
+    "ast_hash": "2abece0cf760f8209b2b6e9d6e7c3f2d",
     "semantic_hash": ""
   },
   "scripts/aspira-sim/wavesvs.mjs": {
@@ -14985,13 +15015,13 @@
     "semantic_hash": ""
   },
   "tests/test_spire_sliders_browser.py": {
-    "mtime": 1791482853.770334,
-    "ast_hash": "48c13997556286180b07d77ed5647bf0",
+    "mtime": 1791420752.1324725,
+    "ast_hash": "454f4896cfc3778faa8443130deb9af9",
     "semantic_hash": ""
   },
   "web/aspira-desc.js": {
-    "mtime": 1791495525.1265383,
-    "ast_hash": "1ecefd5da8bcf8c690a5527b5789b270",
+    "mtime": 1791437541.5108175,
+    "ast_hash": "7d62d90a1976ef2d739a753e178fea7d",
     "semantic_hash": ""
   },
   "web/aspira-quality.js": {
@@ -15000,88 +15030,13 @@
     "semantic_hash": ""
   },
   "web/aspira-sliders.js": {
-    "mtime": 1791485038.520821,
-    "ast_hash": "7f80e9ab08a3db5abd8fd8696c6ece9b",
+    "mtime": 1791437019.0286944,
+    "ast_hash": "6f6845f1f5cf37fb51c3708cfc9ba748",
     "semantic_hash": ""
   },
   "docs/spire-descriptions.md": {
-    "mtime": 1791458620.2994053,
-    "ast_hash": "5b1ec24eb6424bf3f98a5cc74dd448a8",
-    "semantic_hash": ""
-  },
-  "api/data/activity_log_20261009.json": {
-    "mtime": 1791491497.8700347,
-    "ast_hash": "bb5e9b2c7d356d14d37621bfc6986c52",
-    "semantic_hash": ""
-  },
-  "api/data/noodle/polls/0990dab422f4ade1371448ffb6c11c9891aa70d9b147f70676fd776abc1f5b5e.json": {
-    "mtime": 1791510243.8573725,
-    "ast_hash": "",
-    "semantic_hash": ""
-  },
-  "api/data/noodle/polls/0bb60d3fb207e593d1b52faa82262aace257fb4bfba7741d1e0b33a7a773a79a.json": {
-    "mtime": 1791510243.8543725,
-    "ast_hash": "",
-    "semantic_hash": ""
-  },
-  "api/data/noodle/polls/4492321f7595d9ac294da2bcab7f63e79e855a0e45e420cb02a8d0c680267d4e.json": {
-    "mtime": 1791510243.8503723,
-    "ast_hash": "",
-    "semantic_hash": ""
-  },
-  "api/data/noodle/polls/5fa9146a1ac4c693cb6c3458f203d48833a0e2f87c757343b1292e6091899998.json": {
-    "mtime": 1791510243.8663723,
-    "ast_hash": "",
-    "semantic_hash": ""
-  },
-  "api/data/noodle/polls/65963bf3a9002ca7538791d00148fcecdcebf2c9786a195259330afd2fb9ac5e.json": {
-    "mtime": 1791510243.8403723,
-    "ast_hash": "",
-    "semantic_hash": ""
-  },
-  "api/data/noodle/polls/9144e0d383aa45aa9376e5e5e30ca622e73c2c43222570a5899e3fe04d589b8a.json": {
-    "mtime": 1791510243.8473723,
-    "ast_hash": "",
-    "semantic_hash": ""
-  },
-  "api/data/noodle/polls/b7e324c725ea7f17cff82f23d4cfb99cdfd30774e0fba633da67da9bf7da7523.json": {
-    "mtime": 1791510243.8613725,
-    "ast_hash": "",
-    "semantic_hash": ""
-  },
-  "api/data/noodle/polls/c92d7c20c3c336673e60e98c3860bcc9bdcfa14c40936aa8585398d2ec097482.json": {
-    "mtime": 1791510243.8633723,
-    "ast_hash": "",
-    "semantic_hash": ""
-  },
-  "scripts/aspira-sim/countermx.mjs": {
-    "mtime": 1791492103.550424,
-    "ast_hash": "e874d7a49db52285b337e3e35cf0c466",
-    "semantic_hash": ""
-  },
-  "scripts/aspira-sim/rand.mjs": {
-    "mtime": 1791492103.551424,
-    "ast_hash": "957119202359faa3eaeea5962ba8010c",
-    "semantic_hash": ""
-  },
-  "tests/test_noodle_crypt.py": {
-    "mtime": 1791510234.9473336,
-    "ast_hash": "d10739f3b3e6692107f6725aaf479563",
-    "semantic_hash": ""
-  },
-  "web/aspira-frz.js": {
-    "mtime": 1791506926.423942,
-    "ast_hash": "c889ddb7616efb590d6205265d0a4806",
-    "semantic_hash": ""
-  },
-  "web/aspira-powers.js": {
-    "mtime": 1791492350.0074065,
-    "ast_hash": "d9c0d615fe7b641be90279fcf377992a",
-    "semantic_hash": ""
-  },
-  "web/aspira-stats.js": {
-    "mtime": 1791495525.1275382,
-    "ast_hash": "5374e1c1b245b6e668d270b294cb81e3",
+    "mtime": 1791443091.9997087,
+    "ast_hash": "ec3ab3d0706c1458c7403bb454309d98",
     "semantic_hash": ""
   }
 }
