@@ -88,7 +88,11 @@ function stepCoins(dt) {
       // SMALLER and from ABOVE the core, so it never hides it (owner, 2026-10-09): in 3D above its raised top too - a height
       // h stands h x tan(tilt) floor units up the screen
       const lift = typeof q3d === "function" && q3d() && warp.lightZ ? warp.lightZ * Math.tan(WARP.tilt) : 0;
-      float(CX, CY - CORE_R - 22 - lift, "+" + (c.b < 10 ? +c.b.toFixed(1) : Math.round(c.b)) + "c", "orange", 12, 2.0); // credits read "Nc"
+      // SIZED LIKE A DAMAGE NUMBER (owner, 2026-10-09: "gold popups should also be sized like damage"): by its share of
+      // the biggest payout yet, on the damage numbers' scale (was a flat 12px)
+      G.maxGold = Math.max(G.maxGold || 1, c.b);
+      const rel = (c.b / G.maxGold) ** DMG_SIZE_EXP;
+      float(CX, CY - CORE_R - 22 - lift, "+" + (c.b < 10 ? +c.b.toFixed(1) : Math.round(c.b)) + "c", "orange", Math.round(DMG_PX_MIN + DMG_PX_SPAN * rel), 2.0); // credits read "Nc"
       fx[fx.length - 1].shrink = true; // it holds, then shrinks + fades like a damage number (owner)
     } else { c.x += dx / d * step; c.y += dy / d * step; }
   }
