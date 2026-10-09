@@ -222,9 +222,12 @@ function warpEntities() {
   // FACING UP (owner: "render towers and enemies as if facing up, not toward the camera"), and ONE SHAPE
   // everywhere ("towers should not change shape based on distance from core"): the camera's lean squashes
   // every sprite alike (cos tilt) and only its size follows the perspective - no per-spot skew
+  // then (owner: "tower movement indicators and towers not following the same perspective?"): the board's own
+  // PERSPECTIVE at the spot - one world unit along x and y on the level plane at that height - so a top lines up
+  // with the floor under it; the funnel's anisotropic squeeze that once warped them is gone
   const up = (x, y, fn, h) => { // h: raised this high (world units) - a prism's top
-    const P = warpProject(x, y, h ? h * cam.k : undefined), k = cam.k * P.s, ky = k * warp.p.c;
-    ctx.setTransform(k, 0, 0, ky, P.x - x * k, P.y - y * ky);
+    const [a, b, c2, d, e, f] = warpFrame(x, y, h || 0);
+    ctx.setTransform(a, b, c2, d, e, f);
     ctx.save(); fn(); ctx.restore();
   };
   const atCell = (cell, fn) => up(cell.x, cell.y, fn);
@@ -286,13 +289,20 @@ function warpEntities() {
     }
   } finally { ctx = main; }
 }
+// the canvas transform that lays world (x, y) on the level plane h world units up, as seen at (x, y): its
+// projection there and one world unit along x and along y
+function warpFrame(x, y, h) {
+  const H = h * cam.k, P = warpProject(x, y, H), X = warpProject(x + 1, y, H), Y = warpProject(x, y + 1, H);
+  const a = X.x - P.x, b = X.y - P.y, c = Y.x - P.x, d = Y.y - P.y;
+  return [a, b, c, d, P.x - a * x - c * y, P.y - b * x - d * y];
+}
 // one hexagonal PRISM's walls: its floor hex `pts` raised `h` world units, the walls farthest first, each
 // filled with the background and tinted by how squarely it faces the camera, its edges in the colour
 function warpPrism(o) {
   // CENTRED on the floor (owner: "their center is on the plane, not the bottom"): half below it, half above
   // its top and bottom outlines in the SAME frame the top's drawing gets (up: one squash for all), so the drawing
   // sits exactly on the walls (owner: "tower tops are not sitting on top")
-  const H = o.h * cam.k / 2, n = o.pts.length, frame = h => { const P = warpProject(o.x, o.y, h), k = cam.k * P.s; return p => ({ x: P.x + k * (p.x - o.x), y: P.y + k * warp.p.c * (p.y - o.y) }); };
+  const H = o.h * cam.k / 2, n = o.pts.length, frame = h => { const [a, b, c2, d, e, f] = warpFrame(o.x, o.y, h / cam.k); return p => ({ x: a * p.x + c2 * p.y + e, y: b * p.x + d * p.y + f }); };
   // ... and it comes to a POINT below (owner: "instead of hexagonal prisms, make them all come to a point at the bottom")
   const ft = frame(H), apex = { ...frame(-H * WARP.prism.below)({ x: o.x, y: o.y }), z: -H * WARP.prism.below }, B = o.pts.map(() => apex), T = o.pts.map(p => ({ ...ft(p), z: H })); // below: x the half height under the floor (owner: "3x the distance below plane")
   const walls = o.pts.map((p, i) => { const q = o.pts[(i + 1) % n], mx = (p.x + q.x) / 2 - o.x, my = (p.y + q.y) / 2 - o.y; return { i, j: (i + 1) % n, face: my / (Math.hypot(mx, my) || 1) }; });
