@@ -27,14 +27,15 @@ function clipZ(pts, z, above) {
 // a polygon, clipped to the slice being drawn, as the current path; false when nothing of it is left
 function warpPath(pts) {
   let P = pts;
-  if (warpBand) { if (warpBand.lo > -Infinity) P = clipZ(P, warpBand.lo, true); if (P.length && warpBand.hi < Infinity) P = clipZ(P, warpBand.hi, false); }
+  // (perf: a shape wholly inside the slice needs no clipping, and no new arrays)
+  if (warpBand && !pts.every(p => p.z >= warpBand.lo && p.z <= warpBand.hi)) { if (warpBand.lo > -Infinity) P = clipZ(P, warpBand.lo, true); if (P.length && warpBand.hi < Infinity) P = clipZ(P, warpBand.hi, false); }
   if (P.length < 3) return false;
   ctx.beginPath(); P.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y))); ctx.closePath();
   return true;
 }
 // an edge, clipped the same way, added to the current path
 function warpLine(a, b) {
-  if (warpBand) {
+  if (warpBand && !(a.z >= warpBand.lo && a.z <= warpBand.hi && b.z >= warpBand.lo && b.z <= warpBand.hi)) {
     for (const [z, above] of [[warpBand.lo, true], [warpBand.hi, false]]) {
       if (!isFinite(z)) continue;
       const ia = above ? a.z >= z : a.z <= z, ib = above ? b.z >= z : b.z <= z;
