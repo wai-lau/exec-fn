@@ -8,11 +8,15 @@
 // lane, filled with a radial gradient fading out from the star. Fast enemies
 // trail a much SHORTER one (owner); only the star adds a shadow-blur glow (a
 // whole Fast wave blurring would cost too much).
-const TRAIL = { bonus: 160, fast: 48 }, TRAIL_STEP = 6, TRAIL_ALPHA = 0.55;
+// EVERY enemy trails one now, fast the longest after the star (owner, 2026-10-09: "give every enemy tracers,
+// fast longer ones"; fast was 48, the rest had none); a swarm's is short - there are hundreds
+const TRAIL = { bonus: 160, fast: 120, shield: 40, armor: 40, swarm: 24 }, TRAIL_STEP = 6, TRAIL_ALPHA = 0.55;
 const BREACH_SPOKES = 24; // the most Breach spokes drawn on one enemy
 function drawStarTrail(e, size) {
   const tail = TRAIL[e.type], pts = [];
-  for (let d = 0; d <= tail; d += TRAIL_STEP) pts.push(d ? pathAt(e.pi, Math.max(0, e.s - d), e.ang || 0) : { x: e.x, y: e.y });
+  // the lane behind it, shifted by how far it wanders off the lane (a swarmer's jitter), so the tail meets the body
+  const here = pathAt(e.pi, e.s, e.ang || 0), ox = e.x - here.x, oy = e.y - here.y;
+  for (let d = 0; d <= tail; d += TRAIL_STEP) { const q = pathAt(e.pi, Math.max(0, e.s - d), e.ang || 0); pts.push({ x: q.x + ox, y: q.y + oy }); }
   const n = pts.length - 1, L = [], R = [];
   for (let i = 0; i <= n; i++) {
     const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n, i + 1)], len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
