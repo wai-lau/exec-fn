@@ -31,7 +31,7 @@
 // camera pointed isometrically to the core"): the board stays FLAT (depth 0, head 1 - the funnel's knobs
 // left at rest), seen from 35.3 deg above it (tilt = atan(sqrt 2), the isometric elevation) through a lens
 // so long (fov 0.02) it is all but orthographic, centred on the core (anchor 0); the surface opaque again
-const WARP = { tilt: 0.9553, fov: 0.02, edge: [760, 840], depth: 0, pow: 2, zoom: 1, anchor: 0, alpha: 1, bgA: 1, head: 1, shoulder: 0.12, grid: { ring: 110, neck: 0, spokes: 24, far: 2400, a: 0.6, onBoard: 0.8 } };
+const WARP = { tilt: 0.4 /* owner: "much more top down instead" (was 0.9553, isometric) */, fov: 0.02, edge: [760, 840], depth: 0, pow: 2, zoom: 1, anchor: 0, alpha: 1, bgA: 1, head: 1, shoulder: 0.12, grid: { ring: 110, neck: 0, spokes: 24, far: 2400, a: 0.6, onBoard: 0.8 } };
 // the tower ring's outer edge, world units from the core: the plateau the towers stand on
 const WARP_TOWERS = Math.max(...CELLS.map(c => Math.hypot(c.x - CX, c.y - CY))) + CELL_S * 1.5;
 const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, p: null, ent: null };
