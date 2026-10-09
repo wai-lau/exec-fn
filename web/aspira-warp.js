@@ -205,7 +205,7 @@ function warpDraw() {
   gl.uniform2f(u("edge"), WARP.edge[0], WARP.edge[1]);
   gl.uniform3fv(u("gridCol"), warpGridRgb()); gl.uniform3fv(u("bgCol"), warpGridRgb("bg"));
   gl.uniform4f(u("grid"), WARP.grid.ring, Math.PI * 2 / WARP.grid.spokes, WARP.grid.far, WARP.grid.a);
-  gl.uniform1f(u("towers"), WARP_TOWERS); gl.uniform1f(u("onBoard"), WARP.grid.onBoard); gl.uniform1f(u("op"), WARP.alpha); gl.uniform1f(u("neck"), WARP.grid.neck); gl.uniform1f(u("bgA"), WARP.bgA); gl.uniform1f(u("invR"), bossInv.phase === "off" ? -1 : bossInv.full || lowQ ? 1e9 : bossInv.r); gl.uniform3f(u("shape"), WARP_TOWERS, R0, WARP.pow);
+  gl.uniform1f(u("towers"), WARP_TOWERS); gl.uniform1f(u("onBoard"), WARP.grid.onBoard); gl.uniform1f(u("op"), WARP.alpha); gl.uniform1f(u("neck"), WARP.grid.neck); gl.uniform1f(u("bgA"), WARP.bgA); gl.uniform1f(u("invR"), -1); /* the picture is no longer drawn inverted in 3D (skyFlip): nothing to turn back */ gl.uniform3f(u("shape"), WARP_TOWERS, R0, WARP.pow);
   const loc = gl.getAttribLocation(pr, "a");
   gl.bindBuffer(gl.ARRAY_BUFFER, warp.buf);
   gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);

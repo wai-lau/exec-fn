@@ -59,9 +59,8 @@ const CELLS = (function buildCells() {
       const a = Math.PI / 6 + k * Math.PI / 3;
       pts.push({ x: x + CELL_S * Math.cos(a), y: y + CELL_S * Math.sin(a) });
     }
-    // THREE towers, not six (owner, 2026-10-09: "the game should just have 3 towers instead of 6, allow movement through
-    // the center"): every other ring slot, 120 degrees apart (upper left, right, lower left) - each slides along its
-    // whole diameter, so the three cover all six directions (aspira-towers.js slideLimits)
+    // THREE towers, not six (owner, 2026-10-09: "the game should just have 3 towers instead of 6"): every other ring slot,
+    // 120 degrees apart (upper left, right, lower left); the lost cover is made up by range (RANGE_BONUS)
     const ang = Math.round(Math.atan2(y - CY, x - CX) * 180 / Math.PI);
     if (Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r)) === 1 && SLOT_ANGLES.includes(ang)) out.push({ pts, x, y });
   }
@@ -288,7 +287,7 @@ const TOWERS = {
 const GOOD_VS = { arc: "swarms", frz: "fast, shields", sol: "armor, bosses", acd: "shields, bosses" };
 const KINDS = Object.keys(TOWERS);
 const MAX_LVL = 4;
-const RANGE_BONUS = 1.035; // +15% across the board (owner, 2026-10-06; was 0.9) // 75% of the old 1.2 (owner, 2026-10-04: towers move now; a halving to 0.6 was meant as 75%)
+let RANGE_BONUS = 1.035; /* let: the simulator tries others (three towers, 2026-10-09) */ // +15% across the board (owner, 2026-10-06; was 0.9) // 75% of the old 1.2 (owner, 2026-10-04: towers move now; a halving to 0.6 was meant as 75%)
 // targeting (owner, 2026-10-03): Fresh = no debuffs yet, Biggest = most HP,
 // Near = nearest the core (aspira-game.js MODE_KEY; the key stays "close", the
 // label is Near so it does not read as "close this card" - owner)

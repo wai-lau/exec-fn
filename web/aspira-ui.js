@@ -446,6 +446,7 @@ function frame(now) {
   // while a boss lives the board draws inverted (render, bossSkyStep); the HTML over it
   // flips too once the inversion fills the screen, so it stays readable
   $("asp").classList.toggle("asp-boss", bossInv.full);
+  $("asp").classList.toggle("asp-sky", skyCss()); // the 2D canvas inverted whole by CSS once the sky is full (aspira-bosses.js skyFlip)
   requestAnimationFrame(frame);
 }
 
