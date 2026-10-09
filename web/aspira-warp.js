@@ -4,7 +4,11 @@
 // only hidden (opacity 0), and this WebGL canvas over it lays that picture on a
 // BELL - a BLACK HOLE DIAGRAM turned upside down ("think typical black hole
 // diagrams"; "always a deep classic bell"), peaking at the core and never
-// changing: height -WARP.depth x (1 - L / sqrt(r^2 + L^2)), L = WARP.fall.
+// changing: a BELL CURVE, height -WARP.depth x (1 - exp(-(r / L)^WARP.pow)), L =
+// R0 / WARP.flat - a round shoulder at the top (pow 3, owner: "a little too
+// pointy" at 2) and level (about 3 deg) by the lanes' mouths (R0), so enemies come in on the
+// level floor and climb the wall to the core (owner: "when the bottom curvature
+// flattens that should be where the enemies spawn").
 // The TOWERS (and their slots), the CORE and the ENEMIES are not stretched with it (owner: "use
 // positions based on the bell, but the enemies and towers are drawn separately,
 // as if on a flat plane"): each is drawn undistorted on a 2D canvas over the
@@ -16,12 +20,14 @@
 //   tilt, fov  the board leans back `tilt` (radians) under a `fov` lens (owner, "more top down", then
 //          with the bell 5x taller: tilt 0.62 -> 0.35 -> 0.15, fov 0.87 -> 0.45 - a longer lens from further
 //          back, so the drop's walls and the lanes below stay in sight)
+//   zoom   the 3D view's magnification (owner: "zoom in"); anchor  the view rides up this fraction of
+//          the way from the core's tip to the bell's foot, so the tip and the floor both fit
 //   edge   the board's picture fades out between these radii (world units from the core)
 //   grid   the BLACK HOLE GRID (owner: "add more rings in the bg to make it look more like a black hole"):
 //          rings every `ring` world units and `spokes` radial lines on the bell past the towers, out to
 //          `far`, where the bell itself ends; over the board only `onBoard` as strong, and outside
 //          the board's circle half as many (owner: "fewer curvature lines outside the circle")
-const WARP = { tilt: 0.15, fov: 0.45, edge: [760, 840], depth: 13800, fall: 260, grid: { ring: 110, spokes: 24, far: 2400, a: 0.3, onBoard: 0.25 } }; // depth: a DEEP classic bell (owner), 5x taller (was 460), then 3x again (was 2300), then x2 (was 6900)
+const WARP = { tilt: 0.15, fov: 0.45, edge: [760, 840], depth: 13800, flat: 2.08, pow: 3, zoom: 2, anchor: 0.5, grid: { ring: 110, spokes: 24, far: 2400, a: 0.3, onBoard: 0.25 } }; // depth: a DEEP classic bell (owner), 5x taller (was 460), then 3x again (was 2300), then x2 (was 6900)
 // the tower ring's outer edge, world units from the core: the plateau the towers stand on
 const WARP_TOWERS = Math.max(...CELLS.map(c => Math.hypot(c.x - CX, c.y - CY))) + CELL_S * 1.5;
 const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, p: null, ent: null };
@@ -29,13 +35,13 @@ const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, p: nu
 // the mesh is POLAR, in world units round the core: a = (radius, angle)
 const WARP_VS = `
 attribute vec2 a;
-uniform vec2 core, size; uniform float D, L, c, s, f, k;
+uniform vec2 core, size; uniform float D, L, P, c, s, f, k, z, oy;
 varying vec2 uv; varying float sh, rr, th;
 void main() {
   float r = a.x * k; vec2 p = r * vec2(cos(a.y), sin(a.y));
-  float g = 1.0 - L / sqrt(r * r + L * L), h = -D * g;
+  float g = 1.0 - exp(-pow(r / L, P)), h = -D * g;
   float qy = -c * p.y + s * h, qz = s * p.y + c * h, w = f - qz;
-  vec2 sc = core + vec2(f * p.x, -f * qy) / w;
+  vec2 sc = core + vec2(0.0, oy) + z * vec2(f * p.x, -f * qy) / w;
   uv = (core + p) / size; rr = a.x; th = a.y; sh = 1.0 - 0.45 * g;
   gl_Position = vec4((sc.x / size.x * 2.0 - 1.0) * w, (1.0 - sc.y / size.y * 2.0) * w, (w / (80.0 * size.y) * 2.0 - 1.0) * w, w);
 }`;
@@ -105,12 +111,13 @@ function warpMesh() {
 const warpGridRgb = () => (String(COL.grid || COL.green).match(/[\d.]+/g) || [0, 255, 0]).slice(0, 3).map(n => n / 255);
 // this frame's bell, centred on the core's canvas spot
 function warpParams() {
-  const f = cv.height / 2 / Math.tan(WARP.fov / 2);
-  return { core: [cam.ox + CX * cam.k, cam.oy + CY * cam.k], D: WARP.depth * cam.k, L: WARP.fall * cam.k, c: Math.cos(WARP.tilt), s: Math.sin(WARP.tilt), f, k: cam.k };
+  const f = cv.height / 2 / Math.tan(WARP.fov / 2), D = WARP.depth * cam.k, c = Math.cos(WARP.tilt), s = Math.sin(WARP.tilt);
+  const oy = -WARP.anchor * WARP.zoom * f * s * D / (f + c * D); // the bell's foot sits this far below the tip on screen
+  return { core: [cam.ox + CX * cam.k, cam.oy + CY * cam.k], D, L: R0 / WARP.flat * cam.k, P: WARP.pow, c, s, f, k: cam.k, z: WARP.zoom, oy };
 }
 // the spire's height (<= 0, canvas px) r px from the core - the vertex shader's twin
 function warpHeight(p, r) {
-  return -p.D * (1 - p.L / Math.hypot(r, p.L));
+  return -p.D * (1 - Math.exp(-Math.pow(r / p.L, p.P)));
 }
 // one frame: the 2D picture onto the bell (aspira-ui.js frame calls this after render)
 function warpDraw() {
@@ -127,7 +134,7 @@ function warpDraw() {
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv);
   const u = n => gl.getUniformLocation(pr, n);
   gl.uniform2f(u("core"), p.core[0], p.core[1]); gl.uniform2f(u("size"), cv.width, cv.height);
-  for (const n of ["D", "L", "c", "s", "f", "k"]) gl.uniform1f(u(n), p[n]);
+  for (const n of ["D", "L", "P", "c", "s", "f", "k", "z", "oy"]) gl.uniform1f(u(n), p[n]);
   gl.uniform2f(u("edge"), WARP.edge[0], WARP.edge[1]);
   gl.uniform3fv(u("gridCol"), warpGridRgb());
   gl.uniform4f(u("grid"), WARP.grid.ring, Math.PI * 2 / WARP.grid.spokes, WARP.grid.far, WARP.grid.a);
@@ -143,7 +150,7 @@ function warpDraw() {
 function warpProject(x, y) {
   const p = warp.p, px = cam.ox + x * cam.k - p.core[0], py = cam.oy + y * cam.k - p.core[1];
   const h = warpHeight(p, Math.hypot(px, py)), qy = -p.c * py + p.s * h, qz = p.s * py + p.c * h, w = p.f - qz;
-  return { x: p.core[0] + p.f * px / w, y: p.core[1] - p.f * qy / w, s: p.f / w };
+  return { x: p.core[0] + p.z * p.f * px / w, y: p.core[1] + p.oy - p.z * p.f * qy / w, s: p.z * p.f / w };
 }
 // the TOWERS, the CORE and the ENEMIES, flat, each at its projected point (owner: "drawn separately,
 // as if on a flat plane"): the usual draw calls on a 2D canvas over the bell, each under a transform
@@ -180,7 +187,7 @@ function warpEntities() {
 function unwarp(sx, sy) {
   const p = warp.p;
   if (!p) return { x: sx, y: sy };
-  const dx = (sx - p.core[0]) / p.f, dy = -(sy - p.core[1]) / p.f;
+  const dx = (sx - p.core[0]) / (p.f * p.z), dy = -(sy - p.core[1] - p.oy) / (p.f * p.z);
   const at = t => { // the ray at t, in the bell's frame, and its height above it
     const qx = t * dx, qy = t * dy, qz = p.f - t, py = p.s * qz - p.c * qy, pz = p.s * qy + p.c * qz;
     return { x: qx, y: py, g: pz - warpHeight(p, Math.hypot(qx, py)) };
