@@ -1,4 +1,5 @@
-// /spire — SHIELDS AS 3D WALLS in the 3D view (owner, 2026-10-09: "make all the shields and stuff 3d objects too,
+// /spire — the SHIELDS in the 3D view: LINES on the floor (owner, 2026-10-09: "keep all shields as lines on plane
+// instead of 3d objects (incl core)"; warpShieldLines). They were, briefly, SHIELDS AS 3D WALLS (owner, 2026-10-09: "make all the shields and stuff 3d objects too,
 // this way they occlude where expected"): the core's life segments and level rings and an enemy's shield segments
 // are short walls standing on the floor, centred on it, and split at the object they guard - the walls BEHIND it
 // drawn before it, the ones IN FRONT after - so the core's prism and a die hide and are hidden as they should.
@@ -24,7 +25,19 @@ function hexPieces(x, y, r, n, rot, ring) {
     return { a: [x + Math.cos(a0) * r, y + Math.sin(a0) * r], b: [x + Math.cos(a1) * r, y + Math.sin(a1) * r], r: ring };
   });
 }
-// the pieces on one side of (cx, cy) - the camera looks from +y, so a larger y is IN FRONT - as walls
+// (since: "keep all shields as lines on plane instead of 3d objects, incl core") the pieces as LINES on the floor
+function warpShieldLines(pieces, col, a0) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.lineCap = "round"; ctx.lineWidth = 1.4 * cam.k; ctx.strokeStyle = col;
+  const byRing = new Map();
+  for (const p of pieces) (byRing.get(p.r) || byRing.set(p.r, []).get(p.r)).push(p);
+  for (const [r, ps] of byRing) {
+    ctx.globalAlpha = a0 * Math.max(SHIELD_RING_MIN, SHIELD_RING_FADE ** (r - 1)); ctx.beginPath();
+    for (const p of ps) { const A = warpProject(p.a[0], p.a[1], 0), B = warpProject(p.b[0], p.b[1], 0); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); }
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+// the pieces on one side of (cx, cy) - the camera looks from +y, so a larger y is IN FRONT - as walls (unused since)
 function warpWalls(pieces, cy, front, hh, col, a0) {
   const H = hh * cam.k;
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.lineJoin = "round"; ctx.lineWidth = 1.2 * cam.k; ctx.strokeStyle = col; ctx.fillStyle = col;

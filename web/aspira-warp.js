@@ -233,7 +233,7 @@ function warpEntities() {
     if (ui.build && ui.hover) up(ui.hover.x, ui.hover.y, drawPlacement);
     // the bodies as real dice, the farthest first (aspira-solids.js), each inside its shield's walls (aspira-walls.js)
     const dice = [...G.enemies].sort((a, b) => a.y - b.y).map(e => ({ e, w: enemyWallPieces(e), col: COL[ENEMIES[e.type].color] }));
-    const drawDice = () => { for (const { e, w, col } of dice) { if (w.length) warpWalls(w, e.y, false, WALL_H.enemy, col, 0.8); warpSolid(e); if (w.length) warpWalls(w, e.y, true, WALL_H.enemy, col, 0.8); } };
+    const drawDice = () => { for (const { e } of dice) warpSolid(e); };
     // the towers and the core STAND UP as hexagonal prisms (owner: "core taller than towers"), the farthest
     // first, each one's usual drawing on its raised top; over the enemies, which walk on the floor
     const solids = G.towers.map(t => {
@@ -255,15 +255,13 @@ function warpEntities() {
       // the core's SHIELDS (its life and level rings) stand on the FLOOR (owner: "core shields on plane level") as walls,
       // the ones behind the core before its prism and the ones in front after (aspira-walls.js); the top is the plain
       // white hex and the credits
-      pre: () => { warpWalls(warp.coreWalls, CY, false, WALL_H.core, COL.white, 1); },
-      post: () => warpWalls(warp.coreWalls, CY, true, WALL_H.core, COL.white, 1),
       top: () => { up(CX, CY, () => { poly(CX, CY, CORE_R, 6, Math.PI / 6, false); ctx.fillStyle = COL.white; ctx.globalAlpha = 1; ctx.fill(); drawCredits("count"); }, coreH / 2); up(CX, CY, drawCoreHud, coreH / 2); } });
     solids.sort((a, b) => warpProject(a.x, a.y).y - warpProject(b.x, b.y).y);
     const drawSolids = tops => { for (const o of solids) { if (o.pre) o.pre(); warpPrism(o); if (tops) o.top(); if (o.post) o.post(); } };
     // BELOW the floor, fading slice by slice, then the tracers and marks on it, then ABOVE (aspira-fog.js; owner: "geometry
     // should just start losing opacity in a gradient when lower than the floor")
     warp.coreWalls = coreWallPieces(); // once a frame (it keeps the life segments in step)
-    warpBands(above => { if (above) for (const e of G.enemies) up(e.x, e.y, () => drawEnemy(e, true)); drawDice(); drawSolids(above); }, warpLanesOver); // (the tracers and marks: flat on the floor, through the die's centre)
+    warpBands(above => { if (above) for (const e of G.enemies) up(e.x, e.y, () => drawEnemy(e, true)); drawDice(); drawSolids(above); }, () => { warpLanesOver(); warpShieldLines(warp.coreWalls, COL.white, 1); for (const { w, col } of dice) if (w.length) warpShieldLines(w, col, 0.8); }); // the shields: lines on the floor, with the lanes // (the tracers and marks: flat on the floor, through the die's centre)
     // every POP-UP text over all of it (owner: "make sure all pop up text, like interest, is above the rendering"),
     // facing the camera (at) so it stays readable: damage numbers, the floating texts, the banner and the boss's title
     // and with NO perspective (owner: "no perspective effects on that"): at its spot, the board's plain scale
