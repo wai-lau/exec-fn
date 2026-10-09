@@ -1,6 +1,6 @@
 // /spire — the ENEMIES AS REAL DICE in the 3D view (owner, 2026-10-09: "the enemies should actually be 3d,
-// not just look like it"): each enemy is its die as a solid - d4 tetrahedron, d6 cube, d8 octahedron, d10
-// pentagonal trapezohedron, d20 icosahedron - rolling as it goes, lit from the core, its centre on the floor. Only the faces turned to the camera are drawn (every die is convex, so no sorting). Its
+// not just look like it"): each enemy is its die as a solid - d4 tetrahedron, d6 cube, d8 octahedron (shield), d10
+// pentagonal trapezohedron (armor), d20 icosahedron - rolling as it goes, lit from the core, its centre on the floor. Only the faces turned to the camera are drawn (every die is convex, so no sorting). Its
 // tracer, shield segments and status marks stay flat on the floor (drawEnemy(e, true)).
 // Loaded after aspira-warp.js; warpEntities calls warpSolid.
 
@@ -41,8 +41,8 @@ const SOLIDS = (() => {
   return {
     fast: { V: nose(unit(tet), 0), F: facesByEdge(tet, 3, Math.sqrt(8)) },
     swarm: { V: nose(unit(cube), 6), F: [[0, 1, 2, 3], [4, 5, 6, 7], [0, 1, 5, 4], [2, 3, 7, 6], [1, 2, 6, 5], [0, 3, 7, 4]] },
-    armor: { V: nose(oct, 0), F: facesByEdge(oct, 3, Math.SQRT2) },
-    shield: { V: nose(d10, 0), F: d10f },
+    shield: { V: nose(oct, 0), F: facesByEdge(oct, 3, Math.SQRT2) }, // armor and shield SWAPPED (owner, 2026-10-09: "swap shield and armor shape")
+    armor: { V: nose(d10, 0), F: d10f },
     bonus: { V: nose(unit(ico), 0), F: facesByEdge(ico, 3, 2) },
   };
 })();
