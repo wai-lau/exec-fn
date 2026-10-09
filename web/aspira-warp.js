@@ -27,7 +27,7 @@
 //          rings every `ring` world units and `spokes` radial lines on the bell past the towers, out to
 //          `far`, where the bell itself ends; over the board only `onBoard` as strong, and outside
 //          the board's circle half as many (owner: "fewer curvature lines outside the circle")
-const WARP = { tilt: 0.2 /* owner: "much more top down" (was 0.6) */, fov: 1.0 /* a wide lens, close: a real VANISHING POINT (owner, was 0.45) */, edge: [760, 840], depth: 1500, pow: 2, zoom: 1.3, anchor: 0.15, alpha: 0.6, grid: { ring: 110, neck: 16, spokes: 24, far: 2400, a: 0.6, onBoard: 0.8 } }; // depth: a DEEP classic bell (owner), 5x taller (was 460), then 3x again (was 2300), then x2 (was 6900), then a more gradual slope (was 13800), then 1800 as the flipped funnel seen from the side, then 1500 with pow 3 -> 2 (owner: "make slope more gradual") (tilt 0.15 -> 0.6, zoom 2 -> 1.3, anchor 0.25 -> 0.15: straight down the needle it read flat)
+const WARP = { tilt: 0.2 /* owner: "much more top down" (was 0.6) */, fov: 1.0 /* a wide lens, close: a real VANISHING POINT (owner, was 0.45) */, edge: [760, 840], depth: 1500, pow: 2, zoom: 1.3, anchor: 0.15, alpha: 0.6, bgA: 0.35, grid: { ring: 110, neck: 16, spokes: 24, far: 2400, a: 0.6, onBoard: 0.8 } }; // depth: a DEEP classic bell (owner), 5x taller (was 460), then 3x again (was 2300), then x2 (was 6900), then a more gradual slope (was 13800), then 1800 as the flipped funnel seen from the side, then 1500 with pow 3 -> 2 (owner: "make slope more gradual") (tilt 0.15 -> 0.6, zoom 2 -> 1.3, anchor 0.25 -> 0.15: straight down the needle it read flat)
 // the tower ring's outer edge, world units from the core: the plateau the towers stand on
 const WARP_TOWERS = Math.max(...CELLS.map(c => Math.hypot(c.x - CX, c.y - CY))) + CELL_S * 1.5;
 const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, p: null, ent: null };
@@ -48,7 +48,7 @@ void main() {
 const WARP_FS = `
 precision mediump float;
 uniform sampler2D tex; uniform vec2 edge; uniform vec3 gridCol; uniform vec4 grid; // grid: ring, spoke angle, far, alpha
-uniform float towers, onBoard, op, neck; uniform vec3 bgCol, shape; // shape: the funnel's head rim, foot (world units), power // op: the whole bell SEMI-TRANSPARENT, nothing occluded (owner)
+uniform float towers, onBoard, op, neck, bgA; uniform vec3 bgCol, shape; // shape: the funnel's head rim, foot (world units), power // op: the whole bell SEMI-TRANSPARENT, nothing occluded (owner)
 varying vec2 uv; varying float sh, rr, th;
 float line(float d, float wd) { return 1.0 - smoothstep(wd * 0.5, wd * 1.5, d); }
 void main() {
@@ -61,12 +61,16 @@ void main() {
   float t = clamp((rr - shape.x) / (shape.y - shape.x), 0.0, 1.0), gi = floor((1.0 - pow(1.0 - t, shape.z)) * neck + 0.5) / neck;
   float ri = shape.x + (shape.y - shape.x) * (1.0 - pow(1.0 - gi, 1.0 / shape.z));
   if (rr < shape.y) ring = line(abs(rr - ri), wd);
+  float hs = grid.x * 0.5; // the level HEAD carries rings too, every half ring (owner: "have the curvature lines continue all the way up")
+  if (rr < shape.x) ring = line(abs(fract(rr / hs + 0.5) - 0.5) * hs, wd);
   float spoke = line(abs(fract(th / as + 0.5) - 0.5) * as * rr, wd);
-  float gk = max(ring, spoke) * grid.w * smoothstep(towers, towers + 30.0, rr) * (1.0 - smoothstep(grid.z * 0.7, grid.z, rr));
+  // up to the core (the spokes fade where they crowd it), half as strong over the head
+  float gk = max(ring, spoke * smoothstep(20.0, 60.0, rr)) * grid.w * (0.5 + 0.5 * smoothstep(towers, towers + 30.0, rr)) * (1.0 - smoothstep(grid.z * 0.7, grid.z, rr));
   gk *= 1.0 - board * (1.0 - onBoard); // faint over the board itself: the lanes stay readable
   vec3 col = texture2D(tex, uv).rgb * sh * board;
   vec3 ink = max(col - bgCol * sh * board, 0.0); // what is DRAWN on the board, over its background
   float lit = clamp(max(max(ink.r, ink.g), ink.b) * 3.0, 0.0, 1.0); // the background itself is see-through: seen from above, the wall stacks a hundred layers of it over the top
+  lit = max(lit, bgA * board); // the board's background TRANSLUCENT, not clear (owner): it dims what lies behind it
   gl_FragColor = vec4(mix(col, gridCol * sh, gk), max(lit, gk)) * op; // premultiplied
 }`;
 
@@ -145,7 +149,7 @@ function warpDraw() {
   gl.uniform2f(u("edge"), WARP.edge[0], WARP.edge[1]);
   gl.uniform3fv(u("gridCol"), warpGridRgb()); gl.uniform3fv(u("bgCol"), warpGridRgb("bg"));
   gl.uniform4f(u("grid"), WARP.grid.ring, Math.PI * 2 / WARP.grid.spokes, WARP.grid.far, WARP.grid.a);
-  gl.uniform1f(u("towers"), WARP_TOWERS); gl.uniform1f(u("onBoard"), WARP.grid.onBoard); gl.uniform1f(u("op"), WARP.alpha); gl.uniform1f(u("neck"), WARP.grid.neck); gl.uniform3f(u("shape"), WARP_TOWERS, R0, WARP.pow);
+  gl.uniform1f(u("towers"), WARP_TOWERS); gl.uniform1f(u("onBoard"), WARP.grid.onBoard); gl.uniform1f(u("op"), WARP.alpha); gl.uniform1f(u("neck"), WARP.grid.neck); gl.uniform1f(u("bgA"), WARP.bgA); gl.uniform3f(u("shape"), WARP_TOWERS, R0, WARP.pow);
   const loc = gl.getAttribLocation(pr, "a");
   gl.bindBuffer(gl.ARRAY_BUFFER, warp.buf);
   gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
