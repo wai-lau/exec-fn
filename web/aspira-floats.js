@@ -76,7 +76,7 @@ function stepFloats(dt) {
 // and when it hits the core, that's when the credits are added and the popup shows"): a gold dot from the kill, gathering
 // speed toward the core (COIN_V0 + COIN_ACC x its age, units/s); on reaching it the credits are banked and "+Nc" pops
 // there. Game time (step, aspira-game.js), so the simulator banks them too, a beat later than it used to.
-const COIN_V0 = 0, COIN_ACC = 150, COIN_R = 2.5; // owner, 2026-10-09: "gold should start with no velocity, and then very slowly accelerate towards core" (was 200 / 900)
+const COIN_V0 = 0, COIN_ACC = 60, COIN_R = 2.5; // owner, 2026-10-09: "gold should start with no velocity, and then very slowly accelerate towards core" (was 200 / 900), then "reduce gold acceleration" (150 -> 60)
 let coins = [];
 function creditDot(x, y, b) { coins.push({ x, y, b, t: 0 }); }
 function stepCoins(dt) {
