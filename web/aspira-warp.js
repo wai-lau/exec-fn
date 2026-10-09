@@ -27,7 +27,11 @@
 //          rings every `ring` world units and `spokes` radial lines on the bell past the towers, out to
 //          `far`, where the bell itself ends; over the board only `onBoard` as strong, and outside
 //          the board's circle half as many (owner: "fewer curvature lines outside the circle")
-const WARP = { tilt: 0.2 /* owner: "much more top down" (was 0.6) */, fov: 1.0 /* a wide lens, close: a real VANISHING POINT (owner, was 0.45) */, edge: [760, 840], depth: 1500, pow: 2, zoom: 1.3, anchor: 0.15, alpha: 0.6, bgA: 0.35, head: 0.6, shoulder: 0.12, grid: { ring: 110, neck: 16, spokes: 24, far: 2400, a: 0.6, onBoard: 0.8 } }; // depth: a DEEP classic bell (owner), 5x taller (was 460), then 3x again (was 2300), then x2 (was 6900), then a more gradual slope (was 13800), then 1800 as the flipped funnel seen from the side, then 1500 with pow 3 -> 2 (owner: "make slope more gradual") (tilt 0.15 -> 0.6, zoom 2 -> 1.3, anchor 0.25 -> 0.15: straight down the needle it read flat)
+// ISOMETRIC (owner, 2026-10-09, after the funnel: "keep everything on the flat plane, but in 3D just have a
+// camera pointed isometrically to the core"): the board stays FLAT (depth 0, head 1 - the funnel's knobs
+// left at rest), seen from 35.3 deg above it (tilt = atan(sqrt 2), the isometric elevation) through a lens
+// so long (fov 0.02) it is all but orthographic, centred on the core (anchor 0); the surface opaque again
+const WARP = { tilt: 0.9553, fov: 0.02, edge: [760, 840], depth: 0, pow: 2, zoom: 1, anchor: 0, alpha: 1, bgA: 1, head: 1, shoulder: 0.12, grid: { ring: 110, neck: 0, spokes: 24, far: 2400, a: 0.6, onBoard: 0.8 } };
 // the tower ring's outer edge, world units from the core: the plateau the towers stand on
 const WARP_TOWERS = Math.max(...CELLS.map(c => Math.hypot(c.x - CX, c.y - CY))) + CELL_S * 1.5;
 const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, p: null, ent: null };
@@ -63,9 +67,9 @@ void main() {
   // up the NECK the rings are spaced by HEIGHT, not radius - neck of them, crowding where it is steep (owner: "dense near the top")
   float t = clamp((rr - shape.x) / (shape.y - shape.x), 0.0, 1.0), gi = floor((1.0 - pow(1.0 - t, shape.z)) * neck + 0.5) / neck;
   float ri = shape.x + (shape.y - shape.x) * (1.0 - pow(1.0 - gi, 1.0 / shape.z));
-  if (rr < shape.y) ring = line(abs(rr - ri), wd);
+  if (neck > 0.0 && rr < shape.y) ring = line(abs(rr - ri), wd);
   float hs = grid.x * 0.5; // the level HEAD carries rings too, every half ring (owner: "have the curvature lines continue all the way up")
-  if (rr < shape.x) ring = line(abs(fract(rr / hs + 0.5) - 0.5) * hs, wd);
+  if (neck > 0.0 && rr < shape.x) ring = line(abs(fract(rr / hs + 0.5) - 0.5) * hs, wd);
   float spoke = line(abs(fract(th / as + 0.5) - 0.5) * as * rr, wd);
   // up to the core (the spokes fade where they crowd it), half as strong over the head
   float gk = max(ring, spoke * smoothstep(20.0, 60.0, rr)) * grid.w * (0.5 + 0.5 * smoothstep(towers, towers + 30.0, rr)) * (1.0 - smoothstep(grid.z * 0.7, grid.z, rr));
@@ -215,7 +219,7 @@ function warpEntities() {
   const atCell = (cell, fn) => up(cell.x, cell.y, fn);
   const all = () => {
     drawFx("dmg", at); // damage numbers flat too (owner), under everything as in 2D
-    drawFx("shots", (x, y, fn, f) => (WARP_SPHERE[f.k] ? warpSphere(f) : up(x, y, fn)), (x, y) => warpProject(x, y)); // beams straight between their ends; rings, hits, blasts and flashes as SPHERES; the rest flat at their spots
+    drawFx("shots", up, (x, y) => warpProject(x, y)); // beams straight between their ends, the rest flat at their spots
     drawCells(atCell); if (!G.towers.length && !ui.build) drawSlotArrow(atCell); // the slots too, flat
     ownColours(() => { for (const t of G.towers) up(t.x, t.y, () => drawTower(t)); });
     if (ui.build && ui.hover) up(ui.hover.x, ui.hover.y, drawPlacement);
@@ -225,23 +229,6 @@ function warpEntities() {
     drawFx("text", at);
   };
   try { if (bossInv.full) withPalette(all); else all(); } finally { ctx = main; }
-}
-// every RING in 3D is a SPHERE (owner: "turn all rings into spheres"): a ring, a hit, a blast or a flash
-// becomes a lit ball at its spot, facing the camera, as big as the ring then is (its own growth curve)
-const WARP_SPHERE = {
-  ring: (f, k) => f.r * (1 - k * 0.5), hit: (f, k) => f.r * (0.5 + 0.5 * (1 - k)),
-  blast: (f, k) => f.r * (0.85 + 0.15 * (1 - k)), flash: (f, k) => f.r * (1.3 - 0.3 * k),
-};
-function warpSphere(f) {
-  const k = 1 - f.t / f.life, P = warpProject(f.x, f.y), r = WARP_SPHERE[f.k](f, k) * cam.k * P.s;
-  if (!(r > 0.5)) return;
-  const col = f.k === "flash" ? COL.white : COL[f.color] || COL.white;
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.globalAlpha = Math.min(1, k * 2) * (f.a ?? 1) * (f.k === "hit" ? 0.7 : 0.55);
-  // lit from the upper left: a white highlight, the colour, then a dark rim
-  const g = ctx.createRadialGradient(P.x - r * 0.35, P.y - r * 0.35, r * 0.05, P.x, P.y, r);
-  g.addColorStop(0, COL.white); g.addColorStop(0.35, col); g.addColorStop(1, COL.bg);
-  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(P.x, P.y, r, 0, 6.283); ctx.fill();
 }
 // a screen point (2D canvas device px) back to the canvas spot drawn there:
 // march the eye's ray down to the bell, then bisect. null off it.
