@@ -69,7 +69,7 @@ function ndrBegin() {
   NDR.oldPass = ndr$('nd-pass').value;
   NDR.oldPub = NDV.kdf.pub();
   NDR.keeperPub = new Promise(function (resolve, reject) {
-    NDR.keeper = window.NoodleKdf({ slug: NDV.slug, kdf: cfg, workerUrl: root.dataset.worker,
+    NDR.keeper = window.NoodleKdf({ slug: ndeScope(), kdf: cfg, workerUrl: root.dataset.worker,
       onStart: function () {}, onDerived: function (d) { resolve(d.pub); }, onError: reject });
   });
   NDR.keeperPub.catch(function () {});   // surfaced at Commit, not as an unhandled rejection
@@ -108,10 +108,10 @@ async function ndrCommit(ts) {
   if (newpub === NDR.oldPub) { ndrStop(); return { ok: true }; }   // the same name and passphrase again
   try {
     if ((await NDR.keeperPub) !== NDR.oldPub) throw new Error('the old key did not re-derive');
-    var sig = await NDR.keeper.sign(ndhCanon({ kind: 'rekey', name: name, newname: newname,
-      newpub: newpub, poll: NDV.slug, ts: ts }));
-    var res = await ndvPost('/rekey', { name: name, pub: NDR.oldPub, ts: ts, sig: sig,
-      newpub: newpub, newname: newname });
+    var res = NDV.e2e ? await ndrSealed(newpub, newname, ts) : await ndvPost('/rekey', {
+      name: name, pub: NDR.oldPub, ts: ts, newpub: newpub, newname: newname,
+      sig: await NDR.keeper.sign(ndhCanon({ kind: 'rekey', name: name, newname: newname,
+        newpub: newpub, poll: NDV.slug, ts: ts })) });
     if (!res.ok) return res;
   } catch (e) {
     return { ok: false, data: { error: 'could not make the change: ' + e.message } };
@@ -119,6 +119,15 @@ async function ndrCommit(ts) {
   ndrStop();
   ndvSaveIdentity();   // only now does the new name/passphrase become the remembered one
   return { ok: true, did: true };
+}
+
+// End-to-end: no names on the server. The old key signs the record over to
+// the new one, with the vote re-sealed to the new key (and new name).
+async function ndrSealed(newpub, newname, ts) {
+  var ct = await ndeSeal('vote', newpub, { name: window.noodleNormName(newname),
+    slots: Array.from(NDV.cal.getSel()).sort() });
+  var sig = await NDR.keeper.sign(ndeCanon({ ct: ct, kind: 'e2e-rekey', newpub: newpub, poll: NDV.slug, ts: ts }));
+  return ndvPost('/rekey', { pub: NDR.oldPub, ts: ts, sig: sig, newpub: newpub, ct: ct });
 }
 
 (function () {

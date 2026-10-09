@@ -197,6 +197,10 @@ async function ndvLoadPoll() {
   NDV.poll = r.status === 404 && NDV.draft
     ? { slug: NDV.slug, title: 'title', halves: false, crop: null, voters: [], host: null }
     : await r.json();
+  // an end-to-end poll arrives sealed: opened here, it is the same poll a
+  // plain one's JSON is (noodle-e2e.js)
+  if (NDV.e2e && NDV.poll.e2e) NDV.poll = await ndeView(NDV.poll);
+  if (NDV.e2e) ndeShowTexts();
   if (NDV.poll.slug) ndvRemember(NDV.poll, r.ok ? '' : NDV.draft);
   NDV.seals = await window.NoodleRoster.seals(NDV.poll.voters);
   if (!NDV.blankSeal) NDV.blankSeal = ndvBlankSeal();
@@ -210,10 +214,14 @@ function ndvInit() {
   NDV.slug = root.dataset.slug;
   NDV.draft = root.dataset.draft || '';
   NDV.kdfCfg = JSON.parse(root.dataset.kdf);
+  // end-to-end: the key from the link (or a new one for a fresh draft); a
+  // link without one can show nothing (noodle-e2e.js)
+  NDV.e2e = root.dataset.e2e === '1';
+  if (NDV.e2e && !ndeInit()) return;
   ndvStepInit();
   ndv$('nd-ask').addEventListener('input', ndvSaveAsk);
   NDV.kdf = window.NoodleKdf({
-    slug: NDV.slug, kdf: NDV.kdfCfg, workerUrl: root.dataset.worker,
+    slug: ndeScope(), kdf: NDV.kdfCfg, workerUrl: root.dataset.worker,
     onStart: ndvOnStart, onDerived: ndvOnDerived,
     onError: function (msg) {
       NDV.keyError = true;

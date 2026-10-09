@@ -102,10 +102,12 @@ async function ndhSend(path, fields, ts) {
   // page keeps it alive for exactly this (noodle-rekey.js)
   var old = window.NDR && NDR.active, name = old ? NDR.oldName : ndv$('nd-name').value;
   if (old && (await NDR.keeperPub) !== NDR.oldPub) return { ok: false, data: { error: 'the old key did not re-derive' } };
-  var signer = old ? NDR.keeper : NDV.kdf;
+  var signer = old ? NDR.keeper : NDV.kdf, pub = old ? NDR.oldPub : NDV.kdf.pub();
   ts = ts || Date.now() + NDV.skew;
-  var sig = await signer.sign(ndhCanon(Object.assign({ name: name, poll: NDV.slug, ts: ts }, fields)));
-  var body = Object.assign({ name: name, pub: old ? NDR.oldPub : NDV.kdf.pub(), ts: ts, sig: sig }, fields);
+  // an end-to-end poll never sees a name: the key alone signs (noodle/e2e.py)
+  var who = NDV.e2e ? {} : { name: name };
+  var sig = await signer.sign(ndhCanon(Object.assign({ poll: NDV.slug, ts: ts }, who, fields)));
+  var body = Object.assign({ pub: pub, ts: ts, sig: sig }, who, fields);
   delete body.kind; // the server supplies it: a body cannot choose which action it signs
   return ndvPost(path, body);
 }
@@ -119,6 +121,13 @@ async function ndhCommitSettings(ts) {
   var c = ndhCrop(), f = { kind: 'settings', halves: ndhHalves(), from: c ? c.from : null, to: c ? c.to : null };
   if (NDV.pendingTitle !== undefined) f.title = NDV.pendingTitle;
   if (NDV.pendingNote !== undefined) f.note = NDV.pendingNote;
+  if (NDV.e2e) {
+    // end-to-end: the WHOLE settings, sealed (the server keeps no copy to merge into)
+    var head = await ndeSealHead({ title: f.title !== undefined ? f.title : NDV.poll.title,
+      note: f.note !== undefined ? f.note : NDV.poll.note, halves: f.halves, from: f.from, to: f.to });
+    if (head.error) return { ok: false, data: { error: head.error } };
+    f = { kind: 'e2e-head', ct: head.ct };
+  }
   var res = await ndhSend('/settings', f, ts);
   if (res.ok) {
     NDV.pendingHalves = null; NDV.pendingCrop = undefined; NDV.pendingTitle = undefined; NDV.pendingNote = undefined;
@@ -180,7 +189,8 @@ async function ndhRemove(e) {
   if (!btn || !ndvReady()) return;
   var who = btn.dataset.name;
   if (!window.confirm('remove ' + who + ' and their vote?')) return;
-  var res = await ndhSend('/remove', { kind: 'remove', target: who });
+  // an end-to-end poll knows its voters by key only
+  var res = await ndhSend('/remove', NDV.e2e ? { kind: 'e2e-remove', target: btn.dataset.pub } : { kind: 'remove', target: who });
   if (!res.ok) { ndvStatus(res.data.error || 'could not remove', 'err'); return; }
   await ndvLoadPoll();
 }

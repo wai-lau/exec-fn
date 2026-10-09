@@ -34,7 +34,8 @@ def test_only_the_slugs_own_token_creates_it(d):
     assert not store.exists(a["slug"])
     drafts.ensure(a["slug"], {"draft": a["token"]})
     poll = store.load(a["slug"])
-    assert poll["title"] == drafts.UNTITLED and poll["voters"] == {}
+    # a draft minted now becomes an END-TO-END poll: no title the server can read
+    assert poll["e2e"] and "title" not in poll and poll["voters"] == {}
 
 
 def test_a_second_first_commit_does_not_recreate(d):

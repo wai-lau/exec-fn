@@ -41,7 +41,7 @@ function ndrRender(el, voters, seals, myPub, canRemove, howto) {
       (v.order === 0 ? '<span class="nd-face-host">host</span>' : '') + '</button>' +
       // the host (and only the host) can remove a guest, and their vote with them
       (canRemove && v.order !== 0 && !v.pending ? '<button type="button" class="nd-face-rm" data-name="' +
-        window.noodleEsc(v.name) + '">remove</button>' : '') + '</li>';
+        window.noodleEsc(v.name) + '" data-pub="' + window.noodleEsc(v.pub) + '">remove</button>' : '') + '</li>';
   }).join('') + (howto ? NDR_HOWTO : '');
 }
 
