@@ -54,7 +54,7 @@ function panBy(dx, dy) { cam.ox += dx; cam.oy += dy; clampView(); }
 // keep the core (the chart's centre) somewhere on the canvas
 function clampView() {
   const cx = cam.ox + CX * cam.k, cy = cam.oy + CY * cam.k;
-  const w = q3d() ? warpScreen().w : cv.width, h = q3d() ? warpScreen().h : cv.height; // (3D: the canvas is the picture's square)
+  const w = q3d() ? warpScreenFull().w : cv.width, h = q3d() ? warpScreenFull().h : cv.height; // (3D: the canvas is the picture's square)
   cam.ox += Math.max(0, Math.min(w, cx)) - cx;
   cam.oy += Math.max(0, Math.min(h, cy)) - cy;
 }
