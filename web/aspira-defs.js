@@ -287,7 +287,7 @@ const TOWERS = {
 const GOOD_VS = { arc: "swarms", frz: "fast, shields", sol: "armor, bosses", acd: "shields, bosses" };
 const KINDS = Object.keys(TOWERS);
 const MAX_LVL = 4;
-let RANGE_BONUS = 1.035; /* let: the simulator tries others (three towers, 2026-10-09) */ // +15% across the board (owner, 2026-10-06; was 0.9) // 75% of the old 1.2 (owner, 2026-10-04: towers move now; a halving to 0.6 was meant as 75%)
+let RANGE_BONUS = 1.553; /* x1.5 for THREE towers (owner, 2026-10-09: "increase range of all towers by some percentage" - "don't let range go over 1.5x"; was 1.035) */ /* let: the simulator tries others (three towers, 2026-10-09) */ // +15% across the board (owner, 2026-10-06; was 0.9) // 75% of the old 1.2 (owner, 2026-10-04: towers move now; a halving to 0.6 was meant as 75%)
 // targeting (owner, 2026-10-03): Fresh = no debuffs yet, Biggest = most HP,
 // Near = nearest the core (aspira-game.js MODE_KEY; the key stays "close", the
 // label is Near so it does not read as "close this card" - owner)
