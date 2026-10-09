@@ -105,7 +105,8 @@ function warpRadii() {
 }
 function warpMesh() {
   const gl = warp.gl, v = [], R = warpRadii(), da = Math.PI * 2 / WARP_SEG;
-  for (let i = 0; i + 1 < R.length; i++) for (let j = 0; j < WARP_SEG; j++) {
+  // OUTSIDE IN: with no depth test the last drawn wins, and the head (nearest the eye) must come last (owner: "flat part is occluding everything?")
+  for (let i = R.length - 2; i >= 0; i--) for (let j = 0; j < WARP_SEG; j++) {
     const a0 = j * da, a1 = (j + 1) * da;
     v.push(R[i], a0, R[i + 1], a0, R[i], a1, R[i + 1], a0, R[i + 1], a1, R[i], a1);
   }
