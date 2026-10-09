@@ -73,6 +73,7 @@
 
 /* the list's label (owner) */
 .asp-wavelabel { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: var(--tracking-wide); opacity: 0.6; }
+#asp .asp-wavenote > span.asp-wavesub { grid-column: 1 / -1; justify-content: flex-start; text-align: left; padding-top: var(--space-2); color: hsl(var(--green-hsl)); } /* "upcoming waves", under the live waves' box (aspira-wavelist.js) */
 
 .asp-wavenote {
   display: grid;
