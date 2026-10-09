@@ -1,6 +1,6 @@
 // /spire — the ENEMIES AS REAL DICE in the 3D view (owner, 2026-10-09: "the enemies should actually be 3d,
 // not just look like it"): each enemy is its die as a solid - d4 tetrahedron, d6 cube, d8 octahedron, d10
-// pentagonal trapezohedron, d20 icosahedron - rolling as it goes, lit from above, its centre on the floor. Only the faces turned to the camera are drawn (every die is convex, so no sorting). Its
+// pentagonal trapezohedron, d20 icosahedron - rolling as it goes, lit from the core, its centre on the floor. Only the faces turned to the camera are drawn (every die is convex, so no sorting). Its
 // tracer, shield segments and status marks stay flat on the floor (drawEnemy(e, true)).
 // Loaded after aspira-warp.js; warpEntities calls warpSolid.
 
@@ -46,7 +46,7 @@ const SOLIDS = (() => {
     bonus: { V: nose(unit(ico), 0), F: facesByEdge(ico, 3, 2) },
   };
 })();
-const SOLID_LIGHT = unit([[-0.4, -0.5, 0.8]])[0], SOLID_ROLL = 10; // light from up and back-left; ROLL: size x this per radian (owner: "reduce rotation rate by 10x", was 1)
+const SOLID_ROLL = 10; // ROLL: size x this per radian (owner: "reduce rotation rate by 10x", was 1)
 
 // the die's size (drawEnemy's)
 const solidSize = e => { const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max); return d.size * (e.arcana ? f : 0.45 + 0.55 * f) * (e.sizeMul || 1); };
@@ -65,6 +65,8 @@ function warpSolid(e) {
   // roll about the nose (+x), then turn the nose to the heading
   const rot = ([x, y, z]) => { const y1 = y * ct - z * st, z1 = y * st + z * ct; return [x * ch - y1 * sh, x * sh + y1 * ch, z1]; };
   const S = SOLIDS[e.type], R = S.V.map(rot);
+  // LIT FROM THE CORE (owner: "the light source should come from the core"): toward the core's top from this die
+  const L = unit([[CX - e.x, CY - e.y, (warp.lightZ || 1)]])[0];
   // world offset (x, y on the floor, z up) to the screen, the die's CENTRE on the floor (owner: "their center is on the plane")
   const scr = ([x, y, z]) => [P.x + k * x * size, P.y + k * (p.c * y * size - p.s * z * size)];
   const col = COL[e.slowT > 0 ? "cyan" : d.color];
@@ -72,7 +74,7 @@ function warpSolid(e) {
   for (const face of S.F) {
     const n = [0, 1, 2].map(i => face.reduce((m, v) => m + R[v][i], 0) / face.length), nl = Math.hypot(...n);
     if (n[1] * p.s + n[2] * p.c <= 0) continue; // turned away from the camera
-    const lit = Math.max(0, (n[0] * SOLID_LIGHT[0] + n[1] * SOLID_LIGHT[1] + n[2] * SOLID_LIGHT[2]) / nl);
+    const lit = Math.max(0, (n[0] * L[0] + n[1] * L[1] + n[2] * L[2]) / nl);
     const poly3 = face.map(v => { const [x, y] = scr(R[v]); return { x, y, z: R[v][2] * size }; });
     if (!warpPath(poly3)) continue; // clipped to the slice being drawn (aspira-fog.js)
     ctx.globalAlpha = warpFade; ctx.fillStyle = COL.bg; ctx.fill();
