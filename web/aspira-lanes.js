@@ -8,9 +8,12 @@
 // every lane is a SOLID line (owner; the per-pair dash styles are gone)
 // Lane STROKES go to an offscreen layer that is then masked by a radial
 // gradient: full at the centre, fading linearly to nothing just beyond the
-// white rim (LANE_FADE_R), so lanes do not trail across the open sky.
+// lanes' mouths (LANE_FADE_R), so lanes do not trail across the open sky.
 // Labels are drawn unmasked.
-const LANE_FADE_R = 550; // just past the rim circle (482-494)
+// owner, 2026-10-09: "draw lanes further out (or just don't ramp down opacity as fast)" - was a linear fade
+// to nothing at 550, just past the rim circle, while lanes start at R0 760; now FULL to LANE_FULL of the way, then
+// fading to nothing just past the lanes' mouths
+const LANE_FADE_R = 800, LANE_FULL = 0.5;
 // the live lanes' GLOW, on its own layer so it can fade much faster outward:
 // its radial mask is applied GLOW_FALLOFF times (alpha ~ (1 - r/R)^n)
 const GLOW_FALLOFF = 5; // harder (owner; was 3)
@@ -40,7 +43,7 @@ function laneLayer(c, x, w, h) {
 // mask: only alpha matters under destination-in, so transparent -> bg works
 function laneMask(x) {
   const g = x.createRadialGradient(CX, CY, 0, CX, CY, LANE_FADE_R);
-  g.addColorStop(0, COL.bg); g.addColorStop(1, "transparent");
+  g.addColorStop(0, COL.bg); g.addColorStop(LANE_FULL, COL.bg); g.addColorStop(1, "transparent");
   x.globalCompositeOperation = "destination-in"; x.globalAlpha = 1; x.fillStyle = g;
   x.fillRect(CX - 4000, CY - 4000, 8000, 8000);
 }
