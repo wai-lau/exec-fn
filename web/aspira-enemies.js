@@ -25,16 +25,17 @@ function drawStarTrail(e, size) {
     const w = size * 0.55 * (1 - i / n), nx = -(b.y - a.y) / len * w, ny = (b.x - a.x) / len * w;
     L.push({ x: pts[i].x + nx, y: pts[i].y + ny }); R.push({ x: pts[i].x - nx, y: pts[i].y - ny });
   }
-  // the star's tail fades by a gradient; a FAST one's is a plain tapered fill
-  // (a gradient per fast enemy was a late-game frame cost, 2026-10-05)
+  // every tail FADES toward its end (owner, 2026-10-09: "make all tracers lose opacity towards tail"): the star's
+  // by a radial gradient from it, the rest by a straight one from the body to the tail's end (the fast ones were a
+  // plain fill while a gradient each looked like a late-game frame cost, 2026-10-05)
   const col = COL[ENEMIES[e.type].color], star = e.type === "bonus";
-  let g = col;
-  if (star) { g = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, tail); g.addColorStop(0, col); g.addColorStop(1, "transparent"); }
+  const g = star ? ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, tail) : ctx.createLinearGradient(pts[0].x, pts[0].y, pts[n].x, pts[n].y);
+  g.addColorStop(0, col); g.addColorStop(1, "transparent");
   ctx.beginPath(); ctx.moveTo(L[0].x, L[0].y);
   for (const p of L) ctx.lineTo(p.x, p.y);
   for (let i = R.length - 1; i >= 0; i--) ctx.lineTo(R[i].x, R[i].y);
   ctx.closePath();
-  ctx.fillStyle = g; ctx.globalAlpha = TRAIL_ALPHA * (star ? 1 : 0.5); // half as strong, standing in for the fade
+  ctx.fillStyle = g; ctx.globalAlpha = TRAIL_ALPHA;
   ctx.shadowColor = col; ctx.shadowBlur = star ? size * cam.k : 0;
   ctx.fill();
   ctx.shadowBlur = 0; ctx.globalAlpha = 1;
