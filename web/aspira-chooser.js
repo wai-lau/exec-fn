@@ -204,5 +204,5 @@ function updateSpend() {
   if ($("asp-spend").hidden) return;
   placeCred();
   $("asp-spend-cred").innerHTML = cr(Math.floor(G.money).toLocaleString("en-US")) +
-    (spend.cost != null ? ' <span class="asp-spend-cost">(−' + cr(spend.cost) + ")</span>" : ""); // white credits, the cost in red brackets (owner)
+    (spend.cost != null ? ' <span class="asp-spend-cost' + (spend.cost <= G.money ? " asp-cost-ok" : "") + '">(−' + cr(spend.cost) + ")</span>" : ""); // affordable: just bold, no colour (owner) // white credits, the cost in red brackets (owner)
 }
