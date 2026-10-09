@@ -220,6 +220,11 @@ const warpStar = (x, y, i) => {
 };
 // a core shield piece IN FRONT of the core: the camera looks from +y
 const coreFront = p => p.a[1] + p.b[1] > 2 * CY;
+// fn drawn in the inverted palette even through ownColours (it reads `inverted`), o's own colour inverted too
+function skyOwn(o, fn) {
+  const col = o.col;
+  withPalette(() => { inverted = false; o.col = invertColor(col); try { fn(); } finally { inverted = true; o.col = col; } });
+}
 function warpEntities() {
   if (!warp.ent) {
     const c = document.createElement("canvas");
@@ -259,7 +264,7 @@ function warpEntities() {
       const c0 = CELLS[t.cell], x = t.x ?? c0.x, y = t.y ?? c0.y;
       const h = towerH(t);
       return { x, y, h, col: COL[TOWERS[t.kind].color], pts: c0.pts.map(p => ({ x: x + (p.x - c0.x) * TOWER_K, y: y + (p.y - c0.y) * TOWER_K })),
-        top: () => ownColours(() => up(x, y, () => drawTower(t), h / 2)) };
+        top: () => ownColours(() => up(x, y, () => drawTower(t), h / 2)), own: true };
     });
     CELLS.forEach((c, ci) => {
       if (!cellOpen(ci) || G.towers.some(t => t.cell === ci)) return;
@@ -278,7 +283,11 @@ function warpEntities() {
       post: () => { if (warpBand && warpBand.lo === 0) warpShieldLines(warp.coreWalls.filter(coreFront), COL.white, 1); },
       top: () => { up(CX, CY, () => { poly(CX, CY, CORE_R, 6, Math.PI / 6, false); ctx.fillStyle = COL.white; ctx.globalAlpha = 1; ctx.fill(); drawCredits("count"); }, coreH / 2); up(CX, CY, drawCoreHud, coreH / 2); } });
     solids.sort((a, b) => warpProject(a.x, a.y).y - warpProject(b.x, b.y).y);
-    const drawSolids = tops => { for (const o of solids) { if (o.pre) o.pre(); warpPrism(o); if (tops) o.top(); if (o.post) o.post(); } };
+    const drawSolid = (o, tops) => { if (o.pre) o.pre(); warpPrism(o); if (tops) o.top(); if (o.post) o.post(); };
+    // a TOWER under the boss sky keeps its own colours, as in 2D (owner, 2026-10-09: "colors also buggy on boss spawn" - the
+    // top layer's difference flipped them): drawn in the INVERTED palette, so that flip turns it back
+    const inSky = o => bossInv.phase !== "off" && (bossInv.full || Math.hypot(o.x - bossInv.x, o.y - bossInv.y) < bossInv.r);
+    const drawSolids = tops => { for (const o of solids) if (o.own && inSky(o)) skyOwn(o, () => drawSolid(o, tops)); else drawSolid(o, tops); };
     // BELOW the floor, fading slice by slice, then the tracers and marks on it, then ABOVE (aspira-fog.js; owner: "geometry
     // should just start losing opacity in a gradient when lower than the floor")
     warp.coreWalls = coreWallPieces(); // once a frame (it keeps the life segments in step)
