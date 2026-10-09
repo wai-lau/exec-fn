@@ -156,9 +156,10 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
     fx.push({ k: "hit", x: e.x, y: e.y, r: 5 + 8 * m, m, color: col, t: 0, life: 0.05 + 0.027 * m });
     if (m > 1.2) burst(e.x, e.y, col, Math.round(m * 3));
     // damage number, jittered so rapid hits don't stack
-    // armor-blunted hits read dim grey (the graticule's Silver), the rest white
+    // armor-blunted hits read GREYER the more armor took off them (owner, 2026-10-09: "greyness of damage popups should be
+    // correlated to the percentage of damage mitigated by armor" - was all-or-nothing grey), white to the graticule's Silver
     // sized by the hit BEFORE armor (owner): a big hit blunted to little still reads big, in grey
-    dmgNumber(e, String(dmgUnits(amt)), raw, crit ? "orange" : blunted ? "grid" : "white", t);
+    dmgNumber(e, String(dmgUnits(amt)), raw, crit ? "orange" : "white", t, crit || !blunted ? 0 : 1 - amt / raw);
   }
   if (e.hp <= 0) kill(e, t);
 }

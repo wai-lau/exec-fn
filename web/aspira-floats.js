@@ -17,7 +17,8 @@ let dmgLive = []; // the live damage-number floats, each carrying its hit size `
 const DMG_SIZE_EXP = 0.7, DMG_PX_MIN = 10, DMG_PX_SPAN = 28, DMG_FLY = 90; // DMG_FLY: units/s away from the hitter (owner: "make all damage numbers fly off more", was 30)
 // src: the tower that dealt it - the number flies AWAY from it (owner, 2026-10-09: "instead of having them fly upwards,
 // have them fly in the direction away from the source of damage"); none: upward, as before
-function dmgNumber(e, label, size, color, src) {
+// grey: the share of the hit armor took (0..1) - the number is drawn that far from white toward Silver (dmgColor)
+function dmgNumber(e, label, size, color, src, grey = 0) {
   G.maxHit = Math.max(G.maxHit || 1, size);
   const rel = (size / G.maxHit) ** DMG_SIZE_EXP;
   if (dmgLive.length >= DMG_MAX) {
@@ -31,6 +32,7 @@ function dmgNumber(e, label, size, color, src) {
     }
   }
   float(e.x + (Math.random() - 0.5) * 24, e.y - 14, label, color, Math.round(DMG_PX_MIN + DMG_PX_SPAN * rel), 0.8 + 1.2 * rel, 1, DMG_FLY, true);
+  fx[fx.length - 1].grey = grey;
   const f = fx[fx.length - 1], sx = src ? e.x - (src.x ?? e.x) : 0, sy = src ? e.y - (src.y ?? e.y) : 0, sl = Math.hypot(sx, sy);
   if (sl) { f.x = e.x; f.y = e.y; f.vx = DMG_FLY * sx / sl; f.vy = -DMG_FLY * sy / sl; } // (vy is UP: y -= vy)
   f.v = size; dmgLive.push(f);
@@ -39,6 +41,14 @@ function dmgNumber(e, label, size, color, src) {
 // vy: upward drift (units/s); long-lived floats drift slowly so they stay on screen
 // every pop-up has the black outline + dark glow (owner); `under` marks the
 // damage numbers, which draw beneath everything but the background
+// a damage number's colour: its own, or white mixed toward the graticule's Silver by `grey` - resolved when DRAWN, so the
+// boss sky's inverted palette still applies
+function dmgColor(f) {
+  if (!(f.grey > 0)) return f.color;
+  const a = (COL.white.match(/[\d.]+/g) || [255, 255, 255]).map(Number), b = (COL.grid.match(/[\d.]+/g) || [128, 128, 128]).map(Number), k = Math.min(1, f.grey);
+  const mix = i => (a[i] ?? 1) + ((b[i] ?? 1) - (a[i] ?? 1)) * k; // [3]: the alpha (Silver is a dim one)
+  return "rgba(" + [0, 1, 2].map(i => Math.round(mix(i))).join(",") + "," + mix(3).toFixed(3) + ")";
+}
 function float(x, y, text, color, size = 28, life = 1.1, alpha = 1, vy = 30, under = false) {
   fx.push({ k: "text", x, y, text, color, t: 0, life, size, alpha, vy, outline: true, under });
 }
