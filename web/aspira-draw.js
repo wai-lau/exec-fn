@@ -398,7 +398,7 @@ function drawFx(pass, at = (x, y, fn) => fn(), map = null) {
       const g = sh ? (f.t < DMG_HOLD ? 1 : Math.max(0, (f.life - f.t) / Math.max(0.01, f.life - DMG_HOLD))) : 1;
       if (sh) ctx.globalAlpha = g;
       ctx.globalAlpha *= f.alpha ?? 1;
-      at(f.x, f.y, () => text(f.text, f.x, f.y, f.size * g, f.color, f.outline));
+      at(f.x, f.y, () => text(f.text, f.x, f.y, f.size * g, dmgColor(f), f.outline)); // (armor-blunted: greyer with the share taken)
     }
     };
     if (f.k === "beam" || f.k === "text" || !map) one(); else at(f.x ?? CX, f.y ?? CY, one, f);
