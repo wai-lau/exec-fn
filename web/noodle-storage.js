@@ -144,3 +144,17 @@ function ndvOfferPass() {
   pass.value = ndvStoredPass(ndv$('nd-name').value) || '';
   NDV.autoPass = pass.value;
 }
+
+// Every poll this browser opens, as noodle.polls = {slug: {title, url, seen}}.
+// The server keeps no links (each one is its poll's encryption key,
+// api/noodle/store.py), so this is the ONLY list of links there is: the
+// owner's /noodle page reads it to put titles + links beside the bare ids the
+// server lists (web/noodle-admin.js). It never leaves the browser.
+function ndvRemember(poll, draft) {
+  try {
+    var all = JSON.parse(localStorage.getItem('noodle.polls') || '{}');
+    all[poll.slug] = { title: poll.title || '', seen: Date.now(),
+      url: '/noodle/' + poll.slug + (draft ? '?t=' + encodeURIComponent(draft) : '') };
+    localStorage.setItem('noodle.polls', JSON.stringify(all));
+  } catch (e) { /* storage blocked: the poll is still open, just not listed */ }
+}
