@@ -43,7 +43,7 @@ function drawCoreHud() {
   if (!G.core) return;
   const c = G.core, now = performance.now();
   ctx.lineCap = "round";
-  drawTimeStop(c);
+  if (!q3d()) drawTimeStop(c); // (3D: on the floor, in the board's picture - owner, 2026-10-09: "temporal drive should be on the plane in 3d")
   for (const t of G.towers) {
     const left = (t.relayUntil || 0) - (G.clock || 0);
     if (left <= 0) continue;
