@@ -334,7 +334,7 @@ function warpFrame(x, y, h) {
 }
 // one hexagonal PRISM's walls: its floor hex `pts` raised `h` world units, the walls farthest first, each
 // filled with the background and tinted by how squarely it faces the camera, its edges in the colour
-const WARP_PRISM_SLICES = 16, WARP_PRISM_GONE = 0.95; // GONE: the share of a prism's height, from its top, where it has faded out
+const WARP_PRISM_STOPS = 6, WARP_PRISM_GONE = 0.95; // GONE: the share of a prism's height, from its top, where it has faded out; STOPS: its gradient's (the blend is not linear)
 function warpPrism(o) {
   const pf = 1 - (1 - warpFade) * WARP_PRISM_FADE; // they fade less below the floor than the dice
   // CENTRED on the floor (owner: "their center is on the plane, not the bottom"): half below it, half above
@@ -352,25 +352,28 @@ function warpPrism(o) {
     ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; return;
   }
   // FADING DOWN its own height (owner, 2026-10-09: "towers should be 100% opaque at top, 0% 95% of the way down, same for
-  // core"): cut into WARP_PRISM_SLICES slices of its height, each at the opacity of its middle, inside the floor's slice
-  // being drawn (warpBands) - the floor's own fade is not applied on top
+  // core"): each wall ONE fill with a gradient whose lines of equal opacity run along its top edge, from opaque at the
+  // top to nothing WARP_PRISM_GONE of the way down - the floor's own fade is not applied on top. (PERF 2026-10-09: was
+  // 16 stepped slices a wall, each two fills, in each of the nine floor passes; the parts below the floor are drawn in
+  // ONE pass now, the last before the floor, since they no longer fade by floor slice.)
   ctx.setLineDash([]); // (a tower's own drawing can leave one set)
-  const top = o.h / 2, end = top - WARP_PRISM_GONE * (o.h / 2 + o.h / 2 * WARP.prism.below), band = warpBand || { lo: -Infinity, hi: Infinity };
-  // its EDGES fade the same way, each upright stroked once with a gradient (sliced strokes looked dotted)
+  let band = warpBand || { lo: -Infinity, hi: Infinity };
+  if (band.hi < 0) return; // a deeper floor slice: drawn with the one at the floor (whose hi is -0)
+  if (band.hi === 0) { band = { lo: -Infinity, hi: 0 }; warpBand = band; }
+  const top = o.h / 2, end = top - WARP_PRISM_GONE * (o.h / 2 + o.h / 2 * WARP.prism.below);
+  // the point of an upright P -> Q at height `end`
   const at = (P, Q) => { const t = (top - end) / (P.z - Q.z); return { x: P.x + (Q.x - P.x) * t, y: P.y + (Q.y - P.y) * t }; };
   for (const w of walls.sort((a, b) => a.face - b.face)) { // +y faces the camera
     const quad = [B[w.i], B[w.j], T[w.j], T[w.i]];
-    for (let k = 0; k < WARP_PRISM_SLICES; k++) {
-      const hi = top - (top - end) * k / WARP_PRISM_SLICES, lo = top - (top - end) * (k + 1) / WARP_PRISM_SLICES;
-      if (lo >= band.hi || hi <= band.lo) continue;
-      warpBand = { lo: Math.max(lo, band.lo), hi: Math.min(k ? hi : Infinity, band.hi) };
-      if (!warpPath(quad)) continue;
-      const a = 1 - (k + 0.5) / WARP_PRISM_SLICES;
-      ctx.globalAlpha = a; ctx.fillStyle = COL.bg; ctx.fill();
-      ctx.globalAlpha = (0.12 + 0.28 * w.lit) * a; ctx.fillStyle = o.col; ctx.fill(); // lit from the CORE (owner: "the light source should come from the core")
+    if (warpPath(quad)) {
+      const P = T[w.i], E = at(P, B[w.i]), dx = T[w.j].x - P.x, dy = T[w.j].y - P.y, nn = dx * dx + dy * dy;
+      const k = nn > 1e-6 ? ((E.x - P.x) * -dy + (E.y - P.y) * dx) / nn : 0, gx = k ? P.x - dy * k : E.x, gy = k ? P.y + dx * k : E.y;
+      const g = ctx.createLinearGradient(P.x, P.y, gx, gy), l = 0.12 + 0.28 * w.lit; // lit from the CORE (owner: "the light source should come from the core")
+      for (let s = 0; s <= WARP_PRISM_STOPS; s++) { const a = 1 - s / WARP_PRISM_STOPS; g.addColorStop(s / WARP_PRISM_STOPS, blendFill([[COL.bg, a], [o.col, l * a]])); }
+      ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.fill();
     }
     // the edges whole, once, with the parts above the floor (stroked per floor slice they showed every cut as a gap)
-    warpBand = band; ctx.globalAlpha = 0.8;
+    ctx.globalAlpha = 0.8;
     if (band.lo > 0 || band.hi < Infinity) continue;
     { ctx.beginPath(); ctx.moveTo(T[w.i].x, T[w.i].y); ctx.lineTo(T[w.j].x, T[w.j].y); ctx.strokeStyle = o.col; ctx.stroke(); }
     for (const v of [w.i, w.j]) {

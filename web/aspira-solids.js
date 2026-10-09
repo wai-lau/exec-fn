@@ -94,6 +94,24 @@ function solidGeom(e) {
   // 50% opaque, not 100" - it was all cyan)
   return { faces, spike, size, fa, col: COL[d.color], frz: e.slowT > 0 ? SOLID_FROZEN_A : 0, lw: (e.armor ? 2.2 : 1.2) * cam.k };
 }
+// an edge's key, the same both ways round (two faces share it in opposite order)
+// layers [[css colour, alpha], ...] composited source-over onto nothing, as ONE rgba (cached by its rounded inputs)
+const rgbOf = (() => { const m = new Map(); return c => { let v = m.get(c); if (!v) { const n = (c || "").match(/[\d.]+/g) || [0, 0, 0]; v = n.slice(0, 3).map(Number); m.set(c, v); } return v; }; })();
+const blendCache = new Map();
+function blendFill(layers) {
+  let r = 0, g = 0, b = 0, A = 0;
+  for (const [c, a0] of layers) {
+    const a = Math.max(0, Math.min(1, a0));
+    if (!(a > 0)) continue;
+    const [cr, cg, cb] = rgbOf(c), na = a + A * (1 - a);
+    r = (cr * a + r * A * (1 - a)) / na; g = (cg * a + g * A * (1 - a)) / na; b = (cb * a + b * A * (1 - a)) / na; A = na;
+  }
+  const key = (r | 0) + "," + (g | 0) + "," + (b | 0) + "," + A.toFixed(3);
+  let s = blendCache.get(key);
+  if (!s) { if (blendCache.size > 4000) blendCache.clear(); s = "rgba(" + key + ")"; blendCache.set(key, s); }
+  return s;
+}
+const edgeKey = (v, w) => (v.x < w.x || (v.x === w.x && v.y < w.y) ? v.x + "," + v.y + "," + w.x + "," + w.y : w.x + "," + w.y + "," + v.x + "," + v.y);
 function warpSolid(e) {
   if (e.dead || !SOLIDS[e.type]) return;
   if (e.geomAt !== warp.frame) { e.geomAt = warp.frame; e.geom = solidGeom(e); }
@@ -104,16 +122,28 @@ function warpSolid(e) {
   const fa = warpFade * g.fa, col = g.col, frz = g.frz;
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.lineJoin = "round";
   if (g.spike) { ctx.beginPath(); warpLine(g.spike.a, g.spike.b); ctx.strokeStyle = COL[TOWERS.sol.color]; ctx.globalAlpha = 0.9 * fa; ctx.lineWidth = g.spike.w; ctx.stroke(); }
-  ctx.lineWidth = g.lw;
+  // PERF (2026-10-09): each face ONE fill of its layers blended up front (background, colour, frost - source-over
+  // is associative, so it is the same colour), and the edges stroked once for the whole die: the outline (an edge of
+  // one face) once, the inner edges (shared by two faces) as their two strokes blended
+  ctx.lineWidth = g.lw; ctx.globalAlpha = 1;
+  const touched = [];
   for (const F of g.faces) {
     if (band && (F.hi < band.lo || F.lo > band.hi)) continue;
     if (!warpPath(F.poly3)) continue; // clipped to the slice being drawn (aspira-fog.js)
-    ctx.globalAlpha = fa; ctx.fillStyle = COL.bg; ctx.fill();
     const fA = F.fA * fa;
-    ctx.globalAlpha = fA; ctx.fillStyle = col; ctx.fill();
-    if (frz) { ctx.globalAlpha = fA * frz; ctx.fillStyle = COL.cyan; ctx.fill(); }
-    warpEdges(F.poly3); ctx.globalAlpha = 0.9 * fa; ctx.strokeStyle = col; ctx.stroke();
-    if (frz) { ctx.globalAlpha = 0.9 * fa * frz; ctx.strokeStyle = COL.cyan; ctx.stroke(); }
+    ctx.fillStyle = blendFill([[COL.bg, fa], [col, fA], [COL.cyan, fA * frz]]); ctx.fill();
+    touched.push(F);
+  }
+  if (touched.length) {
+    const sa = 0.9 * fa, edges = new Map();
+    for (const F of touched) F.poly3.forEach((v, i) => { const w = F.poly3[(i + 1) % F.poly3.length], k = edgeKey(v, w); edges.set(k, edges.has(k) ? [v, w, 2] : [v, w, 1]); });
+    for (const n of [1, 2]) {
+      ctx.beginPath(); let any = false;
+      for (const [v, w, c] of edges.values()) if (c === n) { warpLine(v, w); any = true; }
+      if (!any) continue;
+      const one = [[col, sa], [COL.cyan, sa * frz]];
+      ctx.strokeStyle = blendFill(n === 1 ? one : one.concat(one)); ctx.stroke();
+    }
   }
   ctx.globalAlpha = 1;
 }
