@@ -248,12 +248,12 @@ function drawScaleBar() {
 const STAR_LEVELS = 24;
 function drawStars(at) {
   const now = performance.now() / 1000, red = starRed(); // reddening before a boss (aspira-bosses.js)
-  const lv = Array.from({ length: STAR_LEVELS + 1 }, () => []);
+  const lv = Array.from({ length: STAR_LEVELS + 1 }, () => []), W = ctx.canvas.width, Hh = ctx.canvas.height;
   STARS.forEach((st, i) => {
     const rate = 0.6 + ((i * 0.618) % 1) * 1.8, ph = (i * 2.399) % 6.283;
     const tw = 0.5 + 0.5 * Math.sin(now * rate + ph), a = Math.min(1, 0.25 + st.m * 0.3) * (0.35 + 0.65 * tw);
     const P = at ? at(st.x, st.y, i) : { x: st.x, y: st.y, k: 1 };
-    if (!(P.k > 0)) return;
+    if (!(P.k > 0) || (at && (P.x < -4 || P.y < -4 || P.x > W + 4 || P.y > Hh + 4))) return; // (3D: off the view, skipped)
     lv[Math.round(a * STAR_LEVELS)].push(P.x, P.y, st.m * (0.85 + 0.15 * tw) * P.k);
   });
   // white fading into Ember (the palette's red) as `red` goes 0 -> 1
