@@ -695,7 +695,8 @@
 /* 3D (aspira-warp.js): the 2D canvas still draws and takes every touch, unseen; the spire is drawn over it and lets touches through */
 #asp.asp-3d #asp-cv { opacity: 0; }
 #asp-gl { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; background: hsl(var(--bg-hsl)); }
-#asp:not(.asp-3d) #asp-gl { display: none; }
+#asp-ent { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; } /* 3D: the towers, core and enemies, flat over the bell */
+#asp:not(.asp-3d) #asp-gl, #asp:not(.asp-3d) #asp-ent { display: none; }
 
 /* the checkbox glyph BIGGER than its label (owner), centred on it (inline-flex above) */
 .asp-box { display: block; width: var(--space-7); height: var(--space-7); fill: none; stroke: currentcolor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }

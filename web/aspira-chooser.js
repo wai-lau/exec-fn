@@ -160,14 +160,16 @@ function chooseBuild(i) {
 // FIRST LOAD (owner): until the first tower stands, a bobbing white TRIANGLE
 // points down at the topmost free slot - "tap here to build" (was an arrow)
 const ARROW_GAP = 26, ARROW_BOB = 10, ARROW_W = 16, ARROW_H = 20;
-function drawSlotArrow() {
+function drawSlotArrow(at = (c, fn) => fn()) { // at: 3D draws it flat at the slot's point (warpEntities)
   let c = null;
   // the TOP-LEFT free slot (owner): topmost, then leftmost
   CELLS.forEach((cell, ci) => { if (cellOpen(ci) && canPlace(ci) && (!c || cell.y < c.y - 1 || (Math.abs(cell.y - c.y) <= 1 && cell.x < c.x))) c = cell; });
   if (!c) return;
   const tip = c.y - ARROW_GAP + ARROW_BOB * Math.sin(performance.now() / 220);
-  ctx.fillStyle = COL.white; ctx.globalAlpha = 1;
-  ctx.beginPath(); ctx.moveTo(c.x, tip); ctx.lineTo(c.x - ARROW_W, tip - ARROW_H); ctx.lineTo(c.x + ARROW_W, tip - ARROW_H); ctx.closePath(); ctx.fill();
+  at(c, () => {
+    ctx.fillStyle = COL.white; ctx.globalAlpha = 1;
+    ctx.beginPath(); ctx.moveTo(c.x, tip); ctx.lineTo(c.x - ARROW_W, tip - ARROW_H); ctx.lineTo(c.x + ARROW_W, tip - ARROW_H); ctx.closePath(); ctx.fill();
+  });
 }
 
 // THE SPEND BAR (owner, 2026-10-06): on EVERY screen that spends money - the

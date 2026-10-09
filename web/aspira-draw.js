@@ -144,7 +144,7 @@ function drawGraticuleLive() {
 function drawBoard() {
   drawGraticule();
   drawLanes();
-  drawCells(); if (!G.towers.length && !ui.build) drawSlotArrow(); // slot outlines (owner); before the first tower an arrow points at one (aspira-chooser.js)
+  if (!q3d()) { drawCells(); if (!G.towers.length && !ui.build) drawSlotArrow(); } // slot outlines (3D: flat, warpEntities) (owner); before the first tower an arrow points at one (aspira-chooser.js)
 }
 
 // the core: a solid white hexagon (gently pulsing), lives in black on it -
@@ -243,9 +243,9 @@ function cellPath(c, k = 1) {
 // Shown while placing: every OPEN slot at full strength (owner: "fully show"),
 // free cells in the colour of the tower being placed (owner), occupied ones grey.
 const SLOT_POOR_A = 0.3; // a free slot's outline and price when the bank cannot cover a tower
-function drawCells() {
+function drawCells(at = (c, fn) => fn()) { // at: 3D draws each slot flat at its own point (warpEntities)
   ctx.lineWidth = 2;
-  CELLS.forEach((c, ci) => {
+  CELLS.forEach((c, ci) => at(c, () => {
     if (!cellOpen(ci)) return; // a corner slot shows once its wave opens it
     const free = canPlace(ci);
     // before the first tower the free slots FLASH (owner; the build buttons used to)
@@ -255,7 +255,7 @@ function drawCells() {
     const col = COL[TOWERS[ui.build].color];
     if (free) { ctx.fillStyle = col; ctx.globalAlpha = 0.15; ctx.fill(); }
     ctx.strokeStyle = free ? col : COL.grid; ctx.globalAlpha = free ? 0.8 : 0.4; ctx.stroke();
-  });
+  }));
   ctx.globalAlpha = 1;
 }
 
@@ -459,14 +459,16 @@ function drawScene([sx, sy], clipR) {
   drawAims();
   drawFx("shots");
   drawCoreFx(); // the core's struts and beams, under the towers (aspira-core.js)
-  ownColours(() => { drawSpokes(); for (const t of G.towers) drawTower(t); drawRelayArm(); }); // towers keep their colours on a boss sky (owner); an armed Relay rings them (aspira-powers.js)
+  // in 3D the towers, the core and the enemies are drawn FLAT over the bell instead (warpEntities, aspira-warp.js)
+  ownColours(() => { drawSpokes(); if (!q3d()) for (const t of G.towers) drawTower(t); drawRelayArm(); }); // towers keep their colours on a boss sky (owner); an armed Relay rings them (aspira-powers.js)
   drawSlotFlash(); // a corner slot that just opened (aspira-waves.js)
-  if (ui.build && ui.hover) drawPlacement();
-  drawCore();
-  drawCredits(); // ON the core, so after it (aspira-waves.js)
-  // ENEMIES over the towers and the core (owner)
-  for (const e of G.enemies) drawEnemy(e);
-  drawCoreHud(); // the core powers' dial, freeze, copy and halos, over everything (aspira-core-fx.js)
+  if (!q3d()) {
+    if (ui.build && ui.hover) drawPlacement();
+    drawCore();
+    drawCredits(); // ON the core, so after it (aspira-waves.js)
+    for (const e of G.enemies) drawEnemy(e); // ENEMIES over the towers and the core (owner)
+    drawCoreHud(); // the core powers' dial, freeze, copy and halos, over everything (aspira-core-fx.js)
+  }
   drawFx("text");
   if (bannerT > 0) {
     ctx.globalAlpha = Math.min(1, bannerT);
