@@ -268,8 +268,10 @@ function warpEntities() {
     // every POP-UP text over all of it (owner: "make sure all pop up text, like interest, is above the rendering"),
     // facing the camera (at) so it stays readable: damage numbers, the floating texts, the banner and the boss's title
     // and with NO perspective (owner: "no perspective effects on that"): at its spot, the board's plain scale
-    const pop = (x, y, fn) => { const P = warpProject(x, y), k = cam.k; ctx.setTransform(k, 0, 0, k, P.x - x * k, P.y - y * k); ctx.save(); fn(); ctx.restore(); };
-    drawFx("dmg", pop); drawFx("text", pop);
+    // - except the DAMAGE numbers, smaller the farther off (owner: "have them smaller if further away"): the perspective's
+    // size there, never its skew
+    const pop = (x, y, fn, far) => { const P = warpProject(x, y), k = cam.k * (far ? P.s : 1); ctx.setTransform(k, 0, 0, k, P.x - x * k, P.y - y * k); ctx.save(); fn(); ctx.restore(); };
+    drawFx("dmg", (x, y, fn) => pop(x, y, fn, true)); drawFx("text", pop);
     if (bannerT > 0) pop(CX, 70, () => { ctx.globalAlpha = Math.min(1, bannerT); text(bannerText, CX, 70, 30, bannerCol, true); ctx.globalAlpha = 1; });
     pop(CX, CY, drawBossTitle);
   };
