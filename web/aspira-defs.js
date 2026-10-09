@@ -174,6 +174,9 @@ function buildSpiral(i) {
   // stroking; the spiral is smooth enough that it does not show)
   const lit2d = new Path2D();
   pts.forEach((p, k) => { if (k === 0) lit2d.moveTo(p.x, p.y); else if (k % 2 === 0 || k === pts.length - 1) lit2d.lineTo(p.x, p.y); });
+  // the DRAWN lane runs on into the core's centre, so it ends UNDER the core, not at its rim (owner, 2026-10-09: "lane
+  // highlights need to end under core, not just near it") - the path the enemies walk still ends at R1
+  for (const d of [p2d, glow2d, lit2d]) d.lineTo(CX, CY);
   return { pts, len: acc, lead, turns, pace: 1, rim, ellip: stretch > 0, p2d, glow2d, lit2d };
 }
 
