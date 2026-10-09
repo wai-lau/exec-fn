@@ -47,17 +47,21 @@ const TYPE_COUNT_MUL = { swarm: 0.26 /* 2026-10-08 owner: half as many, double h
 const SWARM_MID_MUL = 2, SWARM_MID = [11, 60], SWARM_LATE_MUL = 1.5;
 const swarmMul = n => (n < SWARM_MID[0] ? 1 : n <= SWARM_MID[1] ? SWARM_MID_MUL : SWARM_LATE_MUL);
 const WAVE_COUNT_MUL = { 1: 2 }; // wave 1 DOUBLED (owner, 2026-10-09)
-function wavePlan(n, prev) {
-  // every STAR_EVERY-th wave is the boss, ALONE (owner, 2026-10-02)
-  if (n % STAR_EVERY === 0) return { type: "bonus", count: bossCount(n), split: bossSplit(n), star: true }; // the Lovers and Death come as two, the Devil as six (aspira-bosses.js)
-  const choices = UNLOCK.filter(t => t !== prev);
-  const type = WAVE_TYPE_FORCE[n] || (n <= UNLOCK.length ? UNLOCK[n - 1] : choices[Math.floor(fixedRand(n, 1) * choices.length)]);
+// how many of `type` a plain wave n brings (before the split onto lane copies) - wavePlan, and a boss's fleet (aspira-bosses.js)
+function waveCount(type, n) {
   const base = Math.min(10 + Math.floor(n * 0.5), 28);
   // swarms: 3x the bodies (owner); split k ways onto rotated lane copies
   // HALF the bodies at TWICE the health (owner, 2026-10-02)
   // x WAVE_COUNT_MUL[n]: waves 1-30 tuned so each comes about as close to the
   // core against one L1 tower of each kind (owner; scripts/aspira-sim/wavebal.mjs)
-  const raw = Math.max(1, Math.round((type === "swarm" ? base * 6 : base) / 2 * (WAVE_COUNT_MUL[n] ?? 1) * (TYPE_COUNT_MUL[type] ?? 1) * (type === "swarm" ? swarmMul(n) : 1))); // swarms 6x (owner: doubled from 3x)
+  return Math.max(1, Math.round((type === "swarm" ? base * 6 : base) / 2 * (WAVE_COUNT_MUL[n] ?? 1) * (TYPE_COUNT_MUL[type] ?? 1) * (type === "swarm" ? swarmMul(n) : 1))); // swarms 6x (owner: doubled from 3x)
+}
+function wavePlan(n, prev) {
+  // every STAR_EVERY-th wave is the boss, ALONE (owner, 2026-10-02)
+  if (n % STAR_EVERY === 0) return { type: "bonus", count: bossCount(n), split: bossSplit(n), star: true }; // the Lovers and Death come as two, the Devil as six (aspira-bosses.js)
+  const choices = UNLOCK.filter(t => t !== prev);
+  const type = WAVE_TYPE_FORCE[n] || (n <= UNLOCK.length ? UNLOCK[n - 1] : choices[Math.floor(fixedRand(n, 1) * choices.length)]);
+  const raw = waveCount(type, n);
   // split k ways, ROUNDED DOWN so every lane copy gets the same number (owner)
   const split = Math.min(raw, 1 + Math.floor(fixedRand(n, 3) * 6));
   return { type, count: Math.floor(raw / split) * split, split, star: n % STAR_EVERY === 0 };

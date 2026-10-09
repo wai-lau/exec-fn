@@ -89,6 +89,33 @@ function bossSpawn(e, n) {
   e.sizeMul = 1 + 0.1 * (ARCANA.findIndex(a => a.id === e.arcana) + 1);
   const mate = bossCount(n) === 2 && G.enemies.find(o => o !== e && !o.dead && o.arcana === e.arcana && o.n === n && !o.mate);
   if (mate) { mate.mate = e; e.mate = mate; }
+  bossFleet(e, n);
+}
+// each boss comes with a FLEET (owner, 2026-10-09: "each boss should come with a fleet of units, thematically" - then
+// "don't reduce boss hps", "don't add a huge fleet, maybe the equivalent of 1 wave"): ONE plain wave's worth of its
+// escort's types below (waveCount at that wave, plain HP and bounty), split among the bodies of a pair or the Devil's
+// six, ahead of and behind it on its lane, its own kin (the inverted sky holds till they die too). The Chariot's
+// outriders sprint when she does (bossStep)
+const FLEET = {
+  star: ["fast"], empress: ["shield"], strength: ["armor"], chariot: ["fast"], lovers: ["swarm"], // shooting stars, handmaidens, lions, outriders, couples
+  temperance: ["shield"], devil: ["swarm"], justice: ["armor"], judgement: ["swarm"], death: ["fast", "swarm", "armor", "shield"], // the cup, imps, guards, the risen, four horsemen
+};
+const FLEET_GAP = 14;
+function bossFleet(e, n) {
+  const kinds = FLEET[e.arcana];
+  if (!kinds) return;
+  e.fleet = [];
+  const bodies = bossCount(n);
+  let i = 0;
+  for (const k of kinds) {
+    const count = Math.max(1, Math.round(waveCount(k, n) / kinds.length / bodies));
+    for (let c = 0; c < count; c++, i++) {
+      spawnEnemy(k, n, e.pi, e.ang || 0);
+      const m = G.enemies[G.enemies.length - 1], step = Math.floor(i / 2) + 1;
+      m.s = Math.max(0, e.s + (i % 2 ? -1 : 1) * FLEET_GAP * step); // ahead, behind, ahead...
+      m.bossKin = true; m.fleetSpd = m.spd; e.fleet.push(m);
+    }
+  }
 }
 // each step, for a live boss: Empress's brood, the sprint, regeneration
 function bossStep(e, dt) {
@@ -106,6 +133,7 @@ function bossStep(e, dt) {
     e.sprintT -= dt;
     if (e.sprintT <= -CHARIOT_T) e.sprintT += CHARIOT_EVERY;
     e.spd = e.baseSpd * (e.sprintT <= 0 ? CHARIOT_SPD : 1);
+    for (const m of e.fleet || []) if (!m.dead) m.spd = m.fleetSpd * (e.sprintT <= 0 ? CHARIOT_SPD : 1); // the outriders keep pace
   }
   if (isA(e, "temperance")) { // regen banks fractions and heals in WHOLE points (HP stays a whole number)
     e.regenBuf = (e.regenBuf || 0) + e.max * TEMPERANCE_REGEN * dt;

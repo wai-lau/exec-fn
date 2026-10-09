@@ -309,8 +309,8 @@ const ENEMIES = {
   // swarms: twice as many again and faster (owner, 2026-10-02: 95 -> 125), the
   // bounty halved so a swarm wave pays what it did
   swarm:  { sides: 6 /* d6 (was 4) */, hp: 0.14, speed: ENEMY_BASE_SPEED, /* was 125 */ bounty: 0.18, size: 6, color: "white" },
-  shield: { sides: 5, pointy: 0.78 /* d10: ten corners, five of them a little in (was a plain pentagon) */, hp: 0.6,  speed: ENEMY_BASE_SPEED, /* was 37.5 */ bounty: 1.6, size: 13, color: "cyan", shield: 8 }, // owner 2026-10-02: less HP (0.9), more shield (5)
-  armor:  { sides: 4 /* d8 (was 7) */, hp: 1.0,  speed: ENEMY_BASE_SPEED, /* was 30 */ bounty: 2,   size: 15, color: "pink", armor: 12 }, // 2026-10-08: halved with all damage / HP (was 24) // owner: 6 -> 15; 2026-10-02 less HP (1.6), more armor (15)
+  shield: { sides: 4 /* d8 - swapped with armor (owner, 2026-10-09: "swap shield and armor shape"; was the d10) */, hp: 0.6,  speed: ENEMY_BASE_SPEED, /* was 37.5 */ bounty: 1.6, size: 13, color: "cyan", shield: 8 }, // owner 2026-10-02: less HP (0.9), more shield (5)
+  armor:  { sides: 5, pointy: 0.78 /* d10: ten corners, five of them a little in - swapped with shield (owner, 2026-10-09; was the d8) */, hp: 1.0,  speed: ENEMY_BASE_SPEED, /* was 30 */ bounty: 2,   size: 15, color: "pink", armor: 12 }, // 2026-10-08: halved with all damage / HP (was 24) // owner: 6 -> 15; 2026-10-02 less HP (1.6), more armor (15)
   // the rare BOSS (owner, 2026-10-02): every 10th wave, ALONE; an octagon,
   // x5 HP, x2 size, half speed (100 -> 50), and letting it through costs 10 lives. `star` still marks
   // it as the bonus (lane, tracer, drop); `pointy` would draw a star shape.
