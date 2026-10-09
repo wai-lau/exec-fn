@@ -31,7 +31,7 @@
 // camera pointed isometrically to the core"): the board stays FLAT (depth 0, head 1 - the funnel's knobs
 // left at rest), seen from 35.3 deg above it (tilt = atan(sqrt 2), the isometric elevation) through a lens
 // so long (fov 0.02) it is all but orthographic, centred on the core (anchor 0); the surface opaque again
-const WARP = { tilt: 0.55 /* owner: "much more top down instead" (was 0.9553, isometric), then "a little bit less top down" (was 0.4) */, fov: 0.9 /* owner: "increase size changes based on distance from camera" (was 0.02, near-orthographic); the scale AT the core is the same for any fov */, edge: [760, 840], depth: 0, pow: 2, zoom: 1, anchor: 0, alpha: 1, bgA: 1, prism: { tower: 6 /* a fresh tower and an empty slot (was 24) */, perPoint: 4, below: 1 /* centred on the plane (owner, was 3) */ } /* the core's height: towerH's sum / 6 + the tallest (warpEntities) */, head: 1, shoulder: 0.12, grid: { ring: 110, neck: 0, spokes: 24, far: 2400, a: 0, onBoard: 0.8 } }; // grid.a 0: no gravity-well grid (owner: "get rid of gravity well curvature indicators")
+const WARP = { tilt: 0.55 /* owner: "much more top down instead" (was 0.9553, isometric), then "a little bit less top down" (was 0.4) */, fov: 0.9 /* owner: "increase size changes based on distance from camera" (was 0.02, near-orthographic); the scale AT the core is the same for any fov */, edge: [760, 840], depth: 0, pow: 2, zoom: 1, anchor: 0, alpha: 1, bgA: 1, prism: { tower: 18 /* a fresh tower (was 24, then 6; owner: "triple heights of towers and core") */, slot: 6, perPoint: 12, below: 1 /* centred on the plane (owner, was 3) */ } /* the core's height: towerH's sum / 6 + the tallest (warpEntities) */, head: 1, shoulder: 0.12, grid: { ring: 110, neck: 0, spokes: 24, far: 2400, a: 0, onBoard: 0.8 } }; // grid.a 0: no gravity-well grid (owner: "get rid of gravity well curvature indicators")
 // the tower ring's outer edge, world units from the core: the plateau the towers stand on
 const WARP_TOWERS = Math.max(...CELLS.map(c => Math.hypot(c.x - CX, c.y - CY))) + CELL_S * 1.5;
 const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, p: null, ent: null };
@@ -244,8 +244,8 @@ function warpEntities() {
     });
     CELLS.forEach((c, ci) => {
       if (!cellOpen(ci) || G.towers.some(t => t.cell === ci)) return;
-      const hh = WARP.prism.tower / 2;
-      solids.push({ x: c.x, y: c.y, h: WARP.prism.tower, col: ui.build && canPlace(ci) ? COL[TOWERS[ui.build].color] : COL.white, dash: true,
+      const hh = WARP.prism.slot / 2;
+      solids.push({ x: c.x, y: c.y, h: WARP.prism.slot, col: ui.build && canPlace(ci) ? COL[TOWERS[ui.build].color] : COL.white, dash: true,
         pts: c.pts.map(p => ({ x: c.x + (p.x - c.x) * TOWER_K, y: c.y + (p.y - c.y) * TOWER_K })),
         top: () => { up(c.x, c.y, cellDraw.get(c), hh); if (!G.towers.length && !ui.build) drawSlotArrow((cc, fn) => (cc === c ? up(c.x, c.y, fn, hh) : null)); } });
     });
