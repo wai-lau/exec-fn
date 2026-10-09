@@ -46,7 +46,7 @@ const SOLIDS = (() => {
     bonus: { V: nose(unit(ico), 0), F: facesByEdge(ico, 3, 2) },
   };
 })();
-const SOLID_ROLL = 10, SOLID_FAR_MIN = 0.2; // ROLL: size x this per radian (owner: "reduce rotation rate by 10x", was 1)
+const SOLID_ROLL = 10, SOLID_FAR_MIN = 0.2, SOLID_BREACH_LEN = 0.25, SOLID_BREACH_W = 0.15; // BREACH_*: the spike's half length (x size) and width (px) added per stack // ROLL: size x this per radian (owner: "reduce rotation rate by 10x", was 1)
 
 // the die's size (drawEnemy's)
 const solidSize = e => { const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max); return d.size * (e.arcana ? f : 0.45 + 0.55 * f) * (e.sizeMul || 1); };
@@ -74,6 +74,15 @@ function warpSolid(e) {
   const scr = ([x, y, z]) => [P.x + k * x * size, P.y + k * (p.c * y * size - p.s * z * size)];
   const col = COL[e.slowT > 0 ? "cyan" : d.color];
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.lineJoin = "round"; ctx.lineWidth = (e.armor ? 2.2 : 1.2) * cam.k;
+  // BREACH in 3D (owner, 2026-10-09: "breach effect should look like vertical spoke going through the enemy center of
+  // mass, increasing in size the more breach"): one upright spike through the die's centre, longer and thicker per stack
+  // (to BREACH_SPOKES), drawn before the faces so the die hides its middle
+  if (e.bleedCrit > 0) {
+    const n = Math.min(BREACH_SPOKES, Math.max(1, e.breachN || 1)), L = size * (1.3 + SOLID_BREACH_LEN * n);
+    const [x0, y0] = scr([0, 0, -L / size]), [x1, y1] = scr([0, 0, L / size]);
+    ctx.beginPath(); warpLine({ x: x0, y: y0, z: -L }, { x: x1, y: y1, z: L });
+    ctx.strokeStyle = COL[TOWERS.sol.color]; ctx.globalAlpha = 0.9 * fa; ctx.lineWidth = (1.2 + SOLID_BREACH_W * n) * cam.k; ctx.stroke();
+  }
   for (const face of S.F) {
     const n = [0, 1, 2].map(i => face.reduce((m, v) => m + R[v][i], 0) / face.length), nl = Math.hypot(...n);
     if (n[1] * p.s + n[2] * p.c <= 0) continue; // turned away from the camera
