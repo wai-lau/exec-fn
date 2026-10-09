@@ -222,7 +222,8 @@ function warpEntities() {
     drawFx("shots", up, (x, y) => warpProject(x, y)); // beams straight between their ends, the rest flat at their spots
     drawCells(atCell); if (!G.towers.length && !ui.build) drawSlotArrow(atCell); // the slots too, flat
     if (ui.build && ui.hover) up(ui.hover.x, ui.hover.y, drawPlacement);
-    for (const e of G.enemies) up(e.x, e.y, () => drawEnemy(e));
+    for (const e of G.enemies) up(e.x, e.y, () => drawEnemy(e, true)); // tracers, shields and marks flat on the floor
+    for (const e of [...G.enemies].sort((a, b) => a.y - b.y)) warpSolid(e); // the bodies as real dice, the farthest first (aspira-solids.js)
     // the towers and the core STAND UP as hexagonal prisms (owner: "core taller than towers"), the farthest
     // first, each one's usual drawing on its raised top; over the enemies, which walk on the floor
     const solids = G.towers.map(t => {
@@ -240,7 +241,20 @@ function warpEntities() {
     // the floating texts alone still face the camera (at), so they stay readable
     drawFx("text", at);
   };
-  try { if (bossInv.full) withPalette(all); else all(); } finally { ctx = main; }
+  // the BOSS SKY's inversion is the TOP LAYER (owner: "color inversion is broken, have it as the top layer"): this canvas
+  // carries the bell's picture under everything it draws, and the sky's circle - projected onto the floor, the whole
+  // view once it is full - is laid over all of it as a DIFFERENCE with white. So no sprite is drawn in the
+  // inverted palette any more, and the bell's own picture is plain (the shader turns the 2D sky back)
+  try {
+    ctx.drawImage(warp.cv, 0, 0);
+    all();
+    if (bossInv.phase !== "off" && (bossInv.full || bossInv.r > 1)) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = "difference"; ctx.fillStyle = COL.white; ctx.beginPath();
+      if (bossInv.full) ctx.rect(0, 0, c.width, c.height);
+      else for (let i = 0; i < 64; i++) { const a = i * Math.PI / 32, Q = warpProject(bossInv.x + Math.cos(a) * bossInv.r, bossInv.y + Math.sin(a) * bossInv.r, 0); if (i) ctx.lineTo(Q.x, Q.y); else ctx.moveTo(Q.x, Q.y); }
+      ctx.fill(); ctx.globalCompositeOperation = "source-over";
+    }
+  } finally { ctx = main; }
 }
 // one hexagonal PRISM's walls: its floor hex `pts` raised `h` world units, the walls farthest first, each
 // filled with the background and tinted by how squarely it faces the camera, its edges in the colour
