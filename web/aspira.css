@@ -707,7 +707,9 @@
 
 /* every LIVE wave's row: one unbroken light white band (owner); every cell
    stretches to the row's full height, its text centred in it */
-.asp-wavenote > .asp-cur { background: hsl(var(--white-hsl) / 0.12); }
+/* the live waves' box (aspira-wavelist.js): one rounded green outline over their rows, out of the grid's flow */
+.asp-wavenote { position: relative; }
+.asp-wavenote > .asp-curbox { position: absolute; inset: 0; grid-column: 1 / -1; margin: calc(-1 * var(--space-0-5)) 0; border: 1px solid hsl(var(--green-hsl)); border-radius: var(--radius-2); }
 .asp-wavenote > span { display: flex; align-items: center; align-self: stretch; }
 
 /* the skill chart on a chart tower's TOWER card (aspira-sliders.js): a

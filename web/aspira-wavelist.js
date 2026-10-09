@@ -91,7 +91,7 @@ function updateWaveList() {
   // WAVE_SPAN_PHONE on a phone (to clear the build buttons)
   const span = matchMedia("(width < 700px)").matches ? WAVE_SPAN_PHONE : WAVE_SPAN;
   let note = "";
-  for (const { n, w, boss, hp, alive, cur } of rows) {
+  for (const { n, w, boss, hp, alive } of rows) {
     // rows LEFT-ALIGNED at their natural size (owner: not justified); a row too
     // long for the fixed width `span` TESSELLATES into 2, then 3 staggered rows
     // (waveBand), overlapping only past that. The box is always `span` wide, so
@@ -100,16 +100,21 @@ function updateWaveList() {
     let icons = boss
       ? '<span class="asp-bline"></span>' + enemyIcon(w.type, px, 2).repeat(w.count - 1) + enemyIcon(w.type, px, 0) + '<span class="asp-bline"></span>'
       : waveBand(w.type, w.count, px, span, alive);
-    const c = cur ? ' class="asp-cur"' : ""; // a live wave: one unbroken light white band across its row (owner)
     // the INCOMING wave carries its countdown to its right, "15s" (owner; was a
     // "next wave in" line above the list): after the name, or on a phone (names
     // hidden) just right of the icons
     const eta = n === G.wave + 1 && G.started && !bossUp() && !bossNext() ? Math.ceil(Math.max(0, G.nextIn)) + "s" : "";
     // NO wave numbers (owner, 2026-10-06): the first column holds the incoming
     // wave's countdown, LEFT of its row (was after its name); the ":" column is empty
-    note += "<span" + c + ">" + (eta ? '<span class="asp-eta">' + eta + "</span>" : "") + "</span><span" + c + "></span>" +
-      '<span class="asp-dots e-' + ENEMIES[w.type].color + (boss ? " e-boss" : "") + (cur ? " asp-cur" : "") + '" style="width:' + span + 'px">' + icons + "</span>" +
-      "<span" + c + ">" + (boss ? "<b>" + arcanaOf(n).name + "</b>" : w.type) + "</span>"; // boss names BOLD (owner)
+    note += "<span>" + (eta ? '<span class="asp-eta">' + eta + "</span>" : "") + "</span><span></span>" +
+      '<span class="asp-dots e-' + ENEMIES[w.type].color + (boss ? " e-boss" : "") + '" style="width:' + span + 'px">' + icons + "</span>" +
+      "<span>" + (boss ? "<b>" + arcanaOf(n).name + "</b>" : w.type) + "</span>"; // boss names BOLD (owner)
   }
+  // the waves still ALIVE (and the current one) sit at the top: ONE rounded green box round them all
+  // (owner, 2026-10-09: "replace the current wave highlight with a single rounded green rectangle";
+  // was a white band on each row). Placed on the grid's rows but out of the flow, and LAST so the
+  // columns' nth-child rules still count four cells a row
+  const curRows = rows.filter(r => r.cur).length;
+  if (curRows) note += '<i class="asp-curbox" style="grid-row:1 / ' + (curRows + 1) + '"></i>';
   if (note !== lastNote) { $("asp-wavenote").innerHTML = note; lastNote = note; } // innerHTML re-reads normalised, so compare the source
 }
