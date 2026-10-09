@@ -222,7 +222,7 @@ function warpEntities() {
     drawFx("shots", up, (x, y) => warpProject(x, y)); // beams straight between their ends, the rest flat at their spots
     drawCells(atCell); if (!G.towers.length && !ui.build) drawSlotArrow(atCell); // the slots too, flat
     if (ui.build && ui.hover) up(ui.hover.x, ui.hover.y, drawPlacement);
-    for (const e of G.enemies) up(e.x, e.y, () => drawEnemy(e, true)); // tracers, shields and marks flat on the floor
+    for (const e of G.enemies) up(e.x, e.y, () => drawEnemy(e, true), e.dead ? 0 : solidSize(e)); // tracers, shields and marks flat, at the die's centre height
     for (const e of [...G.enemies].sort((a, b) => a.y - b.y)) warpSolid(e); // the bodies as real dice, the farthest first (aspira-solids.js)
     // the towers and the core STAND UP as hexagonal prisms (owner: "core taller than towers"), the farthest
     // first, each one's usual drawing on its raised top; over the enemies, which walk on the floor
