@@ -213,12 +213,16 @@ function drawScaleBar() {
 }// Stars TWINKLE (owner): each one's brightness breathes on its own rate and
 // phase (fixed per star from its index, so the field never reshuffles), on
 // real time so it keeps going while paused. Colour never changes.
-function drawStars() {
+// at: the 3D view's placer (warpEntities) - each star a ROUND dot at its projected spot, sized by the
+// perspective there, never stretched with the floor (owner, 2026-10-09: "stars in bg should not get distorted")
+function drawStars(at) {
   const now = performance.now() / 1000, red = starRed(); // reddening before a boss (aspira-bosses.js)
   STARS.forEach((st, i) => {
     const rate = 0.6 + ((i * 0.618) % 1) * 1.8, ph = (i * 2.399) % 6.283;
     const tw = 0.5 + 0.5 * Math.sin(now * rate + ph), a = Math.min(1, 0.25 + st.m * 0.3) * (0.35 + 0.65 * tw);
-    ctx.beginPath(); ctx.arc(st.x, st.y, st.m * (0.85 + 0.15 * tw), 0, 6.283);
+    const P = at ? at(st.x, st.y) : { x: st.x, y: st.y, k: 1 };
+    if (!(P.k > 0)) return;
+    ctx.beginPath(); ctx.arc(P.x, P.y, st.m * (0.85 + 0.15 * tw) * P.k, 0, 6.283);
     // white fading into Ember (the palette's red) as `red` goes 0 -> 1
     if (red < 1) { ctx.fillStyle = COL.white; ctx.globalAlpha = a * (1 - red); ctx.fill(); }
     if (red > 0) { ctx.fillStyle = COL.glow; ctx.globalAlpha = a * red; ctx.fill(); }

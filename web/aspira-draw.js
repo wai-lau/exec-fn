@@ -459,7 +459,7 @@ function drawScene([sx, sy], clipR) {
   for (const t of G.towers) if (t !== sel) drawTowerRange(t, true);
   if (sel) drawTowerRange(sel, false);
   // stars go on top of lanes and range fills, which would otherwise tint them
-  if (!lowQ) drawStars(); // low quality: no star field
+  if (!lowQ && !q3d()) drawStars(); // low quality: no star field; 3D: round, on the overlay (warpEntities)
   drawTethers();
   drawAcd();
   drawAims();

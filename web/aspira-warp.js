@@ -210,6 +210,8 @@ function warpProjectV(px, py, hAt) {
 // the TOWERS, the CORE and the ENEMIES, flat, each at its projected point (owner: "drawn separately,
 // as if on a flat plane"): the usual draw calls on a 2D canvas over the bell, each under a transform
 // that puts its world point on the projected one at the perspective's scale
+// a background star's spot on the screen, its size by the perspective there (drawStars, aspira-lanes.js)
+const warpStar = (x, y) => { const P = warpProject(x, y, 0); return { x: P.x, y: P.y, k: cam.k * P.s }; };
 function warpEntities() {
   if (!warp.ent) {
     const c = document.createElement("canvas");
@@ -269,7 +271,7 @@ function warpEntities() {
     // BELOW the floor, fading slice by slice, then the tracers and marks on it, then ABOVE (aspira-fog.js; owner: "geometry
     // should just start losing opacity in a gradient when lower than the floor")
     warp.coreWalls = coreWallPieces(); // once a frame (it keeps the life segments in step)
-    warpBands(above => { if (above) for (const e of G.enemies) up(e.x, e.y, () => drawEnemy(e, true)); drawDice(); drawSolids(above); }, () => { warpLanesOver(); warpShieldLines(warp.coreWalls, COL.white, 1); for (const { w, col } of dice) if (w.length) warpShieldLines(w, col, 0.8); }); // the shields: lines on the floor, with the lanes // (the tracers and marks: flat on the floor, through the die's centre)
+    warpBands(above => { if (above) for (const e of G.enemies) up(e.x, e.y, () => drawEnemy(e, true)); drawDice(); drawSolids(above); }, () => { warpLanesOver(); if (!lowQ) { ctx.setTransform(1, 0, 0, 1, 0, 0); drawStars(warpStar); } warpShieldLines(warp.coreWalls, COL.white, 1); for (const { w, col } of dice) if (w.length) warpShieldLines(w, col, 0.8); }); // the shields: lines on the floor, with the lanes // (the tracers and marks: flat on the floor, through the die's centre)
     // every POP-UP text over all of it (owner: "make sure all pop up text, like interest, is above the rendering"),
     // facing the camera (at) so it stays readable: damage numbers, the floating texts, the banner and the boss's title
     // and with NO perspective (owner: "no perspective effects on that"): at its spot, the board's plain scale
