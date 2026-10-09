@@ -34,7 +34,8 @@ function ndvSealCaption() {
   // framed it went 2026-10-03: jargon beside the one thing to do, type a name)
   ndv$('nd-seal-row').hidden = !name;
   // the passphrase is a choice for a new name, and the key to an existing one
-  ndv$('nd-pass-label').textContent = 'passphrase (' + (NDV.held ? 'required' : 'optional') + ')';
+  // (owner, 2026-10-08: a held name's reads "to prove you are <name>", not "(required)")
+  ndv$('nd-pass-label').textContent = NDV.held ? 'passphrase to prove you are ' + name : 'passphrase (optional)';
   ndvWarnEmpty();   // who you are decides what the empty-passphrase warning says
 }
 
