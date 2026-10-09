@@ -3,6 +3,8 @@
 // enemies as one icon each sized by HP (tessellating when long), the name.
 // UI only; loaded before aspira-ui.js, whose updateHud calls updateWaveList.
 const WAVE_ROWS = 10, WAVE_DEAD_A = 0.18, WAVE_ICON = [5, 18], WAVE_SPAN = 110, WAVE_SPAN_PHONE = 95, SWARM_MIN = 4, WAVE_ROW_H = 22, WAVE_BOSS_PX = 22; // WAVE_ROW_H: every row's height (owner: consistent) // SWARM_MIN: the smallest tessellated diamond box (px); a boss's icon, always the biggest // the upcoming-wave icons' size range (px); rows up to this many never overlap
+// the list's headings: the boxed live waves, then the rest (owner, 2026-10-09)
+const WAVE_HEAD = { now: "current wave", next: "upcoming waves" };
 
 // the enemy itself (owner): the same polygon the board draws (poly() in
 // aspira-draw.js), as a small inline SVG in the type's colour
@@ -90,8 +92,15 @@ function updateWaveList() {
   // every row is the SAME FIXED width, wave after wave (owner): WAVE_SPAN, or
   // WAVE_SPAN_PHONE on a phone (to clear the build buttons)
   const span = matchMedia("(width < 700px)").matches ? WAVE_SPAN_PHONE : WAVE_SPAN;
-  let note = "";
+  // the list's two HEADINGS (owner, 2026-10-09: "move upcoming waves to below the rectangle and above
+  // it show current wave"): the one above the list names the boxed live waves; "upcoming waves" then
+  // heads the rest INSIDE the grid, a full-width cell padded with three hidden ones so the columns'
+  // nth-child rules still count four cells a row
+  const curRows = rows.filter(r => r.cur).length;
+  $("asp-wavelabel").textContent = curRows ? WAVE_HEAD.now : WAVE_HEAD.next;
+  let note = "", i = 0;
   for (const { n, w, boss, hp, alive } of rows) {
+    if (curRows && i++ === curRows) note += '<span class="asp-wavelabel asp-wavesub">' + WAVE_HEAD.next + "</span>" + "<i hidden></i>".repeat(3);
     // rows LEFT-ALIGNED at their natural size (owner: not justified); a row too
     // long for the fixed width `span` TESSELLATES into 2, then 3 staggered rows
     // (waveBand), overlapping only past that. The box is always `span` wide, so
@@ -114,7 +123,6 @@ function updateWaveList() {
   // (owner, 2026-10-09: "replace the current wave highlight with a single rounded green rectangle";
   // was a white band on each row). Placed on the grid's rows but out of the flow, and LAST so the
   // columns' nth-child rules still count four cells a row
-  const curRows = rows.filter(r => r.cur).length;
   if (curRows) note += '<i class="asp-curbox" style="grid-row:1 / ' + (curRows + 1) + '"></i>';
   if (note !== lastNote) { $("asp-wavenote").innerHTML = note; lastNote = note; } // innerHTML re-reads normalised, so compare the source
 }
