@@ -215,6 +215,7 @@ function warpEntities() {
   const atCell = (cell, fn) => up(cell.x, cell.y, fn);
   const all = () => {
     drawFx("dmg", at); // damage numbers flat too (owner), under everything as in 2D
+    drawFx("shots", (x, y, fn, f) => (WARP_SPHERE[f.k] ? warpSphere(f) : up(x, y, fn)), (x, y) => warpProject(x, y)); // beams straight between their ends; rings, hits, blasts and flashes as SPHERES; the rest flat at their spots
     drawCells(atCell); if (!G.towers.length && !ui.build) drawSlotArrow(atCell); // the slots too, flat
     ownColours(() => { for (const t of G.towers) up(t.x, t.y, () => drawTower(t)); });
     if (ui.build && ui.hover) up(ui.hover.x, ui.hover.y, drawPlacement);
@@ -224,6 +225,23 @@ function warpEntities() {
     drawFx("text", at);
   };
   try { if (bossInv.full) withPalette(all); else all(); } finally { ctx = main; }
+}
+// every RING in 3D is a SPHERE (owner: "turn all rings into spheres"): a ring, a hit, a blast or a flash
+// becomes a lit ball at its spot, facing the camera, as big as the ring then is (its own growth curve)
+const WARP_SPHERE = {
+  ring: (f, k) => f.r * (1 - k * 0.5), hit: (f, k) => f.r * (0.5 + 0.5 * (1 - k)),
+  blast: (f, k) => f.r * (0.85 + 0.15 * (1 - k)), flash: (f, k) => f.r * (1.3 - 0.3 * k),
+};
+function warpSphere(f) {
+  const k = 1 - f.t / f.life, P = warpProject(f.x, f.y), r = WARP_SPHERE[f.k](f, k) * cam.k * P.s;
+  if (!(r > 0.5)) return;
+  const col = f.k === "flash" ? COL.white : COL[f.color] || COL.white;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = Math.min(1, k * 2) * (f.a ?? 1) * (f.k === "hit" ? 0.7 : 0.55);
+  // lit from the upper left: a white highlight, the colour, then a dark rim
+  const g = ctx.createRadialGradient(P.x - r * 0.35, P.y - r * 0.35, r * 0.05, P.x, P.y, r);
+  g.addColorStop(0, COL.white); g.addColorStop(0.35, col); g.addColorStop(1, COL.bg);
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(P.x, P.y, r, 0, 6.283); ctx.fill();
 }
 // a screen point (2D canvas device px) back to the canvas spot drawn there:
 // march the eye's ray down to the bell, then bisect. null off it.

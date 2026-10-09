@@ -314,19 +314,23 @@ const TWIN_GAP = 3.5; // Charge's parallel beams sit 2 x this apart
 // Passes: "dmg" = damage numbers (`under` text), drawn right over the
 // background beneath everything else (owner); "shots" = beams/rings/sparks;
 // "text" = every other floating text, on top.
-function drawFx(pass, at = (x, y, fn) => fn()) { // at: 3D draws each floating text flat over the bell (warpEntities)
+// at / map (3D, warpEntities): each effect drawn flat at its spot; a beam STRAIGHT between its projected ends (owner: "make beams 3d and ignore the curvature")
+function drawFx(pass, at = (x, y, fn) => fn(), map = null) {
   for (const f of fx) {
     const kind = f.k !== "text" ? "shots" : f.under ? "dmg" : "text";
     if (kind !== pass || f.t >= f.life || (lowQ && (kind === "dmg" || LOW_SKIP_FX[f.k]))) continue; // a retired damage number (dmgNumber) is not drawn; low quality skips the decoration
     // full strength for the first half of the effect's life, then fade out
     const k = 1 - f.t / f.life;
     ctx.globalAlpha = Math.min(1, k * 2);
+    const one = () => {
     if (f.k === "beam") {
       ctx.globalAlpha = Math.min(1, ctx.globalAlpha * (f.alpha ?? 1) * BEAM_BRIGHT); // ARC: an arc as opaque as its damage share; x BEAM_BRIGHT (owner)
       // glow underlay + core, both widening with the damage behind the shot
       ctx.strokeStyle = COL[f.color]; ctx.lineCap = "round";
       // a following beam reads its endpoints live from the tower/enemy it joins
       const x1 = f.a ? f.a.x : f.x1, y1 = f.a ? f.a.y : f.y1, x2 = f.b ? f.b.x : f.x2, y2 = f.b ? f.b.y : f.y2;
+      const pt = (x, y) => (map ? map(x, y) : { x, y, s: 1 }), B = pt(x2, y2), ws = map ? cam.k * (pt(x1, y1).s + B.s) / 2 : 1;
+      if (map) ctx.setTransform(1, 0, 0, 1, 0, 0); // device px: the ends are already projected
       ctx.beginPath();
       if (f.beams > 1) {
         // Charge / Quad / Horizon: n beams, 2 x TWIN_GAP apart at the tower,
@@ -334,12 +338,12 @@ function drawFx(pass, at = (x, y, fn) => fn()) { // at: 3D draws each floating t
         const len = Math.hypot(x2 - x1, y2 - y1) || 1, px = -(y2 - y1) / len, py = (x2 - x1) / len;
         for (let i = 0; i < f.beams; i++) {
           const o = (i - (f.beams - 1) / 2) * 2 * TWIN_GAP;
-          ctx.moveTo(x1 + px * o, y1 + py * o); ctx.lineTo(x2, y2);
+          const A = pt(x1 + px * o, y1 + py * o); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y);
         }
-      } else { ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); }
+      } else { const A = pt(x1, y1); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); }
       // the core's width is the DAMAGE of this hit (owner: every tower) - a
       // multi-beam shot's beams each carry the whole hit (rayHit)
-      const core = (f.soft ? BEAM_MIN + (beamWidth(f.d || 0) - BEAM_MIN) * ARC_W_CORR : beamWidth(f.d || 0)) * (f.thin || 1); // (soft: a chart ARC's, flatter with damage - aspira-skills.js; thin: its leaps)
+      const core = (f.soft ? BEAM_MIN + (beamWidth(f.d || 0) - BEAM_MIN) * ARC_W_CORR : beamWidth(f.d || 0)) * (f.thin || 1) * ws; // (soft: a chart ARC's, flatter with damage - aspira-skills.js; thin: its leaps)
       if (f.m && !lowQ) { // low quality: the beam's core only, no glow passes
         const a = ctx.globalAlpha;
         if (f.slim) {
@@ -380,7 +384,7 @@ function drawFx(pass, at = (x, y, fn) => fn()) { // at: 3D draws each floating t
       gradDisc(CX, CY, Math.max(1, f.r * p), COL.white, 1 - p);
     } else if (f.k === "ring") {
       if (f.grad) { const a = ctx.globalAlpha; gradDisc(f.x, f.y, f.r * (1 - k * 0.5), COL[f.color], a); ctx.globalAlpha = a; }
-      if (f.outline === false) continue; // Zen's pulse: the gradient wave alone
+      if (f.outline === false) return; // Zen's pulse: the gradient wave alone
       ctx.strokeStyle = COL[f.color]; ctx.lineWidth = f.w || 2; if (f.a) ctx.globalAlpha *= f.a; // a: a fainter ring (Capacitance's burst)
       ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (1 - k * 0.5), 0, 6.283); ctx.stroke();
     } else if (f.k === "cone") {
@@ -396,6 +400,8 @@ function drawFx(pass, at = (x, y, fn) => fn()) { // at: 3D draws each floating t
       ctx.globalAlpha *= f.alpha ?? 1;
       at(f.x, f.y, () => text(f.text, f.x, f.y, f.size * g, f.color, f.outline));
     }
+    };
+    if (f.k === "beam" || f.k === "text" || !map) one(); else at(f.x ?? CX, f.y ?? CY, one, f);
   }
   ctx.globalAlpha = 1;
 }
@@ -457,7 +463,7 @@ function drawScene([sx, sy], clipR) {
   drawTethers();
   drawAcd();
   drawAims();
-  drawFx("shots");
+  if (!q3d()) drawFx("shots"); // (3D: warpEntities)
   drawCoreFx(); // the core's struts and beams, under the towers (aspira-core.js)
   // in 3D the towers, the core and the enemies are drawn FLAT over the bell instead (warpEntities, aspira-warp.js)
   ownColours(() => { drawSpokes(); if (!q3d()) for (const t of G.towers) drawTower(t); drawRelayArm(); }); // towers keep their colours on a boss sky (owner); an armed Relay rings them (aspira-powers.js)
