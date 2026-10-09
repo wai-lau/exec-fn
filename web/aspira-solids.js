@@ -41,10 +41,12 @@ const SOLIDS = (() => {
 })();
 const SOLID_LIGHT = unit([[-0.4, -0.5, 0.8]])[0], SOLID_ROLL = 1, SOLID_LEAN = 0.6; // light from up and back-left; ROLL: radians per (distance / size); LEAN: the resting tilt
 
+// the die's size (drawEnemy's): it hovers this high, so its flat tracer and marks ride at this height too
+const solidSize = e => { const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max); return d.size * (e.arcana ? f : 0.45 + 0.55 * f) * (e.sizeMul || 1); };
 // one enemy as its die: P its projected floor spot, k / c / s the local scale and the camera's lean
 function warpSolid(e) {
   if (e.dead || !SOLIDS[e.type]) return;
-  const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max), size = d.size * (e.arcana ? f : 0.45 + 0.55 * f) * (e.sizeMul || 1);
+  const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max), size = solidSize(e);
   if (!(size > 0.5)) return;
   const p = warp.p, P = warpProject(e.x, e.y), k = cam.k * P.s;
   // it ROLLS about its direction of travel (owner: "rotate about the axis of movement, proportional to move
