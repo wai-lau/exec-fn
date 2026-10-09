@@ -390,7 +390,10 @@ function slideLimits(c, kind, sl = 1) {
   const r0 = Math.hypot(c.x - CX, c.y - CY) || 1, rt = c.unlock ? r0 : TRAVEL_R0;
   const span = (slideOut(kind, rt, sl) + rt - innerR(c, rt, sl, kind)) * MOVE_SPAN;
   const min = (c.unlock ? CORNER_NEAR : NEAR_R) - r0;
-  return { r0, min, max: min + span };
+  // DOUBLED, through the centre (owner, 2026-10-09: "allow movement through the center ... double their movement range,
+  // keep their current starting positions"): the outer end stays, the inner end runs a whole span further in - past the
+  // core and out the other side when the span is longer than the slot's radius (an offset below -r0)
+  return { r0, min: min - span, max: min + span };
 }
 // the spoke: its unit direction, the slot's radius and how far it runs each way
 function spokeOf(t) {
