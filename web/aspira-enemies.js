@@ -10,7 +10,7 @@
 // whole Fast wave blurring would cost too much).
 // EVERY enemy trails one now, fast the longest after the star (owner, 2026-10-09: "give every enemy tracers,
 // fast longer ones"; fast was 48, the rest had none); a swarm's is short - there are hundreds
-const TRAIL = { bonus: 160, fast: 120, shield: 40, armor: 40 }, // swarm: none (owner: "remove tracers on swarm")
+const TRAIL = { bonus: 320, fast: 120, shield: 80, armor: 80 }, // swarm: none (owner: "remove tracers on swarm"); all but fast doubled (owner, 2026-10-09: "double length of all tracers except fast"; were 160 / 40 / 40)
   TRAIL_STEP = 6, TRAIL_ALPHA = 0.55;
 const BREACH_SPOKES = 24; // the most Breach spokes drawn on one enemy
 function drawStarTrail(e, size) {
