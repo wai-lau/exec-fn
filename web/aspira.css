@@ -175,6 +175,7 @@
   text-transform: uppercase;
   color: hsl(var(--orange-hsl));
 }
+.asp-title.asp-title-boss { color: hsl(var(--pink-hsl)); } /* a boss's name in the title spot while it is out (aspira-ui.js) */
 
 /* ONE row (owner): small type, tight gaps, never wrapping */
 .asp-stats { display: flex; flex-wrap: nowrap; gap: var(--space-3); font-size: var(--fs-2xs); font-variant-numeric: tabular-nums; white-space: nowrap; }

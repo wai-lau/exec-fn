@@ -317,7 +317,7 @@ function warpEntities() {
     const pop = (x, y, fn, far) => { const P = warpProject(x, y), k = cam.k * (far ? P.s : 1); ctx.setTransform(k, 0, 0, k, P.x - x * k, P.y - y * k); ctx.save(); fn(); ctx.restore(); };
     drawFx("dmg", (x, y, fn) => pop(x, y, fn, true)); drawFx("text", pop);
     if (bannerT > 0) pop(CX, 70, () => { ctx.globalAlpha = Math.min(1, bannerT); text(bannerText, CX, 70, 30, bannerCol, true); ctx.globalAlpha = 1; });
-    pop(CX, CY, drawBossTitle); pop(CX, CY, () => drawCredits("pop")); // (the interest pop-up too)
+    pop(CX, CY, () => drawCredits("pop")); // (the interest pop-up too)
   };
   // the BOSS SKY's inversion is the TOP LAYER (owner: "color inversion is broken, have it as the top layer"): this canvas
   // carries the bell's picture under everything it draws, and the sky's circle - projected onto the floor, the whole

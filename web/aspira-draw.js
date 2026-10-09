@@ -479,7 +479,6 @@ function drawScene([sx, sy], clipR) {
     text(bannerText, CX, 70, 30, bannerCol, true); // smaller (owner, 2026-10-06; was 44)
     ctx.globalAlpha = 1;
   }
-  if (!q3d()) drawBossTitle(); // the boss's name + subtitle, over the towers (owner)
   ctx.restore();
 }
 // the whole palette inverted while fn draws (invertColor keeps alpha); the
