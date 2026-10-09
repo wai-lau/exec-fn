@@ -70,8 +70,12 @@ function keepLit(node, left) {
   for (let n = node; n; n = n.up) n.fx.life = Math.max(n.fx.life, n.fx.t + left * BEAM_LIFE_MUL); // beams last longer (owner), the tree with them
 }
 // queue st.branch pending arcs out of `node`, one tree layer deeper
+// ARMOR GROUNDS THE ARC (2026-10-08, the counter table: ARC weak against armor): a chart ARC's arc that
+// strikes an ARMORED enemy (armor still above ARC_GROUND) stops there - no jumps on from it
+const ARC_GROUND = { at: 0 };
 function branchFrom(c, node, depth) {
   if (depth > c.st.layers) return;
+  if (c.skill && (node.e.armor || 0) > ARC_GROUND.at) return;
   keepLit(node, hopDelay(c.st) + 0.05); // stay lit until the children land
   for (let i = 0; i < c.st.branch; i++) (G.chains ||= []).push({ c, node, depth, wait: hopDelay(c.st) });
 }
