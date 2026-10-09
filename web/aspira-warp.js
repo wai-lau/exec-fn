@@ -314,6 +314,7 @@ function warpFrame(x, y, h) {
 }
 // one hexagonal PRISM's walls: its floor hex `pts` raised `h` world units, the walls farthest first, each
 // filled with the background and tinted by how squarely it faces the camera, its edges in the colour
+const WARP_PRISM_SLICES = 16, WARP_PRISM_GONE = 0.95; // GONE: the share of a prism's height, from its top, where it has faded out
 function warpPrism(o) {
   const pf = 1 - (1 - warpFade) * WARP_PRISM_FADE; // they fade less below the floor than the dice
   // CENTRED on the floor (owner: "their center is on the plane, not the bottom"): half below it, half above
@@ -330,14 +331,35 @@ function warpPrism(o) {
     for (let i = 0; i < n; i++) { warpLine(B[i], B[(i + 1) % n]); warpLine(B[i], T[i]); } // (the top ring is the slot's own outline, drawn on it)
     ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; return;
   }
+  // FADING DOWN its own height (owner, 2026-10-09: "towers should be 100% opaque at top, 0% 95% of the way down, same for
+  // core"): cut into WARP_PRISM_SLICES slices of its height, each at the opacity of its middle, inside the floor's slice
+  // being drawn (warpBands) - the floor's own fade is not applied on top
+  ctx.setLineDash([]); // (a tower's own drawing can leave one set)
+  const top = o.h / 2, end = top - WARP_PRISM_GONE * (o.h / 2 + o.h / 2 * WARP.prism.below), band = warpBand || { lo: -Infinity, hi: Infinity };
+  // its EDGES fade the same way, each upright stroked once with a gradient (sliced strokes looked dotted)
+  const at = (P, Q) => { const t = (top - end) / (P.z - Q.z); return { x: P.x + (Q.x - P.x) * t, y: P.y + (Q.y - P.y) * t }; };
   for (const w of walls.sort((a, b) => a.face - b.face)) { // +y faces the camera
     const quad = [B[w.i], B[w.j], T[w.j], T[w.i]];
-    if (!warpPath(quad)) continue;
-    ctx.globalAlpha = pf; ctx.fillStyle = COL.bg; ctx.fill();
-    ctx.globalAlpha = (0.12 + 0.28 * w.lit) * pf; ctx.fillStyle = o.col; ctx.fill(); // lit from the CORE (owner: "the light source should come from the core")
-    warpEdges(quad); ctx.globalAlpha = 0.8 * pf; ctx.strokeStyle = o.col; ctx.stroke();
+    for (let k = 0; k < WARP_PRISM_SLICES; k++) {
+      const hi = top - (top - end) * k / WARP_PRISM_SLICES, lo = top - (top - end) * (k + 1) / WARP_PRISM_SLICES;
+      if (lo >= band.hi || hi <= band.lo) continue;
+      warpBand = { lo: Math.max(lo, band.lo), hi: Math.min(k ? hi : Infinity, band.hi) };
+      if (!warpPath(quad)) continue;
+      const a = 1 - (k + 0.5) / WARP_PRISM_SLICES;
+      ctx.globalAlpha = a; ctx.fillStyle = COL.bg; ctx.fill();
+      ctx.globalAlpha = (0.12 + 0.28 * w.lit) * a; ctx.fillStyle = o.col; ctx.fill(); // lit from the CORE (owner: "the light source should come from the core")
+    }
+    // the edges whole, once, with the parts above the floor (stroked per floor slice they showed every cut as a gap)
+    warpBand = band; ctx.globalAlpha = 0.8;
+    if (band.lo > 0 || band.hi < Infinity) continue;
+    { ctx.beginPath(); ctx.moveTo(T[w.i].x, T[w.i].y); ctx.lineTo(T[w.j].x, T[w.j].y); ctx.strokeStyle = o.col; ctx.stroke(); }
+    for (const v of [w.i, w.j]) {
+      const E = at(T[v], B[v]), g = ctx.createLinearGradient(T[v].x, T[v].y, E.x, E.y);
+      g.addColorStop(0, o.col); g.addColorStop(1, "transparent");
+      ctx.beginPath(); ctx.moveTo(T[v].x, T[v].y); ctx.lineTo(E.x, E.y); ctx.strokeStyle = g; ctx.stroke();
+    }
   }
-  ctx.globalAlpha = 1;
+  warpBand = band.lo === -Infinity && band.hi === Infinity ? null : band; ctx.globalAlpha = 1;
 }
 // a screen point (2D canvas device px) back to the canvas spot drawn there:
 // march the eye's ray down to the bell, then bisect. null off it.
