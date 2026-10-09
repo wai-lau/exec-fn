@@ -171,7 +171,22 @@ function placeLabels(items) {
 }
 // Lit lanes are as bright as the share of their group still alive (owner:
 // alive / sent, from activeLanes) - no timed fade any more.
-function litLanes() { return [...activeLanes().values()]; }
+// a BOSS lane waits for its sky (owner, 2026-10-09: "boss lanes should fade in after inversion, and fade out before
+// inversion goes away"): it fades in over BOSS_LANE_FADE s once the inverted sky is full, and when the boss dies it
+// lingers (bossLanes, the last ones seen) fading out over the first BOSS_LANE_FADE s of the sky's collapse
+const BOSS_LANE_FADE = 1;
+let bossLanes = [];
+function litLanes() {
+  const live = [...activeLanes().values()], stars = live.filter(u => u.star);
+  const since = performance.now() / 1000 - bossInv.t0, clamp01 = v => Math.max(0, Math.min(1, v));
+  if (stars.length) bossLanes = stars.map(u => ({ ...u }));
+  let k = 0;
+  if (bossInv.phase === "in") k = clamp01((since - BOSS_INV_T) / BOSS_LANE_FADE);
+  else if (bossInv.phase === "out") { k = 1 - clamp01(since / BOSS_LANE_FADE); if (!stars.length && k > 0) live.push(...bossLanes.map(u => ({ ...u }))); }
+  else bossLanes = [];
+  for (const u of live) if (u.star) u.a *= k;
+  return live.filter(u => !u.star || u.a > 0);
+}
 function drawLanes() {
   const live = litLanes();
   drawLaneStrokes(live);
