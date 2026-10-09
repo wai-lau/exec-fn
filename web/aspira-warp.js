@@ -21,7 +21,7 @@
 //          rings every `ring` world units and `spokes` radial lines on the bell past the towers, out to
 //          `far`, where the bell itself ends; over the board only `onBoard` as strong, and outside
 //          the board's circle half as many (owner: "fewer curvature lines outside the circle")
-const WARP = { tilt: 0.15, fov: 0.45, edge: [760, 840], depth: 6900, fall: 260, grid: { ring: 110, spokes: 24, far: 2400, a: 0.3, onBoard: 0.25 } }; // depth: a DEEP classic bell (owner), 5x taller (was 460), then 3x again (was 2300)
+const WARP = { tilt: 0.15, fov: 0.45, edge: [760, 840], depth: 13800, fall: 260, grid: { ring: 110, spokes: 24, far: 2400, a: 0.3, onBoard: 0.25 } }; // depth: a DEEP classic bell (owner), 5x taller (was 460), then 3x again (was 2300), then x2 (was 6900)
 // the tower ring's outer edge, world units from the core: the plateau the towers stand on
 const WARP_TOWERS = Math.max(...CELLS.map(c => Math.hypot(c.x - CX, c.y - CY))) + CELL_S * 1.5;
 const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, p: null, ent: null };
@@ -37,7 +37,7 @@ void main() {
   float qy = -c * p.y + s * h, qz = s * p.y + c * h, w = f - qz;
   vec2 sc = core + vec2(f * p.x, -f * qy) / w;
   uv = (core + p) / size; rr = a.x; th = a.y; sh = 1.0 - 0.45 * g;
-  gl_Position = vec4((sc.x / size.x * 2.0 - 1.0) * w, (1.0 - sc.y / size.y * 2.0) * w, (w / (40.0 * size.y) * 2.0 - 1.0) * w, w);
+  gl_Position = vec4((sc.x / size.x * 2.0 - 1.0) * w, (1.0 - sc.y / size.y * 2.0) * w, (w / (80.0 * size.y) * 2.0 - 1.0) * w, w);
 }`;
 const WARP_FS = `
 precision mediump float;
@@ -185,7 +185,7 @@ function unwarp(sx, sy) {
     const qx = t * dx, qy = t * dy, qz = p.f - t, py = p.s * qz - p.c * qy, pz = p.s * qy + p.c * qz;
     return { x: qx, y: py, g: pz - warpHeight(p, Math.hypot(qx, py)) };
   };
-  const end = p.f * 12, steps = 600;
+  const end = p.f * 30, steps = 1200;
   let lo = 0, prev = at(0);
   for (let i = 1; i <= steps; i++) {
     const t = end * i / steps, cur = at(t);
