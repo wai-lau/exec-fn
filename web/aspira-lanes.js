@@ -89,8 +89,7 @@ function drawLaneStrokes(live) {
     for (const path of PATHS) bctx.stroke(path.p2d);
     laneMask(bctx);
   }
-  blit(baseCv);
-  if (!live.length) { S.litKey = ""; return; }
+  if (!live.length) { S.litKey = ""; blit(baseCv); return; }
   const now = performance.now();
   for (const u of live) {
     // a lane FADES IN over LANE_FADE_IN_MS of REAL time, whatever the game speed (owner)
@@ -108,7 +107,7 @@ function drawLaneStrokes(live) {
   const camSig = [cv.width, cv.height, cam.k, cam.ox, cam.oy].join();
   const sig = camSig + "|" +
     live.map(u => u.pi + ":" + u.ang.toFixed(3) + ":" + u.color + ":" + (u.star ? 1 : 0) + ":" + Math.round(u.a * LIT_STEPS)).join(",");
-  if (sig === S.litKey || (camSig === S.litCam && now - S.litAt < LIT_MIN_MS)) { if (!lowQ) blit(glowCv); blit(laneCv); return; } // low quality: no glow layer
+  if (sig === S.litKey || (camSig === S.litCam && now - S.litAt < LIT_MIN_MS)) { blitLanes(S); return; }
   S.litKey = sig; S.litCam = camSig; S.litAt = now;
   // each lane IN USE lit in its rider's colour - drawn rotated when a split
   // wave rides a rotated copy of it (u.ang)
@@ -131,9 +130,23 @@ function drawLaneStrokes(live) {
     lctx.globalAlpha = 0.3 * k * u.a; lctx.lineWidth = 1.4 * w; lctx.stroke(PATHS[u.pi].lit2d);
     lctx.restore();
   }
-  if (!lowQ) { applyMask(gctx, GLOW_FALLOFF); blit(glowCv); }
+  if (!lowQ) applyMask(gctx, GLOW_FALLOFF);
   applyMask(lctx, 1);
-  blit(laneCv);
+  S.comboKey = ""; blitLanes(S);
+}
+// the faint base, the glow and the lit lines laid onto ONE cached layer whenever any of them changes, and that blitted:
+// one full-canvas draw a frame instead of three (perf, 2026-10-09; source-over is associative, so the same picture)
+function blitLanes(S) {
+  const key = S.baseKey + "|" + S.litKey + "|" + lowQ;
+  if (key !== S.comboKey) {
+    S.comboKey = key;
+    S.comboCv ||= document.createElement("canvas");
+    const c = S.comboCv, x = c.getContext("2d");
+    if (c.width !== cv.width || c.height !== cv.height) { c.width = cv.width; c.height = cv.height; }
+    x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 1; x.globalCompositeOperation = "source-over"; x.clearRect(0, 0, c.width, c.height);
+    x.drawImage(S.baseCv, 0, 0); if (!lowQ) x.drawImage(S.glowCv, 0, 0); x.drawImage(S.laneCv, 0, 0); // low quality: no glow layer
+  }
+  blit(S.comboCv);
 }
 
 // numerals sit on an even ring at each lane's nominal 30-degree slot, not
