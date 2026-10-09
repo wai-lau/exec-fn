@@ -6,7 +6,7 @@
 // and edges to it. Each point is a screen point with z, its height over the floor in WORLD units.
 // Loaded before aspira-warp.js.
 let warpBand = null, warpFade = 1; // null: all of it; { lo, hi }: only lo <= z <= hi; warpFade: that slice's opacity
-const WARP_FADE_Z = 30, WARP_FADE_BANDS = 8;
+const WARP_FADE_Z = 30, WARP_FADE_BANDS = 8, WARP_PRISM_FADE = 0.5; // PRISM_FADE: the towers and core fade only this share of it (owner: "reduce opacity fade for towers and core")
 // the LANES (all the floor's light) lie over what is below the floor (owner: "lanes should partially occlude the towers"):
 // the board's picture laid over it in SCREEN mode at WARP_LANES_A - its black adds nothing, so the floor stays clear
 const WARP_LANES_A = 0.6;
@@ -51,7 +51,7 @@ function warpEdges(pts) { ctx.beginPath(); pts.forEach((p, i) => warpLine(p, pts
 // between(): drawn after the parts below the floor, before those above it
 function warpBands(draw, between) {
   for (let i = WARP_FADE_BANDS - 1; i >= 0; i--) {
-    warpBand = { lo: -WARP_FADE_Z * (i + 1) / WARP_FADE_BANDS, hi: -WARP_FADE_Z * i / WARP_FADE_BANDS }; warpFade = 1 - (i + 0.5) / WARP_FADE_BANDS;
+    warpBand = { lo: i === WARP_FADE_BANDS - 1 ? -Infinity : -WARP_FADE_Z * (i + 1) / WARP_FADE_BANDS, hi: -WARP_FADE_Z * i / WARP_FADE_BANDS }; // (the last slice runs to the bottom) warpFade = 1 - (i + 0.5) / WARP_FADE_BANDS;
     draw(false);
   }
   warpBand = null; warpFade = 1; if (between) between();
