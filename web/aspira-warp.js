@@ -231,7 +231,11 @@ function warpEntities() {
         top: () => ownColours(() => up(x, y, () => drawTower(t), WARP.prism.tower)) };
     });
     solids.push({ x: CX, y: CY, h: WARP.prism.core, col: COL.white, pts: Array.from({ length: 6 }, (_, i) => ({ x: CX + CORE_R * Math.cos(Math.PI / 6 + i * Math.PI / 3), y: CY + CORE_R * Math.sin(Math.PI / 6 + i * Math.PI / 3) })),
-      top: () => { up(CX, CY, () => { drawCore(); drawCredits(); }, WARP.prism.core); up(CX, CY, drawCoreHud, WARP.prism.core); } });
+      // the core's SHIELDS (its life and level rings) lie on the FLOOR (owner: "core shields on plane level"): the whole
+      // core drawn there first, its prism then stands in it; the top is the plain white hex and the credits
+      floor: () => up(CX, CY, drawCore),
+      top: () => { up(CX, CY, () => { poly(CX, CY, CORE_R, 6, Math.PI / 6, false); ctx.fillStyle = COL.white; ctx.globalAlpha = 1; ctx.fill(); drawCredits(); }, WARP.prism.core); up(CX, CY, drawCoreHud, WARP.prism.core); } });
+    for (const o of solids) if (o.floor) o.floor();
     for (const o of solids.sort((a, b) => warpProject(a.x, a.y).y - warpProject(b.x, b.y).y)) { warpPrism(o); o.top(); }
     // the floating texts alone still face the camera (at), so they stay readable
     drawFx("text", at);
