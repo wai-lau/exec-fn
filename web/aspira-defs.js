@@ -19,7 +19,11 @@ const N_PATHS = 12, R0 = 760, R1 = CORE_R, RIM_R = 482, GLOW_PATH_R = 330;
 // Every tower stands inside the central disc. The spirals run through it to
 // the core; towers and enemies never collide, so building on a lane is fine.
 // Only SIX slots (owner, 2026-10-02): the ring of hexes around the core.
-const CELL_S = 32, CELL_PITCH = 2;
+// SNUG (owner, 2026-10-09: "move build slots inward" - "snug, still tiny gap"): the six slots sit SLOT_R from the core,
+// a tower's flat side ~4 units clear of the core's outermost shield ring (a level ring at level 2, ~48 at its corners,
+// breathing) - the lattice pitch solved for it (was 2: 110.85 out). TRAVEL_R0 keeps every tower's slide travel as it was
+// (aspira-towers.js slideLimits): only where a slot sits, and the inner stop, moved
+const CELL_S = 32, SLOT_R = 65.5, CELL_PITCH = SLOT_R / (Math.sqrt(3) * CELL_S), TRAVEL_R0 = Math.sqrt(3) * CELL_S * 2;
 // the corner slots: [angle (deg, screen: -90 = up), wave it opens]. Their
 // INNER LIMIT is CORNER_IN from the core (owner: with every tower at max level
 // slid fully in, a gap still shows between all of them): 171 leaves the same
