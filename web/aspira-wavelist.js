@@ -4,7 +4,7 @@
 // UI only; loaded before aspira-ui.js, whose updateHud calls updateWaveList.
 const WAVE_ROWS = 10, WAVE_DEAD_A = 0.18, WAVE_ICON = [5, 18], WAVE_SPAN = 110, WAVE_SPAN_PHONE = 95, SWARM_MIN = 4, WAVE_ROW_H = 22, WAVE_BOSS_PX = 22; // WAVE_ROW_H: every row's height (owner: consistent) // SWARM_MIN: the smallest tessellated diamond box (px); a boss's icon, always the biggest // the upcoming-wave icons' size range (px); rows up to this many never overlap
 // the list's headings: the boxed live waves, then the rest (owner, 2026-10-09)
-const WAVE_HEAD = { now: "current wave", next: "upcoming waves" };
+const WAVE_HEAD = { now: "warped in", next: "warping in..." }; // (owner: "replace upcoming waves with: warping in...")
 
 // the enemy itself (owner): the same polygon the board draws (poly() in
 // aspira-draw.js), as a small inline SVG in the type's colour
@@ -96,11 +96,15 @@ function updateWaveList() {
   // it show current wave"): the one above the list names the boxed live waves; "upcoming waves" then
   // heads the rest INSIDE the grid, a full-width cell padded with three hidden ones so the columns'
   // nth-child rules still count four cells a row
+  // The incoming wave's COUNTDOWN rides the "warping in..." heading (owner, 2026-10-09: "left align" -
+  // the rows sit flush under the headings; the countdown had a column of its own left of them).
+  // None while a boss is up or next (a boss waits for a clear field)
   const curRows = rows.filter(r => r.cur).length;
-  $("asp-wavelabel").textContent = curRows ? WAVE_HEAD.now : WAVE_HEAD.next;
+  const eta = G.started && !bossUp() && !bossNext() ? ' <span class="asp-eta">' + Math.ceil(Math.max(0, G.nextIn)) + "s</span>" : "";
+  $("asp-wavelabel").innerHTML = curRows ? WAVE_HEAD.now : WAVE_HEAD.next + eta;
   let note = "", i = 0;
   for (const { n, w, boss, hp, alive } of rows) {
-    if (curRows && i++ === curRows) note += '<span class="asp-wavelabel asp-wavesub">' + WAVE_HEAD.next + "</span>" + "<i hidden></i>".repeat(3);
+    if (curRows && i++ === curRows) note += '<span class="asp-wavelabel asp-wavesub">' + WAVE_HEAD.next + eta + "</span>" + "<i hidden></i>".repeat(3);
     // rows LEFT-ALIGNED at their natural size (owner: not justified); a row too
     // long for the fixed width `span` TESSELLATES into 2, then 3 staggered rows
     // (waveBand), overlapping only past that. The box is always `span` wide, so
@@ -109,13 +113,9 @@ function updateWaveList() {
     let icons = boss
       ? '<span class="asp-bline"></span>' + enemyIcon(w.type, px, 2).repeat(w.count - 1) + enemyIcon(w.type, px, 0) + '<span class="asp-bline"></span>'
       : waveBand(w.type, w.count, px, span, alive);
-    // the INCOMING wave carries its countdown to its right, "15s" (owner; was a
-    // "next wave in" line above the list): after the name, or on a phone (names
-    // hidden) just right of the icons
-    const eta = n === G.wave + 1 && G.started && !bossUp() && !bossNext() ? Math.ceil(Math.max(0, G.nextIn)) + "s" : "";
-    // NO wave numbers (owner, 2026-10-06): the first column holds the incoming
-    // wave's countdown, LEFT of its row (was after its name); the ":" column is empty
-    note += "<span>" + (eta ? '<span class="asp-eta">' + eta + "</span>" : "") + "</span><span></span>" +
+    // NO wave numbers (owner, 2026-10-06); the first column is empty and takes no room since the
+    // countdown moved to the heading, the ":" column is empty
+    note += "<span></span><span></span>" +
       '<span class="asp-dots e-' + ENEMIES[w.type].color + (boss ? " e-boss" : "") + '" style="width:' + span + 'px">' + icons + "</span>" +
       "<span>" + (boss ? "<b>" + arcanaOf(n).name + "</b>" : w.type) + "</span>"; // boss names BOLD (owner)
   }

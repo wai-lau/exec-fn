@@ -91,13 +91,10 @@
   filter: drop-shadow(0 0 1px hsl(var(--bg-hsl))) drop-shadow(0 0 1px hsl(var(--bg-hsl)));
 }
 
-/* the first column: the incoming wave's countdown, right-aligned (owner; the
-   wave numbers are gone), wide enough for "999s" so the list never shifts */
-.asp-wavenote > span:nth-child(4n + 1) { min-width: 4ch; justify-content: flex-end; text-align: right; }
+.asp-wavenote > span:nth-child(4n + 1) { justify-content: flex-start; } /* empty: the countdown rides the heading (aspira-wavelist.js) */
 
 .asp-wavenote > span:nth-child(4n) { padding: 0 var(--space-2) 0 2ch; } /* a gap before the name (owner) */
 
-.asp-wavenote > span:nth-child(4n + 2),
 .asp-wavenote > span:nth-child(4n + 3) { padding-left: var(--space-1); }
 
 /* the enemies, ONE ICON EACH sized by HP (owner), on one line */
@@ -107,7 +104,7 @@
 .asp-band { position: relative; display: block; }
 
 /* the incoming wave's countdown, "15s", LEFT of its row (owner) */
-.asp-eta { color: hsl(var(--green-hsl)); font-variant-numeric: tabular-nums; }
+.asp-eta { color: hsl(var(--green-hsl)); font-variant-numeric: tabular-nums; text-transform: none; letter-spacing: normal; } /* "14s", not the heading's caps */
 .asp-wavenote b { font-weight: var(--fw-bold); white-space: nowrap; }
 
 /* a boss's icon is drawn INVERTED (owner): cyan reads red, as the boss does on its own sky */
