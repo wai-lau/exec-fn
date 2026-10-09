@@ -46,7 +46,7 @@ const SOLIDS = (() => {
     bonus: { V: nose(unit(ico), 0), F: facesByEdge(ico, 3, 2) },
   };
 })();
-const SOLID_ROLL = 10, SOLID_FAR_MIN = 0.2, SOLID_BREACH_LEN = 0.25, SOLID_BREACH_W = 0.15; // BREACH_*: the spike's half length (x size) and width (px) added per stack // ROLL: size x this per radian (owner: "reduce rotation rate by 10x", was 1)
+const SOLID_ROLL = 10, SOLID_FAR_MIN = 0.2, SOLID_BREACH_LEN = 0.25, SOLID_BREACH_W = 0.15, SOLID_FROZEN_A = 0.5; // BREACH_*: the spike's half length (x size) and width (px) added per stack // ROLL: size x this per radian (owner: "reduce rotation rate by 10x", was 1)
 
 // the die's size (drawEnemy's)
 const solidSize = e => { const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max); return d.size * (e.arcana ? f : 0.45 + 0.55 * f) * (e.sizeMul || 1); };
@@ -72,7 +72,9 @@ function warpSolid(e) {
   const L = unit([[CX - e.x, CY - e.y, (warp.lightZ || 1)]])[0];
   // world offset (x, y on the floor, z up) to the screen, the die's CENTRE on the floor (owner: "their center is on the plane")
   const scr = ([x, y, z]) => [P.x + k * x * size, P.y + k * (p.c * y * size - p.s * z * size)];
-  const col = COL[e.slowT > 0 ? "cyan" : d.color];
+  // FROZEN: its own colour with FRZ's cyan laid over at SOLID_FROZEN_A (owner, 2026-10-09: "FRZ color change should just be
+  // 50% opaque, not 100" - it was all cyan)
+  const col = COL[d.color], frz = e.slowT > 0 ? SOLID_FROZEN_A : 0;
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.lineJoin = "round"; ctx.lineWidth = (e.armor ? 2.2 : 1.2) * cam.k;
   // BREACH in 3D (owner, 2026-10-09: "breach effect should look like vertical spoke going through the enemy center of
   // mass, increasing in size the more breach"): one upright spike through the die's centre, longer and thicker per stack
@@ -90,8 +92,11 @@ function warpSolid(e) {
     const poly3 = face.map(v => { const [x, y] = scr(R[v]); return { x, y, z: R[v][2] * size }; });
     if (!warpPath(poly3)) continue; // clipped to the slice being drawn (aspira-fog.js)
     ctx.globalAlpha = fa; ctx.fillStyle = COL.bg; ctx.fill();
-    ctx.globalAlpha = (0.2 + 0.7 * lit) * (0.5 + 0.5 * f) * fa; ctx.fillStyle = col; ctx.fill();
+    const fA = (0.2 + 0.7 * lit) * (0.5 + 0.5 * f) * fa;
+    ctx.globalAlpha = fA; ctx.fillStyle = col; ctx.fill();
+    if (frz) { ctx.globalAlpha = fA * frz; ctx.fillStyle = COL.cyan; ctx.fill(); }
     warpEdges(poly3); ctx.globalAlpha = 0.9 * fa; ctx.strokeStyle = col; ctx.stroke();
+    if (frz) { ctx.globalAlpha = 0.9 * fa * frz; ctx.strokeStyle = COL.cyan; ctx.stroke(); }
   }
   ctx.globalAlpha = 1;
 }
