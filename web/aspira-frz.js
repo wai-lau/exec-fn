@@ -45,6 +45,12 @@ function frzSources(t, st) {
 }
 // every step (aspira-game.js): slow what is inside each aura, tick its damage,
 // and grow the Rime pulses
+// FROST BITES THE FAST (2026-10-08: FRZ must answer fast enemies - it leaked 73% of them): an aura tick
+// hurts x (the enemy TYPE's base speed / FRZ_BITE.ref) - fast (135) and swarms (125) take far more, shields
+// (37.5) and armor (30) far less: FRZ the fast answer and weak against armor, as the counter table says.
+// ref 0 = off (the simulator's probes set it)
+const FRZ_BITE = { ref: 40 }; // fast x3.4, swarm x3.1, shield x0.94, armor x0.75: mono FRZ waves 61-69 leaks fast 75% -> 7% (ref 75: 59%, 55: 35%); swarm / shield / armor stay 0%
+const frzBite = e => (FRZ_BITE.ref ? ENEMIES[e.type].speed / FRZ_BITE.ref : 1);
 function frzStep(t, dt) {
   const st = towerStats(t), srcs = frzSources(t, st);
   t.auraT = (t.auraT || 0) - dt;
@@ -63,7 +69,7 @@ function frzStep(t, dt) {
       // otherwise it is quiet (no flash) but shows its NUMBER, sized by what it took
       if (e.shield > 0) { damage(e, st.dmg * s.k, t, false, false, FRZ_TICK_HIT); continue; }
       const hp = e.hp;
-      damage(e, st.dmg * s.k, t, true);
+      damage(e, st.dmg * s.k * frzBite(e), t, true);
       if (hp - e.hp > 0) dmgNumber(e, String(dmgUnits(hp - e.hp)), hp - e.hp, "white");
     }
   }
