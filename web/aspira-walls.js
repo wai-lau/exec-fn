@@ -32,7 +32,7 @@ function warpWalls(pieces, cy, front, hh, col, a0) {
     if (((p.a[1] + p.b[1]) / 2 > cy) !== front) continue;
     const A0 = warpProject(p.a[0], p.a[1], -H), B0 = warpProject(p.b[0], p.b[1], -H), A1 = warpProject(p.a[0], p.a[1], H), B1 = warpProject(p.b[0], p.b[1], H);
     const a = a0 * Math.max(SHIELD_RING_MIN, SHIELD_RING_FADE ** (p.r - 1));
-    ctx.beginPath(); ctx.moveTo(A0.x, A0.y); ctx.lineTo(B0.x, B0.y); ctx.lineTo(B1.x, B1.y); ctx.lineTo(A1.x, A1.y); ctx.closePath();
+    if (!warpPath([{ ...A0, z: -1 }, { ...B0, z: -1 }, { ...B1, z: 1 }, { ...A1, z: 1 }])) continue; // clipped to the half being drawn (aspira-fog.js)
     ctx.globalAlpha = a * 0.35; ctx.fill(); ctx.globalAlpha = a; ctx.stroke();
   }
   ctx.globalAlpha = 1;

@@ -31,7 +31,7 @@
 // camera pointed isometrically to the core"): the board stays FLAT (depth 0, head 1 - the funnel's knobs
 // left at rest), seen from 35.3 deg above it (tilt = atan(sqrt 2), the isometric elevation) through a lens
 // so long (fov 0.02) it is all but orthographic, centred on the core (anchor 0); the surface opaque again
-const WARP = { tilt: 0.55 /* owner: "much more top down instead" (was 0.9553, isometric), then "a little bit less top down" (was 0.4) */, fov: 0.9 /* owner: "increase size changes based on distance from camera" (was 0.02, near-orthographic); the scale AT the core is the same for any fov */, edge: [760, 840], depth: 0, pow: 2, zoom: 1, anchor: 0, alpha: 1, bgA: 1, prism: { tower: 8 /* per level (was 24 flat) */, core: 60, below: 3 }, head: 1, shoulder: 0.12, grid: { ring: 110, neck: 0, spokes: 24, far: 2400, a: 0, onBoard: 0.8 } }; // grid.a 0: no gravity-well grid (owner: "get rid of gravity well curvature indicators")
+const WARP = { tilt: 0.55 /* owner: "much more top down instead" (was 0.9553, isometric), then "a little bit less top down" (was 0.4) */, fov: 0.9 /* owner: "increase size changes based on distance from camera" (was 0.02, near-orthographic); the scale AT the core is the same for any fov */, edge: [760, 840], depth: 0, pow: 2, zoom: 1, anchor: 0, alpha: 1, bgA: 1, prism: { tower: 6 /* a fresh tower and an empty slot (was 24) */, perPoint: 4, core: 60, below: 3 }, head: 1, shoulder: 0.12, grid: { ring: 110, neck: 0, spokes: 24, far: 2400, a: 0, onBoard: 0.8 } }; // grid.a 0: no gravity-well grid (owner: "get rid of gravity well curvature indicators")
 // the tower ring's outer edge, world units from the core: the plateau the towers stand on
 const WARP_TOWERS = Math.max(...CELLS.map(c => Math.hypot(c.x - CX, c.y - CY))) + CELL_S * 1.5;
 const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, p: null, ent: null };
@@ -234,19 +234,16 @@ function warpEntities() {
     // should have prisms too, just use dotted lines")
     const cellDraw = new Map(); drawCells((c, fn) => cellDraw.set(c, fn));
     if (ui.build && ui.hover) up(ui.hover.x, ui.hover.y, drawPlacement);
-    for (const e of G.enemies) up(e.x, e.y, () => drawEnemy(e, true)); // tracers, shields and marks flat on the floor, through the die's centre
     // the bodies as real dice, the farthest first (aspira-solids.js), each inside its shield's walls (aspira-walls.js)
-    for (const e of [...G.enemies].sort((a, b) => a.y - b.y)) {
-      const w = enemyWallPieces(e), col = COL[ENEMIES[e.type].color];
-      if (w.length) warpWalls(w, e.y, false, WALL_H.enemy, col, 0.8);
-      warpSolid(e);
-      if (w.length) warpWalls(w, e.y, true, WALL_H.enemy, col, 0.8);
-    }
+    const dice = [...G.enemies].sort((a, b) => a.y - b.y).map(e => ({ e, w: enemyWallPieces(e), col: COL[ENEMIES[e.type].color] }));
+    const drawDice = () => { for (const { e, w, col } of dice) { if (w.length) warpWalls(w, e.y, false, WALL_H.enemy, col, 0.8); warpSolid(e); if (w.length) warpWalls(w, e.y, true, WALL_H.enemy, col, 0.8); } };
     // the towers and the core STAND UP as hexagonal prisms (owner: "core taller than towers"), the farthest
     // first, each one's usual drawing on its raised top; over the enemies, which walk on the floor
     const solids = G.towers.map(t => {
       const c0 = CELLS[t.cell], x = t.x ?? c0.x, y = t.y ?? c0.y;
-      const h = WARP.prism.tower * shownLvl(t); // as TALL as its level (owner: "make towers shorter, but make their height proportional to their level")
+      // as TALL as its level (owner: "make towers shorter, but make their height proportional to their level"): every chart POINT
+      // (t.lvl - 1) adds WARP.prism.perPoint - the look's own level (shownLvl) moves only every five points, so it hardly grew
+      const h = WARP.prism.tower + WARP.prism.perPoint * (t.lvl - 1);
       return { x, y, h, col: COL[TOWERS[t.kind].color], pts: c0.pts.map(p => ({ x: x + (p.x - c0.x) * TOWER_K, y: y + (p.y - c0.y) * TOWER_K })),
         top: () => ownColours(() => up(x, y, () => drawTower(t), h / 2)) };
     });
@@ -261,10 +258,16 @@ function warpEntities() {
       // the core's SHIELDS (its life and level rings) stand on the FLOOR (owner: "core shields on plane level") as walls,
       // the ones behind the core before its prism and the ones in front after (aspira-walls.js); the top is the plain
       // white hex and the credits
-      pre: () => { warp.coreWalls = coreWallPieces(); warpWalls(warp.coreWalls, CY, false, WALL_H.core, COL.white, 1); },
+      pre: () => { warp.coreWalls = warp.coreWalls && warpHalf === "above" ? warp.coreWalls : coreWallPieces(); warpWalls(warp.coreWalls, CY, false, WALL_H.core, COL.white, 1); },
       post: () => warpWalls(warp.coreWalls, CY, true, WALL_H.core, COL.white, 1),
       top: () => { up(CX, CY, () => { poly(CX, CY, CORE_R, 6, Math.PI / 6, false); ctx.fillStyle = COL.white; ctx.globalAlpha = 1; ctx.fill(); drawCredits(); }, WARP.prism.core / 2); up(CX, CY, drawCoreHud, WARP.prism.core / 2); } });
-    for (const o of solids.sort((a, b) => warpProject(a.x, a.y).y - warpProject(b.x, b.y).y)) { if (o.pre) o.pre(); warpPrism(o); o.top(); if (o.post) o.post(); }
+    solids.sort((a, b) => warpProject(a.x, a.y).y - warpProject(b.x, b.y).y);
+    const drawSolids = tops => { for (const o of solids) { if (o.pre) o.pre(); warpPrism(o); if (tops) o.top(); if (o.post) o.post(); } };
+    // BELOW the plane, then the plane as FOG over it, then ABOVE (aspira-fog.js; owner: "the plane should be a thick fog layer")
+    warpHalf = "below"; drawDice(); drawSolids(false);
+    warpHalf = null; ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = WARP_FOG; ctx.drawImage(warp.cv, 0, 0); ctx.globalAlpha = 1;
+    for (const e of G.enemies) up(e.x, e.y, () => drawEnemy(e, true)); // tracers, shields and marks flat on the floor, through the die's centre
+    warpHalf = "above"; drawDice(); drawSolids(true); warpHalf = null;
     // the floating texts alone still face the camera (at), so they stay readable
     drawFx("text", at);
   };
@@ -291,16 +294,16 @@ function warpPrism(o) {
   // sits exactly on the walls (owner: "tower tops are not sitting on top")
   const H = o.h * cam.k / 2, n = o.pts.length, frame = h => { const P = warpProject(o.x, o.y, h), k = cam.k * P.s; return p => ({ x: P.x + k * (p.x - o.x), y: P.y + k * warp.p.c * (p.y - o.y) }); };
   // ... and it comes to a POINT below (owner: "instead of hexagonal prisms, make them all come to a point at the bottom")
-  const ft = frame(H), apex = frame(-H * WARP.prism.below)({ x: o.x, y: o.y }), B = o.pts.map(() => apex), T = o.pts.map(ft); // below: x the half height under the floor (owner: "3x the distance below plane")
+  const ft = frame(H), apex = { ...frame(-H * WARP.prism.below)({ x: o.x, y: o.y }), z: -H * WARP.prism.below }, B = o.pts.map(() => apex), T = o.pts.map(p => ({ ...ft(p), z: H })); // below: x the half height under the floor (owner: "3x the distance below plane")
   const walls = o.pts.map((p, i) => { const q = o.pts[(i + 1) % n], mx = (p.x + q.x) / 2 - o.x, my = (p.y + q.y) / 2 - o.y; return { i, j: (i + 1) % n, face: my / (Math.hypot(mx, my) || 1) }; });
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.lineJoin = "round"; ctx.lineWidth = 1.5 * cam.k;
   if (o.dash) { // an empty slot: a DOTTED wireframe, nothing filled
     ctx.setLineDash([2 * cam.k, 3 * cam.k]); ctx.strokeStyle = o.col; ctx.globalAlpha = 0.45; ctx.beginPath();
-    for (let i = 0; i < n; i++) { const j = (i + 1) % n; ctx.moveTo(B[i].x, B[i].y); ctx.lineTo(B[j].x, B[j].y); ctx.moveTo(B[i].x, B[i].y); ctx.lineTo(T[i].x, T[i].y); }
+    for (let i = 0; i < n; i++) warpLine(B[i], T[i]); // (the top ring is the slot's own outline, drawn on it)
     ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; return;
   }
   for (const w of walls.sort((a, b) => a.face - b.face)) { // +y faces the camera
-    ctx.beginPath(); ctx.moveTo(B[w.i].x, B[w.i].y); ctx.lineTo(B[w.j].x, B[w.j].y); ctx.lineTo(T[w.j].x, T[w.j].y); ctx.lineTo(T[w.i].x, T[w.i].y); ctx.closePath();
+    if (!warpPath([B[w.i], T[w.j], T[w.i]])) continue; // (the pyramid's wall: a triangle down to the apex)
     ctx.globalAlpha = 1; ctx.fillStyle = COL.bg; ctx.fill();
     ctx.globalAlpha = 0.12 + 0.28 * Math.max(0, w.face); ctx.fillStyle = o.col; ctx.fill();
     ctx.globalAlpha = 0.8; ctx.strokeStyle = o.col; ctx.stroke();
