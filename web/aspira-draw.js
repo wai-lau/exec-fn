@@ -464,7 +464,7 @@ function drawScene([sx, sy], clipR) {
   drawAcd();
   drawAims();
   drawFx("shots"); // on the board in 3D too (owner: "beams and tower effects can appear on the plane")
-  drawCoreFx(); // the core's struts and beams, under the towers (aspira-core.js)
+  drawCoreFx(); if (q3d() && G.core) drawTimeStop(G.core); // the core's struts and beams, under the towers (aspira-core.js); 3D: Temporal Drive's field ON the floor
   // in 3D the towers, the core and the enemies are drawn FLAT over the bell instead (warpEntities, aspira-warp.js)
   ownColours(() => { drawSpokes(); if (!q3d()) for (const t of G.towers) drawTower(t); drawRelayArm(); }); // towers keep their colours on a boss sky (owner); an armed Relay rings them (aspira-powers.js)
   drawSlotFlash(); drawCoins(); // a corner slot that just opened (aspira-waves.js); the credits flying home (aspira-floats.js)
