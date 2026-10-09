@@ -110,10 +110,6 @@ const belowFade = z => Math.max(1 - (WARP_FADE_BANDS - 0.5) / WARP_FADE_BANDS, M
 function warpSolidBelow(g) {
   const col = g.col, frz = g.frz, bgR = rgbOf(COL.bg), colR = rgbOf(col), cyR = rgbOf(COL.cyan);
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.lineJoin = "round"; ctx.globalAlpha = 1;
-  if (g.spike) {
-    const { a, b } = g.spike, f = belowFade(a.z / 2);
-    ctx.beginPath(); warpLine(a, b); ctx.strokeStyle = blendFill([[rgbOf(COL[TOWERS.sol.color]), 0.9 * g.fa * f]]); ctx.lineWidth = g.spike.w; ctx.stroke();
-  }
   ctx.lineWidth = g.lw;
   for (const F of g.faces) {
     if (F.lo > 0 || !warpPath(F.poly3)) continue;
@@ -159,7 +155,9 @@ function warpSolid(e) {
   if (band && (H < band.lo || -H > band.hi)) return; // nothing of it in this slice
   const fa = warpFade * g.fa, col = g.col, frz = g.frz, bgR = rgbOf(COL.bg), colR = rgbOf(col), cyR = rgbOf(COL.cyan);
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.lineJoin = "round";
-  if (g.spike) { ctx.beginPath(); warpLine(g.spike.a, g.spike.b); ctx.strokeStyle = COL[TOWERS.sol.color]; ctx.globalAlpha = 0.9 * fa; ctx.lineWidth = g.spike.w; ctx.stroke(); }
+  // the breach spike WHOLE, at full strength, in the pass above the floor: centred on the floor (owner, 2026-10-09: "SOL
+  // breach effect should be centered on floor" - its lower half faded with the floor, so it read as rising from the die)
+  if (g.spike && band && band.lo === 0) { ctx.beginPath(); ctx.moveTo(g.spike.a.x, g.spike.a.y); ctx.lineTo(g.spike.b.x, g.spike.b.y); ctx.strokeStyle = COL[TOWERS.sol.color]; ctx.globalAlpha = 0.9 * fa; ctx.lineWidth = g.spike.w; ctx.stroke(); }
   // PERF (2026-10-09): each face ONE fill of its layers blended up front (background, colour, frost - source-over
   // is associative, so it is the same colour), and the edges stroked once for the whole die: the outline (an edge of
   // one face) once, the inner edges (shared by two faces) as their two strokes blended
