@@ -64,6 +64,7 @@ function drawEnemy(e) {
   // Permafrost (a slow that never ends) draws the freeze outline thicker (owner)
   const perma = e.slowT === Infinity;
   ctx.strokeStyle = COL[e.slowT > 0 ? "cyan" : d.color]; ctx.lineWidth = (e.armor ? 6.5 : 3) + (perma ? 3 : 0); ctx.stroke();
+  dieFacets(e, size);
   // shield = SEGMENTS (owner): one per charge, on rings of its own shape
   if (e.shield > 0 || e.shSegs) {
     e.shSegs = syncSegs(e.shSegs || [], Math.max(0, e.shield), d.sides);
@@ -85,6 +86,25 @@ function drawEnemy(e) {
     ctx.fillStyle = COL.orange; ctx.beginPath(); ctx.arc(e.x + size, e.y - size, 4, 0, 6.283); ctx.fill();
   }
   drawStatus(e, d, size);
+}
+
+// the DIE's facet lines inside the outline (owner, 2026-10-09: each enemy a die seen from above, from a
+// corner): the corners `poly` drew, joined as that die's edges
+function dieFacets(e, size) {
+  const d = ENEMIES[e.type], n = d.pointy ? d.sides * 2 : d.sides, lw = ctx.lineWidth;
+  const at = (i, k = 1) => { const a = e.rot + i * Math.PI * 2 / n; return [e.x + Math.cos(a) * size * k, e.y + Math.sin(a) * size * k]; };
+  ctx.beginPath();
+  if (e.type === "bonus") { // d20: a pentagon round the top corner, each of its corners joined to three of the rim's
+    const ip = i => { const a = e.rot + i * Math.PI * 2 / 5; return [e.x + Math.cos(a) * size * 0.5, e.y + Math.sin(a) * size * 0.5]; };
+    for (let i = 0; i < 5; i++) {
+      ctx.moveTo(e.x, e.y); ctx.lineTo(...ip(i)); ctx.lineTo(...ip(i + 1));
+      for (const j of [-1, 0, 1]) { ctx.moveTo(...ip(i)); ctx.lineTo(...at(2 * i + j)); }
+    }
+  } else { // d4 / d8: every corner to the middle; d6: every other one (the cube's Y); d10: its five outer corners
+    const step = e.type === "swarm" || d.pointy ? 2 : 1;
+    for (let i = 0; i < n; i += step) { ctx.moveTo(e.x, e.y); ctx.lineTo(...at(i)); }
+  }
+  ctx.lineWidth = 1.2; ctx.stroke(); ctx.lineWidth = lw;
 }
 
 // what the upgrades are doing to an enemy, drawn on it (owner, 2026-10-02):

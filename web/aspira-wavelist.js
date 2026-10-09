@@ -13,7 +13,7 @@ const WAVE_HEAD = { now: "warped in", next: "warping in..." }; // (owner: "repla
 function enemyIcon(type, px, gap, dy, x, y, dim) {
   const d = ENEMIES[type], n = d.pointy ? d.sides * 2 : d.sides, pts = [];
   for (let i = 0; i < n; i++) {
-    const a = -Math.PI / 2 + i * Math.PI * 2 / n, r = d.pointy && i % 2 ? 3.6 : 8;
+    const a = -Math.PI / 2 + i * Math.PI * 2 / n, r = d.pointy && i % 2 ? 8 * (d.pointy === true ? 0.45 : d.pointy) : 8;
     pts.push((10 + Math.cos(a) * r).toFixed(1) + "," + (10 + Math.sin(a) * r).toFixed(1));
   }
   return '<svg class="asp-eicon" viewBox="0 0 20 20"' + (px ? ' style="width:' + px.toFixed(2) + 'px;height:' + px.toFixed(2) + 'px;margin-right:' + (gap ?? 1).toFixed(2) + 'px' + (dy ? ';transform:translateY(' + dy.toFixed(2) + 'px)' : "") + (x != null ? ';position:absolute;left:' + x + ';top:' + y : "") + (dim ? ';opacity:' + WAVE_DEAD_A : "") + '"' : "") + ' aria-label="' + type + '"><polygon points="' + pts.join(" ") + '"/></svg>';
