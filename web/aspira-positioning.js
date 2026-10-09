@@ -51,6 +51,12 @@ function bestSpot(t, k, range) {
   if (!pred.length) return null;
   // spots from the inner limit (k.min, below the slot) out to k.max
   const off = t.off || 0, r2 = range * range, first = Math.ceil(k.min / POS_STEP), steps = Math.floor(k.max / POS_STEP);
+  // the spots: every POS_STEP, plus the travel's very ENDS (owner, 2026-10-09: "towers don't seem to be able to slide out
+  // all the way to the edge of their movement" - the last step fell up to POS_STEP short of k.max)
+  const offs = [];
+  if (k.min < first * POS_STEP - 0.5) offs.push(k.min);
+  for (let oi = first; oi <= steps; oi++) offs.push(oi * POS_STEP);
+  if (k.max > steps * POS_STEP + 0.5) offs.push(k.max);
   // each enemy's hits weighed by the tower's TARGETING (owner): Biggest by its
   // HP against the biggest on the field, Fresh full for the undebuffed and
   // POS_STALE for the rest (WEIGHTED, owner). NEAR is ABSOLUTE (owner,
@@ -69,8 +75,8 @@ function bestSpot(t, k, range) {
   // whole board every spot scored the same, so they never left their slot;
   // now they still follow the action)
   let near = 0;
-  const score = oi => {
-    const o = oi * POS_STEP, x = k.c.x + k.ux * o, y = k.c.y + k.uy * o, eta = Math.abs(o - off) / moveSpeed(t);
+  const score = o => {
+    const x = k.c.x + k.ux * o, y = k.c.y + k.uy * o, eta = Math.abs(o - off) / moveSpeed(t);
     let n = 0;
     near = 0;
     pred.forEach(({ pts }, i) => {
@@ -85,9 +91,9 @@ function bestSpot(t, k, range) {
   let best = 0, bestScore = 0, bestNear = 0;
   for (let pass = 0; pass < 2 && !bestScore; pass++) {
     if (pass) { if (f === all) break; f = all; } // Near's enemy out of reach everywhere: fall back to all of them
-    for (let oi = first; oi <= steps; oi++) {
-      const sc = score(oi);
-      if (sc > bestScore || (sc === bestScore && sc > 0 && near > bestNear)) { bestScore = sc; best = oi; bestNear = near; }
+    for (const o of offs) {
+      const sc = score(o);
+      if (sc > bestScore || (sc === bestScore && sc > 0 && near > bestNear)) { bestScore = sc; best = o; bestNear = near; }
     }
   }
   // nothing in range in time: head for the spot CLOSEST to the action (the
@@ -95,16 +101,16 @@ function bestSpot(t, k, range) {
   // the halved ranges "they just slide to the edge and stay there" (they used
   // to REST outermost here); only with no enemy at all does it rest outermost
   if (!bestScore) {
-    let bd = Infinity, bo = steps;
-    for (let oi = first; oi <= steps; oi++) {
-      const o = oi * POS_STEP, x = k.c.x + k.ux * o, y = k.c.y + k.uy * o;
-      pred.forEach(({ pts }, i) => { if (f[i] > 0) for (const p of pts) { const d2 = (p.x - x) ** 2 + (p.y - y) ** 2; if (d2 < bd) { bd = d2; bo = oi; } } });
+    let bd = Infinity, bo = offs[offs.length - 1];
+    for (const o of offs) {
+      const x = k.c.x + k.ux * o, y = k.c.y + k.uy * o;
+      pred.forEach(({ pts }, i) => { if (f[i] > 0) for (const p of pts) { const d2 = (p.x - x) ** 2 + (p.y - y) ** 2; if (d2 < bd) { bd = d2; bo = o; } } });
     }
-    return bo * POS_STEP;
+    return bo;
   }
   // stay with the current mark unless the new one is clearly better
-  const cur = t.want != null ? Math.round(t.want / POS_STEP) : null;
+  const cur = t.want != null ? offs.find(o => Math.abs(o - t.want) < POS_STEP / 2) : undefined;
   // (on an exact tie in hits it follows the nearer spot, no threshold)
-  if (cur != null && cur >= first && cur <= steps) { const sc = score(cur); if (sc * POS_SWITCH >= bestScore && sc !== bestScore) return cur * POS_STEP; }
-  return best * POS_STEP;
+  if (cur != null) { const sc = score(cur); if (sc * POS_SWITCH >= bestScore && sc !== bestScore) return cur; }
+  return best;
 }
