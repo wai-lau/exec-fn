@@ -46,7 +46,7 @@ const SOLIDS = (() => {
     bonus: { V: nose(unit(ico), 0), F: facesByEdge(ico, 3, 2) },
   };
 })();
-const SOLID_LIGHT = unit([[-0.4, -0.5, 0.8]])[0], SOLID_ROLL = 1; // light from up and back-left; ROLL: radians per (distance / size)
+const SOLID_LIGHT = unit([[-0.4, -0.5, 0.8]])[0], SOLID_ROLL = 10; // light from up and back-left; ROLL: size x this per radian (owner: "reduce rotation rate by 10x", was 1)
 
 // the die's size (drawEnemy's)
 const solidSize = e => { const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max); return d.size * (e.arcana ? f : 0.45 + 0.55 * f) * (e.sizeMul || 1); };
