@@ -46,7 +46,7 @@ const SOLIDS = (() => {
     bonus: { V: nose(unit(ico), 0), F: facesByEdge(ico, 3, 2) },
   };
 })();
-const SOLID_ROLL = 10; // ROLL: size x this per radian (owner: "reduce rotation rate by 10x", was 1)
+const SOLID_ROLL = 10, SOLID_FAR_MIN = 0.2; // ROLL: size x this per radian (owner: "reduce rotation rate by 10x", was 1)
 
 // the die's size (drawEnemy's)
 const solidSize = e => { const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max); return d.size * (e.arcana ? f : 0.45 + 0.55 * f) * (e.sizeMul || 1); };
@@ -56,6 +56,9 @@ function warpSolid(e) {
   const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max), size = solidSize(e);
   if (!(size > 0.5)) return;
   const p = warp.p, P = warpProject(e.x, e.y), k = cam.k * P.s;
+  // FAINTER FARTHER from the camera (owner, 2026-10-09: "enemy opacity should also be relative to their distance to camera"):
+  // its perspective size against the core's, squared, never under SOLID_FAR_MIN
+  const fa = warpFade * Math.max(SOLID_FAR_MIN, Math.min(1, P.s / p.z) ** 2);
   // it ROLLS about its direction of travel (owner: "rotate about the axis of movement, proportional to move
   // speed"): the angle is the distance it has come over its size, so a fast one spins fast and a frozen one stops.
   // Its own resting pose (e.rot about z, a fixed lean about x) varies the dice
@@ -77,9 +80,9 @@ function warpSolid(e) {
     const lit = Math.max(0, (n[0] * L[0] + n[1] * L[1] + n[2] * L[2]) / nl);
     const poly3 = face.map(v => { const [x, y] = scr(R[v]); return { x, y, z: R[v][2] * size }; });
     if (!warpPath(poly3)) continue; // clipped to the slice being drawn (aspira-fog.js)
-    ctx.globalAlpha = warpFade; ctx.fillStyle = COL.bg; ctx.fill();
-    ctx.globalAlpha = (0.2 + 0.7 * lit) * (0.5 + 0.5 * f) * warpFade; ctx.fillStyle = col; ctx.fill();
-    warpEdges(poly3); ctx.globalAlpha = 0.9 * warpFade; ctx.strokeStyle = col; ctx.stroke();
+    ctx.globalAlpha = fa; ctx.fillStyle = COL.bg; ctx.fill();
+    ctx.globalAlpha = (0.2 + 0.7 * lit) * (0.5 + 0.5 * f) * fa; ctx.fillStyle = col; ctx.fill();
+    warpEdges(poly3); ctx.globalAlpha = 0.9 * fa; ctx.strokeStyle = col; ctx.stroke();
   }
   ctx.globalAlpha = 1;
 }
