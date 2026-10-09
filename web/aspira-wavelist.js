@@ -104,7 +104,7 @@ function updateWaveList() {
     // the INCOMING wave carries its countdown to its right, "15s" (owner; was a
     // "next wave in" line above the list): after the name, or on a phone (names
     // hidden) just right of the icons
-    const eta = n === G.wave + 1 && G.started && !bossUp() ? Math.ceil(Math.max(0, G.nextIn)) + "s" : "";
+    const eta = n === G.wave + 1 && G.started && !bossUp() && !bossNext() ? Math.ceil(Math.max(0, G.nextIn)) + "s" : "";
     // NO wave numbers (owner, 2026-10-06): the first column holds the incoming
     // wave's countdown, LEFT of its row (was after its name); the ":" column is empty
     note += "<span" + c + ">" + (eta ? '<span class="asp-eta">' + eta + "</span>" : "") + "</span><span" + c + "></span>" +
