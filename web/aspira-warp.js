@@ -1,38 +1,39 @@
 // /spire — the 3D VIEW (owner, 2026-10-09: "change quality to a slider: low,
 // high, 3D"; "curved spacetime ... reverse the dip, so it's a tower").
-// A VIEW, never a rule: the 2D canvas still draws the game exactly as on high,
+// A VIEW, never a rule: the 2D canvas still draws the board exactly as on high,
 // only hidden (opacity 0), and this WebGL canvas over it lays that picture on a
-// BELL: a level plateau under the towers and the core ("the towers and core
-// don't rise"), then past the tower ring the ground falls away like a BLACK
-// HOLE DIAGRAM turned upside down ("think typical black hole diagrams"): a
-// near-vertical drop just outside the ring that flattens toward the rim, depth
-// WARP.depth x x / (x + WARP.fall), x the distance past the ring (eased in over
-// WARP.knee so the lip is rounded, and exactly level inside the ring). The bell never changes ("I don't want the
-// bell shape to change"). Ranges, hits and timing stay 2D. Taps map back
-// through the bell (unwarp), so every gesture lands on the 2D spot drawn under
-// the finger. Loads after aspira-draw.js and aspira-camera.js, before aspira-ui.js.
-//   tilt   the board leans back this far (radians; owner: "more top down", was 0.62)
-//   edge   the board fades between these radii (world units from the core)
+// BELL - a BLACK HOLE DIAGRAM turned upside down ("think typical black hole
+// diagrams"; "always a deep classic bell"), peaking at the core and never
+// changing: height -WARP.depth x (1 - L / sqrt(r^2 + L^2)), L = WARP.fall.
+// The TOWERS (and their slots), the CORE and the ENEMIES are not stretched with it (owner: "use
+// positions based on the bell, but the enemies and towers are drawn separately,
+// as if on a flat plane"): each is drawn undistorted on a 2D canvas over the
+// bell, at its spot's projected point, smaller the deeper it sits
+// (warpEntities). Lanes, ranges and beams stay on the bell; a beam's ends land
+// on the same projected points, so it still meets its tower and its enemy.
+// Ranges, hits and timing stay 2D. Taps map back through the bell (unwarp).
+// Loads after aspira-draw.js and aspira-camera.js, before aspira-ui.js.
 //   tilt, fov  the board leans back `tilt` (radians) under a `fov` lens (owner, "more top down", then
 //          with the bell 5x taller: tilt 0.62 -> 0.35 -> 0.15, fov 0.87 -> 0.45 - a longer lens from further
 //          back, so the drop's walls and the lanes below stay in sight)
 //   edge   the board's picture fades out between these radii (world units from the core)
 //   grid   the BLACK HOLE GRID (owner: "add more rings in the bg to make it look more like a black hole"):
 //          rings every `ring` world units and `spokes` radial lines on the bell past the towers, out to
-//          `far`, where the bell itself ends; over the board only `onBoard` as strong
-const WARP = { tilt: 0.15, fov: 0.45, edge: [760, 840], depth: 2300, fall: 110, knee: 18, grid: { ring: 110, spokes: 24, far: 2400, a: 0.3, onBoard: 0.25 } }; // depth: always a DEEP classic bell (owner), then 5x taller (was 460)
+//          `far`, where the bell itself ends; over the board only `onBoard` as strong, and outside
+//          the board's circle half as many (owner: "fewer curvature lines outside the circle")
+const WARP = { tilt: 0.15, fov: 0.45, edge: [760, 840], depth: 6900, fall: 260, grid: { ring: 110, spokes: 24, far: 2400, a: 0.3, onBoard: 0.25 } }; // depth: a DEEP classic bell (owner), 5x taller (was 460), then 3x again (was 2300)
 // the tower ring's outer edge, world units from the core: the plateau the towers stand on
 const WARP_TOWERS = Math.max(...CELLS.map(c => Math.hypot(c.x - CX, c.y - CY))) + CELL_S * 1.5;
-const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, p: null };
+const warp = { gl: null, cv: null, prog: null, buf: null, tex: null, n: 0, p: null, ent: null };
 
 // the mesh is POLAR, in world units round the core: a = (radius, angle)
 const WARP_VS = `
 attribute vec2 a;
-uniform vec2 core, size; uniform float D, L, r0, kw, c, s, f, k;
+uniform vec2 core, size; uniform float D, L, c, s, f, k;
 varying vec2 uv; varying float sh, rr, th;
 void main() {
   float r = a.x * k; vec2 p = r * vec2(cos(a.y), sin(a.y));
-  float e0 = max(0.0, r - r0), x = e0 * e0 / (e0 + kw), g = x / (x + L), h = -D * g;
+  float g = 1.0 - L / sqrt(r * r + L * L), h = -D * g;
   float qy = -c * p.y + s * h, qz = s * p.y + c * h, w = f - qz;
   vec2 sc = core + vec2(f * p.x, -f * qy) / w;
   uv = (core + p) / size; rr = a.x; th = a.y; sh = 1.0 - 0.45 * g;
@@ -48,8 +49,9 @@ void main() {
   vec2 inUv = step(vec2(0.0), uv) * step(uv, vec2(1.0));
   float board = inUv.x * inUv.y * (1.0 - smoothstep(edge.x, edge.y, rr));
   float wd = 0.8 + rr * 0.0025;
-  float ring = line(abs(fract(rr / grid.x + 0.5) - 0.5) * grid.x, wd);
-  float spoke = line(abs(fract(th / grid.y + 0.5) - 0.5) * grid.y * rr, wd);
+  float out2 = 1.0 + step(edge.y, rr), rs = grid.x * out2, as = grid.y * out2; // half as many lines outside the board
+  float ring = line(abs(fract(rr / rs + 0.5) - 0.5) * rs, wd);
+  float spoke = line(abs(fract(th / as + 0.5) - 0.5) * as * rr, wd);
   float gk = max(ring, spoke) * grid.w * smoothstep(towers, towers + 30.0, rr) * (1.0 - smoothstep(grid.z * 0.7, grid.z, rr));
   gk *= 1.0 - board * (1.0 - onBoard); // faint over the board itself: the lanes stay readable
   vec3 col = texture2D(tex, uv).rgb * sh * board;
@@ -81,13 +83,12 @@ function warpInit() {
   Object.assign(warp, { gl, cv: c, prog: pr, tex: t, buf: gl.createBuffer() });
   return gl;
 }
-// the bell's POLAR grid, once: dense across the drop's lip, sparser out to the far rim
+// the bell's POLAR grid, once: dense over the board, sparser out to the far rim
 const WARP_SEG = 180;
 function warpRadii() {
-  const r0 = WARP_TOWERS, out = [];
-  for (let i = 0; i <= 8; i++) out.push(r0 * i / 8);
-  for (let i = 1; i <= 90; i++) out.push(r0 + 500 * Math.pow(i / 90, 1.6));
-  for (let i = 1; i <= 50; i++) out.push(r0 + 500 + (WARP.grid.far - r0 - 500) * i / 50);
+  const near = 900, out = [];
+  for (let i = 0; i <= 140; i++) out.push(near * Math.pow(i / 140, 1.3));
+  for (let i = 1; i <= 50; i++) out.push(near + (WARP.grid.far - near) * i / 50);
   return out;
 }
 function warpMesh() {
@@ -105,12 +106,11 @@ const warpGridRgb = () => (String(COL.grid || COL.green).match(/[\d.]+/g) || [0,
 // this frame's bell, centred on the core's canvas spot
 function warpParams() {
   const f = cv.height / 2 / Math.tan(WARP.fov / 2);
-  return { core: [cam.ox + CX * cam.k, cam.oy + CY * cam.k], D: WARP.depth * cam.k, L: WARP.fall * cam.k, r0: WARP_TOWERS * cam.k, kw: WARP.knee * cam.k, c: Math.cos(WARP.tilt), s: Math.sin(WARP.tilt), f, k: cam.k };
+  return { core: [cam.ox + CX * cam.k, cam.oy + CY * cam.k], D: WARP.depth * cam.k, L: WARP.fall * cam.k, c: Math.cos(WARP.tilt), s: Math.sin(WARP.tilt), f, k: cam.k };
 }
 // the spire's height (<= 0, canvas px) r px from the core - the vertex shader's twin
 function warpHeight(p, r) {
-  const e0 = Math.max(0, r - p.r0), x = e0 * e0 / (e0 + p.kw);
-  return -p.D * x / (x + p.L);
+  return -p.D * (1 - p.L / Math.hypot(r, p.L));
 }
 // one frame: the 2D picture onto the bell (aspira-ui.js frame calls this after render)
 function warpDraw() {
@@ -127,7 +127,7 @@ function warpDraw() {
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv);
   const u = n => gl.getUniformLocation(pr, n);
   gl.uniform2f(u("core"), p.core[0], p.core[1]); gl.uniform2f(u("size"), cv.width, cv.height);
-  for (const n of ["D", "L", "r0", "kw", "c", "s", "f", "k"]) gl.uniform1f(u(n), p[n]);
+  for (const n of ["D", "L", "c", "s", "f", "k"]) gl.uniform1f(u(n), p[n]);
   gl.uniform2f(u("edge"), WARP.edge[0], WARP.edge[1]);
   gl.uniform3fv(u("gridCol"), warpGridRgb());
   gl.uniform4f(u("grid"), WARP.grid.ring, Math.PI * 2 / WARP.grid.spokes, WARP.grid.far, WARP.grid.a);
@@ -136,6 +136,44 @@ function warpDraw() {
   gl.bindBuffer(gl.ARRAY_BUFFER, warp.buf);
   gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
   gl.drawArrays(gl.TRIANGLES, 0, warp.n);
+  warpEntities();
+}
+// a world point to the screen: its canvas spot lifted onto the bell and seen by the camera;
+// s is the perspective scale there (1 at the core's height)
+function warpProject(x, y) {
+  const p = warp.p, px = cam.ox + x * cam.k - p.core[0], py = cam.oy + y * cam.k - p.core[1];
+  const h = warpHeight(p, Math.hypot(px, py)), qy = -p.c * py + p.s * h, qz = p.s * py + p.c * h, w = p.f - qz;
+  return { x: p.core[0] + p.f * px / w, y: p.core[1] - p.f * qy / w, s: p.f / w };
+}
+// the TOWERS, the CORE and the ENEMIES, flat, each at its projected point (owner: "drawn separately,
+// as if on a flat plane"): the usual draw calls on a 2D canvas over the bell, each under a transform
+// that puts its world point on the projected one at the perspective's scale
+function warpEntities() {
+  if (!warp.ent) {
+    const c = document.createElement("canvas");
+    c.id = "asp-ent"; c.setAttribute("aria-hidden", "true");
+    warp.cv.after(c);
+    warp.ent = c;
+  }
+  const c = warp.ent, main = ctx;
+  if (c.width !== cv.width || c.height !== cv.height) { c.width = cv.width; c.height = cv.height; }
+  ctx = c.getContext("2d");
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, c.width, c.height);
+  const at = (x, y, fn) => {
+    const P = warpProject(x, y), k = cam.k * P.s;
+    ctx.setTransform(k, 0, 0, k, P.x - x * k, P.y - y * k);
+    ctx.save(); fn(); ctx.restore();
+  };
+  const atCell = (cell, fn) => at(cell.x, cell.y, fn);
+  const all = () => {
+    drawCells(atCell); if (!G.towers.length && !ui.build) drawSlotArrow(atCell); // the slots too, flat
+    ownColours(() => { for (const t of G.towers) at(t.x, t.y, () => drawTower(t)); });
+    if (ui.build && ui.hover) at(ui.hover.x, ui.hover.y, drawPlacement);
+    at(CX, CY, () => { drawCore(); drawCredits(); });
+    for (const e of G.enemies) at(e.x, e.y, () => drawEnemy(e));
+    at(CX, CY, drawCoreHud);
+  };
+  try { if (bossInv.full) withPalette(all); else all(); } finally { ctx = main; }
 }
 // a screen point (2D canvas device px) back to the canvas spot drawn there:
 // march the eye's ray down to the bell, then bisect. null off it.
