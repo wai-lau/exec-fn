@@ -205,13 +205,13 @@
     "semantic_hash": ""
   },
   "ARCHITECTURE.md": {
-    "mtime": 1791612209.681134,
-    "ast_hash": "728ab5daa506355ba41eaa28b8014390",
+    "mtime": 1791510382.2459698,
+    "ast_hash": "49737576c25fb50c0ee1179b25a6490c",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1791568832.1404321,
-    "ast_hash": "a833d5da426a4067ab14984713873e0e",
+    "mtime": 1791510382.2519698,
+    "ast_hash": "fa1a2b482e58900ee93b179a88bb73bc",
     "semantic_hash": ""
   },
   "README.md": {
@@ -960,8 +960,8 @@
     "semantic_hash": ""
   },
   "api/pages.py": {
-    "mtime": 1791568832.1404321,
-    "ast_hash": "a21bcae3f310ba095af479c11ec962cd",
+    "mtime": 1791407809.4794195,
+    "ast_hash": "0077a9c9ac5aaa0cb774487f075874d5",
     "semantic_hash": ""
   },
   "api/routers.py": {
@@ -1170,7 +1170,7 @@
     "semantic_hash": ""
   },
   "api/data/activity_log.json": {
-    "mtime": 1791621004.9029002,
+    "mtime": 1791534605.6905942,
     "ast_hash": "d751713988987e9331980363e24189ce",
     "semantic_hash": ""
   },
@@ -1775,8 +1775,8 @@
     "semantic_hash": ""
   },
   "api/data/exec_todos.json": {
-    "mtime": 1791556575.0239806,
-    "ast_hash": "424c384cd5a6e107de4fbfe4678737ca",
+    "mtime": 1791407637.5838518,
+    "ast_hash": "6e2d7263790c77248909c54aaee3614b",
     "semantic_hash": ""
   },
   "api/data/gamesave_save1.json": {
@@ -2005,13 +2005,13 @@
     "semantic_hash": ""
   },
   "api/data/profile.json": {
-    "mtime": 1791621011.0379238,
+    "mtime": 1791534613.003629,
     "ast_hash": "83e60edb2785eac743c01f86c170118d",
     "semantic_hash": ""
   },
   "api/data/rd.json": {
-    "mtime": 1791621004.9909005,
-    "ast_hash": "4d6e4686d4c7670ea748925a6ec41a63",
+    "mtime": 1791534623.7236798,
+    "ast_hash": "23fb581485626e83aa048a4edc0cd578",
     "semantic_hash": ""
   },
   "api/data/rd_log.json": {
@@ -6265,12 +6265,12 @@
     "semantic_hash": ""
   },
   "api/data/geo_cache.json": {
-    "mtime": 1791537016.3167062,
+    "mtime": 1791450617.4998405,
     "ast_hash": "",
     "semantic_hash": ""
   },
   "api/data/security.json": {
-    "mtime": 1791537016.3287063,
+    "mtime": 1791450617.5128405,
     "ast_hash": "",
     "semantic_hash": ""
   },
@@ -9425,18 +9425,18 @@
     "semantic_hash": ""
   },
   "api/noodle/pages.py": {
-    "mtime": 1791554036.4331076,
-    "ast_hash": "0b3b798b2707f66715978ce6c8ca60ea",
+    "mtime": 1791065839.943636,
+    "ast_hash": "b884ed0721fd20a1ee532b4f9e5fbf46",
     "semantic_hash": ""
   },
   "api/noodle/reset.py": {
-    "mtime": 1791554036.4331076,
-    "ast_hash": "e30665c8bd9f19a67571911c776524ed",
+    "mtime": 1790490913.6308737,
+    "ast_hash": "b3d9c2a9420f233f3a436444e2afc3dd",
     "semantic_hash": ""
   },
   "api/noodle/routes.py": {
-    "mtime": 1791554036.4331076,
-    "ast_hash": "eb9f09e7d13cf4d983d36823b20a17d5",
+    "mtime": 1791510172.78006,
+    "ast_hash": "0ac56da5e03eb60bf084ff24510a60ad",
     "semantic_hash": ""
   },
   "api/noodle/rules.py": {
@@ -9455,8 +9455,8 @@
     "semantic_hash": ""
   },
   "api/noodle/store.py": {
-    "mtime": 1791554036.4341075,
-    "ast_hash": "b1e0b43b569a6143f06f1fdd15ff8c5d",
+    "mtime": 1791510382.2489698,
+    "ast_hash": "c7de37d8434c5c98a90e511a4af591cf",
     "semantic_hash": ""
   },
   "api/noodle/votes.py": {
@@ -9560,8 +9560,8 @@
     "semantic_hash": ""
   },
   "web/noodle-roster.js": {
-    "mtime": 1791554036.4361076,
-    "ast_hash": "0794ddbdce95b552b406a42fcbda7b59",
+    "mtime": 1790713077.8891006,
+    "ast_hash": "8d74a96ed290116e59620351acb6eda4",
     "semantic_hash": ""
   },
   "web/noodle-seal.js": {
@@ -9575,8 +9575,8 @@
     "semantic_hash": ""
   },
   "web/noodle-vote.js": {
-    "mtime": 1791554036.4371076,
-    "ast_hash": "fa7c6ecac4a33b65462e46c98cd02b29",
+    "mtime": 1791510186.2291195,
+    "ast_hash": "809398d1dba6321aa5b6faf8fb6190fd",
     "semantic_hash": ""
   },
   "api/templates/noodle-admin.html": {
@@ -9590,8 +9590,8 @@
     "semantic_hash": ""
   },
   "api/templates/noodle-vote.html": {
-    "mtime": 1791554036.4341075,
-    "ast_hash": "4e340945730e0a59ae847804af131396",
+    "mtime": 1791510207.5242133,
+    "ast_hash": "6f618acfee33c703abbacc6b33ca7f7e",
     "semantic_hash": ""
   },
   "docs/plan-exec-cc-merge.md": {
@@ -9605,8 +9605,8 @@
     "semantic_hash": ""
   },
   "api/noodle/drafts.py": {
-    "mtime": 1791554036.4331076,
-    "ast_hash": "b7346c7f2aa21798ce52b91ef485eb50",
+    "mtime": 1791065449.083972,
+    "ast_hash": "5bae82bac7b46415d200d31ff72e9181",
     "semantic_hash": ""
   },
   "api/noodle/host.py": {
@@ -9630,13 +9630,13 @@
     "semantic_hash": ""
   },
   "tests/test_noodle_browser_host.py": {
-    "mtime": 1791554036.4341075,
-    "ast_hash": "d9cfa74bf89d1fdde5d0d229994efb8f",
+    "mtime": 1791067208.9633145,
+    "ast_hash": "e4529f5b0cdce70853876be583b9a9e4",
     "semantic_hash": ""
   },
   "tests/test_noodle_drafts.py": {
-    "mtime": 1791554036.4341075,
-    "ast_hash": "894ac48d05ad3b32eea3282623677969",
+    "mtime": 1790564289.754362,
+    "ast_hash": "b8f5c0c347fa657b0afb3ba2c907826f",
     "semantic_hash": ""
   },
   "tests/test_noodle_host.py": {
@@ -9660,18 +9660,18 @@
     "semantic_hash": ""
   },
   "web/noodle-host.js": {
-    "mtime": 1791554036.4351077,
-    "ast_hash": "269de6cac14812e2f2c7d5a3046e8e85",
+    "mtime": 1791067183.6582103,
+    "ast_hash": "eb7dd309a22567be575e08d358b32262",
     "semantic_hash": ""
   },
   "web/noodle-rekey.js": {
-    "mtime": 1791554036.4361076,
-    "ast_hash": "d5e41fac51639c4256e3ba51a2fe9147",
+    "mtime": 1791066175.1060386,
+    "ast_hash": "8969fbbe01b917644cefc9cf06ecdafb",
     "semantic_hash": ""
   },
   "web/noodle-share.js": {
-    "mtime": 1791554036.4361076,
-    "ast_hash": "a90fb389fb1a92742a89777c936e0661",
+    "mtime": 1790554747.2655556,
+    "ast_hash": "3bdfe7b1ae2f5966131037180b464247",
     "semantic_hash": ""
   },
   "web/buzzbomb.png": {
@@ -9795,8 +9795,8 @@
     "semantic_hash": ""
   },
   "web/noodle-commit.js": {
-    "mtime": 1791554036.4351077,
-    "ast_hash": "835d05ee11f378948c98a781bd585580",
+    "mtime": 1791066135.0428717,
+    "ast_hash": "2ef97cff8f61474117e0815333399bf5",
     "semantic_hash": ""
   },
   "web/noodle-esc.js": {
@@ -9810,8 +9810,8 @@
     "semantic_hash": ""
   },
   "web/noodle-storage.js": {
-    "mtime": 1791554036.4361076,
-    "ast_hash": "dc44b6fa57d58309bb99f29f93cc9075",
+    "mtime": 1791510181.7220995,
+    "ast_hash": "2ecf507b4aaf548110b1838a1c70839b",
     "semantic_hash": ""
   },
   "api/data/activity_log_20261001.json": {
@@ -9825,8 +9825,8 @@
     "semantic_hash": ""
   },
   "api/routes_aspira.py": {
-    "mtime": 1791568832.141432,
-    "ast_hash": "635e3818a6303cdcd5bb141b2290c4cf",
+    "mtime": 1791235623.4491835,
+    "ast_hash": "3e90ba18e9fb9840dd012bd98980cb28",
     "semantic_hash": ""
   },
   "claude-box/uploads.mjs": {
@@ -9855,8 +9855,8 @@
     "semantic_hash": ""
   },
   "scripts/aspira-sim/sim.mjs": {
-    "mtime": 1791580527.8179476,
-    "ast_hash": "47610696cc75002a6973b2a8610240b1",
+    "mtime": 1791495525.1265383,
+    "ast_hash": "dad7f062c5dafcf6d32e93906e1a4818",
     "semantic_hash": ""
   },
   "scripts/aspira-sim/style.mjs": {
@@ -9870,43 +9870,43 @@
     "semantic_hash": ""
   },
   "web/aspira-camera.js": {
-    "mtime": 1791576983.0900316,
-    "ast_hash": "24e56a9aedcff97fd824f752b3c39fe8",
+    "mtime": 1791410645.7405567,
+    "ast_hash": "222008eaaa3879bbfd3cd11d5a9ec959",
     "semantic_hash": ""
   },
   "web/aspira-defs.js": {
-    "mtime": 1791582632.4758656,
-    "ast_hash": "6e0dc5398242cbd4510e099b378cd2f5",
+    "mtime": 1791492103.551424,
+    "ast_hash": "2fd63208ff22a2b7040b994952a55253",
     "semantic_hash": ""
   },
   "web/aspira-draw.js": {
-    "mtime": 1791582632.4768655,
-    "ast_hash": "1bbec3ac680d6177010b75d0ea296607",
+    "mtime": 1791495745.4275408,
+    "ast_hash": "7c0067b4021ea04aed0614964e7a63a6",
     "semantic_hash": ""
   },
   "web/aspira-game.js": {
-    "mtime": 1791580280.8050609,
-    "ast_hash": "21d96edd21bafdffa23b1e642ddd156a",
+    "mtime": 1791507063.0854692,
+    "ast_hash": "24fe510d189da4059d1d22c6704e266f",
     "semantic_hash": ""
   },
   "web/aspira-lanes.js": {
-    "mtime": 1791577413.2045696,
-    "ast_hash": "a0399b12386fbbbbf12371ac436494d4",
+    "mtime": 1791489270.2644312,
+    "ast_hash": "1025dc8dc6a697998ac9b93ddad26ce6",
     "semantic_hash": ""
   },
   "web/aspira-sfx.js": {
-    "mtime": 1791582632.4778655,
-    "ast_hash": "31db193d083f890bd38281052abddbb4",
+    "mtime": 1791410645.7465568,
+    "ast_hash": "10d270045f82af03ef7461eae3e6d077",
     "semantic_hash": ""
   },
   "web/aspira-towers.js": {
-    "mtime": 1791580280.8060608,
-    "ast_hash": "6877a8a8a56234b90b41aec9f227e0e6",
+    "mtime": 1791507016.5562894,
+    "ast_hash": "3a5bf935dec4a3eb1989fa11449bc367",
     "semantic_hash": ""
   },
   "web/aspira-ui.js": {
-    "mtime": 1791582632.4788656,
-    "ast_hash": "6565e7ef95862658b62f562f782b9819",
+    "mtime": 1791492617.2284744,
+    "ast_hash": "484b7b337fec9cf0ce6dd9082dbefeae",
     "semantic_hash": ""
   },
   "web/aspira-upgrades.js": {
@@ -9920,8 +9920,8 @@
     "semantic_hash": ""
   },
   "api/templates/aspira.html": {
-    "mtime": 1791612209.6821342,
-    "ast_hash": "14b3615ed17a19b9ba5dba3ea10be10e",
+    "mtime": 1791507063.0824695,
+    "ast_hash": "5c6f4c513525d5a66d6c3c8ddbcb1a51",
     "semantic_hash": ""
   },
   "scripts/aspira-sim/README.md": {
@@ -9960,23 +9960,23 @@
     "semantic_hash": ""
   },
   "web/aspira-bosses.js": {
-    "mtime": 1791582632.4738655,
-    "ast_hash": "146e823b26e2f5903fca75e9738f4f9b",
+    "mtime": 1791507063.0834694,
+    "ast_hash": "b11fcf5cc9c34dcafc1b6acda8dffe66",
     "semantic_hash": ""
   },
   "web/aspira-core.js": {
-    "mtime": 1791580527.8189476,
-    "ast_hash": "1634e0782d977589a287c035826cfeab",
+    "mtime": 1791492617.2274745,
+    "ast_hash": "58f3c66834a657b4ec0d662cac15c961",
     "semantic_hash": ""
   },
   "web/aspira-enemies.js": {
-    "mtime": 1791577413.2045696,
-    "ast_hash": "5cd4943f4a49f071d1f55ce610fb5984",
+    "mtime": 1791493056.1125546,
+    "ast_hash": "731c6a7809e63ea0026ff65e7dbce51e",
     "semantic_hash": ""
   },
   "web/aspira-waves.js": {
-    "mtime": 1791578036.9816213,
-    "ast_hash": "e0c550114f9026b036058a1a920e5a12",
+    "mtime": 1791492350.0084064,
+    "ast_hash": "5228cfb63debc54612809bc68bef332f",
     "semantic_hash": ""
   },
   "api/data/aspira-sfx/README.txt": {
@@ -14810,18 +14810,18 @@
     "semantic_hash": ""
   },
   "web/aspira-chooser.js": {
-    "mtime": 1791568423.5225532,
-    "ast_hash": "2c1834be7a2030f818742a762182541d",
+    "mtime": 1791421403.7139304,
+    "ast_hash": "cc3cf3bf58fb61075c50b970ab67e0b9",
     "semantic_hash": ""
   },
   "web/aspira-positioning.js": {
-    "mtime": 1791578553.9419444,
-    "ast_hash": "57dc34f900a28b5eecf7c591d6bc2b44",
+    "mtime": 1791495525.0985382,
+    "ast_hash": "2a41d1a167dedbbf285b5d0d51274240",
     "semantic_hash": ""
   },
   "web/aspira-wavelist.js": {
-    "mtime": 1791564065.7543762,
-    "ast_hash": "73f6c79916d9f0530921d040c3546c87",
+    "mtime": 1791489618.8676963,
+    "ast_hash": "b06b9a700f6269f9ffdd6bab290ef01a",
     "semantic_hash": ""
   },
   "api/data/activity_log_20261006.json": {
@@ -14835,8 +14835,8 @@
     "semantic_hash": ""
   },
   "web/aspira-acid.js": {
-    "mtime": 1791612209.684134,
-    "ast_hash": "96eaf960cbbf0a1a763491e309fafbfc",
+    "mtime": 1791485843.4413118,
+    "ast_hash": "41c129a8b56f9070c0718f9ecc45bc56",
     "semantic_hash": ""
   },
   "web/aspira-effects.js": {
@@ -14895,13 +14895,13 @@
     "semantic_hash": ""
   },
   "web/aspira-chart.js": {
-    "mtime": 1791564143.1036916,
-    "ast_hash": "f94e9664e1585399ae868390981f9980",
+    "mtime": 1791421338.662741,
+    "ast_hash": "ccae1800ad67bf24788d07b6a15e70dc",
     "semantic_hash": ""
   },
   "web/aspira-core-fx.js": {
-    "mtime": 1791573827.2790637,
-    "ast_hash": "45ee376b79f5774a28c700e40f27811d",
+    "mtime": 1791500421.6175218,
+    "ast_hash": "9bb5049ca8f12d2195c12e186b34b6fd",
     "semantic_hash": ""
   },
   "web/aspira-endstats.js": {
@@ -14990,18 +14990,18 @@
     "semantic_hash": ""
   },
   "web/aspira-desc.js": {
-    "mtime": 1791612209.684134,
-    "ast_hash": "2a88bbe78b12eca61d78f3aaeb02f31f",
+    "mtime": 1791495525.1265383,
+    "ast_hash": "1ecefd5da8bcf8c690a5527b5789b270",
     "semantic_hash": ""
   },
   "web/aspira-quality.js": {
-    "mtime": 1791554036.3521073,
-    "ast_hash": "1430b43f8dee1fd393d9f2d00e5a898f",
+    "mtime": 1791394953.7425098,
+    "ast_hash": "af2f8bee9ba706d1f9b3006a99238d48",
     "semantic_hash": ""
   },
   "web/aspira-sliders.js": {
-    "mtime": 1791565944.0897,
-    "ast_hash": "1fdd5be992dcebec38aab79e45abeda3",
+    "mtime": 1791485038.520821,
+    "ast_hash": "7f80e9ab08a3db5abd8fd8696c6ece9b",
     "semantic_hash": ""
   },
   "docs/spire-descriptions.md": {
@@ -15030,7 +15030,7 @@
     "semantic_hash": ""
   },
   "api/data/noodle/polls/5fa9146a1ac4c693cb6c3458f203d48833a0e2f87c757343b1292e6091899998.json": {
-    "mtime": 1791595507.4235227,
+    "mtime": 1791510243.8663723,
     "ast_hash": "",
     "semantic_hash": ""
   },
@@ -15070,8 +15070,8 @@
     "semantic_hash": ""
   },
   "web/aspira-frz.js": {
-    "mtime": 1791565944.0877,
-    "ast_hash": "2f57f0f0e8da673a87576cb333ce7704",
+    "mtime": 1791506926.423942,
+    "ast_hash": "c889ddb7616efb590d6205265d0a4806",
     "semantic_hash": ""
   },
   "web/aspira-powers.js": {
@@ -15082,76 +15082,6 @@
   "web/aspira-stats.js": {
     "mtime": 1791495525.1275382,
     "ast_hash": "5374e1c1b245b6e668d270b294cb81e3",
-    "semantic_hash": ""
-  },
-  "api/data/activity_log_20261010.json": {
-    "mtime": 1791574410.904279,
-    "ast_hash": "aee61a21673b6eb87f7e85ab5928860f",
-    "semantic_hash": ""
-  },
-  "api/data/noodle/polls/9c79b4f1c23244599fddc9a7712fc32af17c8d99c66b1b9670cb919e84e02c5b.json": {
-    "mtime": 1791556139.9252295,
-    "ast_hash": "",
-    "semantic_hash": ""
-  },
-  "api/noodle/e2e.py": {
-    "mtime": 1791554036.4331076,
-    "ast_hash": "cc5cb17d144247c58260c22f0b7ce8ae",
-    "semantic_hash": ""
-  },
-  "scripts/aspira-sim/bossfleet.mjs": {
-    "mtime": 1791580527.8159475,
-    "ast_hash": "2c83cd74abc4c090d0120513cb253bae",
-    "semantic_hash": ""
-  },
-  "scripts/aspira-sim/trios.mjs": {
-    "mtime": 1791612209.683134,
-    "ast_hash": "1094db1538d14c9833a6d129b7b2af92",
-    "semantic_hash": ""
-  },
-  "tests/test_noodle_browser_e2e.py": {
-    "mtime": 1791554036.4341075,
-    "ast_hash": "d6d65dc17a4e5194947f8d018f4135aa",
-    "semantic_hash": ""
-  },
-  "tests/test_noodle_e2e.py": {
-    "mtime": 1791554036.4341075,
-    "ast_hash": "0b022ee2d4acd2827db82a38ee843ace",
-    "semantic_hash": ""
-  },
-  "tests/test_noodle_e2e_view.py": {
-    "mtime": 1791554036.4351077,
-    "ast_hash": "4bc1c9d800cff381572db5f999d1dfa5",
-    "semantic_hash": ""
-  },
-  "web/aspira-floats.js": {
-    "mtime": 1791578760.1398504,
-    "ast_hash": "593dc795da65ab087d5ba7b420789f5c",
-    "semantic_hash": ""
-  },
-  "web/aspira-fog.js": {
-    "mtime": 1791577166.8951871,
-    "ast_hash": "5c6b95b18401a5e08b60b32d87dd76cc",
-    "semantic_hash": ""
-  },
-  "web/aspira-solids.js": {
-    "mtime": 1791578865.084309,
-    "ast_hash": "bdf3bf038e9eb059708680e5f08fb17d",
-    "semantic_hash": ""
-  },
-  "web/aspira-walls.js": {
-    "mtime": 1791575576.2683322,
-    "ast_hash": "3d40628ab369eb1cd90f155095565d43",
-    "semantic_hash": ""
-  },
-  "web/aspira-warp.js": {
-    "mtime": 1791582632.4798656,
-    "ast_hash": "9928c236c8119e4b4d5e3d69aba63dc3",
-    "semantic_hash": ""
-  },
-  "web/noodle-e2e.js": {
-    "mtime": 1791554036.4351077,
-    "ast_hash": "5fd979d0e030743c41fbd6891501324d",
     "semantic_hash": ""
   }
 }
