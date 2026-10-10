@@ -15,12 +15,16 @@ let fitK = 0, dragged = false, downAt = null, pinch = null;
 //   press and HOLD the core HOLD_MS -> Temporal's freeze
 //   drag from the CORE onto a tower -> the Orbital Relay: it acts as three
 // ui.drag = { kind: "core" | "tower", t, from, at } while one is held (drawn by drawCoreFx)
+// DRAGGING A TOWER (owner, 2026-10-10): a press on a tower and a drag MOVES it - it follows the
+// finger, firing all the while, held to its leash (moveTo, aspira-towers.js); ui.drag = { kind:
+// "move", t, dx, dy } (the grab's offset, so the tower does not jump to the fingertip). A short
+// press is still a tap (its card). Not while placing or with the Relay armed - those taps pick.
 // a held finger always wobbles: the hold survives HOLD_SLOP css px of drift
 // (owner: hold did nothing on a phone - DRAG_PX 6 was too tight for a thumb)
 const HOLD_MS = 400, CORE_GRAB = 1.8, HOLD_SLOP = 18; // the core grabs within CORE_GRAB x its radius
 let holdTimer = 0, holdFired = false, holdMoved = false;
 function grabPower(ev) {
-  if (!G.core) return null; // a power is owned only once a boss handed it out (pickPower), so the levels below are the gate
+  if (!G.core) return grabTower(ev); // a power is owned only once a boss handed it out (pickPower), so the levels below are the gate
   const w = toWorld(ev), onCore = Math.hypot(w.x - CX, w.y - CY) <= CORE_R * CORE_GRAB;
   // only a power that is READY grabs (owner, 2026-10-07: no drag line for an
   // Overcharge still cooling down); otherwise the press pans and taps as ever
@@ -31,7 +35,11 @@ function grabPower(ev) {
     }, HOLD_MS);
     return { kind: "core", from: { x: CX, y: CY }, at: null, drop: rel }; // drop: the drag line shows (drawCoreFx)
   }
-  return null;
+  return grabTower(ev);
+}
+function grabTower(ev) {
+  const w = toWorld(ev), t = !ui.build && !ui.relayArm && towerAt(w);
+  return t ? { kind: "move", t, dx: t.x - w.x, dy: t.y - w.y } : null;
 }
 // a power drag let go: the Relay on the tower under it
 function dropPower(d) {
@@ -94,6 +102,10 @@ cv.addEventListener("pointermove", ev => {
   }
   const dpr = canvasDpr();
   if (!dragged && Math.hypot(now.x - downAt.x, now.y - downAt.y) > DRAG_PX * dpr) dragged = true;
+  if (ui.drag && ui.drag.kind === "move") { // a tower dragged: it follows the finger, no pan
+    if (dragged) { const w = toWorld(ev); moveTo(ui.drag.t, { x: w.x + ui.drag.dx, y: w.y + ui.drag.dy }); } // (no card: it would cover the board; drawLeash shows the held one's leash)
+    return;
+  }
   if (ui.drag) { // a power drag: no pan; the hold only breaks past HOLD_SLOP
     if (Math.hypot(now.x - downAt.x, now.y - downAt.y) > HOLD_SLOP * dpr) { holdMoved = true; clearTimeout(holdTimer); }
     if (dragged) ui.drag.at = toWorld(ev);
@@ -108,6 +120,7 @@ function endPointer(ev, tap) {
   clearTimeout(holdTimer);
   const d = ui.drag;
   ui.drag = null;
+  if (d && d.kind === "move") { if (tap && !ptrs.size && !dragged) onTap(ev); return; } // a press without a drag: its card
   if (holdFired) { holdFired = false; return; } // the hold already froze: no tap
   if (d && holdMoved) { if (tap) dropPower(d); return; }
   if (d && !holdMoved) { if (tap && !ptrs.size) onTap(ev); return; } // a short wobble on a grab is still a TAP

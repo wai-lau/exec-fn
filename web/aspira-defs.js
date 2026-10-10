@@ -23,7 +23,8 @@ const N_PATHS = 12, R0 = 760, R1 = CORE_R, RIM_R = 482, GLOW_PATH_R = 330;
 // a tower's flat side ~4 units clear of the core's outermost shield ring (a level ring at level 2, ~48 at its corners,
 // breathing) - the lattice pitch solved for it (was 2: 110.85 out). TRAVEL_R0 keeps every tower's slide travel as it was
 // (aspira-towers.js slideLimits): only where a slot sits, and the inner stop, moved
-const SLOT_ANGLES = [-120, 0, 120];
+// SIX again (owner, 2026-10-10: "go back to 6 towers"), each now a SPAWN a tower is dragged out from (aspira-drag.js)
+const SLOT_ANGLES = [-120, -60, 0, 60, 120, 180];
 const CELL_S = 32, SLOT_R = 65.5, CELL_PITCH = SLOT_R / (Math.sqrt(3) * CELL_S), TRAVEL_R0 = Math.sqrt(3) * CELL_S * 2;
 // the corner slots: [angle (deg, screen: -90 = up), wave it opens]. Their
 // INNER LIMIT is CORNER_IN from the core (owner: with every tower at max level
@@ -59,8 +60,7 @@ const CELLS = (function buildCells() {
       const a = Math.PI / 6 + k * Math.PI / 3;
       pts.push({ x: x + CELL_S * Math.cos(a), y: y + CELL_S * Math.sin(a) });
     }
-    // THREE towers, not six (owner, 2026-10-09: "the game should just have 3 towers instead of 6"): every other ring slot,
-    // 120 degrees apart (upper left, right, lower left); the lost cover is made up by range (RANGE_BONUS)
+    // the ring slots named in SLOT_ANGLES (three for a day, 2026-10-09; six again 2026-10-10)
     const ang = Math.round(Math.atan2(y - CY, x - CX) * 180 / Math.PI);
     if (Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r)) === 1 && SLOT_ANGLES.includes(ang)) out.push({ pts, x, y });
   }

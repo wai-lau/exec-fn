@@ -26,7 +26,7 @@ function upgradeCard(t, o, i) {
   const spN = SPEC[t.kind](nx, nt);
   // only the stats this option CHANGES (owner), in the tower card's two columns
   const base = [["Range", Math.round(st.range), Math.round(nx.range)], ["Rate", st.rate.toFixed(2) + "/s", nx.rate.toFixed(2) + "/s"],
-    ["Slide", slideSpan(t), slideSpan(nt)], ["Speed", Math.round(moveSpeed(t)), Math.round(moveSpeed(nt))]];
+    ["Leash", slideSpan(t), slideSpan(nt)]];
   if (b.dmg) base.unshift(["Damage", Math.round(st.dmg), Math.round(nx.dmg)]);
   const spec = SPEC[t.kind](st, t).map((r, k) => [r[0], r[1], spN[k][1]]);
   const changed = rows => rows.filter(r => String(r[1]) !== String(r[2])).map(r => statRow(r[0], r[1], r[2])).join("");

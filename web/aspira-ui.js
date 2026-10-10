@@ -25,8 +25,9 @@ function short(n) {
 // ---------- placement / input ----------
 // Towers snap to the triangular cells of the build disc (CELLS in
 // aspira-defs.js); a cell holds at most one tower.
+// (nor a slot another tower has been dragged onto)
 function canPlace(ci) {
-  return cellOpen(ci) && !occupied(ci);
+  return cellOpen(ci) && !occupied(ci) && !G.towers.some(t => Math.hypot(t.x - CELLS[ci].x, t.y - CELLS[ci].y) < towerGap());
 }
 function toWorld(ev) {
   const r = cv.getBoundingClientRect(), dpr = canvasDpr();
@@ -63,9 +64,9 @@ function onTap(ev) {
   if (G.over) return;
   const p = toWorld(ev);
   ui.hover = p;
-  // a tower is tapped where it IS now (it may have slid out along its spoke)
-  const ci = cellAt(p.x, p.y), hit = towerAt(p) || (ci >= 0 && G.towers.find(t => t.cell === ci)) || (!ui.build && trackAt(p));
-  if (relayArmTap(p, hit)) { refreshPanels(); return; } // an armed Relay: this tower (or track) takes it, anything else disarms (aspira-powers.js)
+  // a tower is tapped where it IS now (it may have been dragged off its slot); its empty slot still picks it
+  const ci = cellAt(p.x, p.y), hit = towerAt(p) || (ci >= 0 && G.towers.find(t => t.cell === ci));
+  if (relayArmTap(hit)) { refreshPanels(); return; } // an armed Relay: this tower takes it, anything else disarms (aspira-powers.js)
   if (hit) { ui.sel = hit.id; ui.build = null; }
   else if (!ui.build && Math.hypot(p.x - CX, p.y - CY) <= CORE_R) { ui.sel = "core"; } // the core's card (aspira-core.js)
   else if (ui.build) placeTower(p);

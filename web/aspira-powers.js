@@ -33,19 +33,15 @@ function drawRelayArm() {
   for (const t of G.towers) {
     const c0 = CELLS[t.cell], r = Math.hypot(c0.pts[0].x - c0.x, c0.pts[0].y - c0.y) * TOWER_K * RELAY_RING_K;
     ctx.globalAlpha = a; ctx.beginPath(); ctx.arc(t.x ?? c0.x, t.y ?? c0.y, r, 0, 6.283); ctx.stroke();
-    // ...and its TRAVEL TRACK, which takes the Relay too (owner, 2026-10-08)
-    const k = spokeOf(t);
-    ctx.globalAlpha = a * 0.6; ctx.beginPath(); ctx.moveTo(CX + k.ux * (k.r0 + Math.min(0, k.min)), CY + k.uy * (k.r0 + Math.min(0, k.min))); ctx.lineTo(CX + k.ux * (k.r0 + k.max), CY + k.uy * (k.r0 + k.max)); ctx.stroke();
   }
   ctx.shadowBlur = 0; ctx.globalAlpha = 1;
 }
-// from onTap: an armed Relay goes to the tower tapped, or the tower whose TRAVEL TRACK was tapped (even with
-// a build pending); a tap on anything else only disarms it (owner, 2026-10-08) - the tap is used up either way
-function relayArmTap(p, hit) {
+// from onTap: an armed Relay goes to the tower tapped (even with a build pending); a tap on anything else
+// only disarms it (owner, 2026-10-08) - the tap is used up either way
+function relayArmTap(hit) {
   if (!ui.relayArm) return false;
   setRelayArm(false);
-  const t = G.towers.includes(hit) ? hit : trackAt(p);
-  if (t) relay(t);
+  if (G.towers.includes(hit)) relay(hit);
   return true;
 }
 function updatePowers() {

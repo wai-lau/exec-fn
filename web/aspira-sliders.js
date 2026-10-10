@@ -128,7 +128,7 @@ function cardStats(t, pv) {
   const rows = [];
   if (b.dmg && t.kind !== "acd") rows.push(["Damage", dmgUnits(st.dmg), nx && dmgUnits(nx.dmg)]); // (ACD's Corrode row is its damage)
   rows.push(["Range", Math.round(st.range), nx && Math.round(nx.range)], ["Rate", st.rate.toFixed(2) + "/s", nx && nx.rate.toFixed(2) + "/s"],
-    ["Slide", slideSpan(t), nx && slideSpan(pv)], ["Speed", Math.round(moveSpeed(t)), nx && Math.round(moveSpeed(pv))]);
+    ["Leash", slideSpan(t), nx && slideSpan(pv)]);
   SPEC[t.kind](st, t).forEach((r, k) => rows.push([r[0], r[1], spN ? spN[k][1] : null]));
   const shown = rows.filter(r => r[1] !== "—" || (r[2] != null && r[2] !== "—")), key = KEY_STATS[t.kind] || [];
   const left = key.map(l => shown.find(r => r[0] === l)).filter(Boolean), right = shown.filter(r => !key.includes(r[0]));
