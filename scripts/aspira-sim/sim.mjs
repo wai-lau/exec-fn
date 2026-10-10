@@ -63,6 +63,7 @@ export function makeGame(seed, patch = "") {
     // no nose-first turning (drawing only), and each lane copy's rotation trig
     // computed once instead of every enemy every tick - both exact
     FACING = false;
+    AUTO_POS = true; // the simulated player drags every tower to its best spot (aspira-positioning.js)
     var __trig = new Map();
     rotAbout = function (p, ang) {
       let t = __trig.get(ang);

@@ -410,7 +410,7 @@ function step(dt) {
   stepChains(dt);
   for (const t of G.towers) {
     t.spin = (t.spin || 0) + dt; // game-time clock for anything that orbits (FRZ's moons)
-    moveTower(t, dt); // slides along its spoke after its target (aspira-towers.js)
+    if (AUTO_POS) autoPosition(t, dt); // only the simulator's player: a real tower moves when it is dragged (aspira-positioning.js)
     if (t.kind === "frz" && hasSkills(t)) { frzStep(t, dt); continue; } // the chart FRZ: an aura, every step (aspira-skills.js)
     if (t.kind === "sol") { stepSol(t, dt); continue; }
     if (t.kind === "acd") { stepAcd(t, dt); continue; }

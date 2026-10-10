@@ -340,145 +340,70 @@ function usePower(code) {
   }
 }
 
-// ---------- towers MOVE (owner, 2026-10-03) ----------
-// Each tower slides along its own SPOKE - the line from the core out through
-// its slot - at its kind's MOVE SPEED, between its slot and its kind's
-// REACH (a radius from the core), to wherever moveTower says. Its slot stays its own
-// (placement, Space, Horizon).
-// each kind moves at its own SPEED (units / game-s) and slides out to its own
-// REACH (owner, 2026-10-04): ACD fastest, ARC next, SOL and FRZ slowest; FRZ
-// reaches furthest, ACD and ARC next, SOL least (its weapon range was raised
-// to make up for it); SOL then moves at half FRZ's speed (owner)
-// MOVEMENT HALVED (owner, 2026-10-06: "halve their movement range, halve their
-// movement speed"): TOWER_SPEED is half what it was (acid 120, chain 90, reaper
-// 30, slower 60), the outward slide is SLIDE_KIND x (reach - slot) and the inward
-// limit TOWER_IN went 0.89 -> 0.945 (half the slide in). A chart tier may buy
-// the slide back (towerStats `slide` x the extent, `speed` x the speed; SKILL_MOVE
-// in aspira-skills.js), never past the old extent (SLIDE_MAX 2).
-// ROLES (owner, 2026-10-06): FRZ and ACD are HIGH-MOVEMENT, short-range roamers;
-// ARC and SOL are LOW-MOVEMENT, long-range anchors. So FRZ/ACD keep their old
-// (un-halved) speed and slide (SLIDE_KIND 1, TOWER_IN_KIND 0.89), and ARC/SOL move
-// slowly (owner: "reduce greatly") over the halved slide; their Static / Breach
-// tiers buy slide extent back (SKILL_MOVE, aspira-skills.js)
-const TOWER_SPEED = { acd: 75, arc: 15, sol: 6, frz: 55 }; // ACD 120 -> 75, FRZ 90 -> 55 (owner: reduce both)
-
+// ---------- towers MOVE (owner, 2026-10-10: "all of the towers can be dragged") ----------
+// The player DRAGS a tower, any time, and it follows the finger while held - firing the
+// whole way (aspira-camera.js); it never moves itself in a real game (the simulator's
+// stand-in player does: autoPosition, aspira-positioning.js). It stays inside its LEASH,
+// a circle round its own slot (its SPAWN), radius leashR - the slide travel it had on its
+// spoke (2026-10-03 .. 2026-10-09; slideLimits below), so it reaches as far out as it did.
+// Slide tiers grow it (SKILL_MOVE `slide`, aspira-skills.js); `speed` no longer does
+// anything - a tower is where the finger is.
+// the old spoke's reach per kind (owner, 2026-10-04 .. 06): FRZ and ACD roam, ARC and SOL anchor
 const TOWER_REACH = { frz: 400, acd: 350, arc: 350, sol: 180 }; // SOL: its travel halved (owner; was 250 - a slot sits ~110 out)
 const SLIDE_K_HALF = 0.5, SLIDE_MAX = 2;
 // FRZ's slide HALVED (owner, 2026-10-06; Rime tiers buy it back, III = the old extent)
 const SLIDE_KIND = { acd: 1, frz: 0.5, arc: SLIDE_K_HALF, sol: SLIDE_K_HALF };
 // towers may slide 50% further IN toward the core (owner, 2026-10-06; were 0.89 / 0.945)
 const TOWER_IN_KIND = { acd: 0.835, frz: 0.9175 }; // the rest: TOWER_IN (FRZ halved too)
-const moveSpeed = t => TOWER_SPEED[t.kind] * towerStats(t, true).speed;
-// the innermost a tower slides: this share of its slot's distance from the core.
-// 0.945 = half the old 0.89's slide in (owner); the old 0.89 kept a 13.6 gap
-// between ring neighbours at max level slid fully in with TOWER_K 0.94, so
-// the gap only grows
 const TOWER_IN = 0.9175;
 // a slot's own inner limit (the corner slots carry one, CORNER_IN) else TOWER_IN of its distance
 const innerR = (c, r0, slide = 1, kind = null) => c.minR ?? r0 * (1 - (1 - (TOWER_IN_KIND[kind] ?? TOWER_IN)) * Math.min(slide, SLIDE_MAX));
-// how far out a kind slides from a slot r0 from the core (slide = the tier's multiplier)
+// how far out a kind slid from a slot r0 from the core (slide = the tier's multiplier)
 const slideOut = (kind, r0, slide = 1) => Math.max(0, TOWER_REACH[kind] - r0) * SLIDE_KIND[kind] * Math.min(slide, SLIDE_MAX);
-// THE TRAVEL (owner, 2026-10-07): every tower's travel is MOVE_SPAN (75%) of what
-// innerR / slideOut give, and it STARTS almost touching the core - its inner
-// end NEAR_R from the core's centre (a corner slot's CORNER_NEAR, so it clears
-// the ring towers beside it) - and runs out from there. Offsets are along the
-// spoke from the slot (negative = inward).
-// the inner stop is the slot itself since the slots moved in snug (NEAR_R = SLOT_R, was 68), and the span is worked
-// from TRAVEL_R0, the ring's old radius, so a tower's travel did not change with it (aspira-defs.js)
+// THE TRAVEL (owner, 2026-10-07): MOVE_SPAN (75%) of what innerR / slideOut give, worked from
+// TRAVEL_R0 (the ring's old radius) so it did not change when the slots moved in snug
 const MOVE_SPAN = 0.75, NEAR_R = SLOT_R, CORNER_NEAR = 100;
 function slideLimits(c, kind, sl = 1) {
   const r0 = Math.hypot(c.x - CX, c.y - CY) || 1, rt = c.unlock ? r0 : TRAVEL_R0;
   const span = (slideOut(kind, rt, sl) + rt - innerR(c, rt, sl, kind)) * MOVE_SPAN;
   const min = (c.unlock ? CORNER_NEAR : NEAR_R) - r0;
-  // (sliding THROUGH the core, travel doubled, was tried 2026-10-09 and dropped the same day for a range bonus instead -
-  // owner: "instead of having towers move through core, just increase range of all towers by some percentage")
   return { r0, min, max: min + span };
 }
-// the spoke: its unit direction, the slot's radius and how far it runs each way
-function spokeOf(t) {
-  const c = CELLS[t.cell], sl = towerStats(t, true).slide, { r0, min, max } = slideLimits(c, t.kind, sl);
-  return { c, r0, ux: (c.x - CX) / r0, uy: (c.y - CY) / r0, slide: sl, max, min };
-}
-// the whole travel of a tower on its spoke, out plus in (the card's Slide row)
-const slideSpan = t => { const k = spokeOf(t); return Math.round(k.max - k.min); };
+// the leash's radius: the old travel, end to end
+const leashR = t => { const { min, max } = slideLimits(CELLS[t.cell], t.kind, towerStats(t, true).slide); return max - min; };
+const slideSpan = t => Math.round(leashR(t)); // the card's Leash row
 const towerAt = p => G.towers.find(t => Math.hypot(p.x - t.x, p.y - t.y) <= CELL_S);
-// the tower whose TRACK passes nearest p, within TRACK_HIT (owner: tapping near
-// the slider line opens its card too); its line runs from the core's edge to
-// just past its reach (spokeTrack)
-const TRACK_HIT = 16;
-function trackAt(p) {
-  let best = null, bd = TRACK_HIT;
-  for (const t of G.towers) {
-    const k = spokeOf(t), along = (p.x - CX) * k.ux + (p.y - CY) * k.uy;
-    if (along < CORE_R || along > k.r0 + k.max + trackPast()) continue;
-    const d = Math.abs((p.x - CX) * k.uy - (p.y - CY) * k.ux); // distance across the line
-    if (d < bd) { bd = d; best = t; }
+// two towers' centres stay TOWER_GAP apart (a hex each plus a sliver), and none
+// comes nearer the core than the slots do (they sit snug on its shield)
+const towerGap = () => 2 * CELL_S * TOWER_K + 4;
+// the legal spot nearest p for t: inside its leash, off the core, clear of the
+// other towers - or null when no nudge finds one (it then stays where it is)
+function legalSpot(t, p) {
+  const c = CELLS[t.cell], L = leashR(t), gap = towerGap();
+  let x = p.x, y = p.y;
+  const away = (ox, oy, min) => { const d = Math.hypot(x - ox, y - oy) || 1e-6; if (d < min) { x = ox + (x - ox) * min / d; y = oy + (y - oy) * min / d; } };
+  for (let i = 0; i < 4; i++) {
+    for (const o of G.towers) if (o !== t) away(o.x, o.y, gap);
+    away(CX, CY, SLOT_R);
+    const d = Math.hypot(x - c.x, y - c.y);
+    if (d > L) { x = c.x + (x - c.x) * L / d; y = c.y + (y - c.y) * L / d; }
   }
-  return best;
+  const clear = G.towers.every(o => o === t || Math.hypot(x - o.x, y - o.y) >= gap - 0.5) && Math.hypot(x - CX, y - CY) >= SLOT_R - 0.5;
+  return clear ? { x, y } : null;
 }
-// WHERE it heads (owner, 2026-10-04): the spot that maximises ANTICIPATED
-// HITS, re-scored live (aspira-positioning.js) - it replaced chasing one
-// target, which walked away from groups. It gets there EASED: speed ramps at
-// TOWER_ACCEL and brakes to stop on its mark.
-const TOWER_ACCEL = 240;
-function moveTower(t, dt) {
-  const k = spokeOf(t), { c, ux, uy, max } = k, off = t.off || 0;
-  t.posT = (t.posT || 0) - dt;
-  // a new mark within POS_DEADBAND of the one it is heading for is ignored, so a
-  // tower does not twitch after every small shift of the action (owner, 2026-10-06:
-  // "tower positions jitter too much")
-  // (the deadband only holds while it has something in range - an idle tower
-  // always takes the new mark)
-  if (t.posT <= 0) {
-    t.posT = POS_EVERY;
-    const r = towerStats(t).range, w = bestSpot(t, k, r);
-    const busy = G.enemies.some(e => !e.dead && (e.x - t.x) ** 2 + (e.y - t.y) ** 2 <= r * r);
-    if (t.want == null || w == null || !busy || Math.abs(w - t.want) > POS_DEADBAND) t.want = w;
-  }
-  const want = Math.max(k.min, Math.min(max, t.want ?? max)); // nothing alive: rest OUTERMOST (owner)
-  // eased: aim for the speed that still stops on the mark, then ramp to it
-  const gap = want - off, vWant = Math.sign(gap) * Math.min(moveSpeed(t), Math.sqrt(2 * TOWER_ACCEL * Math.abs(gap)));
-  const v = t.v || 0, dv = TOWER_ACCEL * dt;
-  t.v = Math.abs(vWant - v) <= dv ? vWant : v + Math.sign(vWant - v) * dv;
-  t.off = Math.max(k.min, Math.min(max, off + t.v * dt));
-  if (Math.abs(gap) < 0.5 && Math.abs(t.v) < 5) { t.off = want; t.v = 0; }
-  t.x = c.x + ux * t.off; t.y = c.y + uy * t.off;
-}
+function moveTo(t, p) { const s = legalSpot(t, p); if (s) { t.x = s.x; t.y = s.y; } return !!s; }
 
-
-// UI only (aspira-draw.js calls it): each tower's SPOKE (owner): the track it slides along
-// one spoke: from the core's edge out through cell c to radius `to`, ending in a
-// T just PAST it - a tower's own half-size further (trackPast), so a tower at
-// full reach touches the T instead of covering it (owner)
-// a tower's half-size (its L1 hex), so the T-bars mark where its EDGE can go
-const trackPast = () => CELL_S * TOWER_K;
-function spokeTrack(c, kind, slide = 1) {
-  // the line runs only over the range a tower can MOVE (owner: show the min):
-  // from its inner limit out to its reach
-  // both ends mark the tower's EDGE (owner): its reach plus a half-size out,
-  // its inner limit minus a half-size in
-  const r0 = Math.hypot(c.x - CX, c.y - CY) || 1, ux = (c.x - CX) / r0, uy = (c.y - CY) / r0;
-  const lim = slideLimits(c, kind, slide), to = r0 + lim.max + trackPast(), from = r0 + lim.min - trackPast();
-  ctx.beginPath(); ctx.moveTo(CX + ux * from, CY + uy * from); ctx.lineTo(CX + ux * to, CY + uy * to); ctx.stroke();
-  // a T-bar at each LIMIT (owner): the outer reach, and the innermost a tower
-  // slides, TOWER_IN of its slot's distance (shorter, so out and in read apart)
-  const bar = (r, w) => { const ex = CX + ux * r, ey = CY + uy * r; ctx.beginPath(); ctx.moveTo(ex - uy * w, ey + ux * w); ctx.lineTo(ex + uy * w, ey - ux * w); ctx.stroke(); };
-  bar(to, 14); bar(from, 9);
-}
-function drawSpokes() {
-  // solid, from the core out to the limit, in the TOWER'S colour and a little
-  // thicker (owner; was bright white)
-  ctx.lineCap = "round"; ctx.lineWidth = 2; // thinner (owner, 2026-10-06; was 3)
+// UI only (aspira-draw.js): every moved tower's SPAWN, a faint hex in its colour on
+// its slot, and the selected (or held) tower's LEASH, a dashed circle round it
+function drawLeash() {
+  ctx.lineWidth = 2;
   for (const t of G.towers) {
-    const k = spokeOf(t);
-    ctx.strokeStyle = COL[TOWERS[t.kind].color]; ctx.globalAlpha = t.id === ui.sel ? 0.95 : 0.6;
-    spokeTrack(k.c, t.kind, k.slide);
-  }
-  // while PLACING, every free slot shows the track the tower being built would
-  // slide along, in its colour (owner)
-  if (ui.build) {
-    ctx.strokeStyle = COL[TOWERS[ui.build].color]; ctx.globalAlpha = 0.7;
-    CELLS.forEach((c, ci) => { if (canPlace(ci)) { const r0 = Math.hypot(c.x - CX, c.y - CY); spokeTrack(c, ui.build); } });
+    const c = CELLS[t.cell], col = COL[TOWERS[t.kind].color], held = ui.drag && ui.drag.t === t;
+    ctx.strokeStyle = col;
+    if (Math.hypot(t.x - c.x, t.y - c.y) > 1) { ctx.globalAlpha = 0.35; towerHex(c, TOWER_K); ctx.stroke(); }
+    if (t.id !== ui.sel && !held) continue;
+    ctx.globalAlpha = held ? 0.8 : 0.5; ctx.setLineDash([8, 8]);
+    ctx.beginPath(); ctx.arc(c.x, c.y, leashR(t), 0, 6.283); ctx.stroke(); ctx.setLineDash([]);
   }
   ctx.globalAlpha = 1;
 }
