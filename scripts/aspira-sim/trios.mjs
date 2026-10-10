@@ -1,5 +1,5 @@
 // THREE TOWERS (owner, 2026-10-09: "the only requirement now that we're on 3 towers, is that, for every combination of
-// 3 towers, it is possible to win the game"): every multiset of three kinds (20), built exactly as the opening, played
+// 3 towers, it is possible to win the game" - "trio without duplicates"): every set of three DIFFERENT kinds (4), built as the opening, played
 // greedy / balanced / saver with every core pick, over seeds. A trio passes if ANY of its games wins.
 // usage: node trios.mjs [seeds=2] [out.jsonl]   (ASPIRA_PATCH applies to every game, ASPIRA_WEB a snapshot)
 import { isMainThread } from "node:worker_threads";
@@ -15,7 +15,7 @@ export default async function task({ trio, style, seed }) {
 }
 if (isMainThread && process.argv[1] && process.argv[1].endsWith("trios.mjs")) {
   const SEEDS = Number(process.argv[2] || 2), OUT = process.argv[3] || null, trios = [], jobs = [];
-  for (let a = 0; a < 4; a++) for (let b = a; b < 4; b++) for (let c = b; c < 4; c++) trios.push([K[a], K[b], K[c]]);
+  for (let a = 0; a < 4; a++) for (let b = a + 1; b < 4; b++) for (let c = b + 1; c < 4; c++) trios.push([K[a], K[b], K[c]]);
   for (const trio of trios) for (const style of Object.keys(STYLES)) for (let seed = 1; seed <= SEEDS; seed++) jobs.push({ trio, style, seed });
   const res = await runPool(new URL(import.meta.url), jobs, { out: OUT });
   const rows = trios.map(trio => {
