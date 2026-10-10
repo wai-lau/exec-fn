@@ -13,7 +13,15 @@ function powerTap(d) {
   if (d.id === "temporal") { if (temporalFreeze()) refreshPanels(); return; }
   // the Relay ALWAYS arms and waits for a tower (owner, 2026-10-08: "keep waiting for tower selection"),
   // whatever is selected; a second tap on the button disarms
-  ui.relayArm = !ui.relayArm && cooldownLeft("relay") <= 0; // armed: every tower FLASHES a white ring (drawRelayArm), no banner (owner, 2026-10-08)
+  setRelayArm(!ui.relayArm && cooldownLeft("relay") <= 0); // armed: every tower FLASHES a white ring (drawRelayArm), no banner (owner, 2026-10-08)
+}
+// an armed Relay PAUSES the game while the player picks a tower (owner, 2026-10-10: "clicking orbital relay should
+// pause game for tower selection"); disarming puts back whatever pause state there was
+const relayPause = { was: false };
+function setRelayArm(on) {
+  if (on && !ui.relayArm) { relayPause.was = ui.paused; ui.paused = true; }
+  else if (!on && ui.relayArm) ui.paused = relayPause.was;
+  ui.relayArm = on;
 }
 // while the Relay is armed, a flashing white ring round every tower says "tap one" - on the
 // same 0.7s beat as the online buttons (aspira.css asp-flash); drawScene calls it after the towers
@@ -35,7 +43,7 @@ function drawRelayArm() {
 // a build pending); a tap on anything else only disarms it (owner, 2026-10-08) - the tap is used up either way
 function relayArmTap(p, hit) {
   if (!ui.relayArm) return false;
-  ui.relayArm = false;
+  setRelayArm(false);
   const t = G.towers.includes(hit) ? hit : trackAt(p);
   if (t) relay(t);
   return true;
