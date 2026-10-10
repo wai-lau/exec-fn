@@ -1108,6 +1108,21 @@ Host side is `claude-box/` (`server.mjs` sidecar on the Agent SDK, `cc-sidecar.s
 
 **Auth is `cc-agent`'s OWN subscription login** (`sudo -u cc-agent -H /usr/bin/claude`, then `/login`) — NOT a copy of wai-root's `~/.claude/.credentials.json`. Two processes sharing one OAuth refresh token race, and the loser (usually the interactive session) is logged out mid-refresh. A logged-out sidecar answers a clean per-request `Not logged in · Please run /login` text frame, so the page degrades rather than 500s.
 
+### 7a-bis. Signing back in from the panel (`claude-box/login.mjs`, 2026-10-10)
+
+The login does die: on 2026-10-09 the CLI's OAuth refresh failed (the credentials file was rewritten with `expiresAt: 0`, refresh token still present) and every Exec turn became `Failed to authenticate: OAuth session expired and could not be refreshed`. The ssh fix was miserable from a phone. Worse, the TUI HARD-wraps the 465-char sign-in URL to the terminal width, and the copied, wrapped URL was refused by claude.com as `Invalid request format`.
+
+Now the panel recovers the login itself:
+
+1. A turn whose SDK message carries `error: "authentication_failed"` (or that throws something matching `SIGNED_OUT_RE`) makes `handleQuery` call `startLogin()`. That spawns `claude auth login --claudeai` (`/usr/bin/claude`; override with `CC_CLAUDE_BIN`) and cuts the URL out of its OSC 8 hyperlink.
+2. The URL is appended to the failure reply as a markdown link in an ordinary `text` frame. The panel already renders links as tap targets, so **no page JS changed**.
+3. While a sign-in waits, a message shaped `code#state` (or a bare 32+ char code) goes to `answerSignIn` instead of the model. This runs before the busy check and takes no query slot. The code is written to the CLI's stdin, and the CLI, which still holds the PKCE verifier, does the exchange and writes `.credentials.json` itself. The code never enters a transcript.
+4. Replies: "Signed back in. Send your last message again." A wrong or expired code gets the CLI's own last line plus a fresh link, because the CLI exits after one bad exchange.
+
+What can't be done: the code cannot come back without a paste. The OAuth client redirects only to `platform.claude.com/oauth/code/callback` or to `localhost` on the clicking machine, and neither reaches this server.
+
+The child is kept for `LOGIN_TTL_MS` (10 min). The verifier lives only in the child, so the link dies with it. Repeated failures rejoin the same pending sign-in rather than spawning a second CLI in the 700M unit. Tests: `claude-box/login.test.mjs` (fake CLI), wrapped by `tests/test_cc_login.py`.
+
 `MAX_CONCURRENT` 1 + `MemoryMax=700M` is a memory ceiling expressed as a queue depth (~930MB free, each run spawns a CLI subprocess); a second request gets 429, surfaced as "busy".
 
 ### 7b. The sandbox — three mechanisms, and they are NOT equally strong

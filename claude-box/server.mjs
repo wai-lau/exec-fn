@@ -33,6 +33,9 @@ import { usage } from "./usage.mjs";
 import { generateTitle } from "./title-gen.mjs";
 import { saveUploads, uploadNote } from "./uploads.mjs";
 import { checkToolPaths } from "./sandbox-paths.mjs";
+import {
+  codeFor, finishLogin, pendingLogin, startLogin, LOGIN_TTL_MS,
+} from "./login.mjs";
 
 const HOST = process.env.CC_BIND_HOST || "172.17.0.1";
 const PORT = Number(process.env.CC_BIND_PORT || 8129);
@@ -282,8 +285,9 @@ let titleBusy = false;
 
 /** Whether cc-agent has completed its subscription login.
  *
- * Checked per call, never cached: the file appears the moment the one-time
- * `sudo -u cc-agent -H /usr/bin/claude` + /login finishes, and a cached false
+ * Checked per call, never cached: the file appears the moment a sign-in
+ * finishes (from the panel, login.mjs, or by hand: `sudo -u cc-agent -H
+ * /usr/bin/claude` + /login), and a cached false
  * would keep the page saying "login needed" until someone restarted the unit.
  * Advisory only -- a run is never blocked on it. */
 function hasLogin() {
@@ -548,6 +552,52 @@ function sse(res, event) {
   res.write(`data: ${JSON.stringify(event)}\n\n`);
 }
 
+const SSE_HEADERS = {
+  "content-type": "text/event-stream",
+  "cache-control": "no-cache",
+  connection: "keep-alive",
+  // nginx is not in this path today, but the header costs nothing and a
+  // buffering proxy would otherwise hold the whole stream to the end.
+  "x-accel-buffering": "no",
+};
+
+/** The reply line that puts a sign-in link in front of Wai (login.mjs). Plain
+ *  markdown in an ordinary text frame: the panel already renders a link as a
+ *  tap target, so the page needed no change to carry it. */
+async function signInLine() {
+  try {
+    const url = await startLogin(childEnv());
+    const mins = Math.round(LOGIN_TTL_MS / 60000);
+    return `Exec is signed out of Claude. [Sign in](${url}), approve, then paste `
+      + `the code it shows here. The link works for ${mins} minutes.`;
+  } catch (err) {
+    return `Exec is signed out of Claude, and starting a sign-in failed: ${err?.message || err}`;
+  }
+}
+
+/** Answer a message that was a pasted sign-in code. It goes to the waiting CLI,
+ *  never to the model, and takes no query slot: there is nothing to run until
+ *  the login is back. */
+async function answerSignIn(res, pasted) {
+  res.writeHead(200, SSE_HEADERS);
+  let text;
+  if (pasted.stale) {
+    text = `That code is from an older sign-in link. [Use this one](${pendingLogin()?.url}).`;
+  } else {
+    const r = await finishLogin(pasted.code);
+    text = r.ok
+      ? "Signed back in. Send your last message again."
+      : `That code did not work (${r.detail}). ${await signInLine()}`;
+  }
+  sse(res, { type: "text", text });
+  sse(res, { type: "done" });
+  res.end();
+}
+
+// What a sign-in failure looks like when it arrives THROWN rather than as an
+// assistant message carrying error:"authentication_failed".
+const SIGNED_OUT_RE = /failed to authenticate|oauth session expired|not logged in|please run \/login/i;
+
 /** Validate pasted images into Anthropic image blocks, dropping anything odd.
  *
  * A bad block would fail the whole turn, so a malformed entry is discarded and
@@ -574,6 +624,15 @@ async function handleQuery(req, res, body) {
     res.end(JSON.stringify({ error: "prompt, image or file required" }));
     return;
   }
+  // While a sign-in waits, the code Wai pastes is for the CLI, not the model.
+  // The container wrapped her words in the board block, so match without it.
+  const signin = pendingLogin();
+  const pasted = signin && !images.length && !hasFiles
+    && codeFor(stripExecContext(prompt), signin.state);
+  if (pasted) {
+    await answerSignIn(res, pasted);
+    return;
+  }
   if (active >= MAX_CONCURRENT) {
     res.writeHead(429, { "content-type": "application/json" });
     res.end(JSON.stringify({ error: "busy", detail: "a run is already in flight" }));
@@ -585,14 +644,7 @@ async function handleQuery(req, res, body) {
   prompt += uploadNote(saveUploads(SANDBOX, body.files));
 
   active += 1;
-  res.writeHead(200, {
-    "content-type": "text/event-stream",
-    "cache-control": "no-cache",
-    connection: "keep-alive",
-    // nginx is not in this path today, but the header costs nothing and a
-    // buffering proxy would otherwise hold the whole stream to the end.
-    "x-accel-buffering": "no",
-  });
+  res.writeHead(200, SSE_HEADERS);
 
   const controller = new AbortController();
   // A browser that navigates away must not leave a CLI subprocess resident --
@@ -642,19 +694,22 @@ async function handleQuery(req, res, body) {
         })()
       : prompt;
 
+    let signedOut = false;
     for await (const msg of query({ prompt: input, options })) {
       touch();
+      if (msg?.type === "assistant" && msg.error === "authentication_failed") signedOut = true;
       for (const event of normalize(msg)) {
         if (event.type === "session") rememberSession(event.sessionId);
         sse(res, event);
       }
     }
+    // Rides on the end of the failure text, in the same bubble.
+    if (signedOut) sse(res, { type: "text", text: `\n\n${await signInLine()}` });
   } catch (err) {
     const aborted = controller.signal.aborted;
-    sse(res, {
-      type: "error",
-      detail: aborted ? "run cancelled or timed out" : String(err?.message || err),
-    });
+    const detail = aborted ? "run cancelled or timed out" : String(err?.message || err);
+    sse(res, { type: "error", detail });
+    if (!aborted && SIGNED_OUT_RE.test(detail)) sse(res, { type: "text", text: await signInLine() });
   } finally {
     clearTimeout(idle);
     res.off("close", onClose);

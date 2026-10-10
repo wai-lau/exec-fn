@@ -72,6 +72,11 @@ A logged-out sidecar answers `{"type":"text","text":"Not logged in · Please run
 /login"}` and then a `done` — it is a clean per-request failure, not a crash, so
 the page degrades rather than 500s.
 
+**Re-login after that is normally done from the Exec panel, not here**
+(`login.mjs`). A signed-out turn ends with a sign-in link. Approve it, paste
+the code back into the panel, and the sidecar finishes `claude auth login`
+itself. ARCHITECTURE.md §7a-bis.
+
 ## Endpoints (bridge-only, `x-cc-token` required)
 
 | Method | Path     | What |
