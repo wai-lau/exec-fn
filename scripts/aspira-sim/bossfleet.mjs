@@ -4,14 +4,15 @@
 // on their real timers, closest approach of anything to the core. Team as bossbal.mjs (every open slot, ARC FRZ SOL
 // ACD, the lowest level at which the stretch stays out). Bisect FLEET_MUL[arcana] until the boss wave (boss + fleet)
 // comes CLOSER x the stretch.
-// usage: node bossfleet.mjs [measure|tune] [seeds=2]   env BB_ONLY=10,20 to pick waves, BF_MUL=x to measure one mul
+// usage: node bossfleet.mjs [measure|tune] [seeds=2]   env BB_ONLY=10,20 to pick waves, BF_MUL=x to measure one mul,
+//   BF_KINDS=arc,frz,acd the team (three towers, 2026-10-10: a fit per trio, the weakest trio's mul taken)
 import { makeGame } from "./sim.mjs";
 const MODE = process.argv[2] || "measure", SEEDS = Number(process.argv[3] || 2);
 const CLOSER = 0.9, MIN_D = 90;
 const ONLY = (process.env.BB_ONLY || "").split(",").filter(Boolean).map(Number);
 function team(g, n, lvl) {
   g.run(`G.money = 1e12; G.opened = {}; CELLS.forEach((c, i) => { if (c.unlock && c.unlock < ${n}) G.opened[i] = true; });`);
-  const kinds = ["arc", "frz", "sol", "acd"], open = g.run("CELLS.map((c, i) => i).filter(cellOpen)");
+  const kinds = (process.env.BF_KINDS || "arc,frz,sol,acd").split(","), open = g.run("CELLS.map((c, i) => i).filter(cellOpen)");
   open.forEach((ci, j) => {
     const k = kinds[j % 4], t = g.place(k, ci);
     const want = g.maxLvl(t) > g.MAX_LVL ? 1 + 5 * (lvl - 1) : lvl;
