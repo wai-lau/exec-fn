@@ -65,7 +65,7 @@ function acdTick(t, st, l, every) {
     const dd = shotDamage(t, st, o, d);
     damage(o, dd, t); onHit(o, t, st, dd); o.burnT = 0.4; // burning: no longer Fresh
     if (st.burnSlow && !o.dead) applySlow(o, st.burnSlow, 0.5, t.id); // Residue: the burn slows
-    if (st.corrode && !o.dead) { o.armor = (o.armor || 0) - st.corrode; o.corrodeT = 0.4; } // Corrosion: past zero, on purpose; corrodeT: dotted ring
+    if (st.corrode && !o.dead) { o.armor = (o.armor || 0) - dd * st.corrode; o.corrodeT = 0.4; } // Corrosion: st.corrode of the tick's damage, past zero on purpose; corrodeT: dotted ring
   };
   const R = st.plagueR ? plagueRadius(l, st) : 0, center = l.e;
   burn(center);
@@ -95,6 +95,11 @@ function stepAcd(t, dt) {
 // keeps full heat on a new target (it was III's), II / III burn HOTTER at every
 // heat (ACD_CORROSION_DMG x the dps, so the top heat rises with it - raising only
 // the cap did nothing, the ramp rarely reaches it); the ramp stays ACD_DOUBLE[0]
+// Corrosion EATS ARMOR again (owner, 2026-10-10: three towers, every trio must be winnable): the chart rework had
+// dropped st.corrode, so the axis no longer touched armor. Each tick strips ACD_CORRODE of its damage, past zero -
+// negative armor is a flat bonus on every hit from every tower, bosses too. The weakest of 1x / 3x / 10x tried
+// (scripts/aspira-sim/trios.mjs): ARC+FRZ+ACD 90 -> won (Judgement, Death), ARC+SOL+ACD 96 -> won (Capacitance first)
+const ACD_CORRODE = [0, 0.01, 0.02, 0.03, 0.04, 0.05];
 const ACD_CORROSION_DMG = [1, 1.213, 1.823, 2.674, 3.631, 4.253];
 const ACD_DOUBLE = [0.5, 0.39, 0.3, 0.12, 0.12, 0.12], ACD_LINES = [2, 3, 4, 6, 7, 8], /* early-game balance 2026-10-06: two lines from the start (was 1/2/3/5); Spray to be re-fitted */ ACD_SPRAY_MUL = [1, 1, 1, 1, 1, 1]; // every jet a full strike (owner, 2026-10-08: never below 1) - Spray's reach (SKILL_MOVE) is the lever
 // puddles by Seep tier (index 0 = the DEFAULT drip, owner): one every `every`
@@ -113,7 +118,7 @@ function acdSkillStats(t, s, b) {
   s.dmg = b.dmg * ACD_CORROSION_DMG[c]; s.range = b.range * RANGE_BONUS; s.double = ACD_DOUBLE[0]; s.cap = ACD_BASE_MAX; s.plagueR = 0;
   // every ACD hands 40% of a dead line's ramp on (early-game balance 2026-10-06;
   // fast waves reset it); from Corrosion I, Etch, ALL of it
-  s.carry = c >= 1 ? 1 : 0.4; s.targets = ACD_LINES[skillOf(t, "spray")]; s.contagion = ACD_CONTAGION[skillOf(t, "contagion")];
+  s.carry = c >= 1 ? 1 : 0.4; s.corrode = ACD_CORRODE[c]; s.targets = ACD_LINES[skillOf(t, "spray")]; s.contagion = ACD_CONTAGION[skillOf(t, "contagion")];
   s.contagionHeat = ACD_PUDDLE_HEAT[skillOf(t, "contagion")]; s.contagionSlow = ACD_CONTAGION_SLOW[skillOf(t, "contagion")]; s.sprayMul = ACD_SPRAY_MUL[skillOf(t, "spray")]; s.skill = true;
 }
 // every step (stepAcd): each line drips a puddle every seep.every s; each
