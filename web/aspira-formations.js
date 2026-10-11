@@ -16,7 +16,7 @@ const ARMOR_W = 3, ARMOR_PITCH = 36;
 // the spinning, make armor do the spinning"): a formation turns FLAT on the board about its CENTRE - the lattice's
 // middle, or the boss its escorts surround - one radian every FORM_SPIN[type] world units it travels; the members orbit
 // it. No entry = it never spins (the shield Vs)
-const FORM_SPIN = { armor: 160, fast: 160 };
+const FORM_SPIN = { fast: 160 }; // (armor spun for an hour: owner, "remove armor spin")
 // the slots for a group of m: [lat, ahead] each
 const FORMS = {
   fast: { group: () => 2, slots: m => (m === 2 ? [[-FAST_PAIR / 2, 0], [FAST_PAIR / 2, 0]] : [[0, 0]]) },
