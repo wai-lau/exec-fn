@@ -102,7 +102,7 @@ KINDS.forEach((k, i) => {
 });
 
 // AUTO-WAIT (owner): a checkbox under the pause button; while ticked, the game
-// drops to 1/2x whenever an enemy is within AUTO_WAIT_S game-seconds of
+// drops to min(1x, the chosen speed) whenever an enemy is within AUTO_WAIT_S game-seconds of
 // reaching the core at its current speed (owner: time, not distance), and goes
 // back to the chosen speed once none is. Remembered in localStorage.
 const AUTO_WAIT_S = 8;
@@ -110,11 +110,11 @@ const etaToCore = e => { const v = effSpeed(e); return v > 0 ? (PATHS[e.pi].len 
 let autoWait = true;
 // ON by default (owner); only an explicit "0" (unticked before) turns it off
 try { autoWait = localStorage.getItem("spire.autowait") !== "0"; } catch (e) { autoWait = true; }
-// TWO stages (owner): 1/2x within AUTO_WAIT_S of the core, 1/4x within half
-// that. Returns the speed key to run at (0.25 / 0.5), or 0 when not waiting.
+// ONE stage (owner, 2026-10-11: "not have a second stronger wait", "wait speed is min(1, player set speed)"; was 1/2x
+// within AUTO_WAIT_S, 1/4x within half that). Returns the speed key to run at, or 0 when not waiting.
 // NO JITTER (owner): the nearest ETA jumps as enemies are slowed, die or swap,
-// so a stage is entered at its line but only LEFT past AUTO_RELEASE x it (8s in,
-// 10s out; 4s in, 5s out), and a slower speed holds at least AUTO_HOLD_MS of
+// so the wait is entered at its line but only LEFT past AUTO_RELEASE x it (8s in,
+// 10s out), and a slower speed holds at least AUTO_HOLD_MS of
 // real time before it may speed up again. Slowing down is always immediate.
 // Worked out at most once a frame (it is asked several times).
 const AUTO_RELEASE = 1.25, AUTO_HOLD_MS = 1500;
@@ -126,8 +126,8 @@ const autoWaiting = () => {
   awAt = now;
   let eta = Infinity;
   for (const e of G.enemies) if (!e.dead) eta = Math.min(eta, etaToCore(e));
-  const hold = (lvl, line) => awLevel && awLevel <= lvl && eta <= line * AUTO_RELEASE; // already this slow or slower, still near
-  const want = eta <= AUTO_WAIT_S / 2 || hold(0.25, AUTO_WAIT_S / 2) ? 0.25 : eta <= AUTO_WAIT_S || hold(0.5, AUTO_WAIT_S) ? 0.5 : 0;
+  const hold = awLevel && eta <= AUTO_WAIT_S * AUTO_RELEASE; // already waiting, still near
+  const want = eta <= AUTO_WAIT_S || hold ? Math.min(1, ui.speed) : 0;
   const slower = want && (!awLevel || want < awLevel);
   if (want !== awLevel && (slower || now - awSince >= AUTO_HOLD_MS)) { awLevel = want; awSince = now; }
   return awLevel;
