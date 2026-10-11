@@ -185,7 +185,7 @@ export function makePlayer(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = 
   let next = null; // the committed next action (holds a tower: snapshotted by id)
   // the game's tower cap (MAX_TOWERS, 3 since 2026-10-11) holds every player; strategy.towerCap overrides it for a
   // team that is MEANT to be bigger (teambal.mjs's 4 + 1), and the game is told so its own placement agrees
-  if (strategy.towerCap) g.run(`MAX_TOWERS = ${strategy.towerCap}`);
+  if (strategy.towerCap) g.run(`MAX_TOWERS = ${strategy.towerCap}; OPEN_SLOTS = SLOT_ANGLES.slice();`); // a bigger test team gets all six slots
   const towerCap = () => strategy.towerCap || Math.min(strategy.maxTowers || 99, g.run("MAX_TOWERS"));
   const rnd = () => (S.r = (S.r * 9301 + 49297) % 233280) / 233280;
   const pick = () => { // the mix is read live: a pivot may change it mid-game

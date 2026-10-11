@@ -55,7 +55,10 @@ function waveCount(type, n) {
   // HALF the bodies at TWICE the health (owner, 2026-10-02)
   // x WAVE_COUNT_MUL[n]: waves 1-30 tuned so each comes about as close to the
   // core against one L1 tower of each kind (owner; scripts/aspira-sim/wavebal.mjs)
-  return Math.max(1, Math.round((type === "swarm" ? base * 6 : base) / 2 * (WAVE_COUNT_MUL[n] ?? 1) * (TYPE_COUNT_MUL[type] ?? 1) * (type === "swarm" ? swarmMul(n) : 1))); // swarms 6x (owner: doubled from 3x)
+  const c = (type === "swarm" ? base * 6 : base) / 2 * (WAVE_COUNT_MUL[n] ?? 1) * (TYPE_COUNT_MUL[type] ?? 1) * (type === "swarm" ? swarmMul(n) : 1); // swarms 6x (owner: doubled from 3x)
+  // SYMMETRICAL FORMATIONS (owner, 2026-10-11: "2n+1 for fast, 3n for armor"): whole Vs and full lattice rows
+  const unit = FORM_UNIT[type] || 1;
+  return Math.max(unit, Math.round(c / unit) * unit);
 }
 function wavePlan(n, prev) {
   // every STAR_EVERY-th wave is the boss, ALONE (owner, 2026-10-02)
@@ -65,7 +68,7 @@ function wavePlan(n, prev) {
   const raw = waveCount(type, n);
   // split k ways, ROUNDED DOWN so every lane copy gets the same number (owner)
   // FORMATIONS stay whole (aspira-formations.js): armor's lattice is never split, fast splits only into whole Vs
-  const split = Math.min(raw, type === "armor" ? 1 : type === "fast" ? Math.max(1, Math.floor(raw / FAST_V)) : raw, 1 + Math.floor(fixedRand(n, 3) * 6));
+  const split = formSplit(type, raw, Math.min(raw, 1 + Math.floor(fixedRand(n, 3) * 6)));
   return { type, count: Math.floor(raw / split) * split, split, star: n % STAR_EVERY === 0 };
 }
 function makeWave(n) {
@@ -107,9 +110,9 @@ function sendWave() {
     // (a boss wave takes its split from the boss: the Devil's six come from
     // six directions, one per rotated copy of the lane)
     const boss = G.wave % STAR_EVERY === 0;
-    const ty = list[0], want0 = boss ? bossSplit(G.wave) : 1 + Math.floor(fixedRand(G.wave, 3) * 6);
+    const want0 = boss ? bossSplit(G.wave) : 1 + Math.floor(fixedRand(G.wave, 3) * 6);
     // FORMATIONS stay whole (aspira-formations.js): armor's lattice is one block, fast splits only into whole Vs
-    const want = boss ? want0 : ty === "armor" ? 1 : ty === "fast" ? Math.min(want0, Math.max(1, Math.floor(list.length / FAST_V))) : want0;
+    const want = boss ? want0 : formSplit(list[0], list.length, want0);
     const k = Math.min(list.length, want), per = Math.floor(list.length / k);
     for (let j = 0; j < k; j++) {
       const part = list.slice(j * per, (j + 1) * per);

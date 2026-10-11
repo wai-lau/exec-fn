@@ -26,6 +26,22 @@ const FORMS = {
     });
   } },
 };
+// a wave's count is a whole number of these (waveCount): every V full (FAST_V, odd: 2n+1), every lattice row full
+const FORM_UNIT = { fast: FAST_V, armor: ARMOR_W };
+// how many lane copies a wave of `count` splits onto, at most `want`: fast only into whole Vs, armor into whole
+// lattice rows (the largest k <= want that divides its number of groups); everything else as asked
+// (2026-10-11: one armor block on one lane made armor free - all 36 sim games won, armor 0 lives - so armor splits
+// again, in WHOLE ROWS; ARMOR_ONE_BLOCK true brings the single block back. let: the simulator sweeps it)
+let ARMOR_ONE_BLOCK = false;
+function formSplit(type, count, want) {
+  const unit = FORM_UNIT[type];
+  if (!unit) return Math.min(count, want);
+  if (type === "armor" && ARMOR_ONE_BLOCK) return 1;
+  const groups = Math.max(1, Math.floor(count / unit));
+  let k = Math.min(want, groups);
+  while (k > 1 && groups % k) k--;
+  return k;
+}
 // from stepSpawns: spawn the next formation of `type` from wave part w at once; returns how many it took (0: none)
 function formSpawn(w, type) {
   const f = FORMS[type];

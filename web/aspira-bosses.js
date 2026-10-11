@@ -104,22 +104,50 @@ const FLEET_GAP = 10; // clear space between bodies, world units
 // x a plain wave, per boss: the fleet's SIZE, the balance lever (owner: "balance by adding to boss fleets") - fitted by
 // scripts/aspira-sim/bossfleet.mjs against the regular waves before each boss, which overlap where a boss wave does not
 const FLEET_MUL = { star: 1, empress: 1, strength: 1, chariot: 1, lovers: 1, temperance: 1, devil: 1, justice: 1, judgement: 1, death: 1 };
+// the slots ([lat, ahead of the boss]) for a boss's fast and armor escorts; R: the boss's own radius
+function fleetForm(e, R) {
+  return {
+    fast: m => Array.from({ length: m }, (_, i) => { // the boss leads; pairs fan back and out behind it
+      const d = 1 + Math.floor(i / 2), side = i % 2 ? 1 : -1;
+      return [side * d * FAST_V_LAT * 1.4, -(R + FLEET_GAP + d * FAST_V_BACK)];
+    }),
+    armor: m => { // a lattice ARMOR_W wide round the boss: the middle row's centre is the boss itself
+      const P = Math.max(ARMOR_PITCH, R + ENEMIES.armor.size + FLEET_GAP), out = [];
+      for (let ring = 0; out.length < m; ring++) for (const row of ring ? [ring, -ring] : [0]) for (let c = 0; c < ARMOR_W && out.length < m; c++) {
+        const col = c - (ARMOR_W - 1) / 2;
+        if (!row && !col) continue; // the boss's own place
+        out.push([col * P, row * P]);
+      }
+      return out;
+    },
+  };
+}
 function bossFleet(e, n) {
   const kinds = FLEET[e.arcana];
   if (!kinds) return;
   e.fleet = [];
   const bodies = bossCount(n), reach = [ENEMIES.bonus.size * (e.sizeMul || 1), ENEMIES.bonus.size * (e.sizeMul || 1)]; // how far ahead / behind is taken
   let i = 0;
+  // FORMATIONS ROUND THE BOSS (owner, 2026-10-11): fast escorts fly a V with the boss as its leader, armor a square
+  // lattice ARMOR_W wide with the boss in its middle; shields and swarms keep the line ahead of and behind it
+  const R = reach[0], form = fleetForm(e, R);
   for (const k of kinds) {
     const count = Math.max(1, Math.round(waveCount(k, n) * (FLEET_MUL[e.arcana] ?? 1) / kinds.length / bodies));
+    const slots = form[k] ? form[k](count) : null;
     for (let c = 0; c < count; c++, i++) {
       spawnEnemy(k, n, e.pi, e.ang || 0);
+      const m = G.enemies[G.enemies.length - 1], r = ENEMIES[k].size;
+      if (slots) { // its place in the boss's formation: across the lane, and ahead (+) or behind (-) the boss
+        m.lat = slots[c][0]; m.s = Math.max(0, e.s + slots[c][1]); m.ahead = slots[c][1];
+        reach[0] = Math.max(reach[0], slots[c][1] + r); reach[1] = Math.max(reach[1], -slots[c][1] + r);
+      } else {
       // spaced so NOTHING OVERLAPS (owner, 2026-10-09: "increase spacing between all units and boss during boss waves so
       // that they don't overlap"): each clears the boss and the one before it by FLEET_GAP, ahead, behind, ahead...
-      const m = G.enemies[G.enemies.length - 1], side = i % 2, r = ENEMIES[k].size;
+      const side = i % 2;
       reach[side] += FLEET_GAP + r;
       m.s = Math.max(0, e.s + (side ? -1 : 1) * reach[side]);
       reach[side] += r;
+      }
       // in FORMATION: at the boss's own pace, so the spacing holds (a fast escort behind would run through it)
       m.spd = (e.spd || 1) * ENEMIES.bonus.speed / ENEMIES[k].speed; m.jit = 0; // (a swarmer's wander would carry it into its neighbours)
       m.bossKin = true; m.fleetSpd = m.spd; e.fleet.push(m);
