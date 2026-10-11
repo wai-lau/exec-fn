@@ -155,19 +155,24 @@ const autoWaiting = () => {
 const ICON_UNCHECKED = '<svg class="asp-box" viewBox="0 0 20 20"><rect x="2" y="2" width="16" height="16" rx="2"/></svg>';
 const ICON_CHECKED = '<svg class="asp-box" viewBox="0 0 20 20"><rect x="2" y="2" width="16" height="16" rx="2"/><path d="M5.5 10.5l3 3 6-7"/></svg>';
 // AUTO-SPEED (owner, 2026-10-09: "add a checkbox (checked by default) for auto-speed: when no enemies are within the
-// range of a tower, speed up to x3"): with nothing in any tower's reach the game runs at AUTO_SPEED x at least (a faster
+// range of a tower, speed up to x3"): with nothing in any tower's reach (range + leash) the game runs at AUTO_SPEED x at least (a faster
 // chosen speed stands); auto-wait still slows it near the core. Remembered in localStorage like auto-wait.
 const AUTO_SPEED = 3;
-// OFF by default (owner, 2026-10-11; was on): only a viewer who ticked it ("1" saved) gets it
-let autoSpeed = false;
-try { autoSpeed = localStorage.getItem("spire.autospeed") === "1"; } catch (e) { autoSpeed = false; }
+// ON by default again (owner, 2026-10-11: "make it default on"; it was off for a while): only an explicit "0" turns it off
+let autoSpeed = true;
+try { autoSpeed = localStorage.getItem("spire.autospeed") !== "0"; } catch (e) { autoSpeed = true; }
 let asQuiet = false, asAt = -1;
 const autoSpeeding = () => {
   if (!autoSpeed || ui.paused || !G.towers.length) return false;
   const now = performance.now();
   if (now - asAt < 8) return asQuiet;
   asAt = now;
-  asQuiet = !G.towers.some(t => { const r = towerStats(t).range; return G.enemies.some(e => !e.dead && (e.x - t.x) ** 2 + (e.y - t.y) ** 2 <= r * r); });
+  // REACH = range + leash (owner, 2026-10-11: "out of range for range + mvmt range of all towers"): what a tower COULD hit
+  // from anywhere it can be dragged - a circle round its slot, its leash plus its range
+  asQuiet = !G.towers.some(t => {
+    const c = CELLS[t.cell], r = towerStats(t).range + leashR(t);
+    return G.enemies.some(e => !e.dead && (e.x - c.x) ** 2 + (e.y - c.y) ** 2 <= r * r);
+  });
   return asQuiet;
 };
 // the speed the game runs at: the chosen one, raised by auto-speed, held down by auto-wait
