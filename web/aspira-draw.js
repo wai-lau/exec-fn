@@ -461,10 +461,13 @@ function drawScene([sx, sy], clipR) {
   skyKeep(() => { for (const t of G.towers) if (t !== sel) drawTowerRange(t, true); if (sel) drawTowerRange(sel, false); });
   // stars go on top of lanes and range fills, which would otherwise tint them
   if (!lowQ && !q3d()) drawStars(); // low quality: no star field; 3D: round, on the overlay (warpEntities)
-  skyKeep(() => { drawTethers(); drawAcd(); drawAims(); drawFx("shots"); }); // on the board in 3D too (owner: "beams and tower effects can appear on the plane")
+  // BEAMS turn over with the boss sky (owner, 2026-10-11: "inversion should invert tower movement indicators and tower
+  // beams"; they kept their colours since earlier that day) - only the towers and their ranges keep theirs
+  drawTethers(); drawAcd(); drawAims(); drawFx("shots"); // on the board in 3D too (owner: "beams and tower effects can appear on the plane")
   drawCoreFx(); if (q3d() && G.core) { drawTimeStop(G.core); drawRelayHalos(false); } // the core's struts and beams, under the towers (aspira-core.js); 3D: Temporal Drive's field ON the floor
   // in 3D the towers, the core and the enemies are drawn FLAT over the bell instead (warpEntities, aspira-warp.js)
-  skyKeep(() => { drawLeash(); if (!q3d()) for (const t of G.towers) drawTower(t); drawRelayArm(); }); // towers keep their colours on a boss sky (owner); an armed Relay rings them (aspira-powers.js)
+  drawLeash(); // the movement indicator turns over with the sky too (owner, 2026-10-11)
+  skyKeep(() => { if (!q3d()) for (const t of G.towers) drawTower(t); drawRelayArm(); }); // towers keep their colours on a boss sky (owner); an armed Relay rings them (aspira-powers.js)
   drawSlotFlash(); drawCoins(); // a corner slot that just opened (aspira-waves.js); the credits flying home (aspira-floats.js)
   if (!q3d()) {
     if (ui.build && ui.hover) drawPlacement();
