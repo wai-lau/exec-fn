@@ -100,18 +100,20 @@ const FLEET = {
   star: ["fast"], empress: ["shield"], strength: ["armor"], chariot: ["fast"], lovers: ["swarm"], // shooting stars, handmaidens, lions, outriders, couples
   temperance: ["shield"], devil: ["swarm"], justice: ["armor"], judgement: ["swarm"], death: ["fast", "swarm", "armor", "shield"], // the cup, imps, guards, the risen, four horsemen
 };
-const FLEET_GAP = 10, FLEET_SUBLANES = 2; // clear space between bodies, world units; sub-lanes either side of the boss's line
+const FLEET_GAP = 10, FLEET_LAYER = 3 * V_BACK; // clear space between bodies, world units; a shield escort V's layers apart
 // x a plain wave, per boss: the fleet's SIZE, the balance lever (owner: "balance by adding to boss fleets") - fitted by
 // scripts/aspira-sim/bossfleet.mjs against the regular waves before each boss, which overlap where a boss wave does not
 const FLEET_MUL = { star: 1, empress: 1, strength: 1, chariot: 1, lovers: 1, temperance: 1, devil: 1, justice: 1, judgement: 1, death: 1 };
 // the slots ([lat, ahead of the boss]) for a boss's shield and armor escorts; R: the boss's own radius
 function fleetForm(e, R) {
   return {
-    shield: m => Array.from({ length: m }, (_, i) => { // the boss leads; pairs fan back and out behind it
-      // FIVE SUB-LANES at most (owner, 2026-10-11: "for each lane, only 5 sub lanes"): the arms open to FLEET_SUBLANES
-      // out each side of the boss's line, then run straight back - a V with two streamers, never wider
-      const d = 1 + Math.floor(i / 2), side = i % 2 ? 1 : -1;
-      return [side * Math.min(d, FLEET_SUBLANES) * V_LAT * 1.4, -(R + FLEET_GAP + d * V_BACK)];
+    shield: m => Array.from({ length: m }, (_, i) => {
+      // LAYERS OF Vs, five wide at most (owner, 2026-10-11: "for each lane, only 5 sub lanes", "shield escort max at 5
+      // too, do layers"): the boss tips the first V with 4 shields fanned back from it; each further layer is a V of 5
+      // (a tip on the boss's line, then two pairs) FLEET_LAYER behind the last
+      const L = i < 4 ? 0 : 1 + Math.floor((i - 4) / 5), j = i < 4 ? i + 1 : (i - 4) % 5; // j: its place in its V, 0 = tip
+      const d = Math.ceil(j / 2), side = j % 2 ? -1 : 1, w = V_LAT * 1.4;
+      return [side * d * w, -(R + FLEET_GAP + L * FLEET_LAYER + d * V_BACK)];
     }),
     armor: m => { // a lattice ARMOR_W wide round the boss: the middle row's centre is the boss itself
       const P = Math.max(ARMOR_PITCH, R + ENEMIES.armor.size + FLEET_GAP), out = [];
