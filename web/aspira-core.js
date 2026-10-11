@@ -26,7 +26,7 @@ const CORE_POWERS = [
 ];
 // COOLDOWNS COUNT WAVES SENT, not seconds (owner, 2026-10-11: "greatly increase cooldown of both ... use once every 3-4
 // waves"): `cd` is the waves from one use until the next (sendWave ticks them); were 90 / 65 / 50 s and the Relay 60 s
-const TEMPORAL = [null, { dur: 5, cd: 4 }, { dur: 8, cd: 4 }, { dur: 12, cd: 3 }], /* owner 2026-10-06: longer stop (was 2 / 4 s) */ TEMPORAL_GROW = 0.6, TEMPORAL_R = 560, TEMPORAL_FADE = 0.4, TEMPORAL_RING_EVERY = 0.5; // a ring shot out every TEMPORAL_RING_EVERY s for the whole freeze (owner, 2026-10-08)
+const TEMPORAL = [null, { dur: 5, cd: 4 }, { dur: 8, cd: 4 }, { dur: 12, cd: 3 }], /* owner 2026-10-06: longer stop (was 2 / 4 s) */ TEMPORAL_GROW = 1.8, TEMPORAL_R = 560, TEMPORAL_FADE = 1, TEMPORAL_RING_EVERY = 1.5; // a ring shot out every TEMPORAL_RING_EVERY s for the whole freeze (owner, 2026-10-08); FEWER, SLOWER, LONGER (owner, 2026-10-11: were 0.6 s to spread, 0.4 s to fade, one every 0.5 s) - the look only, the stop is at once
 // the Relay: RELAY_MUL x the tower for `dur` s, the cooldown counted from when
 // it wears off (per tier for the dial's sake; only III is ever owned)
 const RELAY_MUL = 3, RELAY = [null, { dur: 45, cd: 4 }, { dur: 45, cd: 4 }, { dur: 45, cd: 4 }]; // 45 s: doubled (owner, 2026-10-11; was 22.5, halved from 45 on 2026-10-07)
