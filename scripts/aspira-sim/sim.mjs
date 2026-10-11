@@ -144,7 +144,7 @@ export function cellScores(g, kind) {
 }
 
 // strategy: { mix: {kind: weight}, paths: {kind: [path, form]}, up: 0..1 (how
-// eager to upgrade vs build), maxTowers, threat, core: [power ids in pick
+// eager to upgrade vs build), maxTowers (never past the game's MAX_TOWERS; towerCap: n lifts that), threat, core: [power ids in pick
 // order] (each boss pick is taken at once - the core is free), useCore: true (corepower.mjs fires them),
 //   skills: {kind: [axis ids]}    a chart tower's SPEND ORDER: the first axis in it not yet full takes the
 //                                 point (absent, or all full = the lowest open axis, so builds spread evenly)
@@ -183,6 +183,10 @@ export function makePlayer(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = 
     leaks: {}, leakWave: {}, coreMem: {}, trace: [], pivoted: [], hist: [], lastWave: -1, waveNear: Infinity, bossNear: Infinity, fired: [],
     econ: [], builtAt: null, fullAt: null }; // the economy's ledger: a line every 10 waves, the wave every slot was filled / every tower maxed
   let next = null; // the committed next action (holds a tower: snapshotted by id)
+  // the game's tower cap (MAX_TOWERS, 3 since 2026-10-11) holds every player; strategy.towerCap overrides it for a
+  // team that is MEANT to be bigger (teambal.mjs's 4 + 1), and the game is told so its own placement agrees
+  if (strategy.towerCap) g.run(`MAX_TOWERS = ${strategy.towerCap}`);
+  const towerCap = () => strategy.towerCap || Math.min(strategy.maxTowers || 99, g.run("MAX_TOWERS"));
   const rnd = () => (S.r = (S.r * 9301 + 49297) % 233280) / 233280;
   const pick = () => { // the mix is read live: a pivot may change it mid-game
     const kinds = Object.keys(strategy.mix).filter(k => strategy.mix[k] > 0), total = kinds.reduce((s, k) => s + strategy.mix[k], 0);
@@ -194,9 +198,9 @@ export function makePlayer(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = 
     const G = g.G;
     const prio = strategy.upPrio || [], pr = t => { const i = prio.indexOf(t.kind); return i < 0 ? 99 : i; };
     const ups = G.towers.filter(t => t.lvl < g.maxLvl(t)).sort((a, b) => pr(a) - pr(b) || g.upCost(a) - g.upCost(b));
-    const full = G.towers.length >= (strategy.maxTowers || 99);
+    const full = G.towers.length >= towerCap();
     const opening = strategy.opening || [];
-    if (G.towers.length < opening.length) next = { kind: opening[G.towers.length] };
+    if (!full && G.towers.length < opening.length) next = { kind: opening[G.towers.length] }; // (an opening longer than the cap stops at it)
     else if (!full && strategy.queue && strategy.queue.length) next = { kind: strategy.queue.shift() };
     else if (ups.length && (full || rnd() < (strategy.up ?? 0.5))) next = { up: ups[0] };
     else if (!full) next = { kind: pick() };
@@ -239,7 +243,7 @@ export function makePlayer(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = 
   const onWave = () => { // a wave's send: the trace, the ledger, the player's look at the board, its pivots
     const G = g.G, spent = Math.round(G.towers.reduce((a, t) => a + (t.spent || 0), 0)), maxed = G.towers.filter(t => t.lvl >= g.maxLvl(t)).length;
     if (strategy.trace) S.trace.push({ wave: G.wave, money: Math.round(G.money), spent, towers: G.towers.length, lives: G.lives, interest: G.interest, time: Math.round(S.time) });
-    if (S.builtAt == null && G.towers.length >= Math.min(strategy.maxTowers || 99, g.run("CELLS.length"))) S.builtAt = G.wave;
+    if (S.builtAt == null && G.towers.length >= Math.min(towerCap(), g.run("CELLS.length"))) S.builtAt = G.wave;
     if (S.fullAt == null && S.builtAt != null && maxed === G.towers.length) S.fullAt = G.wave;
     if (G.wave % 10 === 1) S.econ.push({ wave: G.wave, money: Math.round(G.money), spent, interest: Math.round(G.interestTotal || 0), rate: G.interest, towers: G.towers.length, maxed, lives: G.lives });
     if (S.lastWave > 0) {

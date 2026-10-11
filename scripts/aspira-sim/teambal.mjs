@@ -12,7 +12,7 @@ const K = ["arc", "frz", "sol", "acd"];
 const STYLES = { greedy: { up: 0.8 }, balanced: { up: 0.5 }, saver: { up: 0.3, reserve: 10 } };
 export default async function task({ extra, style, seed }) {
   const opening = extra ? [...K, extra] : K, mix = Object.fromEntries(K.map(k => [k, k === extra ? 2 : 1]));
-  const r = play({ ...STYLES[style], maxTowers: opening.length, opening, mix, core: ALL, useCore: true }, seed, 100);
+  const r = play({ ...STYLES[style], maxTowers: opening.length, towerCap: opening.length, opening, mix, core: ALL, useCore: true }, seed, 100);
   return { wave: r.wave, won: r.won, lives: r.lives, leaks: r.leaks };
 }
 if (isMainThread && process.argv[1] && process.argv[1].endsWith("teambal.mjs")) {

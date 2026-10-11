@@ -27,7 +27,7 @@ function short(n) {
 // aspira-defs.js); a cell holds at most one tower.
 // (nor a slot another tower has been dragged onto)
 function canPlace(ci) {
-  return cellOpen(ci) && !occupied(ci) && !G.towers.some(t => Math.hypot(t.x - CELLS[ci].x, t.y - CELLS[ci].y) < towerGap());
+  return G.towers.length < MAX_TOWERS && cellOpen(ci) && !occupied(ci) && !G.towers.some(t => Math.hypot(t.x - CELLS[ci].x, t.y - CELLS[ci].y) < towerGap());
 }
 function toWorld(ev) {
   const r = cv.getBoundingClientRect(), dpr = canvasDpr();
@@ -262,7 +262,7 @@ const NOFUNDS_MS = 450, NEED_MS = 1600; // the shake's 0.4s, and a little; the "
 function flashBuild() {
   $("asp-build").classList.toggle("asp-flash", !G.started && !G.towers.length);
   // every slot taken: the build buttons go (owner), and so does any half-made pick
-  const full = G.towers.length >= openCells(); // a corner slot opening brings them back
+  const full = G.towers.length >= Math.min(MAX_TOWERS, openCells()); // three built (MAX_TOWERS), or every open slot taken
   // HIDDEN, not removed: the title under them keeps its place (owner)
   $("asp-build").style.visibility = full ? "hidden" : "";
   if (full && ui.build) { ui.build = null; $("asp-placing").hidden = true; }

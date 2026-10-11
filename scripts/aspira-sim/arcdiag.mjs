@@ -11,7 +11,7 @@ const K = ["arc", "frz", "sol", "acd"];
 const STYLES = { greedy: { up: 0.8 }, balanced: { up: 0.5 }, saver: { up: 0.3, reserve: 10 } };
 export default async function task({ extra, style, seed }) {
   const opening = extra ? [...K, extra] : K, mix = Object.fromEntries(K.map(k => [k, k === extra ? 2 : 1]));
-  const r = play({ ...STYLES[style], maxTowers: opening.length, opening, mix, core: ALL, useCore: true }, seed, 100);
+  const r = play({ ...STYLES[style], maxTowers: opening.length, towerCap: opening.length, opening, mix, core: ALL, useCore: true }, seed, 100);
   const by = {};
   for (const b of r.build) { const o = by[b.kind] ||= { n: 0, pts: 0 }; o.n++; o.pts += b.lvl - 1; }
   for (const [key, v] of Object.entries(r.towers)) { const k = key.split("/")[0]; by[k].dealt = (by[k].dealt || 0) + v.dealt; by[k].kills = (by[k].kills || 0) + v.kills; }

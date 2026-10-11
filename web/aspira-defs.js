@@ -78,6 +78,9 @@ const CELLS = (function buildCells() {
 // G.opened); the six ring slots always are
 const cellOpen = ci => ci >= 0 && (!CELLS[ci].unlock || !!(typeof G !== "undefined" && G && G.opened && G.opened[ci]));
 const openCells = () => CELLS.filter((c, i) => cellOpen(i)).length;
+// A THREE-TOWER GAME (owner, 2026-10-11): at most MAX_TOWERS built; the six slots stay, so where each starts is still a
+// choice, and the rest go dark once three stand. let: the simulator's 4 + 1 team (teambal.mjs) raises it
+let MAX_TOWERS = 3;
 
 // Centre-to-centre distance between neighbouring cells: one "tile".
 const TILE = Math.sqrt(3) * CELL_S * CELL_PITCH;
