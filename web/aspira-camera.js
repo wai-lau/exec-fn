@@ -3,7 +3,7 @@
 // aspira-ui.js (whose onTap this calls).
 //
 // Mouse: a drag pans. Touch: one finger drags, two fingers pan with their
-// midpoint. THE ZOOM IS FIXED (FIXED_ZOOM, aspira-draw.js; owner, 2026-10-11) -
+// midpoint. THE ZOOM IS FIXED (FIXED_ZOOM, aspira-defs.js; owner, 2026-10-11) -
 // no wheel or pinch zoom. A press that moves less than DRAG_PX is a TAP and goes
 // to onTap (select / place); the core is kept on screen. Double-click /
 // double-tap recentres.
@@ -64,11 +64,22 @@ function refit() { resize(); fitK = cam.fit; }
 
 cv.addEventListener("wheel", ev => ev.preventDefault(), { passive: false }); // (no zoom: the page must not scroll either)
 
+// TWO TOWERS AT ONCE (owner, 2026-10-11: "now that zoom is fixed, allow moving two towers at once"): every finger that
+// lands on a tower holds that tower (moves: pointerId -> { t, dx, dy, down, dragged }), each following its own finger;
+// two fingers on open board still pan. ui.drag stays the FIRST finger's grab (a power, or a move) for everything else.
+const moves = new Map();
+const towerHeld = t => [...moves.values()].some(m => m.t === t); // (drawLeash / the held tower's look, aspira-towers.js)
 cv.addEventListener("pointerdown", ev => {
   if (!fitK) fitK = cam.fit;
   cv.setPointerCapture(ev.pointerId);
   ptrs.set(ev.pointerId, devXY(ev));
-  if (ptrs.size === 1) { dragged = false; downAt = devXY(ev); holdFired = holdMoved = false; ui.drag = grabPower(ev); }
+  if (ptrs.size === 1) { dragged = false; downAt = devXY(ev); holdFired = holdMoved = false; ui.drag = grabPower(ev); if (ui.drag && ui.drag.kind === "move") moves.set(ev.pointerId, { ...ui.drag, down: devXY(ev), dragged: false }); }
+  if (ptrs.size === 2 && (moves.size || pickTower(ev))) { // a second tower in the other hand - never a pinch
+    const g = grabTower(ev);
+    if (g && !towerHeld(g.t)) moves.set(ev.pointerId, { ...g, down: devXY(ev), dragged: false });
+    dragged = true; // two fingers never end in a tap
+    return;
+  }
   if (ptrs.size === 2) {
     clearTimeout(holdTimer); ui.drag = null; // a pinch is never a power gesture
     const [a, b] = [...ptrs.values()];
@@ -81,6 +92,13 @@ cv.addEventListener("pointermove", ev => {
   if (!ptrs.has(ev.pointerId)) return;
   const prev = ptrs.get(ev.pointerId), now = devXY(ev);
   ptrs.set(ev.pointerId, now);
+  const mv = moves.get(ev.pointerId);
+  if (mv) { // this finger holds a tower: it follows the finger, held to its leash (moveTo), no pan
+    if (!mv.dragged && Math.hypot(now.x - mv.down.x, now.y - mv.down.y) > DRAG_PX * canvasDpr()) mv.dragged = dragged = true;
+    if (mv.dragged) { const w = toWorld(ev); moveTo(mv.t, { x: w.x + mv.dx, y: w.y + mv.dy }); relayFollow(mv.t); } // the Relay follows the tower last dragged (aspira-core.js)
+    return;
+  }
+  if (moves.size) return; // the other finger holds a tower: this one does nothing
   if (ptrs.size >= 2 && pinch) {
     const [a, b] = [...ptrs.values()];
     const d = Math.hypot(a.x - b.x, a.y - b.y), m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
@@ -90,10 +108,6 @@ cv.addEventListener("pointermove", ev => {
   }
   const dpr = canvasDpr();
   if (!dragged && Math.hypot(now.x - downAt.x, now.y - downAt.y) > DRAG_PX * dpr) dragged = true;
-  if (ui.drag && ui.drag.kind === "move") { // a tower dragged: it follows the finger, no pan
-    if (dragged) { const w = toWorld(ev); moveTo(ui.drag.t, { x: w.x + ui.drag.dx, y: w.y + ui.drag.dy }); relayFollow(ui.drag.t); } // the Relay follows the tower last dragged (aspira-core.js) // (no card: it would cover the board; drawLeash shows the held one's leash)
-    return;
-  }
   if (ui.drag) { // a power drag: no pan; the hold only breaks past HOLD_SLOP
     if (Math.hypot(now.x - downAt.x, now.y - downAt.y) > HOLD_SLOP * dpr) { holdMoved = true; clearTimeout(holdTimer); }
     if (dragged) { ui.drag.at = toWorld(ev); ui.drag.ev = { clientX: ev.clientX, clientY: ev.clientY }; }
@@ -105,10 +119,17 @@ function endPointer(ev, tap) {
   if (!ptrs.has(ev.pointerId)) return;
   ptrs.delete(ev.pointerId);
   if (ptrs.size < 2) pinch = null;
+  const mv = moves.get(ev.pointerId);
+  moves.delete(ev.pointerId);
+  if (mv) { // a held tower let go
+    if (ui.drag && ui.drag.t === mv.t) ui.drag = null;
+    if (tap && !ptrs.size && !mv.dragged && !dragged) onTap(ev); // a press without a drag: its card
+    return;
+  }
   clearTimeout(holdTimer);
   const d = ui.drag;
   ui.drag = null;
-  if (d && d.kind === "move") { if (tap && !ptrs.size && !dragged) onTap(ev); return; } // a press without a drag: its card
+  if (d && d.kind === "move") return;
   if (holdFired) { holdFired = false; return; } // the hold already froze: no tap
   if (d && holdMoved) { if (tap) dropPower(d); return; }
   if (d && !holdMoved) { if (tap && !ptrs.size) onTap(ev); return; } // a short wobble on a grab is still a TAP

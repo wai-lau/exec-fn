@@ -369,8 +369,14 @@ function slideLimits(c, kind, sl = 1) {
   const min = (c.unlock ? CORNER_NEAR : NEAR_R) - r0;
   return { r0, min, max: min + span };
 }
-// the leash's radius: the old travel, end to end
-const leashR = t => { const { min, max } = slideLimits(CELLS[t.cell], t.kind, towerStats(t, true).slide); return max - min; };
+// the leash's radius: the old travel, end to end - CAPPED so the whole leash (a tower's hex at its far edge, and a margin)
+// stays on the narrowest phone's screen at the fixed zoom: slot + leash <= MOVE_MAX_R from the core (owner, 2026-10-11)
+const MOVE_EDGE = 12; // world units kept clear of the screen's edge
+const moveMaxR = () => PHONE_MIN_W / 2 / FIXED_ZOOM - CELL_S * TOWER_K - MOVE_EDGE;
+const leashR = t => {
+  const c = CELLS[t.cell], { min, max } = slideLimits(c, t.kind, towerStats(t, true).slide);
+  return Math.max(0, Math.min(max - min, moveMaxR() - Math.hypot(c.x - CX, c.y - CY)));
+};
 const slideSpan = t => Math.round(leashR(t)); // the card's Leash row
 const towerAt = p => G.towers.find(t => Math.hypot(p.x - t.x, p.y - t.y) <= CELL_S);
 // two towers' centres stay TOWER_GAP apart (a hex each plus a sliver), and none
@@ -403,7 +409,7 @@ function drawLeash() {
   ctx.lineWidth = 2;
   const now = performance.now() / 1000;
   for (const t of G.towers) {
-    const c = CELLS[t.cell], col = COL[TOWERS[t.kind].color], held = ui.drag && ui.drag.t === t;
+    const c = CELLS[t.cell], col = COL[TOWERS[t.kind].color], held = towerHeld(t);
     ctx.strokeStyle = col;
     if (Math.hypot(t.x - c.x, t.y - c.y) > 1) { ctx.globalAlpha = 0.35; towerHex(c, TOWER_K); ctx.stroke(); }
     const hint = t.leashHint > now ? Math.min(1, (t.leashHint - now) / LEASH_HINT_FADE_S) : 0;

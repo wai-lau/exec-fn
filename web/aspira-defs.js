@@ -29,6 +29,10 @@ const SLOT_ANGLES = [-120, -60, 0, 60, 120, 180];
 // built, but only these are OPEN (cellOpen) - so they alone draw, take a tower, and count. let: the simulator's bigger
 // test teams (teambal.mjs, swap.mjs, arcdiag.mjs) open all six
 let OPEN_SLOTS = [-120, 0, 120];
+// THE ZOOM IS FIXED (owner, 2026-10-11): CSS px per world unit on every screen (resize, aspira-draw.js). PHONE_MIN_W: the
+// narrowest phone we fit (CSS px) - with the core centred across it, a tower can be dragged out to MOVE_MAX_R (leashR,
+// aspira-towers.js; owner: "make sure all movement limits are within the screen zoom on mobile")
+const FIXED_ZOOM = 0.5, PHONE_MIN_W = 360;
 const CELL_S = 32, SLOT_R = 65.5, CELL_PITCH = SLOT_R / (Math.sqrt(3) * CELL_S), TRAVEL_R0 = Math.sqrt(3) * CELL_S * 2;
 // the corner slots: [angle (deg, screen: -90 = up), wave it opens]. Their
 // INNER LIMIT is CORNER_IN from the core (owner: with every tower at max level

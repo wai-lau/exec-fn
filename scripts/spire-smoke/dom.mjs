@@ -75,7 +75,10 @@ class FakeEl {
   getAttribute(k) { return k in this.attrs ? this.attrs[k] : null; }
   removeAttribute(k) { delete this.attrs[k]; }
   hasAttribute(k) { return k in this.attrs; }
-  addEventListener() {} removeEventListener() {} dispatchEvent() { return true; }
+  addEventListener(type, fn) { ((this._ls ||= {})[type] ||= []).push(fn); }
+  removeEventListener() {}
+  dispatchEvent() { return true; }
+  fire(type, ev) { for (const fn of (this._ls && this._ls[type]) || []) fn({ preventDefault() {}, stopPropagation() {}, ...ev }); }
   focus() {} blur() {} click() { if (this.onclick) this.onclick({ preventDefault() {}, stopPropagation() {} }); }
   closest() { return null; } matches() { return false; } contains() { return false; }
   querySelector(sel) { return this._dom.query(sel); }

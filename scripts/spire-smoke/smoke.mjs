@@ -128,6 +128,23 @@ check("Temporal Drive: the field draws", () => {
   return seen.drawTimeStop ? "" : "drawTimeStop never ran";
 });
 
+check("two fingers move two towers at once", () => {
+  run(`G = newGame(); G.money = 1e6; for (const k of ["arc", "frz"]) { ui.build = k;
+         const ci = CELLS.findIndex((c, i) => cellOpen(i) && !G.towers.some(t => t.cell === i)); placeTower(CELLS[ci]); }
+       ui.build = null; ui.sel = null;`);
+  const cvEl = env.dom.byId("asp-cv"), dpr = run("canvasDpr()");
+  const at = (t, dx = 0, dy = 0) => ({ clientX: (t.x * run("cam.k") + run("cam.ox")) / dpr + dx, clientY: (t.y * run("cam.k") + run("cam.oy")) / dpr + dy });
+  const [a, b] = run("G.towers.map(t => ({ x: t.x, y: t.y }))");
+  cvEl.fire("pointerdown", { pointerId: 1, ...at(a) });
+  cvEl.fire("pointerdown", { pointerId: 2, ...at(b) });
+  for (let s = 1; s <= 6; s++) { cvEl.fire("pointermove", { pointerId: 1, ...at(a, 4 * s, 0) }); cvEl.fire("pointermove", { pointerId: 2, ...at(b, 0, 4 * s) }); }
+  const held = run("G.towers.map(t => towerHeld(t))");
+  cvEl.fire("pointerup", { pointerId: 1, ...at(a, 24, 0) }); cvEl.fire("pointerup", { pointerId: 2, ...at(b, 0, 24) });
+  const [a2, b2] = run("G.towers.map(t => ({ x: t.x, y: t.y }))");
+  const moved = [Math.hypot(a2.x - a.x, a2.y - a.y), Math.hypot(b2.x - b.x, b2.y - b.y)];
+  if (!held.every(Boolean)) return "not both held: " + JSON.stringify(held);
+  return moved.every(m => m > 5) ? "" : "moved only " + moved.map(m => m.toFixed(1)).join(" / ") + " units";
+});
 check("a lost life: 'X lives left' replaces the interest line", () => {
   run(`G = newGame(); G.lives = 7; livesLost();`);
   const texts = env.dom.canvas2d.rec.texts; texts.length = 0;
