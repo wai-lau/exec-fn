@@ -411,7 +411,7 @@ function drawLeash() {
     ctx.globalAlpha = Math.max(held ? 0.8 : t.id === ui.sel ? 0.5 : 0, 0.8 * hint); ctx.setLineDash([8, 8]);
     if (hint) ctx.lineDashOffset = -now * 24; // marching
     ctx.beginPath(); ctx.arc(c.x, c.y, leashR(t), 0, 6.283); ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
-    leashArrows(t, c, now, ctx.globalAlpha);
+    if (!held) leashArrows(t, c, now, ctx.globalAlpha); // not while it is being dragged (owner, 2026-10-11)
   }
   ctx.globalAlpha = 1;
 }
