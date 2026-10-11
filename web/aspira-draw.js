@@ -445,7 +445,9 @@ function render() { // round 4 (2026-10-09, "way less laggy, 10x"): ONE draw, th
   const shake = shakeOffset();
   // round 5 (2026-10-11, owner: "invert has huge cost"): the FULL sky is no pass at all - the frame drawn in the inverted
   // palette (skyPal); only the spreading / collapsing circle is still flipped
-  if (skyPal() && !q3d()) withPalette(() => drawScene(shake, 0)); // (3D: the shader flips the bell - warpDraw) else { drawScene(shake, 0); skyFlip(shake); }
+  // (3D: the bell's picture stays plain, the shader side turns it over - warpFlip)
+  if (skyPal() && !q3d()) withPalette(() => drawScene(shake, 0));
+  else { drawScene(shake, 0); skyFlip(shake); }
 }
 function drawScene([sx, sy], clipR) {
   ctx.setTransform(cam.k, 0, 0, cam.k, cam.ox + sx, cam.oy + sy);
