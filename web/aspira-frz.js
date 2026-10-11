@@ -14,7 +14,7 @@ const FRZ_TEMP_SLOW = [0.4, 0.41, 0.42, 0.43, 0.44, 0.45]; // a small ramp (over
 // tower (damage(), which already reads e.brittle; drawStatus shows the crack)
 // from tier I (owner, 2026-10-11: slows are SHAPED now - aspira-game.js slowShape - so FRZ's payoff moves from how
 // slow to what the slowed suffer; was 1 1 1 1.15 1.2 1.25, from III)
-const FRZ_BRITTLE = [1, 1.06, 1.12, 1.18, 1.24, 1.3];
+const FRZ_BRITTLE = [1, 1.15, 1.3, 1.45, 1.6, 1.75]; // BRITTLE is FRZ's damage lever (owner, 2026-10-11: "boost others"): everything in the aura takes this much from every tower; was 1.06 .. 1.3 - the no-ARC team 0/9 -> 5/9 with the ARC nerf and fast HP x0.75
 const FRZ_RIME = [0, 0.024, 0.035, 0.054, 0.064, 0.068]; // 2026-10-06: tier I was a dead point (was 1% / 1.9% / 3.7%) // each pulse's permanent stacking slow
 // FRZ's own levers (owner: no generic multipliers): Rime pulses MORE OFTEN each tier, the moons are STRONGER copies each tier
 const FRZ_RIME_PERIOD = [2, 2, 1.7, 1.4, 1.2, 1], FRZ_MOON_BY = [0.6, 0.85, 0.86, 0.95, 0.95, 0.95]; /* stronger moons for the 140 orbit (2026-10-08; were .485 .515 .58 .58 .58 at 70): isolation I..V ~112 125 151 172 ~225% - V overshoots at any strength >= IV's: five moons that far out cover most of the lanes */ // weakened (owner, 2026-10-08; isolation: Moons V 499% team); was .78 .9 .95 1 1 1 // Moons IV / V: four and five full moons
