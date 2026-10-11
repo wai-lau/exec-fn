@@ -65,7 +65,7 @@ function drawRelayHalos(label) {
 // the outer one brightest, a faint fill inside it, the whole field shimmering fast; pulses still come
 // every TEMPORAL_RING_EVERY s for the whole freeze (owner, same day; it was one plain cyan ring)
 // SOFTER (owner, 2026-10-11: "reduce intensity of temporal power"): AT_ALPHA / AT_GLOW / AT_LINE were 0.85 / 22 / 7, AT_FILL 0.06
-const AT_ALPHA = 0.4, AT_GLOW = 10, AT_LINE = 4;
+const AT_ALPHA = 0.4, AT_GLOW = 24, AT_LINE = 4; // glow back up (owner, 2026-10-11: "increase glow"; was 10)
 const AT_LAYERS = 5, AT_STEP = 0.12, AT_FILL = 0.03, AT_EDGE = Math.cos(Math.PI / 8); // AT_EDGE: an octagon's side distance / its corner distance
 function drawTimeStop(c) {
   if (!c.freeze) return;
