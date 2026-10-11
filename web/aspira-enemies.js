@@ -24,6 +24,9 @@ function drawStarTrail(e, size) {
   { let lo = 0, hi = lp.length - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (lp[m].s <= e.s) lo = m; else hi = m; } j = lo; }
   for (let d = 0; d <= tail; d += TRAIL_STEP) {
     const sd = Math.max(0, e.s - d);
+    // a FORMATION's member (aspira-formations.js): each point laid across the lane AT that point, with the roll there -
+    // a fixed shift taken at the head drifted off the body wherever the lane curves or the V rolls (owner, 2026-10-11)
+    if (e.lat) { const q = pathAt(e.pi, sd, e.ang || 0); formOffset(e, q, sd); pts.push(q); continue; }
     while (j > 0 && lp[j].s > sd) j--;
     const a = lp[j], b = lp[Math.min(lp.length - 1, j + 1)], f = sd >= b.s ? 1 : Math.max(0, (sd - a.s) / (b.s - a.s || 1));
     const px = a.x + (b.x - a.x) * f - CX, py = a.y + (b.y - a.y) * f - CY;

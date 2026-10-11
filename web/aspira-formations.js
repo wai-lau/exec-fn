@@ -59,11 +59,12 @@ function formSpawn(w, type) {
   return m;
 }
 // from stepEnemies: point p on the lane moved e.lat across it (toward the lane's left), faded in near the core
-function formOffset(e, p) {
-  const q = pathAt(e.pi, e.s + 3, e.ang), tx = q.x - p.x, ty = q.y - p.y, L = Math.hypot(tx, ty);
+// s: where along the lane (the enemy itself by default; its tracer asks for points behind it - drawStarTrail)
+function formOffset(e, p, s = e.s) {
+  const q = pathAt(e.pi, s + 3, e.ang), tx = q.x - p.x, ty = q.y - p.y, L = Math.hypot(tx, ty);
   if (!L) return;
-  const roll = FORM_ROLL[e.type], phi = roll ? (e.s - (e.ahead || 0)) / roll : 0; // the group's own travel: one phase for all
+  const roll = FORM_ROLL[e.type], phi = roll ? (s - (e.ahead || 0)) / roll : 0; // the group's own travel: one phase for all
   const fade = Math.min(1, Math.hypot(p.x - CX, p.y - CY) / FORM_FADE_R), k = e.lat * Math.cos(phi) * fade / L;
   p.x += -ty * k; p.y += tx * k;
-  e.z = roll ? e.lat * Math.sin(phi) * fade : 0; // the height of its roll (3D only)
+  if (s === e.s) e.z = roll ? e.lat * Math.sin(phi) * fade : 0; // the height of its roll (3D only)
 }
