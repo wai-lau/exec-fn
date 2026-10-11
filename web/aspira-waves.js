@@ -151,7 +151,7 @@ function activeLanes() {
   for (const e of G.enemies) {
     if (e.dead) continue;
     const key = laneKey(e.pi, e.ang || 0), u = out.get(key);
-    if (u) u.alive++;
+    if (u) { u.alive++; if (ENEMIES[e.type].star && !u.star) Object.assign(u, { star: true, color: ENEMIES[e.type].color }); } // a boss lane whichever rider comes first
     else out.set(key, { pi: e.pi, ang: e.ang || 0, color: ENEMIES[e.type].color, n: e.n, star: !!ENEMIES[e.type].star, alive: 1 });
   }
   const queued = new Set();

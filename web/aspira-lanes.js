@@ -30,7 +30,7 @@ const laneSets = {};
 const LANE_LABEL_PX = 14, LANE_IDLE_PX = 11;
 function laneSet() {
   return laneSets[COL.bg] ||= (() => {
-    const mk = () => { const c = document.createElement("canvas"); return [c, c.getContext("2d")]; };
+    const mk = () => { const c = document.createElement("canvas"), x = c.getContext("2d"); if (!x) throw new Error("lane layer: no 2d context"); return [c, x]; };
     const [laneCv, lctx] = mk(), [glowCv, gctx] = mk(), [baseCv, bctx] = mk();
     return { laneCv, lctx, glowCv, gctx, baseCv, bctx, baseKey: "", litKey: "", litCam: "", litAt: 0 };
   })();
@@ -59,18 +59,33 @@ const maskCvs = {};
 let maskKey = "";
 function applyMask(x, n) {
   const key = [cv.width, cv.height, cam.k, cam.ox, cam.oy].join();
-  if (key !== maskKey) { maskKey = key; for (const k in maskCvs) delete maskCvs[k]; }
+  if (key !== maskKey) { maskKey = key; dropMasks(); }
   let m = maskCvs[n];
   if (!m) {
-    m = maskCvs[n] = document.createElement("canvas");
+    m = document.createElement("canvas");
     const mx = m.getContext("2d");
+    if (!mx) throw new Error("lane mask: no 2d context");
     laneLayer(m, mx, cv.width, cv.height);
     mx.setTransform(1, 0, 0, 1, 0, 0); mx.fillStyle = COL.bg; mx.fillRect(0, 0, m.width, m.height);
     mx.setTransform(cam.k, 0, 0, cam.k, cam.ox, cam.oy);
     for (let i = 0; i < n; i++) laneMask(mx, n > 1);
+    maskCvs[n] = m; // cached only once whole: a half-built mask erased or unmasked the lanes till the camera moved
   }
   x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = "destination-in"; x.globalAlpha = 1;
   x.drawImage(m, 0, 0); x.restore();
+}
+// a dropped canvas is sized to 0 first: iOS holds a canvas's memory until then, and past its canvas budget
+// getContext returns null
+const freeCv = c => { if (c) { c.width = 0; c.height = 0; } };
+function dropMasks() { for (const k in maskCvs) { freeCv(maskCvs[k]); delete maskCvs[k]; } }
+// a lane layer that FAILED to build (iOS out of canvas memory, 2026-10-10: the boss lane flashed full, vanished,
+// then faded in): every cached layer and mask is thrown away and rebuilt from scratch next frame, and nothing is
+// drawn this frame - never a stale or unmasked layer
+let laneFails = 0;
+function laneFail(err) {
+  if (!laneFails++) console.warn("spire lanes:", err);
+  for (const k in laneSets) { const S = laneSets[k]; [S.laneCv, S.glowCv, S.baseCv, S.comboCv].forEach(freeCv); delete laneSets[k]; }
+  dropMasks(); maskKey = "";
 }
 function blit(c) { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.drawImage(c, 0, 0); ctx.restore(); }
 const laneSeen = new Map(), LANE_FADE_IN_MS = 2000;
@@ -92,6 +107,7 @@ function drawLaneStrokes(live) {
   if (!live.length) { S.litKey = ""; blit(baseCv); return; }
   const now = performance.now();
   for (const u of live) {
+    if (u.star) continue; // a boss lane has its own fade (litLanes)
     // a lane FADES IN over LANE_FADE_IN_MS of REAL time, whatever the game speed (owner)
     const key = u.pi + ":" + u.ang;
     if (!laneSeen.has(key)) laneSeen.set(key, now);
@@ -108,7 +124,7 @@ function drawLaneStrokes(live) {
   const sig = camSig + "|" +
     live.map(u => u.pi + ":" + u.ang.toFixed(3) + ":" + u.color + ":" + (u.star ? 1 : 0) + ":" + Math.round(u.a * LIT_STEPS)).join(",");
   if (sig === S.litKey || (camSig === S.litCam && now - S.litAt < LIT_MIN_MS)) { blitLanes(S); return; }
-  S.litKey = sig; S.litCam = camSig; S.litAt = now;
+  S.litKey = ""; // until the layers are whole (laneFail)
   // each lane IN USE lit in its rider's colour - drawn rotated when a split
   // wave rides a rotated copy of it (u.ang)
   laneLayer(laneCv, lctx, cv.width, cv.height);
@@ -132,6 +148,7 @@ function drawLaneStrokes(live) {
   }
   if (!lowQ) applyMask(gctx, GLOW_FALLOFF);
   applyMask(lctx, 1);
+  S.litKey = sig; S.litCam = camSig; S.litAt = now;
   S.comboKey = ""; blitLanes(S);
 }
 // the faint base, the glow and the lit lines laid onto ONE cached layer whenever any of them changes, and that blitted:
@@ -142,6 +159,7 @@ function blitLanes(S) {
     S.comboKey = key;
     S.comboCv ||= document.createElement("canvas");
     const c = S.comboCv, x = c.getContext("2d");
+    if (!x) { S.comboKey = ""; throw new Error("lane combo: no 2d context"); }
     if (c.width !== cv.width || c.height !== cv.height) { c.width = cv.width; c.height = cv.height; }
     x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 1; x.globalCompositeOperation = "source-over"; x.clearRect(0, 0, c.width, c.height);
     x.drawImage(S.baseCv, 0, 0); if (!lowQ) x.drawImage(S.glowCv, 0, 0); x.drawImage(S.laneCv, 0, 0); // low quality: no glow layer
@@ -185,11 +203,25 @@ function litLanes() {
   else if (bossInv.phase === "out") { k = 1 - clamp01(since / BOSS_LANE_FADE); if (!stars.length && k > 0) live.push(...bossLanes.map(u => ({ ...u }))); }
   else bossLanes = [];
   for (const u of live) if (u.star) u.a *= k;
+  bossLaneRise(live);
   return live.filter(u => !u.star || u.a > 0);
+}
+// a boss lane only ever BRIGHTENS at 1/BOSS_LANE_FADE a second, from 0 when it is new (2026-10-10, the owner's
+// iPhone: it flashed full a frame before its fade) - so no jump in what feeds it can show as a flash
+const bossLaneA = new Map();
+function bossLaneRise(live) {
+  const now = performance.now() / 1000, seen = new Set();
+  for (const u of live) {
+    if (!u.star) continue;
+    const key = u.pi + ":" + u.ang, p = bossLaneA.get(key);
+    u.a = Math.min(u.a, p ? p.a + Math.min(0.1, now - p.t) / BOSS_LANE_FADE : 0);
+    bossLaneA.set(key, { a: u.a, t: now }); seen.add(key);
+  }
+  for (const key of bossLaneA.keys()) if (!seen.has(key)) bossLaneA.delete(key);
 }
 function drawLanes() {
   const live = litLanes();
-  drawLaneStrokes(live);
+  try { drawLaneStrokes(live); } catch (err) { laneFail(err); }
   ctx.lineJoin = "round"; ctx.lineCap = "round";
   // an idle label fades out as a lit one fades in over its slot (and back)
   const litAt = a => live.reduce((m, u) => {
