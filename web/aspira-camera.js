@@ -103,7 +103,7 @@ cv.addEventListener("pointermove", ev => {
   const dpr = canvasDpr();
   if (!dragged && Math.hypot(now.x - downAt.x, now.y - downAt.y) > DRAG_PX * dpr) dragged = true;
   if (ui.drag && ui.drag.kind === "move") { // a tower dragged: it follows the finger, no pan
-    if (dragged) { const w = toWorld(ev); moveTo(ui.drag.t, { x: w.x + ui.drag.dx, y: w.y + ui.drag.dy }); } // (no card: it would cover the board; drawLeash shows the held one's leash)
+    if (dragged) { const w = toWorld(ev); moveTo(ui.drag.t, { x: w.x + ui.drag.dx, y: w.y + ui.drag.dy }); relayFollow(ui.drag.t); } // the Relay follows the tower last dragged (aspira-core.js) // (no card: it would cover the board; drawLeash shows the held one's leash)
     return;
   }
   if (ui.drag) { // a power drag: no pan; the hold only breaks past HOLD_SLOP

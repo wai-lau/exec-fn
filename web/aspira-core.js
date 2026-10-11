@@ -20,14 +20,16 @@
 const CORE_UNLOCK = 30, CORE_TIERS = 3, CORE_PICKS = [30, 60] /* Strength, Temperance (owner, 2026-10-07; was 30 / 50) */, CORE_POINTS = CORE_TIERS * CORE_PICKS.length;
 const CORE_POWERS = [
   { id: "relay", name: "Orbital Relay", /* planetary defence names (owner, 2026-10-06; was Fortifications) */ how: "drag the core onto a tower",
-    desc: "For a while, a tower acts as three: every bolt, ray, burn line and moon, three times over." },
+    desc: "For a while, a tower acts as three: every bolt, ray, burn line and moon, three times over. It moves to the last tower you drag." },
   { id: "temporal", name: "Temporal Drive", /* (owner; was Temporal Manipulation) */ how: "press and hold the core",
     desc: "Every enemy stops dead at once, and stays stopped while rings pulse out from the core." },
 ];
-const TEMPORAL = [null, { dur: 5, cd: 90 }, { dur: 8, cd: 65 }, { dur: 12, cd: 50 }], /* owner 2026-10-06: longer stop, longer cooldown (was 2 / 30, 4 / 20); 2026-10-09 "increase cooldown of powers": x1.5 (was 60 / 45 / 35) */ TEMPORAL_GROW = 0.6, TEMPORAL_R = 560, TEMPORAL_FADE = 0.4, TEMPORAL_RING_EVERY = 0.5; // a ring shot out every TEMPORAL_RING_EVERY s for the whole freeze (owner, 2026-10-08)
+// COOLDOWNS COUNT WAVES SENT, not seconds (owner, 2026-10-11: "greatly increase cooldown of both ... use once every 3-4
+// waves"): `cd` is the waves from one use until the next (sendWave ticks them); were 90 / 65 / 50 s and the Relay 60 s
+const TEMPORAL = [null, { dur: 5, cd: 4 }, { dur: 8, cd: 4 }, { dur: 12, cd: 3 }], /* owner 2026-10-06: longer stop (was 2 / 4 s) */ TEMPORAL_GROW = 0.6, TEMPORAL_R = 560, TEMPORAL_FADE = 0.4, TEMPORAL_RING_EVERY = 0.5; // a ring shot out every TEMPORAL_RING_EVERY s for the whole freeze (owner, 2026-10-08)
 // the Relay: RELAY_MUL x the tower for `dur` s, the cooldown counted from when
 // it wears off (per tier for the dial's sake; only III is ever owned)
-const RELAY_MUL = 3, RELAY = [null, { dur: 22.5, cd: 60 }, { dur: 22.5, cd: 60 }, { dur: 22.5, cd: 60 }]; /* cooldown x1.5 (owner, 2026-10-09; was 40) */ // 22.5 s: halved (owner, 2026-10-07; was 45 s)
+const RELAY_MUL = 3, RELAY = [null, { dur: 45, cd: 4 }, { dur: 45, cd: 4 }, { dur: 45, cd: 4 }]; // 45 s: doubled (owner, 2026-10-11; was 22.5, halved from 45 on 2026-10-07)
 
 const powerLvl = id => (G.core && G.core.pw ? G.core.pw[id] || 0 : 0);
 const coreLvl = () => (G.core && G.core.pw ? Object.values(G.core.pw).reduce((a, b) => a + b, 0) : 0);
@@ -52,19 +54,30 @@ function grantPick() {
   if (left.length === 1) pickPower(left[0].id);
   return left.length === 1 ? left[0] : null;
 }
-const cooldownLeft = id => Math.max(0, (G.core && G.core.cd[id]) || 0);
+const cooldownLeft = id => Math.max(0, (G.core && G.core.cd[id]) || 0); // in WAVES
+const wavesLeft = n => n + (n === 1 ? " wave" : " waves");
 
 // ---------- Orbital Relay: the tower acts as three ----------
 function relay(t) {
   const lv = RELAY[powerLvl("relay")];
   if (!lv || !t || cooldownLeft("relay") > 0) return false;
-  coreState().cd.relay = lv.dur + lv.cd; // the cooldown starts when it wears off
+  coreState().cd.relay = lv.cd; // waves from this use (sendWave ticks it)
   t.relayUntil = (G.clock || 0) + lv.dur;
   if (typeof banner === "function") banner("ORBITAL RELAY · " + TOWERS[t.kind].ab + " ×" + RELAY_MUL, TOWERS[t.kind].color, 1.5);
   ring(t.x, t.y, 64, "white"); if (typeof sfx === "function") sfx("powerrelay"); // its own sound, not "upgrade complete" (owner); none in the simulator
   return true;
 }
 const relayed = t => t.relayUntil > (G.clock || 0);
+// THE RELAY RIDES THE LAST TOWER YOU DRAG (owner, 2026-10-11): while it runs, dragging another tower hands it what is
+// left of the boost (aspira-camera.js calls this as a drag moves a tower)
+function relayFollow(t) {
+  const h = G.towers.find(o => o !== t && relayed(o));
+  if (!h) return;
+  t.relayUntil = h.relayUntil; h.relayUntil = 0;
+  ring(t.x, t.y, 64, "white");
+}
+// a wave sent ticks every power's cooldown by one (sendWave, aspira-waves.js)
+function tickPowerCooldowns() { const c = G.core; if (c) for (const k in c.cd) c.cd[k] = Math.max(0, c.cd[k] - 1); }
 const relayMul = t => (relayed(t) ? RELAY_MUL : 1);
 // towerStats (aspira-defs.js) ends with this - what "three of it" means per kind:
 //   ARC  the attack itself fires RELAY_MUL times (the tower loop, aspira-game.js)
@@ -96,7 +109,6 @@ function stepCore(dt) {
   if (!G.core) return;
   const c = G.core;
   c.clock += dt;
-  for (const k in c.cd) c.cd[k] = Math.max(0, c.cd[k] - dt);
   if (c.freeze) {
     const f = c.freeze, left = f.dur - f.t;
     f.t += dt;
@@ -132,7 +144,7 @@ function inspectCore(el) {
   CORE_POWERS.forEach(p => {
     const owned = !!powerLvl(p.id);
     if (!owned && !picks) return; // not yet won: nothing to show
-    const cd = cooldownLeft(p.id), state = owned ? (cd ? " · " + Math.ceil(cd) + "s" : " · ready") : " · choose";
+    const cd = cooldownLeft(p.id), state = owned ? (cd ? " · " + wavesLeft(cd) : " · ready") : " · choose";
     const b = button(box, "asp-primary asp-choice", "<b>" + p.name + state + "</b><span>" +
       p.desc + " (" + p.how + ")</span>", () => { if (!owned && pickPower(p.id)) coreBought(); });
     if (owned) b.disabled = true;

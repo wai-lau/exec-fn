@@ -51,7 +51,7 @@ function updatePowers() {
     let b = box.querySelector('[data-pw="' + d.id + '"]');
     if (!b) { b = button(box, "asp-power " + d.color, "", () => powerTap(d)); b.dataset.pw = d.id; }
     const lv = powerLvl(d.id), cd = cooldownLeft(d.id), full = d.tab()[lv].cd, run = d.active(c);
-    const state = run > 0 ? Math.ceil(run) + "s on" : cd > 0 ? Math.ceil(cd) + "s" : POWER_READY[d.id]; // (owner, 2026-10-08: "should say temporal drive online"; was TIME STOP / ready)
+    const state = run > 0 ? Math.ceil(run) + "s on" : cd > 0 ? wavesLeft(cd) : POWER_READY[d.id]; // the cooldown in waves (2026-10-11) // (owner, 2026-10-08: "should say temporal drive online"; was TIME STOP / ready)
     setHtml(b, "<span>" + d.label + "</span><b>" + state + '</b><i style="width:' + Math.round(100 * (run > 0 ? 1 : 1 - Math.min(1, cd / full))) + '%"></i>');
     b.classList.toggle("ready", run <= 0 && cd <= 0); b.classList.toggle("run", run > 0);
     b.classList.toggle("armed", d.id === "relay" && !!ui.relayArm);
