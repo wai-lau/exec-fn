@@ -92,7 +92,7 @@ function sendWave() {
   const gain = Math.min(Math.floor(G.money * G.interest), INTEREST_PER_WAVE * (G.wave + 1));
   if (gain > 0) { G.money += gain; creditsFx = { gain, pct: G.interest * 100, t0: performance.now() / 1000 }; }
   G.wave++;
-  if (typeof tickPowerCooldowns === "function") tickPowerCooldowns(); // core power cooldowns count waves (aspira-core.js)
+  if (typeof tickPowerCooldowns === "function") { tickPowerCooldowns(); grantPowers(); } // core power cooldowns count waves; the powers come at waves 20 / 40 (aspira-core.js)
   // the boss is named in its HP BAR under the speed row (owner), not mid-screen
   // a boss is announced (owner): the advisor's double beep, then the Archon
   // (each boss has its own line, "bossvoice.<arcana>", else the shared one)

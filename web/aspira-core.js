@@ -17,7 +17,11 @@
 // owned, at its TOP tier at once; the corner slots open in between (20, 40, 60
 // - CORNER_SLOTS in aspira-defs.js). The last power left is simply given.
 // (two powers since the Relay merge, so two picks: the Devil's wave hands out nothing)
-const CORE_UNLOCK = 30, CORE_TIERS = 3, CORE_PICKS = [30, 60] /* Strength, Temperance (owner, 2026-10-07; was 30 / 50) */, CORE_POINTS = CORE_TIERS * CORE_PICKS.length;
+// NO PICKING (owner, 2026-10-11: "temporal drive available at level 20 no picking, orbital relay at 40"): each power is
+// GIVEN, at full strength, as its wave is sent (grantPowers, from sendWave) - not on a boss's fall, so a boss that gets
+// through costs no power. Was a choice at the falls of Strength (30) and Temperance (60)
+const CORE_GRANTS = [[20, "temporal"], [40, "relay"]];
+const CORE_UNLOCK = CORE_GRANTS[0][0], CORE_TIERS = 3, CORE_PICKS = [] /* (the picks are gone; corePicks() stays 0) */, CORE_POINTS = CORE_TIERS * CORE_GRANTS.length;
 const CORE_POWERS = [
   { id: "relay", name: "Orbital Relay", /* planetary defence names (owner, 2026-10-06; was Fortifications) */ how: "drag the core onto a tower",
     desc: "For a while, a tower acts as three: every bolt, ray, burn line and moon, three times over. It moves to the last tower you drag." },
@@ -44,7 +48,16 @@ function pickPower(id) {
   c.picks--; c.pw = { ...c.pw, [id]: CORE_TIERS }; // a fresh object: the simulator's stat cache keys on it
   return true;
 }
-// from bossKilled, the last boss of a CORE_PICKS wave down: one power to choose
+// from sendWave: every power whose wave has come, given outright (and announced under the core)
+function grantPowers() {
+  for (const [w, id] of CORE_GRANTS) {
+    if (G.wave < w || powerLvl(id)) continue;
+    const c = coreState(); c.pw = { ...c.pw, [id]: CORE_TIERS }; // a fresh object: the simulator's stat cache keys on it
+    const p = CORE_POWERS.find(q => q.id === id);
+    if (typeof float === "function") { float(CX, CY - 80, p.name + " online", "white", 28, 4, 1, 3); float(CX, CY - 48, "↓", "white", 28, 4, 1, 3); }
+  }
+}
+// (unused since 2026-10-11 - no picks) from bossKilled, the last boss of a CORE_PICKS wave down: one power to choose
 // (the only one left is given outright; none left: nothing to give)
 function grantPick() {
   const left = powersLeft();
@@ -137,10 +150,10 @@ function coreBought() { sfx("coreup"); ring(CX, CY, 80, "white"); refreshPanels(
 function inspectCore(el) {
   const lvl = coreLvl(), picks = corePicks();
   el.innerHTML = '<div class="name">Core · ' + (lvl / CORE_TIERS) + " of " + CORE_POWERS.length + "</div>" +
-    '<p class="asp-hint">' + (picks ? "Choose a power. The other comes with a later boss." : coreOpen() ? "Each power arrives at full strength. The other comes with a later boss." : "The heart of the chart. Its first power comes when Strength, the wave-" + CORE_UNLOCK + " boss, falls.") + "</p>" +
+    '<p class="asp-hint">' + (coreOpen() ? "Each power arrives at full strength: Temporal Drive at wave " + CORE_GRANTS[0][0] + ", the Orbital Relay at wave " + CORE_GRANTS[1][0] + "." : "The heart of the chart. Its first power comes at wave " + CORE_UNLOCK + ".") + "</p>" +
     '<div id="asp-upbox"></div>'; // (its close is the spend bar's button)
   const box = $("asp-upbox");
-  if (!coreOpen()) { button(box, "asp-primary asp-up-big", "unlocks when Strength falls (wave " + CORE_UNLOCK + ")", () => {}); return; }
+  if (!coreOpen()) { button(box, "asp-primary asp-up-big", "Temporal Drive comes at wave " + CORE_UNLOCK, () => {}); return; }
   CORE_POWERS.forEach(p => {
     const owned = !!powerLvl(p.id);
     if (!owned && !picks) return; // not yet won: nothing to show

@@ -257,11 +257,19 @@ export function makePlayer(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = 
     }
     S.lastWave = g.G.wave; S.waveNear = Infinity;
   };
+  const CORE_XY = { x: g.run("CX"), y: g.run("CY") }, ENEMY_LEAK = Object.fromEntries(Object.entries(g.run("ENEMIES")).map(([k, v]) => [k, v.leak ?? 1]));
+  // one record per wave an enemy came from: { types: {type: n}, lost, near } (S.waveStats, in the result)
+  const waveStat = e => { const w = (S.waveStats ||= {})[e.wave] ||= { types: {}, lost: 0, near: Infinity, boss: false }; if (!e.__seen) { e.__seen = 1; w.types[e.type] = (w.types[e.type] || 0) + 1; if (e.type === "bonus" || e.bossKin) w.boss = true; } return w; };
   const tick = () => {
     if (g.G.wave !== S.lastWave) onWave();
     const alive = g.G.enemies.filter(e => !e.dead);
     g.step(dt); g.clearFx(); S.time += dt;
-    for (const e of alive) if (e.dead && e.gone && e.hp > 0) { S.leaks[e.type] = (S.leaks[e.type] || 0) + 1; S.leakWave[g.G.wave] = (S.leakWave[g.G.wave] || 0) + 1; }
+    for (const e of alive) if (e.dead && e.gone && e.hp > 0) {
+      S.leaks[e.type] = (S.leaks[e.type] || 0) + 1; S.leakWave[g.G.wave] = (S.leakWave[g.G.wave] || 0) + 1;
+      waveStat(e).lost += ENEMY_LEAK[e.type] ?? 1; // the lives this wave's enemies cost (a boss 10)
+    }
+    // per ORIGIN wave (each enemy knows its own, e.wave): its types and how close it came (waverep.mjs)
+    if (Math.round(S.time / dt) % 10 === 0) for (const e of alive) if (!e.dead) { const w = waveStat(e); w.near = Math.min(w.near, Math.hypot(e.x - CORE_XY.x, e.y - CORE_XY.y)); }
     const n = Math.round(S.time / dt);
     if (strategy.core && n % 25 === 0) pickNext(g, strategy.core); // a boss's pick costs nothing: take it at once
     if (strategy.useCore && n % 25 === 0) usePowers(g, S.coreMem, strategy.relayKind);
@@ -312,7 +320,7 @@ export function makePlayer(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = 
         towers[key].n++; towers[key].dealt += t.dealt || 0; towers[key].kills += t.kills || 0;
         build.push({ kind: t.kind, lvl: t.lvl, skills: t.skills || null, mode: t.mode });
       }
-      return { nearest: Math.round(S.nearest), wave: G.wave, over: G.over, won: !!G.won, lives: G.lives, core: G.core ? G.core.pw : null, fires: S.coreMem.fired || null, money: Math.round(G.money), spent: Math.round(G.towers.reduce((a, t) => a + (t.spent || 0), 0)), interest: Math.round(G.interestTotal || 0), econ: S.econ, builtAt: S.builtAt, fullAt: S.fullAt, time: Math.round(S.time), towers, build, leaks: S.leaks, leakWave: S.leakWave, pivots: strategy.pivots ? S.pivoted : undefined, trace: strategy.trace ? S.trace : undefined };
+      return { nearest: Math.round(S.nearest), wave: G.wave, over: G.over, won: !!G.won, lives: G.lives, core: G.core ? G.core.pw : null, fires: S.coreMem.fired || null, money: Math.round(G.money), spent: Math.round(G.towers.reduce((a, t) => a + (t.spent || 0), 0)), interest: Math.round(G.interestTotal || 0), econ: S.econ, builtAt: S.builtAt, fullAt: S.fullAt, time: Math.round(S.time), towers, build, leaks: S.leaks, leakWave: S.leakWave, waveStats: S.waveStats || {}, pivots: strategy.pivots ? S.pivoted : undefined, trace: strategy.trace ? S.trace : undefined };
     },
   };
 }
