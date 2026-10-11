@@ -47,7 +47,7 @@ for (const k in TYPE_COUNT_MUL) TYPE_COUNT_MUL[k] *= 0.9; // 2026-10-11: a tenth
 // SOL-heavy build must find a swarm answer; x2 past 60 cost ARC+SOL+FRZ teams 20 waves
 const SWARM_MID_MUL = 2, SWARM_MID = [11, 60], SWARM_LATE_MUL = 1.5;
 const swarmMul = n => (n < SWARM_MID[0] ? 1 : n <= SWARM_MID[1] ? SWARM_MID_MUL : SWARM_LATE_MUL);
-let COUNT_SLOPE = 0.5, COUNT_CAP = 28; // a plain wave's base count: 10 + slope x n, capped
+let COUNT_SLOPE = 0.5, COUNT_CAP = Infinity; // a plain wave's base count: 10 + slope x n, uncapped (owner, 2026-10-11: the R10 battery, cap 28 left the late game easy)
 const WAVE_COUNT_MUL = { 1: 2 }; // wave 1 DOUBLED (owner, 2026-10-09)
 // how many of `type` a plain wave n brings (before the split onto lane copies) - wavePlan, and a boss's fleet (aspira-bosses.js)
 function waveCount(type, n) {
