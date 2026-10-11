@@ -105,16 +105,16 @@ KINDS.forEach((k, i) => {
 // drops to min(1x, the chosen speed) whenever an enemy is within AUTO_WAIT_S game-seconds of
 // reaching the core at its current speed (owner: time, not distance), and goes
 // back to the chosen speed once none is. Remembered in localStorage.
-const AUTO_WAIT_S = 8, AUTO_WAIT2_S = 3;
+const AUTO_WAIT_S = 6, AUTO_WAIT2_S = 2, AUTO_WAIT3_S = 1; // owner, 2026-10-11: "start at 6s, 1/2 at 2s and 1/4 at 1s" (was 8 / 3)
 const etaToCore = e => { const v = effSpeed(e); return v > 0 ? (PATHS[e.pi].len - e.s) / v : Infinity; };
 let autoWait = true;
 // ON by default (owner); only an explicit "0" (unticked before) turns it off
 try { autoWait = localStorage.getItem("spire.autowait") !== "0"; } catch (e) { autoWait = true; }
-// TWO stages (owner, 2026-10-11): min(1x, the chosen speed) within AUTO_WAIT_S of the core, then min(1/2x, it) within
-// AUTO_WAIT2_S ("add back a second degree of auto wait, 1/2 speed at 3s away"). Returns the speed key, or 0 when not waiting.
+// THREE stages (owner, 2026-10-11): min(1x, the chosen speed) within AUTO_WAIT_S of the core, min(1/2x, it) within
+// AUTO_WAIT2_S, min(1/4x, it) within AUTO_WAIT3_S. Returns the speed key, or 0 when not waiting.
 // NO JITTER (owner): the nearest ETA jumps as enemies are slowed, die or swap,
-// so a stage is entered at its line but only LEFT past AUTO_RELEASE x it (8s in,
-// 10s out; 3s in, 3.75s out), and a slower speed holds at least AUTO_HOLD_MS of
+// so a stage is entered at its line but only LEFT past AUTO_RELEASE x it (6s in,
+// 7.5s out; 2s in, 2.5s out; 1s in, 1.25s out), and a slower speed holds at least AUTO_HOLD_MS of
 // real time before it may speed up again. Slowing down is always immediate.
 // Worked out at most once a frame (it is asked several times).
 const AUTO_RELEASE = 1.25, AUTO_HOLD_MS = 1500;
@@ -126,9 +126,10 @@ const autoWaiting = () => {
   awAt = now;
   let eta = Infinity;
   for (const e of G.enemies) if (!e.dead) eta = Math.min(eta, etaToCore(e));
-  const deep = Math.min(0.5, ui.speed), mild = Math.min(1, ui.speed);
+  const stages = [[AUTO_WAIT3_S, Math.min(0.25, ui.speed)], [AUTO_WAIT2_S, Math.min(0.5, ui.speed)], [AUTO_WAIT_S, Math.min(1, ui.speed)]]; // deepest first
   const hold = (lvl, line) => awLevel && awLevel <= lvl && eta <= line * AUTO_RELEASE; // already this slow or slower, still near
-  const want = eta <= AUTO_WAIT2_S || hold(deep, AUTO_WAIT2_S) ? deep : eta <= AUTO_WAIT_S || hold(mild, AUTO_WAIT_S) ? mild : 0;
+  const hit = stages.find(([line, lvl]) => eta <= line || hold(lvl, line));
+  const want = hit ? hit[1] : 0;
   const slower = want && (!awLevel || want < awLevel);
   if (want !== awLevel && (slower || now - awSince >= AUTO_HOLD_MS)) { awLevel = want; awSince = now; }
   return awLevel;
