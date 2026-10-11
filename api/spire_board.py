@@ -32,23 +32,42 @@ FILE_NAME = "spire_ascendants.json"
 JOURNAL_NAME = "spire_ascendants.jsonl"
 SHOW_MAX = 500  # the most the GET returns (display only - the store keeps every entry)
 MAX_LIVES = 100000
+MIN_WAVE, WIN_WAVE, MAX_WAVE = 11, 100, 1000
 TOWER_KINDS = ("arc", "frz", "sol", "acd")
 _INITIALS = re.compile(r"[A-Z]{3}")
 _LOCK = threading.Lock()
 
 
+def _int(v, lo, hi) -> bool:
+    return isinstance(v, int) and not isinstance(v, bool) and lo <= v <= hi
+
+
 def clean_entry(body: dict) -> dict | None:
-    """The stored shape of a posted win, or None if it is not a plausible one."""
+    """The stored shape of a posted game, or None if it is not a plausible one.
+
+    A WIN (won: true) needs lives left; any game that got PAST wave 10 may post too
+    (owner, 2026-10-11: "for any wave after 10, allow user to post on the leaderboard"),
+    its lives 0 when it ended in a breach."""
     initials = str(body.get("initials", "")).strip().upper()
     if not _INITIALS.fullmatch(initials):
         return None
-    lives = body.get("lives")
-    if not isinstance(lives, int) or isinstance(lives, bool) or not 0 < lives <= MAX_LIVES:
+    won = body.get("won", True) is True  # (a post with no `won` is the old client: a win)
+    lives, wave = body.get("lives"), body.get("wave", WIN_WAVE if won else None)
+    if not _int(lives, 1 if won else 0, MAX_LIVES) or not _int(wave, MIN_WAVE, MAX_WAVE):
         return None
     team = body.get("team")
     if not isinstance(team, list) or not 1 <= len(team) <= 5 or any(k not in TOWER_KINDS for k in team):
         return None
-    return {"initials": initials, "lives": lives, "team": sorted(team, key=TOWER_KINDS.index), "ts": int(time.time())}
+    return {"initials": initials, "lives": lives, "team": sorted(team, key=TOWER_KINDS.index), "ts": int(time.time()), "won": won, "wave": wave}
+
+
+def ranked(rows: list) -> list:
+    """TOP PLAYERS order: the Ascendants (wins; rows from before `won` existed are wins) by lives left, then everyone
+    else by the wave they reached, then lives; ties to the earlier."""
+    def key(r):
+        won = r.get("won", True)
+        return (0 if won else 1, -int(r.get("lives", 0)) if won else -int(r.get("wave", 0)), -int(r.get("lives", 0)), int(r.get("ts", 0)))
+    return sorted(rows, key=key)
 
 
 def _read_board(path: Path) -> list | None:

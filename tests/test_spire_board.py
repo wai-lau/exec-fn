@@ -22,6 +22,23 @@ def test_clean_entry_accepts_a_win():
     assert e["initials"] == "ABC" and e["lives"] == 42 and e["team"] == ["arc", "sol"]
 
 
+def test_a_loss_past_wave_10_may_post():
+    e = spire_board.clean_entry({"initials": "abc", "lives": 0, "team": ["frz"], "won": False, "wave": 37})
+    assert e["won"] is False and e["wave"] == 37 and e["lives"] == 0
+    assert spire_board.clean_entry({"initials": "abc", "lives": 0, "team": ["frz"], "won": False, "wave": 10}) is None
+    assert spire_board.clean_entry({"initials": "abc", "lives": 0, "team": ["frz"], "won": False}) is None
+
+
+def test_ranked_puts_ascendants_first_then_waves():
+    rows = [
+        {"initials": "LOS", "lives": 0, "team": ["arc"], "ts": 5, "won": False, "wave": 80},
+        {"initials": "OLD", "lives": 49, "team": ["arc"], "ts": 1},  # pre-`won`: a win
+        {"initials": "WIN", "lives": 60, "team": ["arc"], "ts": 3, "won": True, "wave": 100},
+        {"initials": "LOW", "lives": 0, "team": ["arc"], "ts": 4, "won": False, "wave": 20},
+    ]
+    assert [r["initials"] for r in spire_board.ranked(rows)] == ["WIN", "OLD", "LOS", "LOW"]
+
+
 def test_clean_entry_rejects_bad_shapes():
     for body in [
         {"initials": "AB", "lives": 1, "team": ["arc"]},

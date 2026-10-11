@@ -183,6 +183,13 @@ check("game over shows the overlay and the Ascendants board, no entry", () => {
   if (!asc || asc.hidden || !/asp-asc-board/.test(asc.innerHTML)) return "no board on a loss";
   return /asp-asc-in/.test(asc.innerHTML) ? "an initials entry on a loss" : "";
 });
+check("a game over past wave 10 may post to TOP PLAYERS", () => {
+  run(`G = newGame(); G.wave = 15; gameOver();`);
+  const asc = env.dom.byId("asp-asc");
+  if (!asc || asc.hidden) return "no board";
+  if (!/Top players/.test(asc.innerHTML)) return "not titled Top players";
+  return /asp-asc-in/.test(asc.innerHTML) ? "" : "no initials entry at wave 15";
+});
 check("a win shows THE ASCENDANTS entry", () => {
   run(`G = newGame(); G.lives = 30; winGame();`);
   const asc = env.dom.byId("asp-asc");

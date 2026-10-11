@@ -78,7 +78,7 @@ async def aspira_sfx(filename: str):
 # ---------- THE ASCENDANTS: the shared board of winners (spire_board.py) ----------
 # HONOUR SYSTEM (owner, 2026-10-11): a win cannot be proven, so the only guards are
 # the entry's shape and this per-IP limit - ASC_MAX posts per ASC_WINDOW seconds
-ASC_MAX, ASC_WINDOW = 3, 3600.0
+ASC_MAX, ASC_WINDOW = 6, 3600.0  # (6: losses past wave 10 post too, 2026-10-11)
 _asc_posts: dict[str, list[float]] = {}
 
 
@@ -103,7 +103,7 @@ def _client_ip(request: Request) -> str:
 
 @guest_protected.get("/api/spire/ascendants")
 async def spire_ascendants():
-    return {"entries": spire_board.load(DATA_DIR)[: spire_board.SHOW_MAX]}
+    return {"entries": spire_board.ranked(spire_board.load(DATA_DIR))[: spire_board.SHOW_MAX]}
 
 
 @guest_protected.post("/api/spire/ascendants")
@@ -117,4 +117,4 @@ async def spire_ascend(request: Request):
         raise HTTPException(status_code=400, detail="three letters, the lives left and the team")
     if not rate_exempt(request) and not _asc_rate_ok(_client_ip(request)):
         raise HTTPException(status_code=429, detail="too many ascensions - try again later")
-    return {"entries": spire_board.add(DATA_DIR, entry)[: spire_board.SHOW_MAX]}
+    return {"entries": spire_board.ranked(spire_board.add(DATA_DIR, entry))[: spire_board.SHOW_MAX], "entry": entry}

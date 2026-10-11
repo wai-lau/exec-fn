@@ -1,6 +1,8 @@
-/* /spire - THE ASCENDANTS on the win screen (aspira-ascend.js): three letters, then the shared board */
+/* /spire - TOP PLAYERS on the game-over screen (aspira-ascend.js): three letters, then the shared board - the
+   Ascendants (wins) in gold, everyone else in green, tower names in their own colours */
 #asp-asc[hidden] { display: none; }
 #asp-asc { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
+.asp-asc-title { font-size: var(--fs-sm); letter-spacing: var(--tracking-mega); text-transform: uppercase; color: hsl(var(--orange-hsl)); }
 #asp-asc-form { display: flex; gap: var(--space-2); }
 #asp-asc-form[hidden] { display: none; }
 #asp-asc-in {
@@ -18,5 +20,11 @@
 #asp-asc-note { font-size: var(--fs-sm); }
 .asp-asc-table { border-collapse: collapse; font-size: var(--fs-sm); background: hsl(var(--bg-hsl) / 0.45); }
 .asp-asc-table td { padding: var(--space-1) var(--space-3); text-align: left; }
-.asp-asc-table td:first-child { color: hsl(var(--orange-hsl)); letter-spacing: var(--tracking-mega); }
-.asp-asc-mine { color: hsl(var(--cyan-hsl)); }
+.asp-asc-table td:first-child { letter-spacing: var(--tracking-mega); }
+.asp-asc-gold { color: hsl(var(--orange-hsl)); }
+.asp-asc-green { color: hsl(var(--green-hsl)); }
+.asp-asc-mine td:first-child { text-decoration: underline; }
+.asp-asc-k[data-kind="arc"] { color: hsl(var(--orange-hsl)); }
+.asp-asc-k[data-kind="frz"] { color: hsl(var(--cyan-hsl)); }
+.asp-asc-k[data-kind="sol"] { color: hsl(var(--pink-hsl)); }
+.asp-asc-k[data-kind="acd"] { color: hsl(var(--cat-social-h) var(--cat-social-s) var(--cat-social-l)); }
