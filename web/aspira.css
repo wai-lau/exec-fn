@@ -575,9 +575,6 @@
 
 .asp-build-cards .asp-hint { font-size: var(--fs-xs); line-height: var(--lh-tight); }
 
-/* out of the header now, so it flips with the boss's inverted sky on its own
-   (keeping its outline) */
-#asp.asp-boss .asp-autowait { filter: invert(1); }
 
 #asp.asp-boss .asp-wavenote { filter: invert(1) drop-shadow(0 0 1px hsl(var(--bg-hsl))) drop-shadow(0 0 1px hsl(var(--bg-hsl))); }
 
@@ -675,8 +672,9 @@
    option buttons style every span small and dim otherwise (owner: "fix the c") */
 #asp .asp-c { font: inherit; color: inherit; }
 
-/* the auto-wait checkbox, on its own line under the speed row (owner) */
-.asp-autowait { pointer-events: auto; align-self: flex-start; flex-wrap: nowrap; gap: var(--space-4); } /* under the wave list (owner), its own line; the list's box lets taps through, this does not */
+/* auto-wait, auto-speed and quality: their own line in the header, under the stats (owner, 2026-10-10); it flips with the
+   header under a boss's sky */
+.asp-autowait { pointer-events: auto; align-self: flex-start; flex-wrap: nowrap; gap: var(--space-4); } /* the header's box lets taps through, this does not */
 
 /* a plain checkbox + label, no button box (owner: "not on a card"), lit text while it holds the game slow */
 #asp .asp-autowait button { flex: 0 0 auto; white-space: nowrap; display: inline-flex; align-items: center; gap: var(--space-1); padding: 0; border: none; background: none; font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.8); }

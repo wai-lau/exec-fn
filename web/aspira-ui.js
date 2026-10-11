@@ -134,7 +134,7 @@ const autoWaiting = () => {
 (function autoWaitBox() {
   const row = document.createElement("div");
   row.className = "asp-row asp-autowait";
-  $("asp-wavenote").after(row); // UNDER the wave list (owner; was under the speed row)
+  document.querySelector(".asp-head").append(row); // at the TOP, under the stats (owner, 2026-10-10; was under the wave list, before that under the speed row)
   const btn = button(row, "asp-check", "", () => {
     autoWait = !autoWait;
     try { localStorage.setItem("spire.autowait", autoWait ? "1" : "0"); } catch (e) { /* not remembered */ }
