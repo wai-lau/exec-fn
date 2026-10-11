@@ -373,9 +373,13 @@ function slideLimits(c, kind, sl = 1) {
 // stays on the narrowest phone's screen at the fixed zoom: slot + leash <= MOVE_MAX_R from the core (owner, 2026-10-11)
 const MOVE_EDGE = 12; // world units kept clear of the screen's edge
 const moveMaxR = () => PHONE_MIN_W / 2 / FIXED_ZOOM - CELL_S * TOWER_K - MOVE_EDGE;
+// ...SCALED, not clipped (owner, 2026-10-11: "fix ranges"): a clip left ACD at the cap from its first point and the
+// movement tiers buying nothing, so each kind's whole range of leashes shrinks together - its LONGEST (slide SLIDE_MAX)
+// just reaching MOVE_MAX_R - and every tier still adds reach
 const leashR = t => {
-  const c = CELLS[t.cell], { min, max } = slideLimits(c, t.kind, towerStats(t, true).slide);
-  return Math.max(0, Math.min(max - min, moveMaxR() - Math.hypot(c.x - CX, c.y - CY)));
+  const c = CELLS[t.cell], r0 = Math.hypot(c.x - CX, c.y - CY), span = sl => { const L = slideLimits(c, t.kind, sl); return L.max - L.min; };
+  const fit = Math.min(1, Math.max(0, moveMaxR() - r0) / (span(SLIDE_MAX) || 1));
+  return span(towerStats(t, true).slide) * fit;
 };
 const slideSpan = t => Math.round(leashR(t)); // the card's Leash row
 const towerAt = p => G.towers.find(t => Math.hypot(p.x - t.x, p.y - t.y) <= CELL_S);
