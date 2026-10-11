@@ -438,8 +438,8 @@ function shakeOffset() {
 // laggy"): no blending or filters at all. With the sky full the frame is simply
 // DRAWN in inverted colours (withPalette); while it spreads or collapses, the
 // normal frame is drawn and then the inverted one again, CLIPPED to the circle
-// - two plain draws, nothing composited. Towers and their tracks keep their
-// own colours either way (ownColours).
+// - two plain draws, nothing composited. Towers, their ranges and every beam
+// and effect they draw keep their own colours either way (skyKeep).
 function render() { // round 4 (2026-10-09, "way less laggy, 10x"): ONE draw, then the sky's circle flipped (skyFlip, aspira-bosses.js)
   bossSkyStep(); // the sky's state: phase, radius, full (aspira-bosses.js)
   const shake = shakeOffset();
@@ -454,14 +454,11 @@ function drawScene([sx, sy], clipR) {
   drawBoard();
   drawBossBar(); // a live boss's HP line along the horizon, UNDER the towers and their effects (owner)
   const sel = ui.sel && G.towers.find(t => t.id === ui.sel);
-  for (const t of G.towers) if (t !== sel) drawTowerRange(t, true);
-  if (sel) drawTowerRange(sel, false);
+  // EVERY tower colour survives the boss sky (owner, 2026-10-11): ranges, beams, tethers, jets, aims and shots
+  skyKeep(() => { for (const t of G.towers) if (t !== sel) drawTowerRange(t, true); if (sel) drawTowerRange(sel, false); });
   // stars go on top of lanes and range fills, which would otherwise tint them
   if (!lowQ && !q3d()) drawStars(); // low quality: no star field; 3D: round, on the overlay (warpEntities)
-  drawTethers();
-  drawAcd();
-  drawAims();
-  drawFx("shots"); // on the board in 3D too (owner: "beams and tower effects can appear on the plane")
+  skyKeep(() => { drawTethers(); drawAcd(); drawAims(); drawFx("shots"); }); // on the board in 3D too (owner: "beams and tower effects can appear on the plane")
   drawCoreFx(); if (q3d() && G.core) { drawTimeStop(G.core); drawRelayHalos(false); } // the core's struts and beams, under the towers (aspira-core.js); 3D: Temporal Drive's field ON the floor
   // in 3D the towers, the core and the enemies are drawn FLAT over the bell instead (warpEntities, aspira-warp.js)
   skyKeep(() => { drawLeash(); if (!q3d()) for (const t of G.towers) drawTower(t); drawRelayArm(); }); // towers keep their colours on a boss sky (owner); an armed Relay rings them (aspira-powers.js)
