@@ -9,10 +9,11 @@ const FORM_FADE_R = 160;
 const V_N = 5, V_LAT = 24, V_BACK = 28;
 // ARMOR: one tight SQUARE lattice per lane copy, ARMOR_W abreast, rows ARMOR_PITCH apart - the same as the columns
 const ARMOR_W = 3, ARMOR_PITCH = 36;
-// THE SPIN (owner, 2026-10-11: "rotate about the center unit's axis (spin around them)", "don't make any of them roll
-// faster"): a V turns FLAT on the board about its CENTRE UNIT - the leader, or the boss its escorts fly round - one
-// radian every FORM_SPIN[type] world units it travels; the members orbit it. No entry = it never spins (armor's lattice)
-const FORM_SPIN = { shield: 160 };
+// THE SPIN (owner, 2026-10-11: "rotate about the center unit's axis (spin around them)", then "don't make shields do
+// the spinning, make armor do the spinning"): a formation turns FLAT on the board about its CENTRE - the lattice's
+// middle, or the boss its escorts surround - one radian every FORM_SPIN[type] world units it travels; the members orbit
+// it. No entry = it never spins (the shield Vs)
+const FORM_SPIN = { armor: 160 };
 // the slots for a group of m: [lat, ahead] each
 const FORMS = {
   shield: { group: () => V_N, slots: m => Array.from({ length: m }, (_, i) => {
@@ -51,11 +52,11 @@ function formSpawn(w, type) {
   let m = 0;
   const left = w.list.length - w.idx + 1, cap = f.group(left);
   while (m < cap && w.idx - 1 + m < w.list.length && w.list[w.idx - 1 + m] === type) m++;
-  const slots = f.slots(m);
+  const slots = f.slots(m), mid = slots.reduce((a, q) => a + q[1], 0) / m; // the centre it spins about: its middle row
   for (let i = 0; i < m; i++) {
     spawnEnemy(type, w.n, w.lanes[type], w.ang || 0);
     const e = G.enemies[G.enemies.length - 1];
-    e.lat = slots[i][0]; e.ahead = slots[i][1]; e.aheadC = slots[0][1]; e.s += e.ahead; // aheadC: the centre unit's (the leader's) place
+    e.form = true; e.lat = slots[i][0]; e.ahead = slots[i][1]; e.aheadC = mid; e.s += e.ahead; // aheadC: the formation's centre
   }
   w.idx += m - 1;
   return m;
