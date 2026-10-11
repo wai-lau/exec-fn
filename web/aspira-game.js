@@ -464,6 +464,6 @@ function gameOver() {
   if (G.wave > best.wave) best.wave = G.wave;
   try { localStorage.setItem("aspira.best", JSON.stringify(best)); } catch (_e) {}
   if (typeof renderEndStats === "function") renderEndStats(); // the end screen's tower + leak stats (aspira-endstats.js)
-  if (typeof hideAscend === "function") hideAscend(); // (a loss: no Ascendants)
+  if (typeof showAscendants === "function") showAscendants(); // a loss: THE ASCENDANTS board, no entry (aspira-ascend.js)
   showOverlay((G.breachBy && BOSS_BREACH[G.breachBy]) || "core breached", "Reached wave " + G.wave + (G.wave >= (best.wave || 0) ? ", your best." : " (best: " + best.wave + ")."), "Play again");
 }

@@ -1,7 +1,7 @@
 // THE ASCENDANTS (owner, 2026-10-11: "when a player beats a game let them save their initials in the Ascendants"):
 // one SHARED board of winners on the server (/api/spire/ascendants, routes_aspira.py + spire_board.py), on the HONOUR
 // SYSTEM - the game runs in the browser, so a win cannot be proven. The win screen asks for three letters, arcade
-// style, and shows the board; a loss hides it. UI only; winGame / gameOver (aspira-game.js) call in.
+// style, and shows the board; a loss shows the board alone (showAscendants). UI only; winGame / gameOver (aspira-game.js) call in.
 const ASC_URL = "/api/spire/ascendants", ASC_SHOW = 10;
 const ASC_NAMES = { arc: "ARC", frz: "FRZ", sol: "SOL", acd: "ACD" };
 function ascBox() {
@@ -52,3 +52,10 @@ function showAscend() {
   ascLoad();
 }
 function hideAscend() { const el = $("asp-asc"); if (el) el.hidden = true; }
+// a LOSS shows the board too (owner, 2026-10-11: "on any game over screen show leaderboard") - no entry, just who ascended
+function showAscendants() {
+  const box = ascBox();
+  box.hidden = false;
+  box.innerHTML = '<p id="asp-asc-note">The Ascendants</p><div id="asp-asc-board"></div>';
+  ascLoad();
+}

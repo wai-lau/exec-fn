@@ -176,11 +176,12 @@ check("a lost life: 'X lives left' replaces the interest line", () => {
   return texts.some(t => /^7 lives left$/.test(t)) ? "" : "no '7 lives left' among " + texts.length + " texts";
 });
 
-check("game over shows the overlay, no Ascendants", () => {
+check("game over shows the overlay and the Ascendants board, no entry", () => {
   run(`G = newGame(); gameOver();`);
   const ov = env.dom.byId("asp-ov"), asc = env.dom.byId("asp-asc");
   if (ov.hidden) return "overlay hidden";
-  return asc && !asc.hidden ? "Ascendants shown on a loss" : "";
+  if (!asc || asc.hidden || !/asp-asc-board/.test(asc.innerHTML)) return "no board on a loss";
+  return /asp-asc-in/.test(asc.innerHTML) ? "an initials entry on a loss" : "";
 });
 check("a win shows THE ASCENDANTS entry", () => {
   run(`G = newGame(); G.lives = 30; winGame();`);
