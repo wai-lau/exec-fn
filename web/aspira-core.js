@@ -18,8 +18,8 @@
 // - CORNER_SLOTS in aspira-defs.js). The last power left is simply given.
 // (two powers since the Relay merge, so two picks: the Devil's wave hands out nothing)
 // NO PICKING (owner, 2026-10-11: "temporal drive available at level 20 no picking, orbital relay at 40"): each power is
-// GIVEN, at full strength, as its wave is sent (grantPowers, from sendWave) - not on a boss's fall, so a boss that gets
-// through costs no power. Was a choice at the falls of Strength (30) and Temperance (60)
+// GIVEN, at full strength, as the REWARD for its wave's boss (grantPowers, from bossKilled - owner: "losing to a boss is
+// losing anyway"). Was a choice at the falls of Strength (30) and Temperance (60)
 const CORE_GRANTS = [[20, "temporal"], [40, "relay"]];
 const CORE_UNLOCK = CORE_GRANTS[0][0], CORE_TIERS = 3, CORE_PICKS = [] /* (the picks are gone; corePicks() stays 0) */, CORE_POINTS = CORE_TIERS * CORE_GRANTS.length;
 const CORE_POWERS = [
@@ -48,10 +48,10 @@ function pickPower(id) {
   c.picks--; c.pw = { ...c.pw, [id]: CORE_TIERS }; // a fresh object: the simulator's stat cache keys on it
   return true;
 }
-// from sendWave: every power whose wave has come, given outright (and announced under the core)
-function grantPowers() {
+// from bossKilled, the last boss of wave n down: the power that wave gives, outright (and announced under the core)
+function grantPowers(n) {
   for (const [w, id] of CORE_GRANTS) {
-    if (G.wave < w || powerLvl(id)) continue;
+    if (w !== n || powerLvl(id)) continue;
     const c = coreState(); c.pw = { ...c.pw, [id]: CORE_TIERS }; // a fresh object: the simulator's stat cache keys on it
     const p = CORE_POWERS.find(q => q.id === id);
     if (typeof float === "function") { float(CX, CY - 80, p.name + " online", "white", 28, 4, 1, 3); float(CX, CY - 48, "↓", "white", 28, 4, 1, 3); }

@@ -172,6 +172,7 @@ function bossKilled(e) {
   // (aspira-waves.js) - or, on a CORE_PICKS wave, a core power is won (aspira-core.js),
   // announced where the boss's name was, with an arrow down at the core (owner)
   if (!G.enemies.some(o => o !== e && !o.dead && o.arcana && o.n === e.n)) {
+    grantPowers(e.n); // waves 20 / 40: a core power (aspira-core.js)
     if (CORE_PICKS.includes(e.n)) {
       const given = grantPick();
       float(CX, CY - 80, given ? given.name + " online" : "choose a core power", "white", 28, 4, 1, 3); float(CX, CY - 48, "↓", "white", 28, 4, 1, 3);

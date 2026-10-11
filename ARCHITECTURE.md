@@ -4065,7 +4065,7 @@ must never fail because of a rate limit (owner).
 
 ## 22. /aspira — spiral tower defence
 
-**CORE POWERS ARE GIVEN, NOT PICKED (owner, 2026-10-11):** Temporal Drive arrives as wave 20 is sent and the Orbital Relay as wave 40 is, both at full strength (`CORE_GRANTS`, `grantPowers` from `sendWave`, aspira-core.js) - on the SEND, so a boss that gets through costs no power. The pick flow (`CORE_PICKS`, `grantPick`, `pickPower`) is left in place but idle (`CORE_PICKS` is empty).
+**CORE POWERS ARE GIVEN, NOT PICKED (owner, 2026-10-11):** Temporal Drive is the reward for the wave-20 boss and the Orbital Relay for the wave-40 boss, both at full strength (`CORE_GRANTS`, `grantPowers` from `bossKilled`, aspira-core.js; owner: "losing to a boss is losing anyway"). The pick flow (`CORE_PICKS`, `grantPick`, `pickPower`) is left in place but idle (`CORE_PICKS` is empty).
 
 **CORE POWERS BY THE WAVE (owner, 2026-10-11):** both cooldowns count WAVES SENT, not seconds (`tickPowerCooldowns`, called from `sendWave`): the Relay every 4 waves, Temporal 4 / 4 / 3 by tier (`RELAY` / `TEMPORAL` `cd`, aspira-core.js; were 60 s and 90 / 65 / 50 s); the dial and the core card say "N waves". The Relay lasts 45 s (was 22.5) and RIDES THE LAST TOWER YOU DRAG: moving a tower while it runs hands that tower what is left of it (`relayFollow`, called from the move drag in aspira-camera.js).
 
