@@ -330,10 +330,11 @@ function stepSpawns(dt) {
     w.timer -= dt;
     while (w.timer <= 0 && w.idx < w.list.length) {
       const type = w.list[w.idx++];
-      spawnEnemy(type, w.n, w.lanes[type], w.ang || 0);
+      // FORMATIONS (aspira-formations.js): fast Vs and armor's lattice spawn as a group; the rest one by one
+      const m = formSpawn(w, type) || (spawnEnemy(type, w.n, w.lanes[type], w.ang || 0), 1);
       // spacing is a balance lever: swarms stream evenly and very densely
-      // (5x the bodies in the same time as before), trains spread ~60+ apart
-      w.timer += (type === "swarm" ? 0.024 : type === "fast" ? 0.5 : 0.8) / ENEMY_SPEED;
+      // (5x the bodies in the same time as before), trains spread ~60+ apart; a formation waits its members' worth
+      w.timer += m * (type === "swarm" ? 0.024 : type === "fast" ? 0.5 : 0.8) / ENEMY_SPEED;
       // a boss's FLEET rides around it: the next boss on the same lane (the Lovers' second) waits till both fleets clear
       const lb = type === "bonus" && G.lastBoss;
       if (lb && lb.fleetSpan) w.timer = Math.max(w.timer, (lb.fleetSpan + FLEET_GAP) / Math.max(1, effSpeed(lb)));
@@ -365,7 +366,9 @@ function stepEnemies(dt) {
       if (e.dotT > 0) { e.dotT -= dt; damage(e, e.dotDps * dt, e.dotSrc, true); if (e.dead) continue; }
       e.s += effSpeed(e) * dt;
     }
-    const p = pathAt(e.pi, e.s, e.ang); e.x = p.x; e.y = p.y;
+    const p = pathAt(e.pi, e.s, e.ang);
+    if (e.lat) formOffset(e, p); // its place in a formation, across the lane (aspira-formations.js)
+    e.x = p.x; e.y = p.y;
     // no free spin: one corner points along the lane, nose first
     if (FACING) {
       const ahead = pathAt(e.pi, e.s + 3, e.ang);

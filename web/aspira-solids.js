@@ -56,7 +56,7 @@ const solidSize = e => { const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max
 function solidGeom(e) {
   const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max), size = solidSize(e);
   if (!(size > 0.5) || !Number.isFinite(e.x) || !Number.isFinite(e.y)) return null; // (a NaN spot would make a gradient throw)
-  const p = warp.p, P = warpProject(e.x, e.y), k = cam.k * P.s;
+  const p = warp.p, zr = e.z || 0, P0 = warpProject(e.x, e.y), P = zr ? warpProject(e.x, e.y, P0.h + zr * cam.k) : P0, k = cam.k * P.s; // zr: a rolling formation lifts it off the bell's surface (aspira-formations.js)
   // FAINTER FARTHER from the camera (owner, 2026-10-09: "enemy opacity should also be relative to their distance to camera"):
   // its perspective size against the core's, squared, never under SOLID_FAR_MIN
   const fa = Math.max(SOLID_FAR_MIN, Math.min(1, P.s / p.z) ** 2);
@@ -74,7 +74,7 @@ function solidGeom(e) {
   // world offset (x, y on the floor, z up) to the screen, the die's CENTRE on the floor (owner: "their center is on the plane")
   const scr = ([x, y, z]) => [P.x + k * x * size, P.y + k * (p.c * y * size - p.s * z * size)];
   const faces = [], slot = new Array(S.F.length).fill(-1); // slot: a face of S.F -> its index in faces (visible), or -1
-  const Q = R.map(v => { const [x, y] = scr(v); return { x, y, z: v[2] * size }; }); // every corner projected once
+  const Q = R.map(v => { const [x, y] = scr(v); return { x, y, z: v[2] * size + zr }; }); // every corner projected once (z: above the floor)
   for (const [fi, face] of S.F.entries()) {
     const n = [0, 1, 2].map(i => face.reduce((m, v) => m + R[v][i], 0) / face.length), nl = Math.hypot(...n);
     if (n[1] * p.s + n[2] * p.c <= 0) continue; // turned away from the camera

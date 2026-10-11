@@ -64,7 +64,8 @@ function wavePlan(n, prev) {
   const type = WAVE_TYPE_FORCE[n] || (n <= UNLOCK.length ? UNLOCK[n - 1] : choices[Math.floor(fixedRand(n, 1) * choices.length)]);
   const raw = waveCount(type, n);
   // split k ways, ROUNDED DOWN so every lane copy gets the same number (owner)
-  const split = Math.min(raw, 1 + Math.floor(fixedRand(n, 3) * 6));
+  // FORMATIONS stay whole (aspira-formations.js): armor's lattice is never split, fast splits only into whole Vs
+  const split = Math.min(raw, type === "armor" ? 1 : type === "fast" ? Math.max(1, Math.floor(raw / FAST_V)) : raw, 1 + Math.floor(fixedRand(n, 3) * 6));
   return { type, count: Math.floor(raw / split) * split, split, star: n % STAR_EVERY === 0 };
 }
 function makeWave(n) {
@@ -106,7 +107,9 @@ function sendWave() {
     // (a boss wave takes its split from the boss: the Devil's six come from
     // six directions, one per rotated copy of the lane)
     const boss = G.wave % STAR_EVERY === 0;
-    const want = boss ? bossSplit(G.wave) : 1 + Math.floor(fixedRand(G.wave, 3) * 6);
+    const ty = list[0], want0 = boss ? bossSplit(G.wave) : 1 + Math.floor(fixedRand(G.wave, 3) * 6);
+    // FORMATIONS stay whole (aspira-formations.js): armor's lattice is one block, fast splits only into whole Vs
+    const want = boss ? want0 : ty === "armor" ? 1 : ty === "fast" ? Math.min(want0, Math.max(1, Math.floor(list.length / FAST_V))) : want0;
     const k = Math.min(list.length, want), per = Math.floor(list.length / k);
     for (let j = 0; j < k; j++) {
       const part = list.slice(j * per, (j + 1) * per);
