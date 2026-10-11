@@ -236,6 +236,24 @@ if [ -n "$SRC_CHANGED" ]; then
   fi
 fi
 
+# ── /spire game smoke (node, no browser) — only when the game changed. ──
+# Loads every /spire script in the template's order into a fake DOM with a
+# RECORDING canvas and drives the real frame loop: boot, 2D / low / 3D-fallback
+# draws, each tower built (range, tower, movement arrows drawn), a wave fought,
+# the boss sky, Temporal Drive, the lives-left line, loss / win / Ascendants.
+# Checks things DRAW, not just that nothing threw (a swallowed else once blanked
+# the board with no error at all). ARCHITECTURE.md §22.
+SPIRE_CHANGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^web/aspira-.*\.js$|^api/templates/aspira\.html$|^scripts/spire-smoke/' || true)
+if [ -n "$SPIRE_CHANGED" ]; then
+  if ! command -v node &>/dev/null; then
+    echo "NOTE: skipping /spire smoke — no node."
+  elif ! node "$REPO_ROOT/scripts/spire-smoke/smoke.mjs"; then
+    echo ""
+    echo "/spire smoke failed — commit blocked. Run: node scripts/spire-smoke/smoke.mjs"
+    exit 1
+  fi
+fi
+
 # ── Tarot reading-progression (WebKit) — only when the tarot reader changed. ──
 # The browser suite (marked `browser`, kept out of the smoke step above) guards
 # the invariant that a reading always progresses. Run it when the reader's JS /
