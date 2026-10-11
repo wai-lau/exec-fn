@@ -373,25 +373,31 @@ function slideLimits(c, kind, sl = 1) {
 // stays on the narrowest phone's screen at the fixed zoom: slot + leash <= MOVE_MAX_R from the core (owner, 2026-10-11)
 const MOVE_EDGE = 12; // world units kept clear of the screen's edge
 const moveMaxR2d = () => PHONE_MIN_W / 2 / FIXED_ZOOM - CELL_S * TOWER_K - MOVE_EDGE;
-// 3D (owner: "both modes"): the bell magnifies the floor round the core (x1.46 across at the 2D cap), so the cap there
-// is the largest radius whose every point, PROJECTED, stays inside the 2D cap's on-screen box - found by bisection
-// once per camera (in 2D-equivalent units: the projection's offset from the core / the view's scale)
+// 3D (owner: "both modes"): the largest radius whose every point, PROJECTED, stays inside the 2D cap's on-screen box -
+// found by bisection once per camera, under the 3D frame's own camera (cam x WARP_RES, as warp3d draws it - projecting
+// with the plain camera read the view as x1.46 magnified and gave a cap a third too small); about the 2D cap, the view
+// matching 2D across at the core and foreshortened up and down
 let moveMax3d = { key: "", r: 0 };
 function moveMaxR3d() {
   const key = [cam.k, cam.ox, cam.oy, WARP.tilt, WARP.fov].join();
   if (moveMax3d.key === key) return moveMax3d.r;
-  const lim = moveMaxR2d(), k = cam.k * WARP_RES, c = warpProject(CX, CY, 0);
-  const fits = R => { for (let i = 0; i < 16; i++) { const a = i * Math.PI / 8, p = warpProject(CX + R * Math.cos(a), CY + R * Math.sin(a), 0);
-    if (!(p.s > 0) || Math.abs(p.x - c.x) / k > lim || Math.abs(p.y - c.y) / k > lim * 1.5) return false; } return true; };
-  let lo = 0, hi = lim;
-  for (let i = 0; i < 20; i++) { const mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid; }
+  const c0 = { k: cam.k, ox: cam.ox, oy: cam.oy };
+  cam.k *= WARP_RES; cam.ox *= WARP_RES; cam.oy *= WARP_RES;
+  let lo = 0;
+  try {
+    const lim = moveMaxR2d(), k = cam.k, c = warpProject(CX, CY, 0);
+    const fits = R => { for (let i = 0; i < 16; i++) { const a = i * Math.PI / 8, p = warpProject(CX + R * Math.cos(a), CY + R * Math.sin(a), 0);
+      if (!(p.s > 0) || Math.abs(p.x - c.x) / k > lim || Math.abs(p.y - c.y) / k > lim * 1.5) return false; } return true; };
+    let hi = lim * 1.5;
+    for (let i = 0; i < 20; i++) { const mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid; }
+  } finally { Object.assign(cam, c0); }
   moveMax3d = { key, r: lo };
   return lo;
 }
 const moveMaxR = () => (typeof q3d === "function" && q3d() && typeof warp !== "undefined" && warp.p ? moveMaxR3d() : moveMaxR2d());
 // ...CAPPED, never scaled (owner, 2026-10-11: "don't scale all the ranges, just cap out the maximum range so that towers
 // don't fly off screen (both modes)"): a leash is its own length up to the cap; in 3D the core's view keeps the 2D scale
-// across the screen at the core, so the same cap holds there
+// across the screen at the core (moveMaxR3d)
 const leashR = t => {
   const c = CELLS[t.cell], { min, max } = slideLimits(c, t.kind, towerStats(t, true).slide);
   return Math.max(0, Math.min(max - min, moveMaxR() - Math.hypot(c.x - CX, c.y - CY)));
