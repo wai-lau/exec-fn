@@ -214,6 +214,7 @@ function upgradeTower(t, choice = null, quiet = false) {
   if (!t || t.lvl >= maxLvl(t) || G.money < upCost(t)) return;
   const need = pendingChoice(t);
   if (need && choice == null) return;
+  if (need === "skill" && skillOf(t, choice) >= axisCap(t, choice)) return; // full, or a second giga VI (aspira-giga.js)
   if (need === "skill") t.skills = withSkill(t, choice); // one tier up the chosen axis
   if (need === "path") t.path = choice;
   if (need === "form") { t.form = choice; t.mode = UPGRADES[t.kind][t.path].finals[choice].mode || t.mode; } // a form may set targeting (Residue)

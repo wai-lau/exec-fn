@@ -102,6 +102,26 @@ check("boss sky keeps tower colours: ranges drawn under it", () => {
   return seen.drawTowerRange ? "" : "no range drawn on the boss sky";
 });
 
+check("giga capstone: one axis to VI, a second refused; every tier table covers VI", () => {
+  const r = run(`(() => {
+    G = newGame(); G.money = 1e9; ui.build = "arc";
+    const ci = CELLS.findIndex((c, i) => cellOpen(i)); placeTower(CELLS[ci]);
+    const t = G.towers[0], ids = SKILL_TREES.arc.map(a => a.id);
+    for (let k = 0; k < 6; k++) upgradeTower(t, ids[0], true);
+    for (let k = 0; k < 6; k++) upgradeTower(t, ids[1], true);
+    const out = { a: skillOf(t, ids[0]), b: skillOf(t, ids[1]), opts: skillOptions(t).map(o => o.choice) };
+    for (const kind of ["arc", "frz", "sol", "acd"]) for (const ax of SKILL_TREES[kind]) {
+      const s = towerStats({ id: 99, kind, x: CX, y: CY, lvl: 7, skills: { [ax.id]: 6 } });
+      if (!ax.tiers[5] || Object.values(s).some(v => v === undefined || (typeof v === "number" && isNaN(v)))) out.bad = kind + " " + ax.id;
+      if (/undefined/.test(describeTower(kind, { [ax.id]: 6 }))) out.bad = kind + " " + ax.id + " desc";
+    }
+    return out;
+  })()`);
+  if (r.a !== 6) return "first axis reached " + r.a + ", not VI";
+  if (r.b !== 5) return "second axis reached " + r.b + " (one giga a tower)";
+  if (r.bad) return "tier VI incomplete: " + r.bad;
+  return "";
+});
 check("Temporal Drive: the field draws", () => {
   run(`G = newGame(); G.core = G.core || {}; G.core.freeze = { t: 1, dur: 10 };`);
   const seen = calls(env, ["drawTimeStop"], () => frames(env, 1));

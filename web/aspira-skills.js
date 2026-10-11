@@ -8,7 +8,8 @@
 // by DRAGGING the axes of the chart on the tower card (aspira-sliders.js), any
 // number at once; each still costs its own step of the ladder below
 // FIVE tiers an axis (owner, 2026-10-07: "add another 2 tiers to each upgrade"; was 3), fifteen points a tower
-const SKILL_POINTS = 15, SKILL_TIERS = 5;
+// SIX with the GIGA tier (owner, 2026-10-11; aspira-giga.js): ONE axis a tower may take to VI, so sixteen points (5 + 5 + 6)
+const SKILL_POINTS = 16, SKILL_TIERS = 6;
 // cost of each of the six small upgrades, x the build cost (about the old
 // three-step total, spread over six; balance later). DEARER (owner, 2026-10-06:
 // "make the levels more expensive and more powerful"): was 2 / 3.5 / 5.5 / 8 / 10.5 / 13,
@@ -16,7 +17,7 @@ const SKILL_POINTS = 15, SKILL_TIERS = 5;
 // ...and on, for the three points past the sixth (owner, 2026-10-07: "keep increasing
 // the prices"): the step grows by one more each time, a full chart 174.5 builds (6,980c)
 // (the six points past the ninth, 2026-10-07: each step grows by one more again - a full chart 695.5 builds, 27,820c)
-const SKILL_STEP_COST = [2.5, 4, 7, 11, 16, 22, 29, 37, 46, 56, 67, 79, 92, 106, 121];
+const SKILL_STEP_COST = [2.5, 4, 7, 11, 16, 22, 29, 37, 46, 56, 67, 79, 92, 106, 121, 137]; // the 16th: the giga point (2026-10-11)
 // Every axis is ONE EVOLVING SENTENCE (owner, 2026-10-07): `base` says what the
 // tower does with no point on the axis, and each tier's `desc` is that sentence
 // with as few words changed as will carry the gain, so the card's track changes
@@ -219,7 +220,7 @@ function arcSkillStats(t, s, b) {
 }
 // what the upgrade cards offer: the next tier of each axis not yet full
 function skillOptions(t) {
-  return SKILL_TREES[t.kind].filter(ax => skillOf(t, ax.id) < SKILL_TIERS).map(ax => {
+  return SKILL_TREES[t.kind].filter(ax => skillOf(t, ax.id) < axisCap(t, ax.id)).map(ax => { // (one giga VI a tower - aspira-giga.js)
     const n = skillOf(t, ax.id), tier = ax.tiers[n];
     return { choice: ax.id, name: ax.name + " " + roman(n + 1) + " · " + tier.name, desc: tier.desc };
   });
@@ -250,7 +251,7 @@ function fireSkillChain(t, st, e, seen) {
   // strike point throws sparks
   const v = skillOf(t, "voltage");
   if (v) root.fx.pierce = true;
-  if (v >= SKILL_TIERS) burst(e.x, e.y, "white", 6);
+  if (v >= SKILL_TIERS - 1) burst(e.x, e.y, "white", v > SKILL_TIERS - 1 ? 12 : 6); // V sparks, the giga VI twice as many
   const c = { t, st, col, skill: true, seen: seen || new Set(), hits: new Map() }; // shared by the attack's strikes
   c.seen.add(e.id); c.hits.set(e.id, 1);
   skillHit(c, e, d);

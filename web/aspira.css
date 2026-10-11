@@ -786,6 +786,11 @@
 .asp-pips i { flex: 1; height: var(--space-2-5); border: 1px solid hsl(var(--green-hsl) / 0.45); border-radius: var(--radius-1); }
 .asp-pips i.lock { background: hsl(var(--green-hsl)); border-color: hsl(var(--green-hsl)); } /* locked in */
 .asp-pips i.pull { background: hsl(var(--green-hsl) / 0.45); border-color: hsl(var(--green-hsl)); } /* pulled, not yet bought */
+/* the GIGA tier VI (aspira-giga.js): its pip and the chart's outer ring in orange - one axis a tower */
+.asp-pips i.giga { border-color: hsl(var(--orange-hsl)); }
+.asp-pips i.giga.lock { background: hsl(var(--orange-hsl)); }
+.asp-pips i.giga.pull { background: hsl(var(--orange-hsl) / 0.45); }
+.asp-chart .grid.giga { stroke: hsl(var(--orange-hsl) / 0.45); }
 .asp-axis-name { display: flex; justify-content: space-between; font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.8); }
 .asp-axis-tier { font-weight: var(--fw-bold); color: hsl(var(--green-hsl)); }
 

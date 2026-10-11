@@ -22,28 +22,28 @@ const DESCRIBE = {
   // three / twin; Voltage: most of .. all of (its harder hit is a stat row); Capacitance: the charge sentence (owner's words)
   arc(sk) {
     const c = sk.conductivity || 0, v = sk.voltage || 0, z = sk.capacitance || 0;
-    let s = [c >= 5 ? "four" : c >= 4 ? "three" : c >= 3 ? "twin" : "", "arcs", c >= 1 ? "chain once and" : "", "fork", c >= 2 ? "into three" : "", c >= 3 ? "on hit, returning to struck enemies " + ARC_RETURN[c] + ", each jump carrying" : "on hit, each jump carrying", ARC_KEEP[v], "the hit."].filter(Boolean).join(" ");
+    let s = [c >= 6 ? "six" : c >= 5 ? "four" : c >= 4 ? "three" : c >= 3 ? "twin" : "", "arcs", c >= 6 ? "chain twice and" : c >= 1 ? "chain once and" : "", "fork", c >= 2 ? "into three" : "", c >= 3 ? "on hit, returning to struck enemies " + ARC_RETURN[c] + ", each jump carrying" : "on hit, each jump carrying", ARC_KEEP[v], "the hit."].filter(Boolean).join(" ");
     if (z) s += " Hits leave " + ARC_CHARGES[ARC_CAPACITANCE[z].n] + ", which burst around the target when it is hit by anything" + (z >= 3 ? ", slowing what they hit." : ".");
     return cap(s);
   },
   // "A chill slows all it holds." -> Temp III: and turns it brittle (its colder, wider aura is
   // stat rows); Rime: the rings of rime; Moons: the moons
   frz(sk) {
-    return "A chill slows all it holds" + ((sk.temp || 0) >= 1 ? ", and turns it brittle." : ".") + FRZ_RIME_TEXT[sk.rime || 0] + FRZ_MOONS[sk.moons || 0];
+    return ((sk.temp || 0) >= 6 ? "A deep chill" : "A chill") + " slows all it holds" + ((sk.temp || 0) >= 6 ? ", and shatters it brittle." : (sk.temp || 0) >= 1 ? ", and turns it brittle." : ".") + FRZ_RIME_TEXT[sk.rime || 0] + FRZ_MOONS[sk.moons || 0];
   },
   // "A ray of light, stopping at the first enemy struck; each beam weakens its target's armor for
   // good." (Breach is SOL's own from the start, owner 2026-10-08) -> Focus: two .. six rays, each a
   // full strike; Refraction: refracting on to more; Breach: armor *greatly*, and pierces it so every tower crits it more
   sol(sk) {
     const f = sk.focus || 0, r = sk.refraction || 0, b = sk.breach || 0;
-    return SOL_RAYS[f] + " of light" + (f ? ", each a full strike" : "") + ", " + SOL_REFRACT[r] + "; each beam weakens its target's armor" + (b ? " greatly" : "") + " for good" + (b ? ", and pierces it so every tower crits it more." : ".");
+    return SOL_RAYS[f] + " of light" + (f ? ", each a full strike" : "") + ", " + SOL_REFRACT[r] + "; each beam weakens its target's armor" + (b >= 6 ? " utterly" : b ? " greatly" : "") + " for good" + (b >= 6 ? ", and pierces it so every tower crits it far more." : b ? ", and pierces it so every tower crits it more." : ".");
   },
   // "Two jets of acid, each corroding the enemy. Acid flow is reduced when switching targets."
   // (owner's words) -> Spray: three .. six jets; Corrosion I: the flow HOLDS on a switch;
   // Contagion I: leaving behind pools of acid that slow all who wade through them (from I, 2026-10-08)
   acd(sk) {
     const c = sk.contagion || 0; // no pools until Contagion I (owner)
-    return ACD_JETS[sk.spray || 0] + " jets of acid, each corroding the enemy" + ((sk.corrosion || 0) ? " and eating through its armor" : "") + (c ? ", leaving behind pools of acid that slow all who wade through them" : "") + ". Acid flow " + ((sk.corrosion || 0) ? "holds" : "is reduced") + " when switching targets.";
+    return ACD_JETS[sk.spray || 0] + " jets of acid, each corroding the enemy" + ((sk.corrosion || 0) >= 6 ? " and dissolving its armor" : (sk.corrosion || 0) ? " and eating through its armor" : "") + (c ? ", leaving behind " + (c >= 6 ? "great " : "") + "pools of acid that slow all who wade through them" : "") + ". Acid flow " + ((sk.corrosion || 0) ? "holds" : "is reduced") + " when switching targets.";
   },
 };
 // the description for a chart (`skills`): the composer, else the axes' sentences run together

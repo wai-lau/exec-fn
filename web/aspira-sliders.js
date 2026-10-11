@@ -19,7 +19,7 @@ const previewTower = t => ({ ...t, lvl: t.lvl + basketPoints(t), skills: withSki
 // of those the bank covers on top of the other axes' pulls (points are priced
 // in order, whatever the axis)
 function axisRoom(t, id) {
-  const add = basketFor(t), others = basketPoints(t) - (add[id] || 0), left = SKILL_TIERS - skillOf(t, id);
+  const add = basketFor(t), others = basketPoints(t) - (add[id] || 0), left = axisCap(t, id, add) - skillOf(t, id); // (one giga VI a tower)
   let afford = 0;
   while (afford < left && skillPointsCost(t, others + afford + 1) <= G.money) afford++;
   return { others, left, afford };
@@ -48,11 +48,12 @@ const tierSpan = (lock, at) => (at > lock ? tierTxt(lock) + "→" + tierTxt(at) 
 const canPull = (t, ax) => { const r = axisRoom(t, ax.id); return r.left > 0 && r.afford > 0; };
 const shapeOf = (axes, sk, n) => axes.map((ax, i) => axisPt(i, (sk && sk[ax.id]) || 0, n).map(v => v.toFixed(1)).join(",")).join(" ");
 // one pip a tier: filled = locked in, half-lit = pulled in the basket, hollow = still to buy
-const pipsHtml = (lock, at) => Array.from({ length: SKILL_TIERS }, (_, k) => '<i class="' + (k < lock ? "lock" : k < at ? "pull" : "") + '"></i>').join("");
+// the last pip and the outer ring are the GIGA tier VI (aspira-giga.js), marked in orange (aspira.css)
+const pipsHtml = (lock, at) => Array.from({ length: SKILL_TIERS }, (_, k) => '<i class="' + (k < lock ? "lock" : k < at ? "pull" : "") + (k === SKILL_TIERS - 1 ? " giga" : "") + '"></i>').join("");
 function sliderChart(t) {
   const axes = SKILL_TREES[t.kind], n = axes.length, add = basketFor(t), pv = previewTower(t);
   let svg = '<svg class="asp-chart asp-sliders" viewBox="0 ' + SL_TOP + ' 120 ' + SL_H + '">';
-  for (let k = 1; k <= SKILL_TIERS; k++) svg += '<polygon class="grid" points="' + axes.map((_, i) => axisPt(i, k, n).map(v => v.toFixed(1)).join(",")).join(" ") + '"/>';
+  for (let k = 1; k <= SKILL_TIERS; k++) svg += '<polygon class="grid' + (k === SKILL_TIERS ? " giga" : "") + '" points="' + axes.map((_, i) => axisPt(i, k, n).map(v => v.toFixed(1)).join(",")).join(" ") + '"/>';
   axes.forEach((ax, i) => { const [ex, ey] = axisPt(i, SKILL_TIERS, n); svg += '<line class="grid" x1="' + SL_C + '" y1="' + SL_C + '" x2="' + ex.toFixed(1) + '" y2="' + ey.toFixed(1) + '"/>'; });
   svg += '<polygon class="next" points="' + shapeOf(axes, pv.skills, n) + '"/><polygon class="now" points="' + shapeOf(axes, t.skills, n) + '"/>';
   axes.forEach((ax, i) => { const [tx, ty] = labelPt(i, n); svg += '<text x="' + tx.toFixed(1) + '" y="' + ty.toFixed(1) + '" text-anchor="middle">' + ax.name.slice(0, 4).toUpperCase() + "</text>"; });
@@ -79,7 +80,7 @@ function updateSliderChart(t, svg) {
     row.querySelector(".asp-pips").innerHTML = pipsHtml(lock, at);
     row.querySelector(".minus").classList.toggle("dim", at <= lock); // nothing pulled to put back
     const plus = row.querySelector(".plus");
-    plus.classList.toggle("can", canPull(t, ax)); plus.disabled = at >= SKILL_TIERS;
+    plus.classList.toggle("can", canPull(t, ax)); plus.disabled = at >= SKILL_TIERS; // (a giga taken elsewhere: the tap SAYS so - pullAxis)
   });
 }
 // the HUD tick (aspira-ui.js updateHud): income may have brought a point within reach - the flash follows the bank
@@ -97,13 +98,16 @@ function bindSliders(t, root) {
 // step below the locked-in tier is refused (the bank is no limit - upgradeButton)
 function pullAxis(t, i, want) {
   const ax = SKILL_TREES[t.kind][i], add = basketFor(t), lock = skillOf(t, ax.id);
-  const to = Math.max(lock, Math.min(SKILL_TIERS, want)), why = want < lock ? ax.name + " " + roman(lock) + " is locked in · sell to undo" : "";
+  const top = axisCap(t, ax.id, add), holder = gigaHolder(t, ax.id, add);
+  const to = Math.max(lock, Math.min(top, want));
+  const why = want < lock ? ax.name + " " + roman(lock) + " is locked in · sell to undo"
+    : want > top && holder ? "One giga capstone per tower · " + holder.name + " " + roman(GIGA_TIER) + " holds it" : "";
   const was = add[ax.id] || 0;
   add[ax.id] = to - lock;
   if (was !== to - lock) refreshUpgradePreview(t);
   const note = $("asp-slider-note");
   if (note) note.innerHTML = why; // (no "tap to lock it in" line: the button's flashing says it - owner)
-  document.querySelectorAll(".asp-axis-btn.minus").forEach((b, k) => b.classList.toggle("stuck", !!why && k === i));
+  document.querySelectorAll(".asp-axis-btn.minus").forEach((b, k) => b.classList.toggle("stuck", want < lock && k === i));
 }
 // the card's preview parts, re-rendered: the chart (in place), the stats, the description, the button, the spend bar
 function refreshUpgradePreview(t) {

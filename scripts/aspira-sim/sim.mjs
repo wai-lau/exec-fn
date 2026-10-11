@@ -12,7 +12,7 @@ import { pickNext, usePowers } from "./corepower.mjs";
 // re-reads them, so a balance commit landing mid-run would otherwise mix two
 // versions (2026-10-07)
 const WEB = (process.env.ASPIRA_WEB || path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "web")) + "/";
-const FILES = ["aspira-defs.js", "aspira-upgrades.js", "aspira-game.js", "aspira-formations.js", "aspira-floats.js", "aspira-waves.js", "aspira-bosses.js", "aspira-towers.js", "aspira-acid.js", "aspira-skills.js", "aspira-frz.js", "aspira-desc.js", "aspira-positioning.js", "aspira-core.js"];
+const FILES = ["aspira-defs.js", "aspira-upgrades.js", "aspira-game.js", "aspira-formations.js", "aspira-floats.js", "aspira-waves.js", "aspira-bosses.js", "aspira-towers.js", "aspira-acid.js", "aspira-skills.js", "aspira-frz.js", "aspira-desc.js", "aspira-giga.js","aspira-positioning.js", "aspira-core.js"];
 
 export function makeGame(seed, patch = "") {
   patch = [process.env.ASPIRA_PATCH, patch].filter(Boolean).join("\n"); // ASPIRA_PATCH: a balance experiment for every game of a run
@@ -86,7 +86,7 @@ export function makeGame(seed, patch = "") {
       get G() { return G; },
       setG(x) { G = x; }, // restore a snapshot (buildsearch)
       CELLS, TOWERS, UPGRADES, PATHS, CX, CY, RIM_R, MAX_LVL, maxLvl,
-      towerStats, upCost, pendingChoice, sendWave, step, stepFx, snapCell, cellOpen,
+      towerStats, upCost, pendingChoice, axisCap, sendWave, step, stepFx, snapCell, cellOpen,
       place(kind, ci, mode = DEFAULT_MODE[kind]) {
         const c = CELLS[ci];
         const cost = towerCost(kind);
@@ -105,7 +105,7 @@ export function makeGame(seed, patch = "") {
         // a chart tower: the named axis, else (a path / form index from an old
         // strategy) the lowest open axis, so builds spread evenly
         if (need === "skill") {
-          const ids = SKILL_TREES[t.kind].map(a => a.id).filter(id => skillOf(t, id) < SKILL_TIERS);
+          const ids = SKILL_TREES[t.kind].map(a => a.id).filter(id => skillOf(t, id) < axisCap(t, id)); // (one giga VI a tower)
           t.skills = withSkill(t, ids.includes(choice) ? choice : ids.sort((a, b) => skillOf(t, a) - skillOf(t, b))[0]);
         }
         if (need === "path") t.path = choice;
@@ -216,7 +216,7 @@ export function makePlayer(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = 
         const t = next.up, [p, f] = (strategy.paths || {})[t.kind] || [0, 0];
         if (G.money - g.upCost(t) < floor) return;
         const need = g.pendingChoice(t);
-        const axis = need === "skill" ? ((strategy.skills || {})[t.kind] || []).find(id => ((t.skills || {})[id] || 0) < g.run("SKILL_TIERS")) : null;
+        const axis = need === "skill" ? ((strategy.skills || {})[t.kind] || []).find(id => ((t.skills || {})[id] || 0) < g.axisCap(t, id)) : null;
         g.upgrade(t, axis || (need === "path" ? p : f));
         S.used[t.kind] = 1; next = null; continue;
       }
