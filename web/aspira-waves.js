@@ -67,7 +67,7 @@ function wavePlan(n, prev) {
   const type = WAVE_TYPE_FORCE[n] || (n <= UNLOCK.length ? UNLOCK[n - 1] : choices[Math.floor(fixedRand(n, 1) * choices.length)]);
   const raw = waveCount(type, n);
   // split k ways, ROUNDED DOWN so every lane copy gets the same number (owner)
-  // FORMATIONS stay whole (aspira-formations.js): armor's lattice is never split, fast splits only into whole Vs
+  // FORMATIONS stay whole (aspira-formations.js): shields split only into whole Vs, armor into whole rows
   const split = formSplit(type, raw, Math.min(raw, 1 + Math.floor(fixedRand(n, 3) * 6)));
   return { type, count: Math.floor(raw / split) * split, split, star: n % STAR_EVERY === 0 };
 }
@@ -111,7 +111,7 @@ function sendWave() {
     // six directions, one per rotated copy of the lane)
     const boss = G.wave % STAR_EVERY === 0;
     const want0 = boss ? bossSplit(G.wave) : 1 + Math.floor(fixedRand(G.wave, 3) * 6);
-    // FORMATIONS stay whole (aspira-formations.js): armor's lattice is one block, fast splits only into whole Vs
+    // FORMATIONS stay whole (aspira-formations.js): shields split only into whole Vs, armor into whole rows
     const want = boss ? want0 : formSplit(list[0], list.length, want0);
     const k = Math.min(list.length, want), per = Math.floor(list.length / k);
     for (let j = 0; j < k; j++) {

@@ -4,19 +4,20 @@
 // its current heading (formOffset), shrinking it to nothing inside FORM_FADE_R of the core so a formation funnels in.
 // Swarms keep their wander (e.jit) and shields their single file: neither has an entry here.
 const FORM_FADE_R = 160;
-// FAST: Vs of FAST_V birds - a leader, then pairs fanned back and out
-const FAST_V = 5, FAST_V_LAT = 22, FAST_V_BACK = 26;
+// SHIELDS: Vs of V_N - a leader, then pairs fanned back and out (owner, 2026-10-11: "fast in lines, Vs for shields";
+// fast flew the Vs for an afternoon and now come single file)
+const V_N = 5, V_LAT = 24, V_BACK = 28;
 // ARMOR: one tight SQUARE lattice per lane copy, ARMOR_W abreast, rows ARMOR_PITCH apart - the same as the columns
 const ARMOR_W = 3, ARMOR_PITCH = 36;
 // THE ROLL (owner: "side axes should rotate about the center axis - speed rotates less, armor does not rotate"): a
 // formation turns about its lane's centre line, one radian every FORM_ROLL[type] world units it travels - its side
 // members sweep across the lane in 2D and over and under it in 3D (e.z, aspira-solids.js); no entry = it never rolls
-const FORM_ROLL = { fast: 160 };
+const FORM_ROLL = { shield: 80 }; // (owner: shields roll "more frequently" than the fast Vs did, at 160)
 // the slots for a group of m: [lat, ahead] each
 const FORMS = {
-  fast: { group: () => FAST_V, slots: m => Array.from({ length: m }, (_, i) => {
+  shield: { group: () => V_N, slots: m => Array.from({ length: m }, (_, i) => {
     const d = Math.ceil(i / 2), side = i % 2 ? 1 : -1; // 0 the leader; 1, 2 the first pair; 3, 4 the next
-    return [side * d * FAST_V_LAT, (Math.ceil((m - 1) / 2) - d) * FAST_V_BACK];
+    return [side * d * V_LAT, (Math.ceil((m - 1) / 2) - d) * V_BACK];
   }) },
   armor: { group: m => m, slots: m => {
     const rows = Math.ceil(m / ARMOR_W);
@@ -26,10 +27,10 @@ const FORMS = {
     });
   } },
 };
-// a wave's count is a whole number of these (waveCount): every V full (FAST_V, odd: 2n+1). Armor is NOT rounded (owner,
+// a wave's count is a whole number of these (waveCount): every V full (V_N, odd: 2n+1). Armor is NOT rounded (owner,
 // 2026-10-11: "having centered 1 or 2 armored in the back looks nice") - a short last row sits centred at the back
-const FORM_UNIT = { fast: FAST_V }, FORM_GROUP = { fast: FAST_V, armor: ARMOR_W };
-// how many lane copies a wave of `count` splits onto, at most `want`: fast only into whole Vs, armor into whole
+const FORM_UNIT = { shield: V_N }, FORM_GROUP = { shield: V_N, armor: ARMOR_W };
+// how many lane copies a wave of `count` splits onto, at most `want`: shields only into whole Vs, armor into whole
 // lattice rows (the largest k <= want that divides its number of groups); everything else as asked
 // (2026-10-11: one armor block on one lane made armor free - all 36 sim games won, armor 0 lives - so armor splits
 // again, in WHOLE ROWS; ARMOR_ONE_BLOCK true brings the single block back. let: the simulator sweeps it)

@@ -104,12 +104,12 @@ const FLEET_GAP = 10; // clear space between bodies, world units
 // x a plain wave, per boss: the fleet's SIZE, the balance lever (owner: "balance by adding to boss fleets") - fitted by
 // scripts/aspira-sim/bossfleet.mjs against the regular waves before each boss, which overlap where a boss wave does not
 const FLEET_MUL = { star: 1, empress: 1, strength: 1, chariot: 1, lovers: 1, temperance: 1, devil: 1, justice: 1, judgement: 1, death: 1 };
-// the slots ([lat, ahead of the boss]) for a boss's fast and armor escorts; R: the boss's own radius
+// the slots ([lat, ahead of the boss]) for a boss's shield and armor escorts; R: the boss's own radius
 function fleetForm(e, R) {
   return {
-    fast: m => Array.from({ length: m }, (_, i) => { // the boss leads; pairs fan back and out behind it
+    shield: m => Array.from({ length: m }, (_, i) => { // the boss leads; pairs fan back and out behind it
       const d = 1 + Math.floor(i / 2), side = i % 2 ? 1 : -1;
-      return [side * d * FAST_V_LAT * 1.4, -(R + FLEET_GAP + d * FAST_V_BACK)];
+      return [side * d * V_LAT * 1.4, -(R + FLEET_GAP + d * V_BACK)];
     }),
     armor: m => { // a lattice ARMOR_W wide round the boss: the middle row's centre is the boss itself
       const P = Math.max(ARMOR_PITCH, R + ENEMIES.armor.size + FLEET_GAP), out = [];
@@ -128,8 +128,8 @@ function bossFleet(e, n) {
   e.fleet = [];
   const bodies = bossCount(n), reach = [ENEMIES.bonus.size * (e.sizeMul || 1), ENEMIES.bonus.size * (e.sizeMul || 1)]; // how far ahead / behind is taken
   let i = 0;
-  // FORMATIONS ROUND THE BOSS (owner, 2026-10-11): fast escorts fly a V with the boss as its leader, armor a square
-  // lattice ARMOR_W wide with the boss in its middle; shields and swarms keep the line ahead of and behind it
+  // FORMATIONS ROUND THE BOSS (owner, 2026-10-11): shield escorts fly a V with the boss as its leader, armor a square
+  // lattice ARMOR_W wide with the boss in its middle; fast and swarms keep the line ahead of and behind it
   const R = reach[0], form = fleetForm(e, R);
   for (const k of kinds) {
     const count = Math.max(1, Math.round(waveCount(k, n) * (FLEET_MUL[e.arcana] ?? 1) / kinds.length / bodies));
