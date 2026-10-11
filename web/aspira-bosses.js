@@ -103,6 +103,8 @@ const FLEET = {
 const FLEET_GAP = 10, FLEET_LAYER = 3 * V_BACK; // clear space between bodies, world units; a shield escort V's layers apart
 // x a plain wave, per boss: the fleet's SIZE, the balance lever (owner: "balance by adding to boss fleets") - fitted by
 // scripts/aspira-sim/bossfleet.mjs against the regular waves before each boss, which overlap where a boss wave does not
+// FLEET_TO_BOSS of every escort's HP moves onto its boss (owner, 2026-10-11: "move some life from boss fleet to boss")
+const FLEET_TO_BOSS = 0.3;
 const FLEET_MUL = { star: 1, empress: 1, strength: 1, chariot: 1, lovers: 1, temperance: 1, devil: 1, justice: 1, judgement: 1, death: 1 };
 // the slots ([lat, ahead of the boss]) for a boss's shield and armor escorts; R: the boss's own radius
 function fleetForm(e, R) {
@@ -155,6 +157,7 @@ function bossFleet(e, n) {
       // in FORMATION: at the boss's own pace, so the spacing holds (a fast escort behind would run through it)
       m.spd = (e.spd || 1) * ENEMIES.bonus.speed / ENEMIES[k].speed; m.jit = 0; // (a swarmer's wander would carry it into its neighbours)
       m.bossKin = true; m.fleetSpd = m.spd; e.fleet.push(m);
+      const moved = Math.floor(m.max * FLEET_TO_BOSS); m.max -= moved; m.hp = m.max; e.max += moved; e.hp = e.max;
     }
   }
   e.fleetSpan = reach[0] + reach[1]; G.lastBoss = e; // how much lane it takes, ahead + behind (stepSpawns spaces a second boss by it)
