@@ -234,7 +234,8 @@ function sumSlows(e, dt = 0) {
     if (!(s.t > 0)) { delete e.slows[k]; continue; }
     keep *= 1 - Math.min(1, s.v); t = Math.max(t, s.t);
   }
-  e.slowF = slowShape(1 - keep, e.type === "fast" ? FAST_SLOW_CAP : SLOW_CAP);
+  // a FULL stop (Temporal Drive's 100%) is never shaped: the shaping caps tower slows, and had capped the freeze at 70% too
+  e.slowF = keep <= 0 ? 1 : slowShape(1 - keep, e.type === "fast" ? FAST_SLOW_CAP : SLOW_CAP);
   e.slowT = t;
 }
 // a damage-taken MARK (SOL's shred, ARC's Static): the same shapes, x mul each
