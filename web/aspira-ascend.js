@@ -6,7 +6,7 @@ const ASC_URL = "/api/spire/ascendants", ASC_SHOW = 10;
 const ASC_NAMES = { arc: "ARC", frz: "FRZ", sol: "SOL", acd: "ACD" };
 function ascBox() {
   let el = $("asp-asc");
-  if (!el) { el = document.createElement("div"); el.id = "asp-asc"; $("asp-ov-stats").before(el); }
+  if (!el) { el = document.createElement("div"); el.id = "asp-asc"; $("asp-ov-btn").after(el); } // BELOW Play again (owner, 2026-10-11)
   return el;
 }
 const ascTeam = () => [...new Set(G.towers.filter(t => !t.isCore).map(t => t.kind))];
