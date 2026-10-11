@@ -7,17 +7,31 @@ post one. The guard is only shape (three capital letters, a sane lives count, a
 real trio of towers) plus a per-IP rate limit in routes_aspira.py.
 
 Stdlib only (like gamesave_store.py), so the dev venv can unit-test it without
-the app graph. One JSON file, `spire_ascendants.json` in DATA_DIR, written
-atomically (temp + rename) under a lock; at most MAX_ENTRIES kept, newest first.
+the app graph.
+
+NEVER LOSE AN ENTRY (owner, 2026-10-11, the first winner: "make sure we never
+lose it"). Two files in DATA_DIR:
+- `spire_ascendants.jsonl`, the JOURNAL: every accepted win appended as one line
+  and fsynced BEFORE anything else changes. Append-only; nothing rewrites it.
+- `spire_ascendants.json`, the board (newest first), rewritten atomically
+  (temp + fsync + rename) from the journal's order after each append.
+Nothing is ever trimmed. If the board is missing or does not parse, it is
+REBUILT from the journal - never treated as empty and overwritten (the old
+code would have replaced a corrupt board with the one new win). A journal
+missing beside an existing board (the board predates it) is seeded from the
+board first. A host cron copies both off the repo tree daily
+(scripts/ascendants-backup.sh).
 """
 import json
+import os
 import re
 import threading
 import time
 from pathlib import Path
 
 FILE_NAME = "spire_ascendants.json"
-MAX_ENTRIES = 500
+JOURNAL_NAME = "spire_ascendants.jsonl"
+SHOW_MAX = 500  # the most the GET returns (display only - the store keeps every entry)
 MAX_LIVES = 100000
 TOWER_KINDS = ("arc", "frz", "sol", "acd")
 _INITIALS = re.compile(r"[A-Z]{3}")
@@ -38,21 +52,95 @@ def clean_entry(body: dict) -> dict | None:
     return {"initials": initials, "lives": lives, "team": sorted(team, key=TOWER_KINDS.index), "ts": int(time.time())}
 
 
-def load(data_dir: Path) -> list:
+def _read_board(path: Path) -> list | None:
+    """The board file's rows, or None when it is missing or unreadable."""
     try:
-        rows = json.loads((data_dir / FILE_NAME).read_text())
+        rows = json.loads(path.read_text())
     except (OSError, ValueError):
-        return []
-    return rows if isinstance(rows, list) else []
+        return None
+    return rows if isinstance(rows, list) else None
+
+
+def _read_journal(path: Path) -> list:
+    """Every journalled entry, oldest first; a torn last line (a crash mid-append) is skipped, never fatal."""
+    out = []
+    try:
+        lines = path.read_text().splitlines()
+    except OSError:
+        return out
+    for line in lines:
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(row, dict):
+            out.append(row)
+    return out
+
+
+def _append(path: Path, rows: list) -> None:
+    # a torn last line (a crash mid-write) must not swallow the next entry: start on a fresh line
+    torn = False
+    try:
+        with open(path, "rb") as f:
+            f.seek(-1, os.SEEK_END)
+            torn = f.read(1) != b"\n"
+    except OSError:
+        pass  # missing or empty: nothing to close off
+    with open(path, "a") as f:
+        if torn:
+            f.write("\n")
+        for row in rows:
+            f.write(json.dumps(row) + "\n")
+        f.flush()
+        os.fsync(f.fileno())
+
+
+def _write_board(path: Path, rows: list) -> None:
+    tmp = path.with_suffix(".tmp")
+    with open(tmp, "w") as f:
+        f.write(json.dumps(rows))
+        f.flush()
+        os.fsync(f.fileno())
+    tmp.replace(path)
+
+
+def _seed_journal(data_dir: Path) -> None:
+    """A board with no journal beside it (written before the journal existed): journal its rows, oldest first."""
+    journal = data_dir / JOURNAL_NAME
+    if journal.exists():
+        return
+    rows = _read_board(data_dir / FILE_NAME) or []
+    _append(journal, list(reversed(rows)))
+
+
+def load(data_dir: Path) -> list:
+    """The whole board, newest first. A missing / corrupt board is rebuilt from the journal."""
+    rows = _read_board(data_dir / FILE_NAME)
+    if rows is not None:
+        return rows
+    return list(reversed(_read_journal(data_dir / JOURNAL_NAME)))
 
 
 def add(data_dir: Path, entry: dict) -> list:
-    """Prepend `entry`, keep MAX_ENTRIES, write atomically; returns the board."""
+    """Journal `entry` (fsynced first), then rewrite the board as journal + old board merged; returns it, newest first."""
     with _LOCK:
-        rows = [entry] + load(data_dir)
-        rows = rows[:MAX_ENTRIES]
-        path = data_dir / FILE_NAME
-        tmp = path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(rows))
-        tmp.replace(path)
+        _seed_journal(data_dir)
+        journal = data_dir / JOURNAL_NAME
+        board = data_dir / FILE_NAME
+        before = _read_board(board) or []
+        _append(journal, [entry])
+        rows = _merge(_read_journal(journal) + [entry], before)  # (the entry itself too: never lost to a bad journal read)
+        _write_board(board, rows)
         return rows
+
+
+def _merge(journal: list, board: list) -> list:
+    """Every row in EITHER file, once each, newest first - so neither file alone can drop an entry."""
+    seen, out = set(), []
+    for row in list(reversed(journal)) + board:
+        key = json.dumps(row, sort_keys=True)
+        if key not in seen:
+            seen.add(key)
+            out.append(row)
+    return sorted(out, key=lambda r: -int(r.get("ts", 0)) if isinstance(r.get("ts"), int) else 0)

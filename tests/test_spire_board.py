@@ -1,10 +1,20 @@
-"""THE ASCENDANTS store (api/spire_board.py): only plausible wins are kept, newest first, capped."""
+"""THE ASCENDANTS store (api/spire_board.py): only plausible wins are kept, NEVER lost.
+
+Owner, 2026-10-11 (the first winner): "make sure we never lose it". Pinned here: no
+trimming, a journal fsynced before the board, a corrupt or missing board rebuilt from
+the journal (never overwritten by the next win), a pre-journal board seeded into it.
+"""
+import json
 import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "api"))
 
 import spire_board  # noqa: E402
+
+
+def win(ini, ts, lives=10):
+    return {"initials": ini, "lives": lives, "team": ["arc"], "ts": ts}
 
 
 def test_clean_entry_accepts_a_win():
@@ -26,15 +36,43 @@ def test_clean_entry_rejects_bad_shapes():
         assert spire_board.clean_entry(body) is None, body
 
 
-def test_add_keeps_newest_first_and_caps(tmp_path, monkeypatch):
-    monkeypatch.setattr(spire_board, "MAX_ENTRIES", 3)
-    for i, ini in enumerate(["AAA", "BBB", "CCC", "DDD"]):
-        spire_board.add(tmp_path, {"initials": ini, "lives": i + 1, "team": ["arc"], "ts": i})
+def test_nothing_is_ever_trimmed(tmp_path):
+    for i in range(600):
+        spire_board.add(tmp_path, win("AAA", i))
     rows = spire_board.load(tmp_path)
-    assert [r["initials"] for r in rows] == ["DDD", "CCC", "BBB"]
+    assert len(rows) == 600 and rows[0]["ts"] == 599 and rows[-1]["ts"] == 0
 
 
-def test_load_survives_a_missing_or_broken_file(tmp_path):
-    assert spire_board.load(tmp_path) == []
-    (tmp_path / spire_board.FILE_NAME).write_text("not json")
+def test_a_corrupt_board_is_rebuilt_not_overwritten(tmp_path):
+    spire_board.add(tmp_path, win("SMD", 1, 49))
+    (tmp_path / spire_board.FILE_NAME).write_text("{ torn")
+    assert [r["initials"] for r in spire_board.load(tmp_path)] == ["SMD"]
+    rows = spire_board.add(tmp_path, win("NEW", 2))
+    assert [r["initials"] for r in rows] == ["NEW", "SMD"]
+
+
+def test_a_deleted_board_is_rebuilt_from_the_journal(tmp_path):
+    spire_board.add(tmp_path, win("SMD", 1, 49))
+    (tmp_path / spire_board.FILE_NAME).unlink()
+    assert [r["initials"] for r in spire_board.load(tmp_path)] == ["SMD"]
+
+
+def test_a_pre_journal_board_is_seeded_and_kept(tmp_path):
+    (tmp_path / spire_board.FILE_NAME).write_text(json.dumps([win("SMD", 1, 49)]))
+    rows = spire_board.add(tmp_path, win("NEW", 2))
+    assert [r["initials"] for r in rows] == ["NEW", "SMD"]
+    journal = (tmp_path / spire_board.JOURNAL_NAME).read_text().splitlines()
+    assert [json.loads(x)["initials"] for x in journal] == ["SMD", "NEW"]
+
+
+def test_a_lost_journal_line_survives_through_the_board(tmp_path):
+    spire_board.add(tmp_path, win("SMD", 1, 49))
+    spire_board.add(tmp_path, win("TWO", 2))
+    j = tmp_path / spire_board.JOURNAL_NAME
+    j.write_text(j.read_text().splitlines()[1] + "\n{torn")  # SMD's line gone, a torn tail
+    rows = spire_board.add(tmp_path, win("THR", 3))
+    assert [r["initials"] for r in rows] == ["THR", "TWO", "SMD"]
+
+
+def test_load_survives_nothing_on_disk(tmp_path):
     assert spire_board.load(tmp_path) == []

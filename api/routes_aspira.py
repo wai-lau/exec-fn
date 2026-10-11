@@ -103,7 +103,7 @@ def _client_ip(request: Request) -> str:
 
 @guest_protected.get("/api/spire/ascendants")
 async def spire_ascendants():
-    return {"entries": spire_board.load(DATA_DIR)}
+    return {"entries": spire_board.load(DATA_DIR)[: spire_board.SHOW_MAX]}
 
 
 @guest_protected.post("/api/spire/ascendants")
@@ -117,4 +117,4 @@ async def spire_ascend(request: Request):
         raise HTTPException(status_code=400, detail="three letters, the lives left and the team")
     if not rate_exempt(request) and not _asc_rate_ok(_client_ip(request)):
         raise HTTPException(status_code=429, detail="too many ascensions - try again later")
-    return {"entries": spire_board.add(DATA_DIR, entry)}
+    return {"entries": spire_board.add(DATA_DIR, entry)[: spire_board.SHOW_MAX]}
