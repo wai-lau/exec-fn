@@ -100,7 +100,7 @@ const FLEET = {
   star: ["fast"], empress: ["shield"], strength: ["armor"], chariot: ["fast"], lovers: ["swarm"], // shooting stars, handmaidens, lions, outriders, couples
   temperance: ["shield"], devil: ["swarm"], justice: ["armor"], judgement: ["swarm"], death: ["fast", "swarm", "armor", "shield"], // the cup, imps, guards, the risen, four horsemen
 };
-const FLEET_GAP = 10; // clear space between bodies, world units
+const FLEET_GAP = 10, FLEET_SUBLANES = 2; // clear space between bodies, world units; sub-lanes either side of the boss's line
 // x a plain wave, per boss: the fleet's SIZE, the balance lever (owner: "balance by adding to boss fleets") - fitted by
 // scripts/aspira-sim/bossfleet.mjs against the regular waves before each boss, which overlap where a boss wave does not
 const FLEET_MUL = { star: 1, empress: 1, strength: 1, chariot: 1, lovers: 1, temperance: 1, devil: 1, justice: 1, judgement: 1, death: 1 };
@@ -108,8 +108,10 @@ const FLEET_MUL = { star: 1, empress: 1, strength: 1, chariot: 1, lovers: 1, tem
 function fleetForm(e, R) {
   return {
     shield: m => Array.from({ length: m }, (_, i) => { // the boss leads; pairs fan back and out behind it
+      // FIVE SUB-LANES at most (owner, 2026-10-11: "for each lane, only 5 sub lanes"): the arms open to FLEET_SUBLANES
+      // out each side of the boss's line, then run straight back - a V with two streamers, never wider
       const d = 1 + Math.floor(i / 2), side = i % 2 ? 1 : -1;
-      return [side * d * V_LAT * 1.4, -(R + FLEET_GAP + d * V_BACK)];
+      return [side * Math.min(d, FLEET_SUBLANES) * V_LAT * 1.4, -(R + FLEET_GAP + d * V_BACK)];
     }),
     armor: m => { // a lattice ARMOR_W wide round the boss: the middle row's centre is the boss itself
       const P = Math.max(ARMOR_PITCH, R + ENEMIES.armor.size + FLEET_GAP), out = [];
