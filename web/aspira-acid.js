@@ -63,7 +63,7 @@ function acdTick(t, st, l, every) {
   const d = st.dmg * (st.sprayMul || 1) * acdMulOf(l.held, st) * every; // Spray's fitted per-line damage (aspira-skills.js)
   const burn = o => {
     const dd = shotDamage(t, st, o, d);
-    damage(o, dd, t); onHit(o, t, st, dd); o.burnT = 0.4; // burning: no longer Fresh
+    damage(o, dd, t, false, false, st); onHit(o, t, st, dd); o.burnT = 0.4; // burning: no longer Fresh (st: its shieldPop)
     if (st.burnSlow && !o.dead) applySlow(o, st.burnSlow, 0.5, t.id); // Residue: the burn slows
     if (st.corrode && !o.dead) { o.armor = (o.armor || 0) - dd * st.corrode; o.corrodeT = 0.4; } // Corrosion: st.corrode of the tick's damage, past zero on purpose; corrodeT: dotted ring
   };
@@ -109,7 +109,8 @@ const ACD_DOUBLE = [0.5, 0.39, 0.3, 0.12, 0.12, 0.12], ACD_LINES = [2, 3, 4, 6, 
 const ACD_CONTAGION = [null, { every: 1.24, life: 4, r: 36 }, { every: 1.18, life: 5, r: 43 }, { every: 1.18, life: 6, r: 55 }, { every: 1.18, life: 8, r: 65 }, { every: 1.18, life: 10, r: 85 }]; // BIGGER (x1.3) and LONGER (x1.5) pools that burn LESS (owner, 2026-10-08; were life 2.4 3.1 4.2 5 6.5, r 28 33 42 50 65) // drip 1.24 / 1.18s (owner, 2026-10-08: Contagion under 200% - was 1.2 .. 0.7; V at 643%); size and life keep climbing; // pools bigger (x1.25) and longer (x1.3) at every tier (owner, 2026-10-08); V the capstone
 // a puddle ramps to the OLD x32 ceiling (owner, 2026-10-08: "increase the puddle damage to compensate" for the jets' cap halved to x16)
 const ACD_PUDDLE_CAP = 8; // (2026-10-08: x8, was x32 - a pool held the jet's whole ramp)
-const ACD_PUDDLE_HEAT = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]; // 10% of the jet with the bigger, longer pools (owner, 2026-10-08; was 30%): isolation I..V 108 117 133 160 197%, the curve it had (108 123 128 146 197) // flat 30% of the jet (2026-10-08, Contagion under 200%; no tier lowers it) // restored (overnight 2026-10-08): the tier fit cut it to ~15%, and without ARC the pools are the only swarm answer - FRZ+SOL+ACD went 0/6 -> 4/6 with them back
+let ACD_SHIELD_POP = 3; // 2026-10-11 (was 1, as every hit; 2 left ACD 16-34% leaked on shield waves, 3 gives 6-23%): let: the simulator sweeps it
+const ACD_PUDDLE_HEAT = [0.15, 0.15, 0.15, 0.15, 0.15, 0.15]; // 2026-10-11: x1.5 so ACD answers a swarm a little (owner: "FRZ ACD handle swarms a bit better") // 10% of the jet with the bigger, longer pools (owner, 2026-10-08; was 30%): isolation I..V 108 117 133 160 197%, the curve it had (108 123 128 146 197) // flat 30% of the jet (2026-10-08, Contagion under 200%; no tier lowers it) // restored (overnight 2026-10-08): the tier fit cut it to ~15%, and without ARC the pools are the only swarm answer - FRZ+SOL+ACD went 0/6 -> 4/6 with them back
 // Contagion III (Pandemic) puddles SLOW what stands in them (owner, 2026-10-06,
 // the no-FRZ niche search: 3 SOL + 6 ACD reached 98, was 74; FRZ teams unchanged)
 const ACD_CONTAGION_SLOW = [0, 0.02, 0.03, 0.04, 0.05, 0.05]; // a light second slow (owner, 2026-10-08: "reduce slow if you have to, but i just wanted another slow"; was .05 .. .25) // slows from I, ramping slowly to III's old 25% at V (owner, 2026-10-08) // was 0.3 (2026-10-06 reach rework: with the roaming bonus 0.3 made Pandemic ~5x; phase 4 found 0.2-0.3 all open the niche)
@@ -119,6 +120,7 @@ function acdSkillStats(t, s, b) {
   // every ACD hands 40% of a dead line's ramp on (early-game balance 2026-10-06;
   // fast waves reset it); from Corrosion I, Etch, ALL of it
   s.carry = c >= 1 ? 1 : 0.4; s.corrode = ACD_CORRODE[c]; s.targets = ACD_LINES[skillOf(t, "spray")]; s.contagion = ACD_CONTAGION[skillOf(t, "contagion")];
+  s.shieldPop = ACD_SHIELD_POP; // acid EATS shields: every tick pops ACD_SHIELD_POP (the shield answer, counter matrix)
   s.contagionHeat = ACD_PUDDLE_HEAT[skillOf(t, "contagion")]; s.contagionSlow = ACD_CONTAGION_SLOW[skillOf(t, "contagion")]; s.sprayMul = ACD_SPRAY_MUL[skillOf(t, "spray")]; s.skill = true;
 }
 // every step (stepAcd): each line drips a puddle every seep.every s; each

@@ -332,6 +332,7 @@ function skillHopTo(c, node, nxt, depth) {
 // Breach stacks per hit (owner: "each beam permanently weakens the target's armor" - Breach is what strips it; the base SOL strips nothing)
 // Refraction from the start (owner, 2026-10-08): one hop in a 40-degree cone at tier 0; every tier one more hop than before
 // (were 0 / 2 / 5 / 9 / 12 / 15); V has NO limit - every enemy ahead in the cone, then on out of sight (solRefraction)
+const SOL_SHIELD_POP = [1, 1, 2, 2, 3, 3]; // 2026-10-11: a concentrated beam punches through more than one shield
 const SOL_BEAMS = [1, 2, 3, 4, 5, 6], SOL_REFRACTION = [1, 3, 6, 10, 13, Infinity];
 // BREACH IS SOL'S OWN, from the start (owner, 2026-10-08): every hit strips SOL_BREACH_ARMOR armor for good
 // (below zero too: a flat bonus on every later hit from every tower); the Breach axis massively
@@ -357,6 +358,7 @@ const SOL_REFRACTION_DMG = [1, 1, 1.3, 1.84, 2.43, 3]; // III..V x1.15 / 1.35 / 
 const SOL_FOCUS_DMG = [1, 1, 1, 1, 1.139, 1.176]; // never below 1 (owner, 2026-10-08: no upgrade lowers a stat) - more beams carry I..III (114 / 133 / 152%)
 function solSkillStats(t, s, b) {
   s.dmg = b.dmg * SOL_REFRACTION_DMG[skillOf(t, "refraction")] * SOL_FOCUS_DMG[skillOf(t, "focus")]; s.range = b.range * RANGE_BONUS; s.crit = LVL_SOL_CRIT[0]; s.rate = b.rate;
+  s.shieldPop = SOL_SHIELD_POP[skillOf(t, "focus")]; // FOCUS pierces shields: each beam pops this many (SOL's shield help, counter matrix)
   s.beams = SOL_BEAMS[skillOf(t, "focus")]; s.refraction = SOL_REFRACTION[skillOf(t, "refraction")]; s.cone = SOL_CONE_BY[skillOf(t, "refraction")]; s.hop = SOL_HOP[skillOf(t, "refraction")];
   const bk = skillOf(t, "breach");
   s.breach = 1; s.critMul = SOL_CRITMUL[bk]; s.bleedArmor = SOL_BREACH_ARMOR[bk]; s.bleedCrit = SOL_BREACH_CRIT[bk]; s.skill = true;

@@ -52,7 +52,11 @@ function frzSources(t, st) {
 // (37.5) and armor (30) far less: FRZ the fast answer and weak against armor, as the counter table says.
 // ref 0 = off (the simulator's probes set it)
 const FRZ_BITE = { ref: 40 }; // fast x3.4, swarm x3.1, shield x0.94, armor x0.75: mono FRZ waves 61-69 leaks fast 75% -> 7% (ref 75: 59%, 55: 35%); swarm / shield / armor stay 0%
-const frzBite = e => (FRZ_BITE.ref ? ENEMIES[e.type].speed / FRZ_BITE.ref : 1);
+// BY TYPE, not by speed (2026-10-11): since ONE SPEED (2026-10-08) every type but fast moves at the base speed, so the
+// speed ratio gave swarm, shield and armor all x1.9 and fast x2.85 - FRZ lost its niche. The designed bites, restored as a
+// table: the fast answer, good on swarms, weak against shield and armor (counter matrix, ARCHITECTURE.md section 22)
+const FRZ_BITE_BY = { fast: 9, swarm: 3.1, shield: 0.94, armor: 2 }; // fast 9 / armor 2 (2026-10-11 sweep, countermx 61-69: FRZ fast 30-77% -> 0-6% leaked, armor 97-100% -> 17-68%; FRZ+SOL+ACD 0/9 -> 6/9)
+const frzBite = e => (FRZ_BITE.ref ? FRZ_BITE_BY[e.type] ?? 1 : 1);
 // MAX RIME (owner, 2026-10-11: "if something reaches max rime, it spreads to the nearest unit that is not yet max
 // rime"): an enemy its rime alone slows FRZ_RIME_FULL (before the slow's shaping) holds no more - a pulse that reaches it
 // passes its rime to the nearest living enemy that can still take it, a frost line between them
