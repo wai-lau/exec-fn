@@ -19,8 +19,7 @@ Nothing is ever trimmed. If the board is missing or does not parse, it is
 REBUILT from the journal - never treated as empty and overwritten (the old
 code would have replaced a corrupt board with the one new win). A journal
 missing beside an existing board (the board predates it) is seeded from the
-board first. A host cron copies both off the repo tree daily
-(scripts/ascendants-backup.sh).
+board first.
 """
 import json
 import os
