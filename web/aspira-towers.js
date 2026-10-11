@@ -372,14 +372,29 @@ function slideLimits(c, kind, sl = 1) {
 // the leash's radius: the old travel, end to end - CAPPED so the whole leash (a tower's hex at its far edge, and a margin)
 // stays on the narrowest phone's screen at the fixed zoom: slot + leash <= MOVE_MAX_R from the core (owner, 2026-10-11)
 const MOVE_EDGE = 12; // world units kept clear of the screen's edge
-const moveMaxR = () => PHONE_MIN_W / 2 / FIXED_ZOOM - CELL_S * TOWER_K - MOVE_EDGE;
-// ...SCALED, not clipped (owner, 2026-10-11: "fix ranges"): a clip left ACD at the cap from its first point and the
-// movement tiers buying nothing, so each kind's whole range of leashes shrinks together - its LONGEST (slide SLIDE_MAX)
-// just reaching MOVE_MAX_R - and every tier still adds reach
+const moveMaxR2d = () => PHONE_MIN_W / 2 / FIXED_ZOOM - CELL_S * TOWER_K - MOVE_EDGE;
+// 3D (owner: "both modes"): the bell magnifies the floor round the core (x1.46 across at the 2D cap), so the cap there
+// is the largest radius whose every point, PROJECTED, stays inside the 2D cap's on-screen box - found by bisection
+// once per camera (in 2D-equivalent units: the projection's offset from the core / the view's scale)
+let moveMax3d = { key: "", r: 0 };
+function moveMaxR3d() {
+  const key = [cam.k, cam.ox, cam.oy, WARP.tilt, WARP.fov].join();
+  if (moveMax3d.key === key) return moveMax3d.r;
+  const lim = moveMaxR2d(), k = cam.k * WARP_RES, c = warpProject(CX, CY, 0);
+  const fits = R => { for (let i = 0; i < 16; i++) { const a = i * Math.PI / 8, p = warpProject(CX + R * Math.cos(a), CY + R * Math.sin(a), 0);
+    if (!(p.s > 0) || Math.abs(p.x - c.x) / k > lim || Math.abs(p.y - c.y) / k > lim * 1.5) return false; } return true; };
+  let lo = 0, hi = lim;
+  for (let i = 0; i < 20; i++) { const mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid; }
+  moveMax3d = { key, r: lo };
+  return lo;
+}
+const moveMaxR = () => (typeof q3d === "function" && q3d() && typeof warp !== "undefined" && warp.p ? moveMaxR3d() : moveMaxR2d());
+// ...CAPPED, never scaled (owner, 2026-10-11: "don't scale all the ranges, just cap out the maximum range so that towers
+// don't fly off screen (both modes)"): a leash is its own length up to the cap; in 3D the core's view keeps the 2D scale
+// across the screen at the core, so the same cap holds there
 const leashR = t => {
-  const c = CELLS[t.cell], r0 = Math.hypot(c.x - CX, c.y - CY), span = sl => { const L = slideLimits(c, t.kind, sl); return L.max - L.min; };
-  const fit = Math.min(1, Math.max(0, moveMaxR() - r0) / (span(SLIDE_MAX) || 1));
-  return span(towerStats(t, true).slide) * fit;
+  const c = CELLS[t.cell], { min, max } = slideLimits(c, t.kind, towerStats(t, true).slide);
+  return Math.max(0, Math.min(max - min, moveMaxR() - Math.hypot(c.x - CX, c.y - CY)));
 };
 const slideSpan = t => Math.round(leashR(t)); // the card's Leash row
 const towerAt = p => G.towers.find(t => Math.hypot(p.x - t.x, p.y - t.y) <= CELL_S);
