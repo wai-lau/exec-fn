@@ -88,6 +88,25 @@ void main() {
   gl_FragColor = vec4(mix(c, gridCol * sh, gk), max(A, gk)) * op;
 }`;
 
+// the FULL boss sky in 3D (owner, 2026-10-11: "invert has huge cost"): the bell's picture turned over INSIDE GL by one
+// full-screen quad blended as 1 - dst (opaque white where nothing is drawn) - the 2D `difference` fill that did it made
+// the GPU copy the whole canvas back every frame
+const WARP_FLIP_VS = "attribute vec2 a; void main() { gl_Position = vec4(a, 0.0, 1.0); }";
+const WARP_FLIP_FS = "precision mediump float; void main() { gl_FragColor = vec4(1.0); }";
+function warpFlip(gl) {
+  if (!warp.flip) {
+    const pr = gl.createProgram();
+    gl.attachShader(pr, warpShader(gl, gl.VERTEX_SHADER, WARP_FLIP_VS)); gl.attachShader(pr, warpShader(gl, gl.FRAGMENT_SHADER, WARP_FLIP_FS)); gl.linkProgram(pr);
+    const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW); // one triangle over the whole view
+    warp.flip = { pr, buf };
+  }
+  gl.useProgram(warp.flip.pr);
+  gl.blendFuncSeparate(gl.ONE_MINUS_DST_COLOR, gl.ZERO, gl.ONE, gl.ZERO); // rgb = 1 - the premultiplied picture, alpha 1
+  const loc = gl.getAttribLocation(warp.flip.pr, "a");
+  gl.bindBuffer(gl.ARRAY_BUFFER, warp.flip.buf); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
 function warpShader(gl, type, src) {
   const sh = gl.createShader(type);
   gl.shaderSource(sh, src); gl.compileShader(sh);
@@ -210,6 +229,7 @@ function warpDraw() {
   gl.bindBuffer(gl.ARRAY_BUFFER, warp.buf);
   gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
   gl.drawArrays(gl.TRIANGLES, 0, warp.n);
+  if (skyPal()) warpFlip(gl);
   warpEntities();
 }
 // a world point to the screen: its canvas spot lifted onto the bell and seen by the camera;
@@ -240,6 +260,8 @@ const coreFront = p => p.a[1] + p.b[1] > 2 * CY;
 // fn drawn in the inverted palette even through ownColours (it reads `inverted`), o's own colour inverted too
 function skyOwn(o, fn) {
   const col = o.col;
+  // the FULL sky: everything is drawn in the inverted palette (o.col too), so the tower turns back to its own
+  if (skyPal()) { o.col = invertColor(col); try { ownColours(fn); } finally { o.col = col; } return; }
   withPalette(() => { inverted = false; o.col = invertColor(col); try { fn(); } finally { inverted = true; o.col = col; } });
 }
 function warpEntities() {
@@ -324,9 +346,9 @@ function warpEntities() {
   // view once it is full - is laid over all of it as a DIFFERENCE with white. So no sprite is drawn in the
   // inverted palette any more, and the bell's own picture is plain (the shader turns the 2D sky back)
   try {
-    ctx.drawImage(warp.cv, 0, 0);
-    all();
-    if (bossInv.phase !== "off" && (bossInv.full || bossInv.r > 1)) {
+    ctx.drawImage(warp.cv, 0, 0); // (the full sky: already turned over, in GL - warpFlip)
+    if (skyPal()) withPalette(all); else all();
+    if (skyOn() && !skyPal()) {
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = "difference"; ctx.fillStyle = COL.white; ctx.beginPath();
       // the circle on the floor; a point of it BEHIND the camera (a big circle, spreading or collapsing) would make a
       // garbage polygon that flips the colours frame to frame (owner: "colors rapidly switch as the boss dies") - such a

@@ -298,10 +298,10 @@ function drawBossBar() {
 // colours), where the old way drew the whole scene twice while the sky spread and kept a second set of lane layers
 const skyOn = () => bossInv.phase !== "off" && (bossInv.full || bossInv.r > 1);
 const skyAll = () => bossInv.full || lowQ; // low quality: the sky snaps
-// ...but NOT in 3D (the shader would only turn the picture back; warpEntities flips the view on top), and not once full
-// in 2D: the canvas then carries a CSS invert (#asp.asp-sky, aspira.css) - a full-canvas `difference` fill made the
-// GPU copy the whole canvas to read it, ~5 ms a frame on the 3D picture (measured 2026-10-09)
-const skyCss = () => skyOn() && skyAll() && !q3d();
+// once the sky covers it all, NO flip of any kind (owner, 2026-10-11: "invert has huge cost" - a full-canvas `difference`
+// fill made the GPU copy the whole canvas, ~5 ms a frame, and the CSS invert that replaced it in 2D was a full-screen
+// filter pass every frame): the frame is simply DRAWN in the inverted palette (render, warpEntities), towers in their own
+const skyPal = () => skyOn() && skyAll();
 function skyFlip([sx, sy]) {
   if (!skyOn() || q3d() || skyAll()) return;
   ctx.save(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = "difference"; ctx.fillStyle = COL.white; ctx.shadowBlur = 0;
@@ -311,9 +311,9 @@ function skyFlip([sx, sy]) {
 // the TOWERS keep their own colours on the sky (owner): inside the circle they are drawn in the INVERTED palette (with
 // ownColours disarmed), so the flip turns them back; outside it, as they are
 function skyKeep(fn) {
-  if (!skyOn()) { ownColours(fn); return; }
+  if (!skyOn() || (skyPal() && !q3d())) { ownColours(fn); return; } // (the full 2D sky: the palette is inverted, so their own colours)
   const flipped = () => withPalette(() => { inverted = false; try { fn(); } finally { inverted = true; } });
-  if (skyAll()) { flipped(); return; }
+  if (skyAll()) { flipped(); return; } // (3D: the bell's picture stays plain and its shader turns it over - warpDraw)
   const circle = () => { ctx.beginPath(); ctx.arc(bossInv.x, bossInv.y, bossInv.r, 0, 6.283); };
   ctx.save(); circle(); ctx.rect(CX - 4000, CY - 4000, 8000, 8000); ctx.clip("evenodd"); fn(); ctx.restore();
   ctx.save(); circle(); ctx.clip(); flipped(); ctx.restore();

@@ -259,7 +259,13 @@ function drawSegs(x, y, segs, sides, rot, base, gap, flashes) {
 const SEG_FLASH_T = 0.8, SEG_FLASH_W = 6; // longer and bolder (owner: make it read as a red flash)
 // a resolved colour, INVERTED (alpha kept): the boss red is Hack cyan inverted,
 // and the boss sky's overlay draws towers in inverted colours (aspira-bosses.js)
+const invMemo = new Map(); // (called per solid per frame on a boss sky - 3D skyOwn)
 function invertColor(c) {
+  if (invMemo.has(c)) return invMemo.get(c);
+  const v = invertRaw(c);
+  invMemo.set(c, v); return v;
+}
+function invertRaw(c) {
   const m = (c || "").match(/[\d.]+/g);
   if (!m || m.length < 3) return c;
   const rgb = m.slice(0, 3).map(v => 255 - v).join(",");
