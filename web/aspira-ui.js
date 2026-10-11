@@ -472,6 +472,7 @@ function frame(now) {
     let left = dt * SPEED_MULT[freezing() ? 1 : speedKey()]; // auto-wait only ever SLOWS; a time freeze runs at 1x
     while (left > 0) { const h = Math.min(0.02, left); step(h); stepFx(h); left -= h; }
     stepFloats(dt); // real time: unaffected by the game speed
+    stepFlings(dt); // a let-go tower coasting (aspira-fling.js), real time too
   }
   // while the upgrade cards are up the board is paused AND frozen: no redraw,
   // so its CSS blur (aspira.css .asp-choosing) is computed once, not per frame

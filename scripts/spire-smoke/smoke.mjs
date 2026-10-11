@@ -145,6 +145,22 @@ check("two fingers move two towers at once", () => {
   if (!held.every(Boolean)) return "not both held: " + JSON.stringify(held);
   return moved.every(m => m > 5) ? "" : "moved only " + moved.map(m => m.toFixed(1)).join(" / ") + " units";
 });
+check("a flung tower coasts on after release, then stops", () => {
+  run(`G = newGame(); G.money = 1e6; ui.build = "acd"; placeTower(CELLS[CELLS.findIndex((c, i) => cellOpen(i))]); ui.build = null; ui.sel = null; G.started = false;`);
+  const cvEl = env.dom.byId("asp-cv"), dpr = run("canvasDpr()");
+  const t0 = run("({ x: G.towers[0].x, y: G.towers[0].y })");
+  const at = (dx, dy) => ({ clientX: (t0.x * run("cam.k") + run("cam.ox")) / dpr + dx, clientY: (t0.y * run("cam.k") + run("cam.oy")) / dpr + dy });
+  cvEl.fire("pointerdown", { pointerId: 7, ...at(0, 0) });
+  for (let s = 1; s <= 5; s++) { frames(env, 1); cvEl.fire("pointermove", { pointerId: 7, ...at(0, -6 * s) }); }
+  cvEl.fire("pointerup", { pointerId: 7, ...at(0, -30) });
+  const p0 = run("({ x: G.towers[0].x, y: G.towers[0].y, f: !!G.towers[0].fling })");
+  if (!p0.f) return "no momentum after a fast drag";
+  frames(env, 10);
+  const p1 = run("({ x: G.towers[0].x, y: G.towers[0].y })");
+  if (Math.hypot(p1.x - p0.x, p1.y - p0.y) < 2) return "did not coast";
+  frames(env, 240);
+  return run("G.towers[0].fling") ? "never came to rest" : "";
+});
 check("a lost life: 'X lives left' replaces the interest line", () => {
   run(`G = newGame(); G.lives = 7; livesLost();`);
   const texts = env.dom.canvas2d.rec.texts; texts.length = 0;

@@ -73,10 +73,10 @@ cv.addEventListener("pointerdown", ev => {
   if (!fitK) fitK = cam.fit;
   cv.setPointerCapture(ev.pointerId);
   ptrs.set(ev.pointerId, devXY(ev));
-  if (ptrs.size === 1) { dragged = false; downAt = devXY(ev); holdFired = holdMoved = false; ui.drag = grabPower(ev); if (ui.drag && ui.drag.kind === "move") moves.set(ev.pointerId, { ...ui.drag, down: devXY(ev), dragged: false }); }
+  if (ptrs.size === 1) { dragged = false; downAt = devXY(ev); holdFired = holdMoved = false; ui.drag = grabPower(ev); if (ui.drag && ui.drag.kind === "move") { ui.drag.t.fling = null; moves.set(ev.pointerId, { ...ui.drag, down: devXY(ev), dragged: false }); } }
   if (ptrs.size === 2 && (moves.size || pickTower(ev))) { // a second tower in the other hand - never a pinch
     const g = grabTower(ev);
-    if (g && !towerHeld(g.t)) moves.set(ev.pointerId, { ...g, down: devXY(ev), dragged: false });
+    if (g && !towerHeld(g.t)) { g.t.fling = null; moves.set(ev.pointerId, { ...g, down: devXY(ev), dragged: false }); }
     dragged = true; // two fingers never end in a tap
     return;
   }
@@ -95,7 +95,7 @@ cv.addEventListener("pointermove", ev => {
   const mv = moves.get(ev.pointerId);
   if (mv) { // this finger holds a tower: it follows the finger, held to its leash (moveTo), no pan
     if (!mv.dragged && Math.hypot(now.x - mv.down.x, now.y - mv.down.y) > DRAG_PX * canvasDpr()) mv.dragged = dragged = true;
-    if (mv.dragged) { const w = toWorld(ev); moveTo(mv.t, { x: w.x + mv.dx, y: w.y + mv.dy }); relayFollow(mv.t); } // the Relay follows the tower last dragged (aspira-core.js)
+    if (mv.dragged) { const w = toWorld(ev); moveTo(mv.t, { x: w.x + mv.dx, y: w.y + mv.dy }); relayFollow(mv.t); flingTrack(mv); } // the Relay follows the tower last dragged (aspira-core.js)
     return;
   }
   if (moves.size) return; // the other finger holds a tower: this one does nothing
@@ -123,6 +123,7 @@ function endPointer(ev, tap) {
   moves.delete(ev.pointerId);
   if (mv) { // a held tower let go
     if (ui.drag && ui.drag.t === mv.t) ui.drag = null;
+    if (mv.dragged) flingRelease(mv);
     if (tap && !ptrs.size && !mv.dragged && !dragged) onTap(ev); // a press without a drag: its card
     return;
   }
