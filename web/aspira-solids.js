@@ -101,7 +101,7 @@ function solidGeom(e) {
     const f = [slot[a], slot[b]].filter(x => x >= 0);
     if (f.length) edges.push({ v: Q[i], w: Q[j], n: f.length, f });
   }
-  return { faces, edges, spike, size, fa, col: COL[d.color], frz: e.slowT > 0 ? SOLID_FROZEN_A : 0, lw: (e.armor ? 2.2 : 1.2) * cam.k };
+  return { faces, edges, spike, size, fa, col: COL[d.color], frz: SOLID_FROZEN_A * frostK(e), lw: (e.armor ? 2.2 : 1.2) * cam.k };
 }
 // the opacity the floor's slices give depth z (aspira-fog.js warpBands): 1 at the floor, down to the deepest slice's
 const belowFade = z => Math.max(1 - (WARP_FADE_BANDS - 0.5) / WARP_FADE_BANDS, Math.min(1, 1 + z / WARP_FADE_Z));

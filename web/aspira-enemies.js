@@ -57,6 +57,10 @@ function drawStarTrail(e, size) {
   ctx.globalAlpha = 1;
 }
 const BOSS_HALO = { k: 1.45, a: 0.3 };
+// how FROZEN an enemy shows, 0..1: its slow (e.slowF, the share of its speed lost - effSpeed) over FROST_FULL, the slow
+// that shows full cyan - so a light chill is a hint of frost and a deep freeze is solid (2D outline; 3D tint, aspira-solids.js)
+const FROST_FULL = 0.6;
+const frostK = e => (e.slowT > 0 ? Math.min(1, Math.max(0, (e.slowF || 0) / FROST_FULL)) : 0);
 // solid: the 3D view draws the body itself as a real die (warpSolid, aspira-solids.js) - here only its tracer, shields and marks
 function drawEnemy(e, solid) {
   // damage shows as both size and opacity: full HP = full size, solid;
@@ -84,7 +88,12 @@ function drawEnemy(e, solid) {
   // armor = a thick outline
   // Permafrost (a slow that never ends) draws the freeze outline thicker (owner)
   const perma = e.slowT === Infinity;
-  if (!solid) { ctx.strokeStyle = COL[e.slowT > 0 ? "cyan" : d.color]; ctx.lineWidth = (e.armor ? 6.5 : 3) + (perma ? 3 : 0); ctx.stroke(); dieFacets(e, size); }
+  if (!solid) {
+    ctx.strokeStyle = COL[d.color]; ctx.lineWidth = (e.armor ? 6.5 : 3) + (perma ? 3 : 0); ctx.stroke();
+    const k = frostK(e); // the FROST outline as strong as the slow (owner, 2026-10-11: "slow correlated to opacity of frost indicator")
+    if (k > 0) { const a = ctx.globalAlpha; ctx.strokeStyle = COL.cyan; ctx.globalAlpha = a * k; ctx.stroke(); ctx.globalAlpha = a; }
+    dieFacets(e, size);
+  }
   // shield = SEGMENTS (owner): one per charge, on rings of its own shape
   if (e.shield > 0 || e.shSegs) {
     e.shSegs = syncSegs(e.shSegs || [], Math.max(0, e.shield), d.sides);
