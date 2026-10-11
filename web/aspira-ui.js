@@ -156,8 +156,9 @@ const ICON_CHECKED = '<svg class="asp-box" viewBox="0 0 20 20"><rect x="2" y="2"
 // range of a tower, speed up to x3"): with nothing in any tower's reach the game runs at AUTO_SPEED x at least (a faster
 // chosen speed stands); auto-wait still slows it near the core. Remembered in localStorage like auto-wait.
 const AUTO_SPEED = 3;
-let autoSpeed = true;
-try { autoSpeed = localStorage.getItem("spire.autospeed") !== "0"; } catch (e) { autoSpeed = true; }
+// OFF by default (owner, 2026-10-11; was on): only a viewer who ticked it ("1" saved) gets it
+let autoSpeed = false;
+try { autoSpeed = localStorage.getItem("spire.autospeed") === "1"; } catch (e) { autoSpeed = false; }
 let asQuiet = false, asAt = -1;
 const autoSpeeding = () => {
   if (!autoSpeed || ui.paused || !G.towers.length) return false;
