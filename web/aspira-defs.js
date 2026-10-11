@@ -106,7 +106,10 @@ function cellAt(x, y) {
 // lanes: fast 9.3 s, swarm 10, boss 27.3, shield 33.4, armor 41.7 - with at least 1.5 turns under fire on every
 // lane (fast exactly 1.5; that set the speed). Pairs: 0 fast, 1 boss, 2 swarm, 3 shield, 4 armor, 5 spare (as 3).
 // Was [3, 4, 5, 6, 7, 8] with each type riding a different lane every wave at its own speed.
-const PAIR_TURNS = [1.9, 5.86, 2.06, 7.22, 8.78, 7.22], FIRE_R = 250;
+// AN EIGHTH OF THE TURNS (owner, 2026-10-11: towers drag twice as far, so "quarter all the current lane distances", then
+// "halve the orbits again"): each pair's distance under fire fell to about a fifth (fast 1061 -> 263, armor 4765 -> 641);
+// the radial lead-in is unchanged. Was [1.9, 5.86, 2.06, 7.22, 8.78, 7.22]
+const PAIR_TURNS = [0.2375, 0.7325, 0.2575, 0.9025, 1.0975, 0.9025], FIRE_R = 250;
 // Winding is driven by the lane's PITCH (its angle off straight-in), not by
 // angle-vs-t: theta(t) = turns * 2pi * F(t) / F(1) with F' = t^TANGENT_Q / r(t).
 // The pitch then grows smoothly from 0 (tan pitch ~ t^q), so the lane leaves
@@ -321,6 +324,11 @@ const ENEMIES = {
   // cyan, so it reads RED on the inverted sky it brings (owner)
   bonus: { sides: 10 /* d20 (was 8) */, hp: 3.5, speed: ENEMY_BASE_SPEED, /* was 50 */ bounty: 3,   size: 28, color: "cyan", star: true, leak: 10 }, // owner 2026-10-02: yellow = Marigold (was cyan)
 };
+// THE SHORT-LANE MIX (owner, 2026-10-11: "generally faster enemies (and more money)", "much harder", then the eighth-turn
+// lanes with "cut HP to make it work"): every type's HP x ENEMY_HP_MUL and bounty x BOUNTY_MUL, applied once here so the
+// tables above keep their fitted shape. trios.mjs on this board: 3 of 4 trios win, FRZ+SOL+ACD best 95
+const ENEMY_HP_MUL = 0.225, BOUNTY_MUL = 1.25;
+for (const k in ENEMIES) { ENEMIES[k].hp *= ENEMY_HP_MUL; ENEMIES[k].bounty *= BOUNTY_MUL; }
 
 const POWERS = [
   ["SCR", "Score ×2"], ["RNG", "Range +30%"], ["MNY", "Bounty ×2"],

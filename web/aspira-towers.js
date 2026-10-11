@@ -362,7 +362,7 @@ const innerR = (c, r0, slide = 1, kind = null) => c.minR ?? r0 * (1 - (1 - (TOWE
 const slideOut = (kind, r0, slide = 1) => Math.max(0, TOWER_REACH[kind] - r0) * SLIDE_KIND[kind] * Math.min(slide, SLIDE_MAX);
 // THE TRAVEL (owner, 2026-10-07): MOVE_SPAN (75%) of what innerR / slideOut give, worked from
 // TRAVEL_R0 (the ring's old radius) so it did not change when the slots moved in snug
-const MOVE_SPAN = 0.75, NEAR_R = SLOT_R, CORNER_NEAR = 100;
+const MOVE_SPAN = 1.5 /* owner, 2026-10-11: "increase movement range of all towers by 2x" (was 0.75) */, NEAR_R = SLOT_R, CORNER_NEAR = 100;
 function slideLimits(c, kind, sl = 1) {
   const r0 = Math.hypot(c.x - CX, c.y - CY) || 1, rt = c.unlock ? r0 : TRAVEL_R0;
   const span = (slideOut(kind, rt, sl) + rt - innerR(c, rt, sl, kind)) * MOVE_SPAN;
@@ -411,8 +411,25 @@ function drawLeash() {
     ctx.globalAlpha = Math.max(held ? 0.8 : t.id === ui.sel ? 0.5 : 0, 0.8 * hint); ctx.setLineDash([8, 8]);
     if (hint) ctx.lineDashOffset = -now * 24; // marching
     ctx.beginPath(); ctx.arc(c.x, c.y, leashR(t), 0, 6.283); ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
+    leashArrows(t, c, now, ctx.globalAlpha);
   }
   ctx.globalAlpha = 1;
+}
+// ARROWS POINTING AWAY from the tower (owner, 2026-10-11: "movement indicator should have arrows pointing away from
+// tower"): LEASH_ARROWS chevrons, each gliding out along its own spoke from the tower's edge to the leash ring every
+// LEASH_ARROW_T s, fading in and out, so the circle reads as "drag me this far"
+const LEASH_ARROWS = 6, LEASH_ARROW_T = 1.2, LEASH_ARROW_W = 6;
+function leashArrows(t, c, now, A) {
+  const R = leashR(t), r0 = CELL_S * TOWER_K + 8, f = (now / LEASH_ARROW_T) % 1;
+  for (let i = 0; i < LEASH_ARROWS; i++) {
+    const a = (i + 0.5) * 2 * Math.PI / LEASH_ARROWS, ux = Math.cos(a), uy = Math.sin(a);
+    // how far this spoke runs from the tower before it leaves the leash circle (the tower may stand off its slot)
+    const ox = t.x - c.x, oy = t.y - c.y, b = ox * ux + oy * uy, end = -b + Math.sqrt(Math.max(0, b * b - (ox * ox + oy * oy - R * R)));
+    if (end - r0 < 2 * LEASH_ARROW_W) continue;
+    const d = r0 + (end - r0 - LEASH_ARROW_W) * f, x = t.x + ux * d, y = t.y + uy * d, w = LEASH_ARROW_W;
+    ctx.globalAlpha = A * Math.sin(Math.PI * f); // in from nothing, out to nothing
+    ctx.beginPath(); ctx.moveTo(x - ux * w - uy * w, y - uy * w + ux * w); ctx.lineTo(x, y); ctx.lineTo(x - ux * w + uy * w, y - uy * w - ux * w); ctx.stroke();
+  }
 }
 
 // A tower is its cell's hexagon, inset a little; its label at the centroid.

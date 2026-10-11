@@ -62,18 +62,18 @@ const SKILL_TREES = {
 // tower at half of everything.
 SKILL_TREES.frz = [
   { id: "temp", name: "Temp", base: "The aura slows what it holds.", tiers: [
-    { name: "Chill", desc: "A colder, wider aura slows what it holds." },
-    { name: "Freeze", desc: "A far colder, wider aura slows what it holds." },
+    { name: "Chill", desc: "A colder, wider aura slows what it holds, and turns it brittle." },
+    { name: "Freeze", desc: "A far colder, wider aura slows what it holds, and turns it brittle." },
     { name: "Absolute Zero", desc: "A chill slows all it holds, and turns it brittle." },
     { name: "Permafrost", desc: "A chill slows all it holds, and turns it brittle." },
     { name: "Heat Death", desc: "A chill slows all it holds, and turns it brittle." },
   ] },
   { id: "rime", name: "Rime", base: "", tiers: [
-    { name: "Frost", desc: "Pulses leave a slow that lingers past the aura and stacks." },
-    { name: "Glacier", desc: "Faster pulses leave a deeper slow that lingers past the aura and stacks." },
-    { name: "Cryosphere", desc: "The fastest pulses leave the deepest slow that lingers past the aura and stacks." },
-    { name: "Ice Sheet", desc: "Rings of rime roll out, leaving behind a rime that layers and never thaws." },
-    { name: "Glaciation", desc: "Rings of rime roll out, leaving behind a rime that layers and never thaws." },
+    { name: "Frost", desc: "Pulses leave a slow that lingers past the aura and stacks; full rime spreads to the nearest enemy." },
+    { name: "Glacier", desc: "Faster pulses leave a deeper slow that lingers past the aura and stacks; full rime spreads to the nearest enemy." },
+    { name: "Cryosphere", desc: "The fastest pulses leave the deepest slow that lingers past the aura and stacks; full rime spreads to the nearest enemy." },
+    { name: "Ice Sheet", desc: "Rings of rime roll out, leaving behind a rime that layers and never thaws; full rime spreads to the nearest enemy." },
+    { name: "Glaciation", desc: "Rings of rime roll out, leaving behind a rime that layers and never thaws; full rime spreads to the nearest enemy." },
   ] },
   { id: "moons", name: "Moons", base: "", tiers: [
     { name: "Moon", desc: "One moon orbits the tower, a weaker copy of it." },

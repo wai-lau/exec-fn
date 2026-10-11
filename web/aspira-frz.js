@@ -12,7 +12,9 @@ const FRZ_TEMP_SLOW = [0.4, 0.41, 0.42, 0.43, 0.44, 0.45]; // a small ramp (over
 // Temp III's TEAM hook (owner, 2026-10-07: FRZ's chart was flat, 97-103%): an enemy
 // its aura touches turns BRITTLE - while slowed it takes x FRZ_BRITTLE from every
 // tower (damage(), which already reads e.brittle; drawStatus shows the crack)
-const FRZ_BRITTLE = [1, 1, 1, 1.15, 1.2, 1.25]; // from III (owner, 2026-10-08: kept at III)
+// from tier I (owner, 2026-10-11: slows are SHAPED now - aspira-game.js slowShape - so FRZ's payoff moves from how
+// slow to what the slowed suffer; was 1 1 1 1.15 1.2 1.25, from III)
+const FRZ_BRITTLE = [1, 1.06, 1.12, 1.18, 1.24, 1.3];
 const FRZ_RIME = [0, 0.024, 0.035, 0.054, 0.064, 0.068]; // 2026-10-06: tier I was a dead point (was 1% / 1.9% / 3.7%) // each pulse's permanent stacking slow
 // FRZ's own levers (owner: no generic multipliers): Rime pulses MORE OFTEN each tier, the moons are STRONGER copies each tier
 const FRZ_RIME_PERIOD = [2, 2, 1.7, 1.4, 1.2, 1], FRZ_MOON_BY = [0.6, 0.85, 0.86, 0.95, 0.95, 0.95]; /* stronger moons for the 140 orbit (2026-10-08; were .485 .515 .58 .58 .58 at 70): isolation I..V ~112 125 151 172 ~225% - V overshoots at any strength >= IV's: five moons that far out cover most of the lanes */ // weakened (owner, 2026-10-08; isolation: Moons V 499% team); was .78 .9 .95 1 1 1 // Moons IV / V: four and five full moons
@@ -51,6 +53,20 @@ function frzSources(t, st) {
 // ref 0 = off (the simulator's probes set it)
 const FRZ_BITE = { ref: 40 }; // fast x3.4, swarm x3.1, shield x0.94, armor x0.75: mono FRZ waves 61-69 leaks fast 75% -> 7% (ref 75: 59%, 55: 35%); swarm / shield / armor stay 0%
 const frzBite = e => (FRZ_BITE.ref ? ENEMIES[e.type].speed / FRZ_BITE.ref : 1);
+// MAX RIME (owner, 2026-10-11: "if something reaches max rime, it spreads to the nearest unit that is not yet max
+// rime"): an enemy its rime alone slows FRZ_RIME_FULL (before the slow's shaping) holds no more - a pulse that reaches it
+// passes its rime to the nearest living enemy that can still take it, a frost line between them
+const FRZ_RIME_FULL = 0.7, FRZ_SPREAD_FX = 0.35;
+const rimeFull = e => 1 - (e.rimeKeep ?? 1) >= FRZ_RIME_FULL;
+function rimeSpread(e) {
+  let best = null, bd = Infinity;
+  for (const o of G.enemies) {
+    if (o.dead || o === e || rimeFull(o)) continue;
+    const d = (o.x - e.x) ** 2 + (o.y - e.y) ** 2;
+    if (d < bd) { bd = d; best = o; }
+  }
+  return best;
+}
 function frzStep(t, dt) {
   const st = towerStats(t), srcs = frzSources(t, st);
   t.auraT = (t.auraT || 0) - dt;
@@ -87,7 +103,11 @@ function frzStep(t, dt) {
       const r = p.R * Math.min(1, p.age / FRZ_RIME_GROW);
       for (const e of G.enemies) {
         if (e.dead || p.hit.has(e.id) || (e.x - p.x) ** 2 + (e.y - p.y) ** 2 > r * r) continue;
-        p.hit.add(e.id); applySlow(e, p.v, Infinity, p.id, "stack");
+        p.hit.add(e.id);
+        const to = rimeFull(e) ? rimeSpread(e) : e;
+        if (!to) continue;
+        if (to !== e) beam(e, to, TOWERS.frz.color, FRZ_SPREAD_FX, 1.5, 0, true);
+        applySlow(to, p.v, Infinity, p.id, "stack"); to.rimeKeep = (to.rimeKeep ?? 1) * (1 - p.v);
       }
     }
     t.pulses = t.pulses.filter(p => p.age < FRZ_RIME_GROW);

@@ -36,11 +36,11 @@ function entryS(pi) {
 // x1.13 a wave through wave 20 (owner, 2026-10-09: "1.13 1-20 good, then 1.11"; was 1.10) - every wave
 // from 20 on x1.67 the 2026-10-08 build. Sim (e13): random players 0 / 100 won, death p10 35 p50 60;
 // the curve's scripted players 44 -> 29 of 80 (SOL-SOL openings first leak on wave 4)
-const HP_GROWTH = 1.13, ARMOR_EXP = 0.4, SHIELD_EXP = 0.335;
+let HP_GROWTH = 1.13; const ARMOR_EXP = 0.4, SHIELD_EXP = 0.335; // let: the simulator sweeps it
 // HARDER AFTER WAVE 20 (owner, 2026-10-08: "make the difficulty ramp harder after wave 20"): x HP_LATE a wave
 // past HP_KNEE (HP_GROWTH before). Sim on the 2026-10-08 build: random players won 11% -> 5%, the curve's
 // scripted players 61 -> 48 of 80 (x1.12 cut them to 30 / 80)
-const HP_LATE = 1.11, HP_KNEE = 20;
+let HP_LATE = 1.115 /* 2026-10-11 (was 1.11) */; const HP_KNEE = 20; // let: the simulator sweeps it
 const hpPow = n => Math.pow(HP_GROWTH, Math.min(n, HP_KNEE) - 1) * Math.pow(HP_LATE, Math.max(0, n - HP_KNEE));
 // one enemy's HP on wave n (before a boss's own multiplier); the wave list shows it too
 // shields GROW SLOWER (owner, 2026-10-06): to the SHIELD_EXP power of the old
@@ -84,7 +84,7 @@ function spawnEnemy(type, n, pi, ang = 0) {
 // Global enemy pace (owner: everything at half speed). Spawn gaps are divided
 // by it too, so enemies stay the same DISTANCE apart on the lane — that
 // spacing is a balance lever for chain reach.
-const ENEMY_SPEED = 1.5;
+let ENEMY_SPEED = 1.125; // 2026-10-11: the short lanes (owner: "reduce speed also"; was 1.5, briefly 1.875) // let: the simulator sweeps it
 const effSpeed = e => ENEMIES[e.type].speed * ENEMY_SPEED * (e.spd || 1) * PATHS[e.pi].pace * (e.stunT > 0 ? 0 : 1 - (e.slowT > 0 ? e.slowF : 0));
 
 // FRESH (owner): an enemy carrying NO debuff - slowed, stunned, bleeding,
@@ -193,11 +193,19 @@ const SLOW_TIME = 125 / 48; // ~2.6 real seconds (owner: 10x the old ~4.2s, then
 //   "once"     one per source, PERMANENT; a re-hit does nothing (Permafrost)
 //   "stack"    every hit adds a PERMANENT stack of its own
 // Different sources always stack, MULTIPLICATIVELY (owner): speed x (1 - s1) x
-// (1 - s2)..., so two 30% slows leave 49%; damage taken x m1 x m2 ... A slow
-// never passes SLOW_CAP by stacking (a single stronger one - Deep Freeze's 95%
-// - still holds). FRZ hits Fast enemies twice as hard (owner): double the
-// slow, up to FAST_SLOW_CAP.
-const FAST_SLOW_MUL = 2, FAST_SLOW_CAP = 0.96, SLOW_CAP = 0.9;
+// (1 - s2)..., so two 30% slows leave 49%; damage taken x m1 x m2 ... That total
+// is then SHAPED (owner, 2026-10-11: "waves don't take as long to kill" - "shape the
+// slow so they are still meaningful but don't make the game a slog"): up to
+// SLOW_KNEE it counts in full, past it every extra slow counts less and less,
+// bending toward SLOW_CAP and never reaching it - so an enemy keeps at least
+// 1 - SLOW_CAP of its speed, stacked or single (was a 0.9 stacked cap a single stronger
+// slow could pass, Fast up to 0.96). FRZ hits Fast enemies twice as hard (owner):
+// double the slow, shaped toward FAST_SLOW_CAP - set so a fully slowed Fast enemy
+// (1.5x speed) moves no slower than any other fully slowed one: 1.5 x (1 - 0.8) = 1 - 0.7
+// (2026-10-11: at SLOW_CAP the no-ARC trio FRZ+SOL+ACD lost every game to Fast leaks).
+const FAST_SLOW_MUL = 2;
+let SLOW_KNEE = 0.4, SLOW_CAP = 0.7, FAST_SLOW_CAP = 0.88; // let: the simulator sweeps them
+const slowShape = (s, cap = SLOW_CAP) => (s <= SLOW_KNEE ? s : SLOW_KNEE + (cap - SLOW_KNEE) * (1 - Math.exp(-(s - SLOW_KNEE) / (cap - SLOW_KNEE))));
 let debuffSeq = 0;
 function addDebuff(map, src, v, dur, shape) {
   if (shape === "stack") { map[src + "#" + ++debuffSeq] = { v, t: Infinity }; return; }
@@ -207,7 +215,7 @@ function addDebuff(map, src, v, dur, shape) {
 }
 function applySlow(e, f, dur, src = "x", shape = "refresh") {
   if (e.arcana) { f *= bossSlowMul(e); if (f <= 0) return true; } // Strength / Death (aspira-bosses.js)
-  if (e.type === "fast") f = Math.max(f, Math.min(FAST_SLOW_CAP, f * FAST_SLOW_MUL));
+  if (e.type === "fast") f *= FAST_SLOW_MUL;
   addDebuff(e.slows ||= {}, src, f, dur, shape);
   sumSlows(e);
   return true;
@@ -215,14 +223,14 @@ function applySlow(e, f, dur, src = "x", shape = "refresh") {
 // age every slow by dt, drop the spent ones, and fold the rest into e.slowF /
 // e.slowT (what effSpeed, Brittle, Shatter and the drawing read)
 function sumSlows(e, dt = 0) {
-  let keep = 1, top = 0, t = 0;
+  let keep = 1, t = 0;
   for (const k in e.slows) {
     const s = e.slows[k];
     s.t -= dt;
     if (!(s.t > 0)) { delete e.slows[k]; continue; }
-    keep *= 1 - s.v; top = Math.max(top, s.v); t = Math.max(t, s.t);
+    keep *= 1 - Math.min(1, s.v); t = Math.max(t, s.t);
   }
-  e.slowF = Math.min(Math.max(SLOW_CAP, top), 1 - keep);
+  e.slowF = slowShape(1 - keep, e.type === "fast" ? FAST_SLOW_CAP : SLOW_CAP);
   e.slowT = t;
 }
 // a damage-taken MARK (SOL's shred, ARC's Static): the same shapes, x mul each

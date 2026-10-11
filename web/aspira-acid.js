@@ -155,9 +155,31 @@ const PUDDLE_BUBBLES = 5, BUBBLE_T = 0.6, BUBBLE_POP = 0.15;
 // a puddle's bubbles are as INTENSE as its damage (owner, 2026-10-07): brighter and
 // bolder the more it burns, 0.6x for a faint puddle up to 1.8x for a deadly one
 const puddleGlow = p => Math.max(0.6, Math.min(1.8, 0.6 + 0.3 * Math.log2(1 + (p.dps || 0) / 60)));
+// the POOL under the bubbles (owner, 2026-10-11: "visually more appealing"): a liquid
+// body whose rim wobbles, that SPLASHES out to size over PUDDLE_SPREAD s, shrinks as it
+// dries, and carries a smaller, brighter sheen at its heart
+const PUDDLE_SPREAD = 0.25, PUDDLE_RIM = 20;
+function puddleBlob(p, now, k, seed) {
+  const grow = 1 - (1 - Math.min(1, p.age / PUDDLE_SPREAD)) ** 3, dry = 0.8 + 0.2 * (1 - p.age / p.life), R = p.r * grow * dry * k;
+  const pt = i => { const a = i / PUDDLE_RIM * 6.283, w = 0.9 + 0.07 * Math.sin(a * 3 + seed + now * 1.3) + 0.04 * Math.sin(a * 5 - seed - now * 0.9); return [p.x + Math.cos(a) * R * w, p.y + Math.sin(a) * R * w]; };
+  const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  // a SMOOTH rim: a curve through the midpoints, each rim point its control
+  let prev = pt(0), m = mid(pt(PUDDLE_RIM - 1), prev);
+  ctx.beginPath(); ctx.moveTo(m[0], m[1]);
+  for (let i = 1; i <= PUDDLE_RIM; i++) { const q = pt(i); m = mid(prev, q); ctx.quadraticCurveTo(prev[0], prev[1], m[0], m[1]); prev = q; }
+  ctx.closePath();
+}
+function drawPools(t, now) {
+  for (const p of t.puddles || []) {
+    const fade = Math.min(1, (1 - p.age / p.life) * puddleGlow(p)), seed = p.seed ||= 1 + Math.floor(Math.random() * 1e6);
+    puddleBlob(p, now, 1, seed); ctx.globalAlpha = 0.14 * fade; ctx.fill(); ctx.globalAlpha = 0.4 * fade; ctx.stroke();
+    puddleBlob(p, now, 0.5, seed * 7); ctx.globalAlpha = 0.12 * fade; ctx.fill();
+  }
+}
 function drawPuddles(t) {
   const now = performance.now() / 1000;
   ctx.strokeStyle = ctx.fillStyle = COL.chatsubo; ctx.lineWidth = 1.2;
+  drawPools(t, now);
   if (lowQ) { for (const p of t.puddles || []) { ctx.globalAlpha = 0.5 * (1 - p.age / p.life); ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 0.6, 0, 6.283); ctx.stroke(); } ctx.globalAlpha = 1; return; } // low quality: one ring, no bubbles
   for (const p of t.puddles || []) {
     const I = puddleGlow(p), fade = Math.min(1, (1 - p.age / p.life) * I), seed = p.seed ||= 1 + Math.floor(Math.random() * 1e6);
