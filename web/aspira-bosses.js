@@ -157,7 +157,7 @@ function bossFleet(e, n) {
       // in FORMATION: at the boss's own pace, so the spacing holds (a fast escort behind would run through it)
       m.spd = (e.spd || 1) * ENEMIES.bonus.speed / ENEMIES[k].speed; m.jit = 0; // (a swarmer's wander would carry it into its neighbours)
       m.bossKin = true; m.fleetSpd = m.spd; e.fleet.push(m);
-      const moved = Math.floor(m.max * FLEET_TO_BOSS); m.max -= moved; m.hp = m.max; e.max += moved; e.hp = e.max;
+      const moved = isA(e, "temperance") ? 0 : Math.floor(m.max * FLEET_TO_BOSS); // not onto Temperance: her regen is a share of her HP (2026-10-11: w60 killed 11 of 32 two-tower openings) m.max -= moved; m.hp = m.max; e.max += moved; e.hp = e.max;
     }
   }
   e.fleetSpan = reach[0] + reach[1]; G.lastBoss = e; // how much lane it takes, ahead + behind (stepSpawns spaces a second boss by it)

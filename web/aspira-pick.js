@@ -25,7 +25,7 @@ function inPrism(pts, h, x, y) {
 const hexPts = (x, y, r) => Array.from({ length: 6 }, (_, i) => ({ x: x + r * Math.cos(Math.PI / 6 + i * Math.PI / 3), y: y + r * Math.sin(Math.PI / 6 + i * Math.PI / 3) }));
 // a tower's press area is DOUBLE what it draws (owner, 2026-10-11: "double the area that a tower is considered dragged
 // or clicked"): in 3D its prism's footprint grown by PICK_GROW = sqrt 2 about its centre, in 2D its press circle
-const PICK_GROW = Math.SQRT2;
+const PICK_GROW = 1.7; // (2026-10-11, "larger and easier to click and drag"; was sqrt 2)
 const towerPts = (t, g = 1) => { const c = CELLS[t.cell], k = TOWER_K * g; return c.pts.map(p => ({ x: t.x + (p.x - c.x) * k, y: t.y + (p.y - c.y) * k })); };
 // 2D: the nearest tower within CELL_S x PICK_GROW of w (towerAt's circle, CELL_S, was the old area); overlapping
 // circles go to the nearer tower

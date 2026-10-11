@@ -440,7 +440,7 @@ function leashArrows(t, c, now, A) {
 
 // A tower is its cell's hexagon, inset a little; its label at the centroid.
 // Level shows as concentric rings OUTSIDE it (drawTower).
-const TOWER_K = 0.705; // a tower's (and slot's) hex size in cell sizes - 25% SMALLER (owner, 2026-10-06; was 0.94; before that 0.88, then 0.66)
+const TOWER_K = 0.85; // bigger to press (owner, 2026-10-11; was 0.705) // a tower's (and slot's) hex size in cell sizes - 25% SMALLER (owner, 2026-10-06; was 0.94; before that 0.88, then 0.66)
 function towerHex(c, k) {
   ctx.beginPath();
   c.pts.forEach((p, i) => {

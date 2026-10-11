@@ -100,7 +100,7 @@ function stepAcd(t, dt) {
 // negative armor is a flat bonus on every hit from every tower, bosses too. The weakest of 1x / 3x / 10x tried
 // (scripts/aspira-sim/trios.mjs): ARC+FRZ+ACD 90 -> won (Judgement, Death), ARC+SOL+ACD 96 -> won (Capacitance first)
 const ACD_CORRODE = [0, 0.01, 0.02, 0.03, 0.04, 0.05];
-const ACD_CORROSION_DMG = [1, 1.213, 1.823, 2.674, 3.631, 4.253];
+const ACD_CORROSION_DMG = [1, 1.4, 2.1, 3.1, 4.2, 4.9]; // x1.15 I..V (owner, 2026-10-11: ACD's strength back through Corrosion; was 1.213 1.823 2.674 3.631 4.253)
 const ACD_DOUBLE = [0.5, 0.39, 0.3, 0.12, 0.12, 0.12], ACD_LINES = [2, 3, 4, 6, 7, 8], /* early-game balance 2026-10-06: two lines from the start (was 1/2/3/5); Spray to be re-fitted */ ACD_SPRAY_MUL = [1, 1, 1, 1, 1, 1]; // every jet a full strike (owner, 2026-10-08: never below 1) - Spray's reach (SKILL_MOVE) is the lever
 // puddles by Seep tier (index 0 = the DEFAULT drip, owner): one every `every`
 // s per line, lasting `life` s, radius r; each burns at ACD_PUDDLE_HEAT of its

@@ -2,9 +2,8 @@
 // aspira-draw.js (which fits `cam` to the window in resize) and before
 // aspira-ui.js (whose onTap this calls).
 //
-// Mouse: a drag pans. Touch: one finger drags, two fingers pan with their
-// midpoint. THE ZOOM IS FIXED (FIXED_ZOOM, aspira-defs.js; owner, 2026-10-11) -
-// no wheel or pinch zoom. A press that moves less than DRAG_PX is a TAP and goes
+// THE VIEW IS FIXED (owner, 2026-10-11): no zoom (FIXED_ZOOM, aspira-defs.js) and no pan
+// ("don't allow camera pan either") - a drag on open board does nothing; a drag on a tower moves it. A press that moves less than DRAG_PX is a TAP and goes
 // to onTap (select / place); the core is kept on screen. Double-click /
 // double-tap recentres.
 const DRAG_PX = 6;
@@ -52,7 +51,6 @@ function devXY(ev) {
   const r = cv.getBoundingClientRect(), dpr = canvasDpr();
   return { x: (ev.clientX - r.left) * dpr, y: (ev.clientY - r.top) * dpr };
 }
-function panBy(dx, dy) { cam.ox += dx; cam.oy += dy; clampView(); }
 // keep the core (the chart's centre) somewhere on the canvas
 function clampView() {
   const cx = cam.ox + CX * cam.k, cy = cam.oy + CY * cam.k;
@@ -102,8 +100,7 @@ cv.addEventListener("pointermove", ev => {
   if (ptrs.size >= 2 && pinch) {
     const [a, b] = [...ptrs.values()];
     const d = Math.hypot(a.x - b.x, a.y - b.y), m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-    panBy(m.x - pinch.m.x, m.y - pinch.m.y);
-    pinch = { d, m };
+    pinch = { d, m }; // (no pan: the view is fixed)
     return;
   }
   const dpr = canvasDpr();
@@ -113,7 +110,7 @@ cv.addEventListener("pointermove", ev => {
     if (dragged) { ui.drag.at = toWorld(ev); ui.drag.ev = { clientX: ev.clientX, clientY: ev.clientY }; }
     return;
   }
-  if (dragged) panBy(now.x - prev.x, now.y - prev.y);
+  // (a drag on open board does nothing: NO PAN - owner, 2026-10-11: "don't allow camera pan either")
 });
 function endPointer(ev, tap) {
   if (!ptrs.has(ev.pointerId)) return;
@@ -139,7 +136,7 @@ function endPointer(ev, tap) {
 cv.addEventListener("pointerup", ev => endPointer(ev, true));
 cv.addEventListener("pointercancel", ev => endPointer(ev, false));
 cv.addEventListener("pointerleave", () => { if (!ptrs.size) ui.hover = null; });
-cv.addEventListener("dblclick", refit);
+cv.addEventListener("dblclick", refit); // (with zoom and pan fixed, only a stale view needs it)
 // iOS: a long press would open the callout / magnifier / a text selection and
 // CANCEL the pointer (owner: the core's hold and drags were finicky) - so the
 // canvas swallows the touch itself; pointer events still arrive

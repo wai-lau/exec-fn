@@ -4,7 +4,7 @@
 
 // World is a fixed 1000x1000 chart; the camera (aspira-draw.js) fits it into
 // whatever part of the full-screen canvas the decks leave open.
-const W = 1000, CX = 500, CY = 500, CORE_R = 22; // 25% smaller (owner, 2026-10-06; was 29 - itself 25% smaller than 34, then a little bigger)
+const W = 1000, CX = 500, CY = 500, CORE_R = 25; // bigger to press (owner, 2026-10-11: "make towers and core larger and easier to click and drag"; was 22) // 25% smaller (owner, 2026-10-06; was 29 - itself 25% smaller than 34, then a little bigger)
 const CANVAS_FONT = "'Iosevka Mayukai Monolite', monospace";
 
 // Twelve spirals, one entering every 30 degrees around the rim. A FIXED
@@ -33,7 +33,7 @@ let OPEN_SLOTS = [-120, 0, 120];
 // narrowest phone we fit (CSS px) - with the core centred across it, a tower can be dragged out to MOVE_MAX_R (leashR,
 // aspira-towers.js; owner: "make sure all movement limits are within the screen zoom on mobile")
 const FIXED_ZOOM = 0.5, PHONE_MIN_W = 360;
-const CELL_S = 32, SLOT_R = 65.5, CELL_PITCH = SLOT_R / (Math.sqrt(3) * CELL_S), TRAVEL_R0 = Math.sqrt(3) * CELL_S * 2;
+const CELL_S = 32, SLOT_R = 78 /* out from 65.5 to fit the bigger core and towers (2026-10-11) */, CELL_PITCH = SLOT_R / (Math.sqrt(3) * CELL_S), TRAVEL_R0 = Math.sqrt(3) * CELL_S * 2;
 // the corner slots: [angle (deg, screen: -90 = up), wave it opens]. Their
 // INNER LIMIT is CORNER_IN from the core (owner: with every tower at max level
 // slid fully in, a gap still shows between all of them): 171 leaves the same

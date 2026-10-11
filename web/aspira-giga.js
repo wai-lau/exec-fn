@@ -16,20 +16,20 @@ const GIGA_NUM = [
   [ARC_VOLTAGE_DMG, 9.5], [ARC_VOLTAGE_FALL, 1.6], [ARC_VOLTAGE_JUMP, 2], [ARC_STAT_SLOW, 0.3],
   [ARC_CONDUCTIVITY, { s: 4 /* was 6 - the ARC nerf, 2026-10-11 */, j: 3, f: 3, r: 2.4, d: 1, v: 4 }], [ARC_CAPACITANCE, { n: 8, frac: 0.15 }],
   // FRZ: Temp a far deeper chill; Rime the fastest, deepest rings; Moons FOUR moons, each with four small moons
-  [FRZ_TEMP_SLOW, 0.55], [FRZ_BRITTLE, 2], [FRZ_RIME, 0.1], [FRZ_RIME_PERIOD, 0.7],
+  [FRZ_TEMP_SLOW, 0.55], [FRZ_TEMP_TICK, 0.2], [FRZ_BRITTLE, 2], [FRZ_RIME, 0.1], [FRZ_RIME_PERIOD, 0.7],
   [FRZ_MOON_COUNT, 4], [FRZ_MOON_BY, 1], [FRZ_SUBMOON_N, 4],
   // SOL: Focus eight rays; Refraction a wider cone, harder hops; Breach armor stripped for good, far bigger crits
   [SOL_BEAMS, 8], [SOL_FOCUS_DMG, 1.3], [SOL_SHIELD_POP, 5], [SOL_REFRACTION, Infinity], [SOL_REFRACTION_DMG, 4],
   [SOL_CONE_BY, 100], [SOL_HOP, 1], [SOL_CRITMUL, 12], [SOL_BREACH_ARMOR, 150], [SOL_BREACH_CRIT, 0.08],
   // ACD: Corrosion the strongest acid; Spray eleven jets; Contagion great, fast-dripping, long pools
-  [ACD_CORROSION_DMG, 5.8], [ACD_CORRODE, 0.08], [ACD_LINES, 11], [ACD_SPRAY_MUL, 1],
+  [ACD_CORROSION_DMG, 6.7], [ACD_CORRODE, 0.08], [ACD_LINES, 11], [ACD_SPRAY_MUL, 1],
   [ACD_CONTAGION, { every: 0.9, life: 14, r: 110 }], [ACD_PUDDLE_HEAT, 0.2], [ACD_CONTAGION_SLOW, 0.08],
 ];
 for (const [table, v] of GIGA_NUM) if (table.length === GIGA_TIER) table.push(v);
 // the reach a giga tier buys ([range, slide, speed], SKILL_MOVE): ARC stays near today's cut (owner, 2026-10-11)
 const GIGA_MOVE = {
   arc: { conductivity: [1.15, 1, 1], voltage: [1.15, 1, 1], capacitance: [1, 3, 1] },
-  frz: { temp: [1.35, 1, 1], rime: [1, 3, 1], moons: [1, 1, 1] },
+  frz: { temp: [1.7, 1, 1], rime: [1, 3, 1], moons: [1, 1, 1] },
   sol: { focus: [2.3, 1, 1], refraction: [1.7, 1, 1], breach: [1, 3, 1] },
   acd: { corrosion: [1, 1, 1], spray: [1.25, 1, 1], contagion: [1, 2.1, 2.1] },
 };

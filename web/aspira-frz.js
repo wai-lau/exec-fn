@@ -18,13 +18,16 @@ const FRZ_BRITTLE = [1, 1.15, 1.3, 1.45, 1.6, 1.75]; // BRITTLE is FRZ's damage 
 const FRZ_RIME = [0, 0.024, 0.035, 0.054, 0.064, 0.068]; // 2026-10-06: tier I was a dead point (was 1% / 1.9% / 3.7%) // each pulse's permanent stacking slow
 // FRZ's own levers (owner: no generic multipliers): Rime pulses MORE OFTEN each tier, the moons are STRONGER copies each tier
 const FRZ_RIME_PERIOD = [2, 2, 1.7, 1.4, 1.2, 1], FRZ_MOON_BY = [0.6, 0.85, 0.86, 0.95, 0.95, 0.95]; /* stronger moons for the 140 orbit (2026-10-08; were .485 .515 .58 .58 .58 at 70): isolation I..V ~112 125 151 172 ~225% - V overshoots at any strength >= IV's: five moons that far out cover most of the lanes */ // weakened (owner, 2026-10-08; isolation: Moons V 499% team); was .78 .9 .95 1 1 1 // Moons IV / V: four and five full moons
+// TEMP CONDUCTS FASTER (owner, 2026-10-11: "make temp conduct faster"): each Temp tier shortens the aura's TICK (s) -
+// the same bite each tick, so more damage and more shield pops a second (giga VI in aspira-giga.js)
+const FRZ_TEMP_TICK = [0.5, 0.44, 0.39, 0.34, 0.3, 0.26];
 const FRZ_TICK = 0.5, FRZ_RIME_GROW = 2.4; // a Rime ring takes FRZ_RIME_GROW game s to reach the edge (owner: much slower; was 0.6)
 const FRZ_AURA_HOLD = 0.06, FRZ_RIM_W = 16; // the frosted rim's width per unit of slow (owner: thicker the colder) // an aura slow outlasts one step only: it is gone the moment the enemy leaves
 const FRZ_TICK_HIT = { armorPierce: 1 }; // a tick's hit on a shield: no armor bite
 function frzSkillStats(t, s, b) {
   const f = skillOf(t, "temp");
   s.range = b.range * RANGE_BONUS;
-  s.aura = FRZ_TEMP_SLOW[f]; s.brittle = FRZ_BRITTLE[f]; s.dmg = b.dmg * b.rate * FRZ_TICK; s.rate = 1 / FRZ_TICK; // dmg / rate: a TICK
+  s.aura = FRZ_TEMP_SLOW[f]; s.brittle = FRZ_BRITTLE[f]; s.dmg = b.dmg * b.rate * FRZ_TICK; s.rate = 1 / FRZ_TEMP_TICK[f]; // dmg / rate: a TICK - the same bite, more often up Temp
   s.rime = FRZ_RIME[skillOf(t, "rime")]; s.rimeEvery = FRZ_RIME_PERIOD[skillOf(t, "rime")]; s.moonN = FRZ_MOON_COUNT[skillOf(t, "moons")]; s.moonK = FRZ_MOON_BY[skillOf(t, "moons")]; s.subN = FRZ_SUBMOON_N[skillOf(t, "moons")]; s.skill = true;
 }
 // moons and SMALL MOONS by tier (owner, 2026-10-08): 1 / 2 / 3 moons at I-III, then still THREE at IV and V,
@@ -75,7 +78,7 @@ function frzStep(t, dt) {
   const st = towerStats(t), srcs = frzSources(t, st);
   t.auraT = (t.auraT || 0) - dt;
   const tick = t.auraT <= 0;
-  if (tick) t.auraT += FRZ_TICK;
+  if (tick) t.auraT += 1 / st.rate;
   let ticked = false;
   for (const s of srcs) {
     const r2 = (st.range * s.k) ** 2;
