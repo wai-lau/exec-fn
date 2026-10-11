@@ -52,10 +52,11 @@ function drawStarTrail(e, size) {
   for (let i = R.length - 1; i >= 0; i--) ctx.lineTo(R[i].x, R[i].y);
   ctx.closePath();
   ctx.fillStyle = g; ctx.globalAlpha = TRAIL_ALPHA;
-  ctx.shadowColor = col; ctx.shadowBlur = star ? size * cam.k : 0;
-  ctx.fill();
-  ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+  ctx.fill(); // (no shadowBlur on a boss's tail: a blur the size of the boss over its whole trail, six Devils at once, was
+  // most of a boss frame - owner, 2026-10-11: "greatly improve boss perf, specifically for the devil boss")
+  ctx.globalAlpha = 1;
 }
+const BOSS_HALO = { k: 1.45, a: 0.3 };
 // solid: the 3D view draws the body itself as a real die (warpSolid, aspira-solids.js) - here only its tracer, shields and marks
 function drawEnemy(e, solid) {
   // damage shows as both size and opacity: full HP = full size, solid;
@@ -70,11 +71,11 @@ function drawEnemy(e, solid) {
     // show through the enemy it trails (owner)
     if (!solid) { poly(e.x, e.y, size, d.sides, e.rot, d.pointy); ctx.fillStyle = COL.bg; ctx.globalAlpha = 1; ctx.fill(); }
   }
+  // a boss GLOWS in its colour (owner); the tracer is the boss type's own - the glow a faint wider copy of its body, not
+  // a shadowBlur (BOSS_HALO; perf, 2026-10-11)
+  if (e.arcana && !solid) { poly(e.x, e.y, size * BOSS_HALO.k, d.sides, e.rot, d.pointy); ctx.fillStyle = COL[d.color]; ctx.globalAlpha = BOSS_HALO.a * (0.15 + 0.6 * f); ctx.fill(); }
   poly(e.x, e.y, size, d.sides, e.rot, d.pointy);
-  // a boss GLOWS in its colour (owner); the tracer is the boss type's own
-  if (e.arcana && !solid) { ctx.shadowColor = COL[d.color]; ctx.shadowBlur = 28 * cam.k; }
   if (!solid) { ctx.fillStyle = COL[d.color]; ctx.globalAlpha = 0.15 + 0.6 * f; ctx.fill(); }
-  ctx.shadowBlur = 0;
   if (e.arcana && !solid) drawBossEye(e, size);
   // outlines brighten as the enemy closes on the core (faint beyond the rim,
   // full at the core), still dimmed by lost HP

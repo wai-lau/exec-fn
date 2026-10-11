@@ -91,7 +91,7 @@ function blit(c) { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlp
 const laneSeen = new Map(), LANE_FADE_IN_MS = 2000;
 const LIT_MIN_MS = 200;
 const LIT_STEPS = 16;
-const BOSS_LANE_W = 3.5, BOSS_LANE_BLUR = 28, BOSS_LANE_K = 1.5; // a boss lane: x widths, its glow (world px), x brightness (owner, 2026-10-09: "make boss lanes half as intense"; was 3)
+const BOSS_LANE_W = 3.5, BOSS_LANE_HALO_W = 22, BOSS_LANE_HALO_A = 0.06, BOSS_LANE_K = 1.5; // a boss lane: x widths, its glow (world px), x brightness (owner, 2026-10-09: "make boss lanes half as intense"; was 3)
 function drawLaneStrokes(live) {
   const S = laneSet(), { laneCv, lctx, glowCv, gctx, baseCv, bctx } = S;
   // forget lanes that went dark, so they fade in again next time
@@ -142,7 +142,9 @@ function drawLaneStrokes(live) {
     if (!lowQ) { gctx.globalAlpha = Math.min(1, 0.22 * k * u.a); gctx.lineWidth = 32 * w; gctx.lineCap = "butt"; gctx.stroke(PATHS[u.pi].glow2d); gctx.lineCap = "round"; } // butt: a round end was a disc by the core // thicker at the core (owner; was 0.18, 20)
     gctx.restore();
     lctx.globalAlpha = 0.03 * k * u.a; lctx.lineWidth = 6 * w; lctx.stroke(PATHS[u.pi].lit2d);
-    if (u.star) { lctx.shadowColor = COL[u.color]; lctx.shadowBlur = BOSS_LANE_BLUR * cam.k; }
+    // a boss lane's halo: one wide faint stroke, not a shadowBlur along the whole (doubled) lane - with the Devil's six
+    // lanes the blur was ~60% of an 82 ms layer rebuild (perf, 2026-10-11)
+    if (u.star) { lctx.globalAlpha = BOSS_LANE_HALO_A * k * u.a; lctx.lineWidth = BOSS_LANE_HALO_W; lctx.stroke(PATHS[u.pi].lit2d); }
     lctx.globalAlpha = 0.3 * k * u.a; lctx.lineWidth = 1.4 * w; lctx.stroke(PATHS[u.pi].lit2d);
     lctx.restore();
   }
