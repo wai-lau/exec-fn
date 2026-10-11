@@ -161,7 +161,9 @@ const shownLvl = t => (!hasSkills(t) ? t.lvl : t.lvl >= maxLvl(t) ? MAX_LVL : 1 
 //        plague (the puddles follow the lane): slide and speed
 const NO_MOVE = [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]];
 const SKILL_MOVE = {
-  arc:    { conductivity: [[1, 1, 1], [1.15, 1, 1], [1.3, 1, 1], [1.5, 1, 1], [1.65, 1, 1], [1.8, 1, 1]], voltage: [[1, 1, 1], [1.3, 1, 1], [1.6, 1, 1], [2, 1, 1], [2.2, 1, 1], [2.4, 1, 1]], capacitance: [[1, 1, 1], [1, 1.3, 1], [1, 1.6, 1], [1, 2, 1], [1, 2.2, 1], [1, 2.4, 1]] },
+  // ARC's range tiers CUT (owner, 2026-10-11: "ranges way too high, late game players don't need to move towers"):
+  // maxed it reached x4.3 - all of the plain lanes from a corner; now x1.25. SOL keeps its reach (owner, same day)
+  arc:    { conductivity: [[1, 1, 1], [1.02, 1, 1], [1.04, 1, 1], [1.07, 1, 1], [1.09, 1, 1], [1.12, 1, 1]], voltage: [[1, 1, 1], [1.02, 1, 1], [1.04, 1, 1], [1.07, 1, 1], [1.09, 1, 1], [1.12, 1, 1]], capacitance: [[1, 1, 1], [1, 1.3, 1], [1, 1.6, 1], [1, 2, 1], [1, 2.2, 1], [1, 2.4, 1]] },
   frz: { temp: [[1, 1, 1], [1.08, 1, 1], [1.12, 1, 1], [1.15, 1, 1], [1.18, 1, 1], [1.2, 1, 1]] /* a narrower aura per tier (owner, 2026-10-08; was 1.25 .. 2.2) */, rime: [[1, 1, 1], [1, 4 / 3, 1], [1, 5 / 3, 1], [1, 2, 1], [1, 2.2, 1], [1, 2.4, 1]], moons: NO_MOVE }, // Rime buys back FRZ's halved slide (owner)
   sol: { focus: [[1, 1, 1], [1.2, 1, 1], [1.4, 1, 1], [1.7, 1, 1], [1.85, 1, 1], [2, 1, 1]], refraction: [[1, 1, 1], [1.1, 1, 1], [1.2, 1, 1], [1.35, 1, 1], [1.45, 1, 1], [1.55, 1, 1]], breach: [[1, 1, 1], [1, 1.3, 1], [1, 1.6, 1], [1, 2, 1], [1, 2.2, 1], [1, 2.4, 1]] },
   acd:    { spray: [[1, 1, 1], [1.02, 1, 1], [1.04, 1, 1], [1.06, 1, 1], [1.12, 1, 1], [1.15, 1, 1]] /* Spray's lever now that each jet stays a full strike (owner, 2026-10-08; was 1.2 .. 2.3) */, contagion: [[1, 1, 1], [1, 1.15, 1.15], [1, 1.3, 1.3], [1, 1.5, 1.5], [1, 1.65, 1.65], [1, 1.8, 1.8]], corrosion: NO_MOVE },

@@ -186,6 +186,9 @@ function drawSlotFlash() {
 // CREDITS_FX_T s after an interest payout "+Xc (+r%)" shows just under the rings
 const CREDITS_FX_T = 2.5;
 let creditsFx = null;
+// a LOST LIFE puts "X lives left" in the same spot for as long (owner, 2026-10-11), over an interest pop-up older than it
+let livesFx = null;
+function livesLost() { livesFx = { t0: performance.now() / 1000 }; }
 // part: "count" the number alone, "pop" the interest pop-up alone (3D draws the pop-up over everything, warpEntities)
 function drawCredits(part) {
   const fxOn = creditsFx && performance.now() / 1000 - creditsFx.t0 < CREDITS_FX_T;
@@ -197,7 +200,10 @@ function drawCredits(part) {
     text(n, CX, CY - 3, 15, "bg", "white"); // BLACK with a white halo (owner); smaller (owner, 2026-10-06; was 22)
     text("CRED", CX, CY + 9, 8, "bg", "white");
   }
-  if (part === "count" || !fxOn || G.enemies.some(e => e.arcana && !e.dead)) return; // a boss's name takes this spot (drawBossBar)
+  if (part === "count" || G.enemies.some(e => e.arcana && !e.dead)) return; // a boss's name takes this spot (drawBossBar)
+  const livesOn = livesFx && performance.now() / 1000 - livesFx.t0 < CREDITS_FX_T && (!fxOn || livesFx.t0 >= creditsFx.t0);
+  if (livesOn) { text(G.lives + (G.lives === 1 ? " life left" : " lives left"), CX, CY + CORE_R + LIFE_GAP * LIFE_RINGS + 16, 14, "pink", true); return; }
+  if (!fxOn) return;
   const parts = [["+" + creditsFx.gain + "c", "green"], [" (+" + creditsFx.pct.toFixed(1) + "%)", "green"]];
   ctx.font = "14px " + CANVAS_FONT; // the interest pop-up, smaller (owner; was 20)
   const ws = parts.map(p => ctx.measureText(p[0]).width);

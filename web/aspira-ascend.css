@@ -1,0 +1,22 @@
+/* /spire - THE ASCENDANTS on the win screen (aspira-ascend.js): three letters, then the shared board */
+#asp-asc[hidden] { display: none; }
+#asp-asc { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
+#asp-asc-form { display: flex; gap: var(--space-2); }
+#asp-asc-form[hidden] { display: none; }
+#asp-asc-in {
+  width: 5ch;
+  padding: var(--space-1) var(--space-2);
+  font: inherit;
+  font-size: var(--fs-xl);
+  letter-spacing: var(--tracking-mega);
+  text-align: center;
+  text-transform: uppercase;
+  color: hsl(var(--orange-hsl));
+  background: hsl(var(--bg-hsl) / 0.45);
+  border: var(--space-px) solid hsl(var(--orange-hsl));
+}
+#asp-asc-note { font-size: var(--fs-sm); }
+.asp-asc-table { border-collapse: collapse; font-size: var(--fs-sm); background: hsl(var(--bg-hsl) / 0.45); }
+.asp-asc-table td { padding: var(--space-1) var(--space-3); text-align: left; }
+.asp-asc-table td:first-child { color: hsl(var(--orange-hsl)); letter-spacing: var(--tracking-mega); }
+.asp-asc-mine { color: hsl(var(--cyan-hsl)); }

@@ -5,7 +5,8 @@ be redirected); the code, files and nav key keep the name `aspira`.
 Polygons travel an Archimedean spiral from the rim to a core at the centre;
 towers built between the arms shoot them. Entirely client-side
 (web/aspira-*.js); the server only serves the page, so there is no state, no
-API and nothing to save beyond the browser's own best score.
+API but THE ASCENDANTS (the shared board of winners, spire_board.py) and nothing
+else to save beyond the browser's own best score.
 
 GUEST tier since 2026-10-02 (`guest_protected`, owner: "aspira should be
 public (behind cloudflare)"): also in `_GUEST_NEXT_ALLOWED`, the 401
@@ -23,7 +24,8 @@ from pathlib import Path
 from fastapi import HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
-from auth import SESSION_TOKEN
+import spire_board
+from auth import SESSION_TOKEN, rate_exempt
 from helpers import DATA_DIR
 from routers import guest_protected, public
 from pages import _render_page, _tmpl
@@ -71,3 +73,48 @@ async def aspira_sfx(filename: str):
     if not path.is_relative_to(SFX_DIR) or not path.is_file():
         raise HTTPException(status_code=404)
     return FileResponse(str(path), headers={"Cache-Control": "private, max-age=86400"})
+
+
+# ---------- THE ASCENDANTS: the shared board of winners (spire_board.py) ----------
+# HONOUR SYSTEM (owner, 2026-10-11): a win cannot be proven, so the only guards are
+# the entry's shape and this per-IP limit - ASC_MAX posts per ASC_WINDOW seconds
+ASC_MAX, ASC_WINDOW = 3, 3600.0
+_asc_posts: dict[str, list[float]] = {}
+
+
+def _asc_rate_ok(ip: str) -> bool:
+    now = time.monotonic()
+    hits = [t for t in _asc_posts.get(ip, []) if t > now - ASC_WINDOW]
+    if len(hits) >= ASC_MAX:
+        _asc_posts[ip] = hits
+        return False
+    _asc_posts[ip] = hits + [now]
+    if len(_asc_posts) > 5000:  # forget the idle
+        for k in [k for k, v in _asc_posts.items() if not v or v[-1] <= now - ASC_WINDOW]:
+            del _asc_posts[k]
+    return True
+
+
+def _client_ip(request: Request) -> str:
+    # behind the single trusted nginx: X-Real-IP, else the LAST X-Forwarded-For hop (mtg/routes.py)
+    xff = request.headers.get("x-forwarded-for", "")
+    return request.headers.get("x-real-ip") or (xff.rsplit(",", 1)[-1].strip() if xff else "") or (request.client.host if request.client else "unknown")
+
+
+@guest_protected.get("/api/spire/ascendants")
+async def spire_ascendants():
+    return {"entries": spire_board.load(DATA_DIR)}
+
+
+@guest_protected.post("/api/spire/ascendants")
+async def spire_ascend(request: Request):
+    try:
+        body = await request.json()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="bad json")
+    entry = spire_board.clean_entry(body if isinstance(body, dict) else {})
+    if entry is None:
+        raise HTTPException(status_code=400, detail="three letters, the lives left and the team")
+    if not rate_exempt(request) and not _asc_rate_ok(_client_ip(request)):
+        raise HTTPException(status_code=429, detail="too many ascensions - try again later")
+    return {"entries": spire_board.add(DATA_DIR, entry)}
