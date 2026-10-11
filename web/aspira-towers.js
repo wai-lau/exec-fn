@@ -395,15 +395,22 @@ function moveTo(t, p) { const s = legalSpot(t, p); if (s) { t.x = s.x; t.y = s.y
 
 // UI only (aspira-draw.js): every moved tower's SPAWN, a faint hex in its colour on
 // its slot, and the selected (or held) tower's LEASH, a dashed circle round it
+// the leash SHOWN on its own for LEASH_HINT_S real seconds, its dashes marching, after the game's first tower is
+// placed or a tower's leash grows (owner, 2026-10-10: "to indicate that it can be moved")
+const LEASH_HINT_S = 4, LEASH_HINT_FADE_S = 1;
+const hintLeash = t => { t.leashHint = performance.now() / 1000 + LEASH_HINT_S; };
 function drawLeash() {
   ctx.lineWidth = 2;
+  const now = performance.now() / 1000;
   for (const t of G.towers) {
     const c = CELLS[t.cell], col = COL[TOWERS[t.kind].color], held = ui.drag && ui.drag.t === t;
     ctx.strokeStyle = col;
     if (Math.hypot(t.x - c.x, t.y - c.y) > 1) { ctx.globalAlpha = 0.35; towerHex(c, TOWER_K); ctx.stroke(); }
-    if (t.id !== ui.sel && !held) continue;
-    ctx.globalAlpha = held ? 0.8 : 0.5; ctx.setLineDash([8, 8]);
-    ctx.beginPath(); ctx.arc(c.x, c.y, leashR(t), 0, 6.283); ctx.stroke(); ctx.setLineDash([]);
+    const hint = t.leashHint > now ? Math.min(1, (t.leashHint - now) / LEASH_HINT_FADE_S) : 0;
+    if (t.id !== ui.sel && !held && !hint) continue;
+    ctx.globalAlpha = Math.max(held ? 0.8 : t.id === ui.sel ? 0.5 : 0, 0.8 * hint); ctx.setLineDash([8, 8]);
+    if (hint) ctx.lineDashOffset = -now * 24; // marching
+    ctx.beginPath(); ctx.arc(c.x, c.y, leashR(t), 0, 6.283); ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
   }
   ctx.globalAlpha = 1;
 }

@@ -187,8 +187,10 @@ function lockIn(t) {
   const add = basketFor(t), n = basketPoints(t), cost = basketCost(t);
   if (!n) return;
   if (G.money < cost) { noFunds($("asp-up"), cost); return; }
+  const leash = leashR(t);
   for (const ax of SKILL_TREES[t.kind]) for (let k = 0; k < (add[ax.id] || 0); k++) upgradeTower(t, ax.id, true);
   basket.add = {};
+  if (leashR(t) > leash + 0.5) hintLeash(t); // a longer leash shows itself (aspira-towers.js)
   sfxFor("up", t.kind); ring(t.x, t.y, 64, TOWERS[t.kind].color); refreshPanels();
 }
 
