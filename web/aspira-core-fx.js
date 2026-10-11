@@ -65,7 +65,9 @@ function drawRelayHalos(label) {
 // the outer one brightest, a faint fill inside it, the whole field shimmering fast; pulses still come
 // every TEMPORAL_RING_EVERY s for the whole freeze (owner, same day; it was one plain cyan ring)
 // SOFTER (owner, 2026-10-11: "reduce intensity of temporal power"): AT_ALPHA / AT_GLOW / AT_LINE were 0.85 / 22 / 7, AT_FILL 0.06
-const AT_ALPHA = 0.4, AT_GLOW = 24, AT_LINE = 4; // glow back up (owner, 2026-10-11: "increase glow"; was 10)
+// NO shadowBlur (owner, 2026-10-11: "improve perf of temporal drive, maybe no glow or very little"): even a 6px blur on one
+// octagon cost ~8 ms a frame (the blur covers its whole box); the glow is FAKED by one wide faint stroke under the outer edge
+const AT_ALPHA = 0.4, AT_HALO_W = 3, AT_HALO_A = 0.3, AT_LINE = 4;
 const AT_LAYERS = 5, AT_STEP = 0.12, AT_FILL = 0.03, AT_EDGE = Math.cos(Math.PI / 8); // AT_EDGE: an octagon's side distance / its corner distance
 function drawTimeStop(c) {
   if (!c.freeze) return;
@@ -76,14 +78,13 @@ function drawTimeStop(c) {
     if (a > TEMPORAL_GROW + TEMPORAL_FADE) continue;
     const A = AT_ALPHA * shimmer * (1 - Math.max(0, a - TEMPORAL_GROW) / TEMPORAL_FADE), R = Math.max(1, TEMPORAL_R * Math.min(1, a / TEMPORAL_GROW)) / AT_EDGE; // the octagon's FLAT SIDES on the freeze front (owner: cover what the ring did)
     poly(CX, CY, R, 8, Math.PI / 8, false); ctx.globalAlpha = A * AT_FILL; ctx.fill();
-    glow(COL.white, AT_GLOW);
     for (let k = 0; k < AT_LAYERS; k++) {
       const r = R * (1 - k * AT_STEP);
       if (r <= CORE_R) break;
       poly(CX, CY, r, 8, Math.PI / 8, false);
+      if (k === 0) { ctx.globalAlpha = A * AT_HALO_A; ctx.lineWidth = AT_LINE * AT_HALO_W; ctx.stroke(); }
       ctx.globalAlpha = A * (1 - k / AT_LAYERS); ctx.lineWidth = AT_LINE * (1 - k / (AT_LAYERS + 1)); ctx.stroke();
     }
-    ctx.shadowBlur = 0;
   }
   ctx.globalAlpha = 1; ctx.lineJoin = "round";
 }
