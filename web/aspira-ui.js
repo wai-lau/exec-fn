@@ -304,7 +304,7 @@ function refreshPanels() {
 let lastNote = "", waveListAt = 0, hudAt = 0;
 function updateHud() {
   updateSpend(); // the spend bar's credits (aspira-chooser.js)
-  updatePowers(); // the core powers' buttons above the title (aspira-powers.js)
+  updatePowers(); // the core powers' buttons under the title (aspira-powers.js)
   { const h = bossHint(); if ($("asp-bosshint").textContent !== h) $("asp-bosshint").textContent = h; } // the boss's haiku above the title
   setText($("asp-lives"), G.lives);
   setText($("asp-int"), (G.interest * 100).toFixed(1) + "%");

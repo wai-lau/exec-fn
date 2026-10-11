@@ -804,7 +804,7 @@
 .asp-desc del { color: hsl(var(--asp-bad-hsl)); text-decoration: line-through; }
 .asp-desc ins { color: hsl(var(--asp-good-hsl)); text-decoration: underline; }
 
-/* the CORE POWERS' BUTTONS above the title (owner, 2026-10-08; aspira-powers.js): name, seconds left, and a
+/* the CORE POWERS' BUTTONS under the title (owner, 2026-10-11; above it since 2026-10-08; aspira-powers.js): name, seconds left, and a
    bar along the bottom that fills as the power recharges; flashing when ready, lit while it runs or is armed */
 .asp-powers { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); } /* stacked, TEMPORAL DRIVE over ORBITAL RELAY (owner, 2026-10-08) */
 #asp .asp-powers .asp-power { align-self: stretch; } /* one width: the wider label sets both */
