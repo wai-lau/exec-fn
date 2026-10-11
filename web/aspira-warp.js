@@ -290,7 +290,7 @@ function warpEntities() {
         pts: c.pts.map(p => ({ x: c.x + (p.x - c.x) * TOWER_K, y: c.y + (p.y - c.y) * TOWER_K })),
         top: () => { up(c.x, c.y, cellDraw.get(c), hh); if (!G.towers.length && !ui.build) drawSlotArrow((cc, fn) => (cc === c ? up(c.x, c.y, fn, hh) : null)); } });
     });
-    const hs = G.towers.map(towerH), coreH = hs.length ? hs.reduce((a, b) => a + b, 0) / 6 + Math.max(...hs) : WARP.prism.tower;
+    const coreH = coreH3d();
     warp.lightZ = coreH / 2; // the dice are lit from the core's top (aspira-solids.js)
     solids.push({ x: CX, y: CY, h: coreH, col: COL.white, pts: Array.from({ length: 6 }, (_, i) => ({ x: CX + CORE_R * Math.cos(Math.PI / 6 + i * Math.PI / 3), y: CY + CORE_R * Math.sin(Math.PI / 6 + i * Math.PI / 3) })),
       // the core's SHIELDS (its life and level rings) stand on the FLOOR (owner: "core shields on plane level") as walls,
@@ -342,6 +342,7 @@ function warpEntities() {
 // every chart POINT (t.lvl - 1) adds WARP.prism.perPoint - the look's own level (shownLvl) moves only every five points.
 // The CORE stands (all towers' heights) / 6 + the tallest's (owner, 2026-10-09), a fresh tower's with none built
 const towerH = t => WARP.prism.tower + WARP.prism.perPoint * (t.lvl - 1);
+const coreH3d = () => { const hs = G.towers.map(towerH); return hs.length ? hs.reduce((a, b) => a + b, 0) / 6 + Math.max(...hs) : WARP.prism.tower; };
 // the canvas transform that lays world (x, y) on the level plane h world units up, as seen at (x, y): its
 // projection there and one world unit along x and along y
 function warpFrame(x, y, h) {

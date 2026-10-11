@@ -25,7 +25,7 @@ const HOLD_MS = 400, CORE_GRAB = 1.8, HOLD_SLOP = 18; // the core grabs within C
 let holdTimer = 0, holdFired = false, holdMoved = false;
 function grabPower(ev) {
   if (!G.core) return grabTower(ev); // a power is owned only once a boss handed it out (pickPower), so the levels below are the gate
-  const w = toWorld(ev), onCore = Math.hypot(w.x - CX, w.y - CY) <= CORE_R * CORE_GRAB;
+  const w = toWorld(ev), pk = pickAt(ev), onCore = (pk && pk.core) || (!(pk && pk.t) && Math.hypot(w.x - CX, w.y - CY) <= CORE_R * CORE_GRAB);
   // only a power that is READY grabs (owner, 2026-10-07: no drag line for an
   // Overcharge still cooling down); otherwise the press pans and taps as ever
   const ready = id => powerLvl(id) && !cooldownLeft(id), rel = ready("relay");
@@ -38,13 +38,13 @@ function grabPower(ev) {
   return grabTower(ev);
 }
 function grabTower(ev) {
-  const w = toWorld(ev), t = !ui.build && !ui.relayArm && towerAt(w);
+  const w = toWorld(ev), t = !ui.build && !ui.relayArm && pickTower(ev);
   return t ? { kind: "move", t, dx: t.x - w.x, dy: t.y - w.y } : null;
 }
 // a power drag let go: the Relay on the tower under it
 function dropPower(d) {
   if (!d.at) return;
-  if (d.kind === "core" && powerLvl("relay")) relay(towerAt(d.at));
+  if (d.kind === "core" && powerLvl("relay")) relay(pickTower(d.ev));
   refreshPanels();
 }
 
@@ -108,7 +108,7 @@ cv.addEventListener("pointermove", ev => {
   }
   if (ui.drag) { // a power drag: no pan; the hold only breaks past HOLD_SLOP
     if (Math.hypot(now.x - downAt.x, now.y - downAt.y) > HOLD_SLOP * dpr) { holdMoved = true; clearTimeout(holdTimer); }
-    if (dragged) ui.drag.at = toWorld(ev);
+    if (dragged) { ui.drag.at = toWorld(ev); ui.drag.ev = { clientX: ev.clientX, clientY: ev.clientY }; }
     return;
   }
   if (dragged) panBy(now.x - prev.x, now.y - prev.y);

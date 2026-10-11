@@ -65,10 +65,10 @@ function onTap(ev) {
   const p = toWorld(ev);
   ui.hover = p;
   // a tower is tapped where it IS now (it may have been dragged off its slot); its empty slot still picks it
-  const ci = cellAt(p.x, p.y), hit = towerAt(p) || (ci >= 0 && G.towers.find(t => t.cell === ci));
+  const ci = cellAt(p.x, p.y), pk = pickAt(ev), hit = (pk && pk.t) || (ci >= 0 && G.towers.find(t => t.cell === ci)); // the whole drawn tower or core (aspira-pick.js)
   if (relayArmTap(hit)) { refreshPanels(); return; } // an armed Relay: this tower takes it, anything else disarms (aspira-powers.js)
   if (hit) { ui.sel = hit.id; ui.build = null; }
-  else if (!ui.build && Math.hypot(p.x - CX, p.y - CY) <= CORE_R) { ui.sel = "core"; } // the core's card (aspira-core.js)
+  else if (!ui.build && pk && pk.core) { ui.sel = "core"; } // the core's card (aspira-core.js)
   else if (ui.build) placeTower(p);
   else if (ci >= 0 && canPlace(ci)) { ui.sel = null; openBuildChooser(ci); } // a free slot: the tower cards (aspira-chooser.js)
   else ui.sel = null;
