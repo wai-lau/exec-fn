@@ -588,15 +588,15 @@
 /* the sound toggle is an icon (owner): a speaker, crossed out when muted */
 #asp-mute svg { display: block; width: 1.2em; height: 1.2em; fill: none; stroke: currentcolor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-/* PHONES (owner): the wave list drops its numbers and names (enemies, HP and
-   the countdown stay), and it and the title squeeze in LEFT of compact build
-   buttons, on the same bottom band */
+/* PHONES (owner): the wave list drops its numbers (enemies, the countdown and - owner, 2026-10-11: "add wave type name to
+   the right of the pictures" - the name stay), and it and the title squeeze in LEFT of compact build buttons, on the
+   same bottom band */
 @media (width < 700px) {
   /* no holes (owner: "gaps"): HP right after the count, rows packed */
-  .asp-wavenote { grid-template-columns: auto auto; gap: var(--space-1) 0; } /* the countdown + icons */
+  .asp-wavenote { grid-template-columns: auto auto auto; gap: var(--space-1) 0; } /* the countdown + icons + name */
 
-  .asp-wavenote > span:nth-child(4n + 2),
-  .asp-wavenote > span:nth-child(4n + 4) { display: none; }
+  .asp-wavenote > span:nth-child(4n + 2) { display: none; }
+  .asp-wavenote > span:nth-child(4n) { padding-left: var(--space-2); }
 
 
 

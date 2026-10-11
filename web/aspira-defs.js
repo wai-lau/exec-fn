@@ -32,7 +32,7 @@ let OPEN_SLOTS = [-120, 0, 120];
 // THE ZOOM IS FIXED (owner, 2026-10-11): CSS px per world unit on every screen (resize, aspira-draw.js). PHONE_MIN_W: the
 // narrowest phone we fit (CSS px) - with the core centred across it, a tower can be dragged out to MOVE_MAX_R (leashR,
 // aspira-towers.js; owner: "make sure all movement limits are within the screen zoom on mobile")
-const FIXED_ZOOM = 0.6 /* owner, 2026-10-11: "increase zoom a bit" (was 0.5) */, PHONE_MIN_W = 360;
+const FIXED_ZOOM = 0.72 /* owner, 2026-10-11: "increase zoom a bit", "zoom in" (was 0.5, then 0.6) */, PHONE_MIN_W = 360;
 const CELL_S = 32, SLOT_R = 78 /* out from 65.5 to fit the bigger core and towers (2026-10-11) */, CELL_PITCH = SLOT_R / (Math.sqrt(3) * CELL_S), TRAVEL_R0 = Math.sqrt(3) * CELL_S * 2;
 // the corner slots: [angle (deg, screen: -90 = up), wave it opens]. Their
 // INNER LIMIT is CORNER_IN from the core (owner: with every tower at max level
@@ -338,7 +338,7 @@ const ENEMIES = {
 // THE SHORT-LANE MIX (owner, 2026-10-11: "generally faster enemies (and more money)", "much harder", then the eighth-turn
 // lanes with "cut HP to make it work"): every type's HP x ENEMY_HP_MUL and bounty x BOUNTY_MUL, applied once here so the
 // tables above keep their fitted shape. trios.mjs on this board: 3 of 4 trios win, FRZ+SOL+ACD best 95
-const ENEMY_HP_MUL = 0.225, BOUNTY_MUL = 1.25;
+const ENEMY_HP_MUL = 0.225, BOUNTY_MUL = 1; // BOUNTY 1.25 -> 1 (owner, 2026-10-11: "mid game pressure yes" - no lives went before wave 81)
 for (const k in ENEMIES) { ENEMIES[k].hp *= ENEMY_HP_MUL; ENEMIES[k].bounty *= BOUNTY_MUL; }
 
 const POWERS = [
