@@ -127,6 +127,7 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
   if (e.shield > 0 && !(st && st.ignoreShield)) {
     if (quiet) return;
     e.shield = Math.max(0, e.shield - ((st && st.shieldPop) || 1)); // most hits pop one; ACD's acid and SOL's beams pop more (shieldPop)
+    if (e.shield < SHIELD_BREAK_N) shieldBreak(e); // its last charges BREAK, loudly (aspira-floats.js)
     fx.push({ k: "hit", x: e.x, y: e.y, r: 18, m: 1, color: "cyan", t: 0, life: 0.07 });
     // all of it soaked: a "0" in SHIELD blue, as BIG as the hit it swallowed (owner)
     dmgNumber(e, "0", amt, "cyan", t);

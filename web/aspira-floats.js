@@ -52,6 +52,16 @@ function dmgColor(f) {
 function float(x, y, text, color, size = 28, life = 1.1, alpha = 1, vy = 30, under = false) {
   fx.push({ k: "text", x, y, text, color, t: 0, life, size, alpha, vy, outline: true, under });
 }
+// THE LAST SHIELDS BREAK (owner, 2026-10-11: "make the last 5 layers of shield falling off way more intense
+// visually"): once fewer than SHIELD_BREAK_N charges are left, every pop throws a shockwave and a spray of shards,
+// bigger the fewer remain - the last one biggest of all, with a white flash
+const SHIELD_BREAK_N = 5;
+function shieldBreak(e) {
+  const k = 1 - e.shield / SHIELD_BREAK_N, r = ENEMIES[e.type].size * (e.sizeMul || 1); // k: 0.2 at 4 left .. 1 at none
+  ring(e.x, e.y, r * (2 + 3 * k), "cyan", 0.2 + 0.3 * k, true);
+  burst(e.x, e.y, "cyan", Math.round(8 + 22 * k));
+  if (e.shield <= 0) { ring(e.x, e.y, r * 7, "white", 0.45, true); burst(e.x, e.y, "white", 24); }
+}
 function burst(x, y, color, n) {
   for (let i = 0; i < n; i++) {
     const a = Math.random() * 6.283, v = 40 + Math.random() * 120;
