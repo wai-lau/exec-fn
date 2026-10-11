@@ -1,18 +1,18 @@
 // /spire - enemy FORMATIONS (owner, 2026-10-11: "swarm has the jitter, fast uses these bird-like triangle patterns,
 // armor ... a tight square lattice, shields continue to come in a line"). A formation is a SIDEWAYS offset across the
-// lane (e.lat, world units, + = the lane's left) and a HEAD START along it; stepEnemies lays e.lat across the lane at
-// its current heading (formOffset), shrinking it to nothing inside FORM_FADE_R of the core so a formation funnels in.
-// Swarms keep their wander (e.jit) and shields their single file: neither has an entry here.
+// lane (e.lat, world units, + = the lane's left) and a HEAD START along it; stepEnemies lays it across the lane at its
+// current heading (formOffset), the across part shrinking to nothing inside FORM_FADE_R of the core so it funnels in.
+// Swarms keep their wander (e.jit) and fast their single file: neither has an entry here.
 const FORM_FADE_R = 160;
 // SHIELDS: Vs of V_N - a leader, then pairs fanned back and out (owner, 2026-10-11: "fast in lines, Vs for shields";
 // fast flew the Vs for an afternoon and now come single file)
 const V_N = 5, V_LAT = 24, V_BACK = 28;
 // ARMOR: one tight SQUARE lattice per lane copy, ARMOR_W abreast, rows ARMOR_PITCH apart - the same as the columns
 const ARMOR_W = 3, ARMOR_PITCH = 36;
-// THE ROLL (owner: "side axes should rotate about the center axis - speed rotates less, armor does not rotate"): a
-// formation turns about its lane's centre line, one radian every FORM_ROLL[type] world units it travels - its side
-// members sweep across the lane in 2D and over and under it in 3D (e.z, aspira-solids.js); no entry = it never rolls
-const FORM_ROLL = { shield: 80 }; // (owner: shields roll "more frequently" than the fast Vs did, at 160)
+// THE SPIN (owner, 2026-10-11: "rotate about the center unit's axis (spin around them)", "don't make any of them roll
+// faster"): a V turns FLAT on the board about its CENTRE UNIT - the leader, or the boss its escorts fly round - one
+// radian every FORM_SPIN[type] world units it travels; the members orbit it. No entry = it never spins (armor's lattice)
+const FORM_SPIN = { shield: 160 };
 // the slots for a group of m: [lat, ahead] each
 const FORMS = {
   shield: { group: () => V_N, slots: m => Array.from({ length: m }, (_, i) => {
@@ -55,18 +55,19 @@ function formSpawn(w, type) {
   for (let i = 0; i < m; i++) {
     spawnEnemy(type, w.n, w.lanes[type], w.ang || 0);
     const e = G.enemies[G.enemies.length - 1];
-    e.lat = slots[i][0]; e.ahead = slots[i][1]; e.s += e.ahead; // e.ahead: so the group rolls as ONE (formOffset)
+    e.lat = slots[i][0]; e.ahead = slots[i][1]; e.aheadC = slots[0][1]; e.s += e.ahead; // aheadC: the centre unit's (the leader's) place
   }
   w.idx += m - 1;
   return m;
 }
-// from stepEnemies: point p on the lane moved e.lat across it (toward the lane's left), faded in near the core
+// from stepEnemies: p (the lane at s) moved to this member's place in its formation - its offset from the CENTRE UNIT
+// (along the lane, and e.lat across it toward the lane's left) turned by the spin, the across part faded near the core.
 // s: where along the lane (the enemy itself by default; its tracer asks for points behind it - drawStarTrail)
 function formOffset(e, p, s = e.s) {
-  const q = pathAt(e.pi, s + 3, e.ang), tx = q.x - p.x, ty = q.y - p.y, L = Math.hypot(tx, ty);
-  if (!L) return;
-  const roll = FORM_ROLL[e.type], phi = roll ? (s - (e.ahead || 0)) / roll : 0; // the group's own travel: one phase for all
-  const fade = Math.min(1, Math.hypot(p.x - CX, p.y - CY) / FORM_FADE_R), k = e.lat * Math.cos(phi) * fade / L;
-  p.x += -ty * k; p.y += tx * k;
-  if (s === e.s) e.z = roll ? e.lat * Math.sin(phi) * fade : 0; // the height of its roll (3D only)
+  const spin = FORM_SPIN[e.type], c = s - (e.ahead || 0) + (e.aheadC || 0), phi = spin ? c / spin : 0; // c: the centre unit's place - one phase for all
+  const a0 = (e.ahead || 0) - (e.aheadC || 0), cs = Math.cos(phi), sn = Math.sin(phi);
+  const along = a0 * cs - e.lat * sn, across = a0 * sn + e.lat * cs;
+  const b = pathAt(e.pi, c + along, e.ang), q = pathAt(e.pi, c + along + 3, e.ang), tx = q.x - b.x, ty = q.y - b.y, L = Math.hypot(tx, ty) || 1;
+  const k = across * Math.min(1, Math.hypot(b.x - CX, b.y - CY) / FORM_FADE_R) / L;
+  p.x = b.x - ty * k; p.y = b.y + tx * k;
 }

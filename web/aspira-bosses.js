@@ -138,7 +138,7 @@ function bossFleet(e, n) {
       spawnEnemy(k, n, e.pi, e.ang || 0);
       const m = G.enemies[G.enemies.length - 1], r = ENEMIES[k].size;
       if (slots) { // its place in the boss's formation: across the lane, and ahead (+) or behind (-) the boss
-        m.lat = slots[c][0]; m.s = Math.max(0, e.s + slots[c][1]); m.ahead = slots[c][1];
+        m.lat = slots[c][0]; m.s = Math.max(0, e.s + slots[c][1]); m.ahead = slots[c][1]; m.aheadC = 0; // the boss is the centre unit
         reach[0] = Math.max(reach[0], slots[c][1] + r); reach[1] = Math.max(reach[1], -slots[c][1] + r);
       } else {
       // spaced so NOTHING OVERLAPS (owner, 2026-10-09: "increase spacing between all units and boss during boss waves so
