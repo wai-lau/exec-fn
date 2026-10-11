@@ -5,15 +5,15 @@ const cv = document.getElementById("asp-cv");
 let ctx = cv.getContext("2d"); // let: tower sprites and other offscreen draws borrow it
 // The canvas fills the screen; the camera fits the 1000-unit chart into the
 // band between the header and the bottom build bar. cam is in device pixels.
-// The default view sits 25% closer than the whole-chart fit (owner, 2026-10-02);
-// cam.fit keeps that whole-chart scale, the furthest you can zoom out.
-const DEFAULT_ZOOM = 1.953; // +25% (owner, 2026-10-06; was 1.5625) // 25% closer (owner, 2026-10-04; was 1.25)
-// on a PHONE (a portrait band, width the limit) the default view instead fits
-// PHONE_HALF units either side of the core across the width (owner, 2026-10-05)
+// THE ZOOM IS FIXED (owner, 2026-10-11: "keep the zoom fixed, furthest possible where tap and dragging on mobile is
+// still easy"): FIXED_ZOOM CSS px per world unit on every screen - a tower's pick zone (towerPick, CELL_S x sqrt 2 =
+// 45 units) is then a 45 px target across, about the smallest a thumb hits reliably (44 pt). It was the band's fit x
+// DEFAULT_ZOOM on a wide screen and PHONE_HALF units either side of the core on a phone (0.61 on an iPhone).
+const FIXED_ZOOM = 0.5;
 // CORE_TOP: world units from the BOTTOM OF THE STATS ROW down to the core
 // (owner, 2026-10-06, from a phone screenshot: was 400 from the top of the
 // canvas, which on an iPhone sits under the status bar, so the core rode high)
-const PHONE_HALF = 320, CORE_TOP = 416; // zoom +25% (owner, 2026-10-06; were 400 / 520 - the core keeps its spot on screen)
+const CORE_TOP = 416; // (owner, 2026-10-06; was 520 - the core keeps its spot on screen)
 const cam = { k: 1, ox: 0, oy: 0, fit: 1 };
 // the canvas draws at most RES_CAP device pixels per CSS pixel (owner: "need
 // more perf"): a phone at 3x drew 3.4 million pixels a frame; 2x is 2.25x fewer
@@ -30,9 +30,8 @@ function resize() {
   const head = document.querySelector(".asp-head").getBoundingClientRect(); // the stats row (the speed controls moved to the bottom)
   const foot = document.querySelector(".asp-bottom").getBoundingClientRect();
   const x0 = 0, y0 = head.bottom - r.top, x1 = r.width, y1 = foot.top - r.top;
-  const fit = Math.min(x1 - x0, y1 - y0) / W;
-  const k = x1 - x0 < y1 - y0 ? (x1 - x0) / (2 * PHONE_HALF) : fit * DEFAULT_ZOOM;
-  cam.fit = fit * dpr; cam.k = k * dpr;
+  const k = FIXED_ZOOM;
+  cam.fit = k * dpr; cam.k = k * dpr;
   cam.ox = (x0 + (x1 - x0 - W * k) / 2) * dpr;
   // the CORE sits CORE_TOP world units below the stats row (owner) - never
   // LOWER than the middle

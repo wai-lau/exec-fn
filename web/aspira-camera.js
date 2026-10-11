@@ -2,12 +2,12 @@
 // aspira-draw.js (which fits `cam` to the window in resize) and before
 // aspira-ui.js (whose onTap this calls).
 //
-// Mouse: the wheel zooms about the cursor; a drag pans. Touch: one finger
-// drags, two fingers pinch-zoom (and pan with their midpoint). A press that
-// moves less than DRAG_PX is a TAP and goes to onTap (select / place). Zoom
-// runs from the fitted view (1x) to ZOOM_MAX, and the core is kept on screen.
-// Double-click / double-tap snaps back to the fitted view.
-const ZOOM_MAX = 4, DRAG_PX = 6;
+// Mouse: a drag pans. Touch: one finger drags, two fingers pan with their
+// midpoint. THE ZOOM IS FIXED (FIXED_ZOOM, aspira-draw.js; owner, 2026-10-11) -
+// no wheel or pinch zoom. A press that moves less than DRAG_PX is a TAP and goes
+// to onTap (select / place); the core is kept on screen. Double-click /
+// double-tap recentres.
+const DRAG_PX = 6;
 const ptrs = new Map(); // pointerId -> { x, y } in device pixels
 let fitK = 0, dragged = false, downAt = null, pinch = null;
 // THE CORE'S POWER GESTURES (owner, 2026-10-06; aspira-core.js), only once the
@@ -52,12 +52,6 @@ function devXY(ev) {
   const r = cv.getBoundingClientRect(), dpr = canvasDpr();
   return { x: (ev.clientX - r.left) * dpr, y: (ev.clientY - r.top) * dpr };
 }
-// scale the view by f about device point (sx, sy), within [fit, fit x ZOOM_MAX]
-function zoomAt(sx, sy, f) {
-  const k = Math.max(fitK, Math.min(fitK * ZOOM_MAX, cam.k * f)), r = k / cam.k;
-  cam.ox = sx - (sx - cam.ox) * r; cam.oy = sy - (sy - cam.oy) * r; cam.k = k;
-  clampView();
-}
 function panBy(dx, dy) { cam.ox += dx; cam.oy += dy; clampView(); }
 // keep the core (the chart's centre) somewhere on the canvas
 function clampView() {
@@ -68,12 +62,7 @@ function clampView() {
 }
 function refit() { resize(); fitK = cam.fit; }
 
-cv.addEventListener("wheel", ev => {
-  ev.preventDefault();
-  if (!fitK) fitK = cam.fit;
-  const p = devXY(ev);
-  zoomAt(p.x, p.y, Math.exp(-ev.deltaY * 0.0015));
-}, { passive: false });
+cv.addEventListener("wheel", ev => ev.preventDefault(), { passive: false }); // (no zoom: the page must not scroll either)
 
 cv.addEventListener("pointerdown", ev => {
   if (!fitK) fitK = cam.fit;
@@ -96,7 +85,6 @@ cv.addEventListener("pointermove", ev => {
     const [a, b] = [...ptrs.values()];
     const d = Math.hypot(a.x - b.x, a.y - b.y), m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
     panBy(m.x - pinch.m.x, m.y - pinch.m.y);
-    if (pinch.d > 0) zoomAt(m.x, m.y, d / pinch.d);
     pinch = { d, m };
     return;
   }
