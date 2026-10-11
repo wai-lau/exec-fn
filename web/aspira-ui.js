@@ -49,8 +49,9 @@ function placeTower(p) {
   ring(t.x, t.y, 60, TOWERS[t.kind].color);
   // one tower per pick: placing ends placing mode (the menu stays closed)
   ui.build = null;
-  // the first tower placed starts wave 1 (owner), and shows its leash: towers can be dragged
-  if (!G.started) { hintLeash(t); sendWave(); }
+  // EVERY new tower shows its leash (owner, 2026-10-11; was the first only): towers can be dragged
+  hintLeash(t);
+  if (!G.started) sendWave(); // the first tower placed starts wave 1 (owner)
 }
 // a TAP on the board (aspira-camera.js decides tap vs drag/pinch): select a
 // tower, place the one being built, or clear the selection
