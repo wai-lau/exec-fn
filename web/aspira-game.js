@@ -284,11 +284,11 @@ function kill(e, t) {
 
 // LIVES come in multiples of LIFE_STEP 6 - a ring's first side count (owner, 2026-10-04)
 const LIFE_STEP = 6;
-// the star drops +12 LIVES (was +10) or +1% INTEREST (was +5%), half and half (owner, 2026-10-02:
+// the star drops +6 LIVES (was +12, +10) or +1% INTEREST (was +5%), half and half (owner, 2026-10-02:
 // never score, no credits; x10 since it now comes every 10th wave); fixed
 // per wave, like the waves
 function bonusDrop(e) {
-  if (fixedRand(e.n, 4) < 0.5) { G.lives += 2 * LIFE_STEP; float(e.x, e.y - 18, "+" + 2 * LIFE_STEP + " lives", "cyan"); }
+  if (fixedRand(e.n, 4) < 0.5) { G.lives += LIFE_STEP; float(e.x, e.y - 18, "+" + LIFE_STEP + " lives", "cyan"); } // +6 (owner, 2026-10-11: "reduce life rewards to 6"; was +12)
   else { G.interest += 0.01; float(e.x, e.y - 18, "+1% interest", "cyan"); } // owner: was +5%, too much compounding
 }
 
