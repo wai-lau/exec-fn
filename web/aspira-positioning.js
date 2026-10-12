@@ -60,7 +60,7 @@ function bestSpot(t, range) {
   // HP against the biggest on the field, Fresh full for the undebuffed and
   // POS_STALE for the rest. NEAR is ABSOLUTE (owner, 2026-10-06): only the enemy
   // nearest the core counts - unless no spot reaches it, then every enemy does
-  let f = pred.map(({ e }) => POS_MODE_MIX * (t.mode === "biggest" ? e.hp / pred.maxHp : t.mode === "fresh" ? (debuffed(e) ? POS_STALE : 1) : 1) + 1 - POS_MODE_MIX);
+  let f = pred.map(({ e }) => POS_MODE_MIX * (t.mode === "biggest" ? (e.arcana ? 1 : e.hp / pred.maxHp) : t.mode === "fresh" ? (debuffed(e) ? POS_STALE : 1) : 1) + 1 - POS_MODE_MIX);
   const all = f;
   if (t.mode === "close") {
     let ni = 0;

@@ -110,7 +110,7 @@ const MODE_KEY = {
   close: a => coreD2(a.e),
   // fresh: undebuffed first (nearest the core among them), then the rest
   fresh: a => (debuffed(a.e) ? 1e9 : 0) + coreD2(a.e),
-  biggest: a => -a.e.hp, // the most HP left (owner)
+  biggest: a => (a.e.arcana ? -1e15 : 0) - a.e.hp, // the most HP left (owner) - a BOSS always counts biggest, whatever its HP (owner, 2026-10-12)
 };
 
 function pickTargets(t, st, count) {
