@@ -140,12 +140,14 @@ function acdSkillStats(t, s, b) {
 // puddle ticks its burn on whatever stands in it, st.rate times a second
 function stepPuddles(t, st, dt) {
   const sp = st.contagion;
+  const drop = l => (t.puddles ||= []).push({ x: l.e.x, y: l.e.y, r: sp.r, life: sp.life, age: 0, tick: 0, dps: st.dmg * Math.min(ACD_PUDDLE_CAP, 2 ** (l.held / st.double)) * st.contagionHeat });
   for (const l of t.lines) {
-    if (l.e.dead) continue;
+    // a KILL under a jet drops a pool where it fell (owner, 2026-10-12); an escape drops none
+    if (l.e.dead) { if (l.e.hp <= 0 && !l.dropped) { l.dropped = true; drop(l); } continue; }
     l.drip = (l.drip ?? sp.every) - dt;
     if (l.drip > 0) continue;
     l.drip += sp.every;
-    (t.puddles ||= []).push({ x: l.e.x, y: l.e.y, r: sp.r, life: sp.life, age: 0, tick: 0, dps: st.dmg * Math.min(ACD_PUDDLE_CAP, 2 ** (l.held / st.double)) * st.contagionHeat });
+    drop(l);
   }
   if (!t.puddles) return;
   const every = 1 / st.rate;
