@@ -54,6 +54,11 @@ function updateQuality() {
 }
 // the effect kinds drawFx leaves out while low (the beams, rings and texts stay)
 const LOW_SKIP_FX = { hit: 1, spark: 1, cone: 1, flash: 1, blast: 1, zen: 1 };
+// DETAIL BY DISTANCE (owner, 2026-10-12: "details by distance yes"): in 3D, past DETAIL_FAR_R from the core - the far half of
+// the board, where little is decided - no tracers, no hit flashes, no damage numbers, and swarmers draw flat (CPU per frame
+// was the slow machines' limit); the centre keeps everything
+const DETAIL_FAR_R = 360;
+const farFx = e => q3d() && (e.x - CX) ** 2 + (e.y - CY) ** 2 > DETAIL_FAR_R * DETAIL_FAR_R;
 // AUTO STEP-DOWN (owner, 2026-10-12: "extremely laggy on my partner's brave browser" - 3D is the default now): while the
 // player has NOT chosen a quality (nothing stored), a frame time averaging over AUTO_Q_MS for AUTO_Q_HOLD real seconds
 // drops 3D to high, then high to low, with a float that says so. A choice on the slider is never overridden

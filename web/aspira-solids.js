@@ -148,7 +148,7 @@ const SOLID_LOD_PX = 12; // (a budget of full dice a frame, the rest flat, ran f
 function warpFlatDie(e) {
   if (e.type !== "swarm") return false; // ONLY a tiny SWARMER is ever flat - every other enemy stays a die (owner, 2026-10-12)
   const P = warpProject(e.x, e.y), r = solidSize(e) * cam.k * P.s;
-  if (!(r < SOLID_LOD_PX)) return false;
+  if (!(r < SOLID_LOD_PX) && !farFx(e)) return false; // (or out in the far ring - farFx, aspira-quality.js)
   if (warpBand && warpBand.lo !== 0) return true; // only the pass above the floor draws it
   const d = ENEMIES[e.type], n = d.sides, col = COL[d.color], fa = warpFade * Math.max(SOLID_FAR_MIN, Math.min(1, P.s / warp.p.z) ** 2);
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.beginPath();

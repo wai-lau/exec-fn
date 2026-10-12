@@ -173,7 +173,7 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
   amt = bossHitCap(e, amt); // Justice / Death cap a single hit (aspira-bosses.js)
   amt = Math.max(1, Math.floor(amt)); // a hit is a WHOLE number, rounded down - but one that lands always takes 1 (owner, 2026-10-08)
   e.hp -= amt;
-  if (!quiet && !(st && st.noFx)) { // noFx: the hit lands in full, unseen (crowded acid pools - aspira-acid.js)
+  if (!quiet && !(st && st.noFx) && !(typeof farFx === "function" && farFx(e))) { // noFx: unseen (crowded pools - aspira-acid.js); farFx: 3D's far ring (aspira-quality.js)
     // impact flash sized and lit by the damage; big hits also throw sparks
     const m = dmgMag(amt), col = t ? TOWERS[t.kind].color : "orange";
     fx.push({ k: "hit", x: e.x, y: e.y, r: 5 + 8 * m, m, color: col, t: 0, life: 0.05 + 0.027 * m });
