@@ -404,9 +404,13 @@ const leashR = t => {
 };
 const slideSpan = t => Math.round(leashR(t)); // the card's Leash row
 const towerAt = p => G.towers.find(t => Math.hypot(p.x - t.x, p.y - t.y) <= CELL_S);
-// two towers' centres stay TOWER_GAP apart (a hex each plus a sliver), and none
-// comes nearer the core than the slots do (they sit snug on its shield)
+// two towers' centres stay TOWER_GAP apart (a hex each plus a sliver), and the core
+// blocks a tower only where their outlines would meet (owner, 2026-10-12: "right now
+// there's an air gap"; was a SLOT_R circle): two pointy hexes of one orientation touch
+// when the offset lies on a hex of their summed radii, coreKeep(a) out along angle a
 const towerGap = () => 2 * CELL_S * TOWER_K + 4;
+const coreKeepR = () => (typeof coreOuterR === "function" ? coreOuterR() : CORE_R) + CELL_S * TOWER_K + 2;
+const coreKeep = a => { const s = Math.PI / 3, f = ((a % s) + s) % s; return coreKeepR() * Math.sqrt(3) / 2 / Math.cos(Math.min(f, s - f)); };
 // the legal spot nearest p for t: inside its leash, off the core, clear of the
 // other towers - or null when no nudge finds one (it then stays where it is)
 function legalSpot(t, p) {
@@ -415,11 +419,11 @@ function legalSpot(t, p) {
   const away = (ox, oy, min) => { const d = Math.hypot(x - ox, y - oy) || 1e-6; if (d < min) { x = ox + (x - ox) * min / d; y = oy + (y - oy) * min / d; } };
   for (let i = 0; i < 4; i++) {
     for (const o of G.towers) if (o !== t) away(o.x, o.y, gap);
-    away(CX, CY, SLOT_R);
+    away(CX, CY, coreKeep(Math.atan2(y - CY, x - CX)));
     const d = Math.hypot(x - c.x, y - c.y);
     if (d > L) { x = c.x + (x - c.x) * L / d; y = c.y + (y - c.y) * L / d; }
   }
-  const clear = G.towers.every(o => o === t || Math.hypot(x - o.x, y - o.y) >= gap - 0.5) && Math.hypot(x - CX, y - CY) >= SLOT_R - 0.5;
+  const clear = G.towers.every(o => o === t || Math.hypot(x - o.x, y - o.y) >= gap - 0.5) && Math.hypot(x - CX, y - CY) >= coreKeep(Math.atan2(y - CY, x - CX)) - 0.5;
   return clear ? { x, y } : null;
 }
 function moveTo(t, p) { const s = legalSpot(t, p); if (s) { t.x = s.x; t.y = s.y; } return !!s; }

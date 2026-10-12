@@ -45,7 +45,7 @@ function bounce(t, f) {
   const c = CELLS[t.cell], dl = Math.hypot(t.x - c.x, t.y - c.y);
   let nx = 0, ny = 0;
   if (dl >= leashR(t) - 1) { nx = (t.x - c.x) / dl; ny = (t.y - c.y) / dl; } else {
-    const walls = G.towers.filter(o => o !== t).map(o => ({ x: o.x, y: o.y, r: towerGap() })).concat([{ x: CX, y: CY, r: SLOT_R }]);
+    const walls = G.towers.filter(o => o !== t).map(o => ({ x: o.x, y: o.y, r: towerGap() })).concat([{ x: CX, y: CY, r: coreKeep(Math.atan2(t.y - CY, t.x - CX)) }]);
     let best = null, gap = Infinity;
     for (const w of walls) { const d = Math.hypot(t.x - w.x, t.y - w.y) - w.r; if (d < gap) { gap = d; best = w; } }
     if (!best) return;
