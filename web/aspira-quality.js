@@ -43,7 +43,7 @@ function qualityBox(row) {
   box.className = "asp-quality";
   box.innerHTML = '<span>quality</span><input type="range" min="0" max="2" step="1" id="asp-quality" aria-label="visual quality"><b id="asp-quality-v"></b>';
   row.append(box);
-  $("asp-quality").addEventListener("input", ev => setQuality(QUALITIES[ev.target.value]));
+  $("asp-quality").addEventListener("input", ev => { setQuality(QUALITIES[ev.target.value]); try { localStorage.setItem("spire.qpick", "1"); } catch (e) { /* not remembered */ } }); // a PICK on the slider pins it (autoQuality)
   updateQuality();
 }
 function updateQuality() {
@@ -60,7 +60,7 @@ const LOW_SKIP_FX = { hit: 1, spark: 1, cone: 1, flash: 1, blast: 1, zen: 1 };
 const AUTO_Q_MS = 40, AUTO_Q_HOLD = 3;
 let autoQ = { ema: 16, slow: 0 };
 function autoQuality(dt) {
-  try { if (localStorage.getItem("spire.quality")) return; } catch (e) { /* no storage: still step down */ }
+  try { if (localStorage.getItem("spire.qpick")) return; } catch (e) { /* no storage: still step down */ } // only a slider PICK stops it - a quality merely remembered from before does not (slow log, 2026-10-12)
   if (qMode === "low" || !(dt > 0) || dt > 0.5) return; // (a stall, a tab switch: not a frame time)
   autoQ.ema += (dt * 1000 - autoQ.ema) * 0.05;
   autoQ.slow = autoQ.ema > AUTO_Q_MS ? autoQ.slow + dt : 0;

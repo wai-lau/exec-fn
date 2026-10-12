@@ -175,7 +175,7 @@ function warpUnview(p, v) { return v < p.hc * p.T ? v / p.hc : v < p.L ? p.T + (
 // the PICTURE for the 3D view (owner, 2026-10-09: "render randomly cuts off at the top"): leaned back, the view shows
 // far more of the board than the 2D screen held, so the frame is drawn for the texture with a camera of its own that
 // fits the WHOLE board (WARP_TEX_R world units round the core) in the canvas; the view keeps the player's camera
-const WARP_TEX_R = 860, WARP_TEX_MAX = 3072;
+const WARP_TEX_R = 860, WARP_TEX_MAX = 2048; // (was 3072 - perf, 2026-10-12)
 // the VIEW's size, device px: the 2D canvas's own size is the picture's in 3D
 // LOWER RESOLUTION in 3D (owner, 2026-10-09: "reduce reso to match phone"): the 3D view's canvases (picture, bell and
 // sprites) are WARP_RES of the 2D canvas's pixels a side, the CSS stretching them back - on a phone at 2x, 1.5x. The
