@@ -24,6 +24,9 @@ const FRZ_RIME_CRACK = [0, 0.1, 0.14, 0.18, 0.22, 0.26];
 // BRITTLE IS FOR LIGHT BODIES (2026-10-11, "make upgrade choices matter"): x brittle on all made Temp the best axis
 // against every type - now fast, swarms and bosses shatter, and Moons (armor) and Rime (shields) answer the hard ones
 const FRZ_HARD = { armor: true, shield: true };
+// a tick is QUIET (no flash, no crit) yet ARMOR takes its flat bite like any hit (owner, 2026-10-12: "frz ticks should not
+// ignore armor" - damage() now bites every hit); kept for the shield pop's call
+const FRZ_TICK_HIT = {};
 const FRZ_MOON_CRACK = [0, 0.3, 0.45, 0.6, 0.7, 0.8];
 const FRZ_RIME = [0, 0.04, 0.07, 0.12, 0.17, 0.22]; // each pulse's permanent stacking slow - the SHIELD answer (2026-10-11: a slow, tanky shield takes the most pulses; was 0 .024 .035 .054 .064 .068): Rime build leaks 13% of shields, Temp 24, Moons 23
 // FRZ's own levers (owner: no generic multipliers): Rime pulses MORE OFTEN each tier, the moons are STRONGER copies each tier
@@ -33,7 +36,6 @@ const FRZ_RIME_PERIOD = [2, 2, 1.7, 1.4, 1.2, 1], FRZ_MOON_BY = [0.6, 0.85, 0.86
 const FRZ_TEMP_TICK = [0.5, 0.44, 0.39, 0.34, 0.3, 0.26];
 const FRZ_TICK = 0.5, FRZ_RIME_GROW = 2.4; // a Rime ring takes FRZ_RIME_GROW game s to reach the edge (owner: much slower; was 0.6)
 const FRZ_AURA_HOLD = 0.06, FRZ_RIM_W = 16; // the frosted rim's width per unit of slow (owner: thicker the colder) // an aura slow outlasts one step only: it is gone the moment the enemy leaves
-const FRZ_TICK_HIT = { armorPierce: 1 }; // a tick's hit on a shield: no armor bite
 function frzSkillStats(t, s, b) {
   const f = skillOf(t, "temp");
   s.range = b.range * RANGE_BONUS;
@@ -69,7 +71,12 @@ const FRZ_BITE = { ref: 40 }; // fast x3.4, swarm x3.1, shield x0.94, armor x0.7
 // speed ratio gave swarm, shield and armor all x1.9 and fast x2.85 - FRZ lost its niche. The designed bites, restored as a
 // table: the fast answer, good on swarms, weak against shield and armor (counter matrix, ARCHITECTURE.md section 22)
 const FRZ_BITE_BY = { fast: 9, swarm: 4.5, shield: 1.3, armor: 2 }; // swarm 3.1 -> 4.5, shield 0.94 -> 1.3 (2026-10-12, swap.mjs: FRZ the least needed tower, two FRZ kept 62 lives vs ARC 87 - with this 78) // fast 9 / armor 2 (2026-10-11 sweep, countermx 61-69: FRZ fast 30-77% -> 0-6% leaked, armor 97-100% -> 17-68%; FRZ+SOL+ACD 0/9 -> 6/9)
-const frzBite = () => 1; // NO BITE BY TYPE (owner, 2026-10-12: "get rid of all enemy based damage multis"; the table above is dead)
+// THE COLDER, THE HARDER (owner, 2026-10-12: "make frz deal damage relative to slow percentage"; replaced the bite by
+// TYPE, now gone - "get rid of all enemy based damage multis"; the table above is dead): a tick hurts x (1 + FRZ_CHILL_K x
+// the enemy's slow now, 0..1) - every slow on it counts, so the fast (slowed twice as hard) and anything held by other
+// slows take the most. let: the simulator sweeps it
+let FRZ_CHILL_K = 6;
+const frzBite = e => 1 + FRZ_CHILL_K * (e.slowT > 0 ? e.slowF : 0);
 // MAX RIME (owner, 2026-10-11: "if something reaches max rime, it spreads to the nearest unit that is not yet max
 // rime"): an enemy its rime alone slows FRZ_RIME_FULL (before the slow's shaping) holds no more - a pulse that reaches it
 // passes its rime to the nearest living enemy that can still take it, a frost line between them
@@ -95,15 +102,15 @@ function frzStep(t, dt) {
     for (const e of G.enemies) {
       if (e.dead || (e.x - s.x) ** 2 + (e.y - s.y) ** 2 > r2) continue;
       applySlow(e, st.aura * s.k, FRZ_AURA_HOLD, s.id);
-      if (st.brittle > 1) e.brittle = Math.max(e.brittle || 1, st.brittle); // light bodies shatter; armor and shields do not
+      if (st.brittle > 1) e.brittle = Math.max(e.brittle || 1, st.brittle); // (it counts only while slowed - damage() - so a shield, which takes no slow, holds it off)
       if (!tick) continue;
       ticked = true;
       if (st.frost && e.armor > 0) e.armor *= 1 - st.frost; // Moons crack armor, for good
       // a tick POPS a shield (owner, 2026-10-06) and is never blunted by armor;
       // otherwise it is quiet (no flash) but shows its NUMBER, sized by what it took
-      if (e.shield > 0) { damage(e, st.dmg * s.k, t, false, false, FRZ_TICK_HIT); continue; }
+      if (e.shield > 0) { damage(e, st.dmg * s.k, t, false, false, FRZ_TICK_HIT); continue; } // a tick POPS a shield (owner, 2026-10-12: "shields should not absorb ticks")
       const hp = e.hp;
-      damage(e, st.dmg * s.k * frzBite(e), t, true);
+      damage(e, st.dmg * s.k * frzBite(e), t, true); // quiet, but armor still bites it (damage())
       if (hp - e.hp > 0) dmgNumber(e, String(dmgUnits(hp - e.hp)), hp - e.hp, "white", t);
     }
   }

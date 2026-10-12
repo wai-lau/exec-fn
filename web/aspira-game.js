@@ -147,7 +147,8 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
   const pierce = (st && st.armorPierce) || 0;
   // (FROST CRACKED ARMOR here while slowed until 2026-10-11 - brittle x FRZ_CRACK; Moons now crack it for good, aspira-frz.js)
   const arm = Math.trunc(e.armor || 0); // whole armor, rounded toward zero (Breach/Corrosion strip it in fractions)
-  if (arm > 0 && !quiet && pierce < 1) amt = Math.max(amt * 0.1, amt - arm * (1 - pierce));
+  if (arm > 0 && pierce < 1) // EVERY hit, quiet ones too - FRZ ticks, splash, damage over time, Nova (owner, 2026-10-12; quiet hits skipped armor until then)
+    amt = Math.max(amt * 0.1, amt - arm * (1 - pierce));
   // NEGATIVE armor (ACD's Corrosion, owner) is a flat bonus on every hit
   else if (arm < 0 && !quiet) amt -= arm;
   const blunted = amt < raw;
@@ -219,7 +220,10 @@ function addDebuff(map, src, v, dur, shape) {
   if (shape === "once") { if (!d) map[src] = { v, t: Infinity }; return; }
   map[src] = { v: d && d.t > 0 ? Math.max(d.v, v) : v, t: d && d.t === Infinity ? Infinity : dur };
 }
+// A SHIELD HOLDS OFF EVERY SLOW (owner, 2026-10-12: "shielded units cannot be slowed while they have shields") - FRZ's
+// weakness to shields, by mechanics: no slow, so no chill (frzBite) and no brittle. Temporal Drive ("core:") still stops it
 function applySlow(e, f, dur, src = "x", shape = "refresh") {
+  if (e.shield > 0 && !String(src).startsWith("core:")) return false;
   if (e.arcana) { f *= bossSlowMul(e); if (f <= 0) return true; } // Strength / Death (aspira-bosses.js)
   if (e.type === "fast") f *= FAST_SLOW_MUL;
   addDebuff(e.slows ||= {}, src, f, dur, shape);
