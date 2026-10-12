@@ -61,7 +61,8 @@ function shieldsOf(type, n) {
 const enemyHp = (type, n) => (9 * hpPow(n) + n * 2) * ENEMIES[type].hp * 2 * shieldsOf(type, n).hpMul; // x2: half as many enemies (owner); 9 / 2 (2026-10-08: all HP halved, was 18 / 4)
 function spawnEnemy(type, n, pi, ang = 0) {
   const d = ENEMIES[type], s0 = entryS(pi), p0 = pathAt(pi, s0, ang);
-  const hp = Math.max(1, Math.floor(enemyHp(type, n))); // never 0 (2026-10-11: x0.225 HP left the early swarms at 0 - spawned dead, never drawn) // WHOLE numbers (owner, 2026-10-08): HP, armor and every hit round down
+  // a SWARMER's HP jitters 50-200% of the wave's, averaging the same (owner, 2026-10-12): 0.5 + 1.5 u^2, mean 0.5 + 1.5/3 = 1
+  const hp = Math.max(1, Math.floor(enemyHp(type, n) * (type === "swarm" ? 0.5 + 1.5 * Math.random() ** 2 : 1))); // never 0 (2026-10-11: x0.225 HP left the early swarms at 0 - spawned dead, never drawn) // WHOLE numbers (owner, 2026-10-08): HP, armor and every hit round down
   // DEFENCES KEEP PACE WITH HP (overnight simulator, 2026-10-02): with flat
   // armor/shields, late waves were pure dps and ARC spam won. Armor grows with
   // the curve to ARMOR_EXP (0.4; was the square root), shields with its 0.4 power - normalised so
