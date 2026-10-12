@@ -58,7 +58,10 @@ function shieldsOf(type, n) {
   const r = sCurve(n) / sCurve(3), old = Math.max(b, b * Math.pow(r, 0.4)), shield = Math.max(b, Math.round(b * Math.pow(r, SHIELD_EXP)));
   return { shield, hpMul: old / shield };
 }
-const enemyHp = (type, n) => (9 * hpPow(n) + n * 2) * ENEMIES[type].hp * 2 * shieldsOf(type, n).hpMul; // x2: half as many enemies (owner); 9 / 2 (2026-10-08: all HP halved, was 18 / 4)
+// EARLY SHIELDS SOFTER (owner, 2026-10-12: "early game shield too hard" - rounded up to fill 3- and 5-Vs, wave 2 brings 9
+// not 5): x SHIELD_EARLY HP to wave 20, easing to full by wave 30
+const SHIELD_EARLY = 0.6, shieldEarly = n => SHIELD_EARLY + (1 - SHIELD_EARLY) * Math.min(1, Math.max(0, (n - 20) / 10));
+const enemyHp = (type, n) => (9 * hpPow(n) + n * 2) * ENEMIES[type].hp * 2 * shieldsOf(type, n).hpMul * (type === "shield" ? shieldEarly(n) : 1); // x2: half as many enemies (owner); 9 / 2 (2026-10-08: all HP halved, was 18 / 4)
 function spawnEnemy(type, n, pi, ang = 0) {
   const d = ENEMIES[type], s0 = entryS(pi), p0 = pathAt(pi, s0, ang);
   // a SWARMER's HP jitters 50-200% of the wave's, averaging the same (owner, 2026-10-12): 0.5 + 1.5 u^2, mean 0.5 + 1.5/3 = 1
