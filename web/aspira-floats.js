@@ -114,22 +114,33 @@ function creditDot(x, y, b) {
     coins.push({ x: x + Math.cos(a) * r, y: y + Math.sin(a) * r, b: v, face: COIN_FACES.find(f => v >= f && v < f + 1) || 1, grp, t: 0 });
   }
 }
+// coins GRAVITATE to the NEAREST of the core and the towers (owner, 2026-10-12), re-picked every step since towers
+// slide; a tower takes a coin within COIN_TOWER_R of its centre and pops the kill's "+Nc" above itself
+const COIN_TOWER_R = 12;
+function coinHome(c) {
+  let best = { x: CX, y: CY, r: CORE_R, core: true }, bd = Math.hypot(CX - c.x, CY - c.y);
+  for (const t of G.towers) {
+    const d = Math.hypot(t.x - c.x, t.y - c.y);
+    if (d < bd) { bd = d; best = { x: t.x, y: t.y, r: COIN_TOWER_R, core: false }; }
+  }
+  return best;
+}
 function stepCoins(dt) {
   for (const c of coins) {
     c.t += dt;
-    const dx = CX - c.x, dy = CY - c.y, d = Math.hypot(dx, dy), tm = c.t - COIN_HOLD, step = tm > 0 ? (COIN_V0 + COIN_ACC * tm) * dt : 0;
-    if (d <= CORE_R || step >= d) {
+    const h = coinHome(c), dx = h.x - c.x, dy = h.y - c.y, d = Math.hypot(dx, dy), tm = c.t - COIN_HOLD, step = tm > 0 ? (COIN_V0 + COIN_ACC * tm) * dt : 0;
+    if (d <= h.r || step >= d) {
       c.done = true; G.money += c.b;
       if (--c.grp.left > 0) continue; // the kill's popup waits for its last coin
       // SMALLER and from ABOVE the core, so it never hides it (owner, 2026-10-09): in 3D above its raised top too - a height
       // h stands h x tan(tilt) floor units up the screen
-      const lift = typeof q3d === "function" && q3d() && warp.lightZ ? warp.lightZ * Math.tan(WARP.tilt) : 0;
+      const lift = h.core && typeof q3d === "function" && q3d() && warp.lightZ ? warp.lightZ * Math.tan(WARP.tilt) : 0;
       // SIZED LIKE A DAMAGE NUMBER (owner, 2026-10-09: "gold popups should also be sized like damage"): by its share of
       // the biggest payout yet, on the damage numbers' scale (was a flat 12px)
       const gb = c.grp.b;
       G.maxGold = Math.max(G.maxGold || 1, gb);
       const rel = (gb / G.maxGold) ** DMG_SIZE_EXP;
-      float(CX, CY - CORE_R - 22 - lift, "+" + (gb < 10 ? +gb.toFixed(1) : Math.round(gb)) + "c", "orange", Math.round(DMG_PX_MIN + DMG_PX_SPAN * rel), 2.0); // credits read "Nc"
+      float(h.x, h.y - h.r - 22 - lift, "+" + (gb < 10 ? +gb.toFixed(1) : Math.round(gb)) + "c", "orange", Math.round(DMG_PX_MIN + DMG_PX_SPAN * rel), 2.0); // credits read "Nc"
       fx[fx.length - 1].shrink = true; // it holds, then shrinks + fades like a damage number (owner)
     } else { c.x += dx / d * step; c.y += dy / d * step; }
   }
