@@ -186,8 +186,11 @@ const warpScreen = () => { const s = warpScreenFull(); return { w: Math.round(s.
 // one 3D frame (aspira-ui.js frame), the camera scaled to the smaller canvases
 function warp3d() {
   const c0 = { k: cam.k, ox: cam.ox, oy: cam.oy };
+  // the leash cap under the VIEW's camera, held for the frame: drawn under the texture camera it came out another size
+  // than the drag's, so on a wide desktop a tower sat outside its own dashed circle (owner, 2026-10-12)
+  if (warp.p) { moveMaxR3d(); moveMax3d.lock = true; }
   cam.k *= WARP_RES; cam.ox *= WARP_RES; cam.oy *= WARP_RES;
-  try { warpRender(); warpDraw(); } finally { Object.assign(cam, c0); }
+  try { warpRender(); warpDraw(); } finally { Object.assign(cam, c0); moveMax3d.lock = false; }
 }
 // a 2D-canvas pixel (full resolution) back to the canvas spot under it, through the bell; null off it
 function unwarpFull(x, y) {

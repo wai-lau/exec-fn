@@ -379,6 +379,7 @@ const moveMaxR2d = () => PHONE_MIN_W / 2 / FIXED_ZOOM - CELL_S * TOWER_K - MOVE_
 // matching 2D across at the core and foreshortened up and down
 let moveMax3d = { key: "", r: 0 };
 function moveMaxR3d() {
+  if (moveMax3d.lock) return moveMax3d.r; // inside a 3D frame cam is the TEXTURE's camera: keep the view's cap (warp3d)
   const key = [cam.k, cam.ox, cam.oy, WARP.tilt, WARP.fov].join();
   if (moveMax3d.key === key) return moveMax3d.r;
   const c0 = { k: cam.k, ox: cam.ox, oy: cam.oy };
