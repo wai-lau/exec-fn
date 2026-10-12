@@ -89,7 +89,7 @@ function spawnEnemy(type, n, pi, ang = 0) {
     // swarm bounty must hold; money is shown rounded down)
     bounty: bountyBase(n) * d.bounty, // (aspira-waves.js) slowF: 0, slowT: 0, stunT: 0, markT: 0, markMul: 1,
   });
-  if (type === "swarm") G.enemies[G.enemies.length - 1].sizeMul = jit; // as big as its HP share
+  if (type === "swarm") G.enemies[G.enemies.length - 1].sizeMul = 0.3 + (jit - 0.3) * 1.2 / 2.7; // its HP share mapped onto 30-150% size (owner, 2026-10-12: "cap out at 150%"; was the HP share itself, to 300%)
   if (type === "bonus") bossSpawn(G.enemies[G.enemies.length - 1], n); // which boss (aspira-bosses.js)
 }
 
