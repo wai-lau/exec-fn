@@ -89,7 +89,8 @@ function formSpawn(w, type) {
 // (along the lane, and e.lat across it toward the lane's left) turned by the spin, the across part faded near the core.
 // s: where along the lane (the enemy itself by default; its tracer asks for points behind it - drawStarTrail)
 function formOffset(e, p, s = e.s) {
-  const spin = FORM_SPIN[e.type], c = s - (e.ahead || 0) + (e.aheadC || 0), phi = spin ? c / spin : 0; // c: the centre unit's place - one phase for all
+  // (a boss's escorts never spin about it - bossKin)
+  const spin = e.bossKin ? 0 : FORM_SPIN[e.type], c = s - (e.ahead || 0) + (e.aheadC || 0), phi = spin ? c / spin : 0; // c: the centre unit's place - one phase for all
   const a0 = (e.ahead || 0) - (e.aheadC || 0), cs = Math.cos(phi), sn = Math.sin(phi);
   const along = a0 * cs - e.lat * sn, across = a0 * sn + e.lat * cs;
   const b = pathAt(e.pi, c + along, e.ang), q = pathAt(e.pi, c + along + 3, e.ang), tx = q.x - b.x, ty = q.y - b.y, L = Math.hypot(tx, ty) || 1;

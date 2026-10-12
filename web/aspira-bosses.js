@@ -134,6 +134,9 @@ function fleetForm(e, R) {
 // THE JUDGEMENT'S FLEET SPREADS: lane copies evenly round the rim, each its own share of the escorts in the same formation
 // round where the boss would be. The Judgement's boss rides ONE lane and its swarm TWELVE others ("change judgement boss to have boss arrive
 // on one lane and the swarms in 12 different ones"); the Devil's six and the Lovers' two already come from their own lanes
+// the LINE escorts (fast, swarms) ride FLEET_TRACKS parallel tracks across the boss's own lane, 3-5, the boss in the middle
+// (owner, 2026-10-12: "the escorts should travel on parallel lanes to its own (some already do)" - shields and armor did)
+const FLEET_TRACK_W = 26, fleetTracks = n => 3 + Math.floor(fixedRand(n, 7) * 3);
 const fleetLanes = (e, n) => (isA(e, "judgement") ? { L: 12, off: 0.5 } : { L: 1, off: 0 }); // only the Judgement spreads its escorts (owner, 2026-10-12: "escorts don't spread, only judgement"; every fleet rode 3-5 lanes briefly)
 function bossFleet(e, n) {
   const kinds = FLEET[e.arcana];
@@ -144,7 +147,7 @@ function bossFleet(e, n) {
   // lattice ARMOR_W wide with the boss in its middle; fast and swarms keep the line ahead of and behind it
   const form = fleetForm(e, R);
   for (let j = 0; j < L; j++) {
-    const ang = ((e.ang || 0) + (j + off) * Math.PI * 2 / L) % (Math.PI * 2), reach = [R, R];
+    const ang = ((e.ang || 0) + (j + off) * Math.PI * 2 / L) % (Math.PI * 2), reach = [R, R], T = fleetTracks(n), track = Array.from({ length: T }, () => [R, R]);
     let i = 0;
     for (const k of kinds) {
       const all = Math.max(1, Math.round(waveCount(k, n) * (FLEET_MUL[e.arcana] ?? 1) / kinds.length / bodies)), count = Math.floor(all / L) + (j < all % L ? 1 : 0);
@@ -156,9 +159,12 @@ function bossFleet(e, n) {
           m.form = true; m.lat = slots[c][0]; m.s = e.s + slots[c][1]; m.ahead = slots[c][1]; m.aheadC = 0;
           reach[0] = Math.max(reach[0], slots[c][1] + r); reach[1] = Math.max(reach[1], -slots[c][1] + r);
         } else {
-          // spaced so NOTHING OVERLAPS (owner, 2026-10-09): each clears the boss's spot and the one before it by FLEET_GAP
-          const side = i % 2;
-          reach[side] += FLEET_GAP + r; m.s = e.s + (side ? -1 : 1) * reach[side]; reach[side] += r;
+          // on its TRACK across the lane, spaced so NOTHING OVERLAPS (owner, 2026-10-09): ahead, behind, ahead... of the boss's
+          // spot, each clearing the one before it on its track by FLEET_GAP
+          const tk = i % T, side = Math.floor(i / T) % 2, tr = track[tk], lat = (tk - (T - 1) / 2) * FLEET_TRACK_W;
+          tr[side] += FLEET_GAP + r; const ahead = (side ? -1 : 1) * tr[side]; tr[side] += r;
+          m.form = true; m.lat = lat; m.s = e.s + ahead; m.ahead = ahead; m.aheadC = 0;
+          reach[0] = Math.max(reach[0], tr[0]); reach[1] = Math.max(reach[1], tr[1]);
         }
         // in FORMATION: at the boss's own pace, so the spacing holds (a fast escort behind would run through it)
         m.spd = (e.spd || 1) * ENEMIES.bonus.speed / ENEMIES[k].speed; m.jit = 0; // (a swarmer's wander would carry it into its neighbours)
