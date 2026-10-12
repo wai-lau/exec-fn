@@ -10,7 +10,7 @@ import { play } from "./sim.mjs";
 import { runPool } from "./pool.mjs";
 import { ALL } from "./corepower.mjs";
 
-export const STYLES = { greedy: { up: 0.8 }, balanced: { up: 0.5 }, saver: { up: 0.3, reserve: 10 }, threat: { up: 0.5, threat: 150 } }; // (a hoarder style ran for an afternoon, 2026-10-12 - dropped: "no need to run hoarder")
+export const STYLES = { greedy: { up: 0.8, econ: "spend" } /* greedy is the NON-saver on purpose; the rest save smart (sim.mjs default) */, balanced: { up: 0.5 }, saver: { up: 0.3, reserve: 10 }, threat: { up: 0.5, threat: 150 } }; // (a hoarder style ran for an afternoon, 2026-10-12 - dropped: "no need to run hoarder")
 export const OPENINGS = { "arc arc": ["arc", "arc"], "sol sol": ["sol", "sol"], "arc frz": ["arc", "frz"], "acd acd": ["acd", "acd"] };
 const MIX = { arc: 1, frz: 1, sol: 1, acd: 1 };
 const CORE = process.env.CURVE_CORE === "none" ? null : ALL;
