@@ -61,5 +61,5 @@ ARC_CHARGES.push("six charges", "seven charges", "eight charges"); // indexed by
 FRZ_RIME_TEXT.push(FRZ_RIME_TEXT[5]);
 FRZ_MOONS.push(" Four moons copy it, each with four moonlets.");
 SOL_RAYS.push("Eight rays");
-SOL_REFRACT.push("refracting through every enemy in a wide cone");
+SOL_REFRACT.push("refracting through every enemy in two opposite cones");
 ACD_JETS.push("Eleven");
