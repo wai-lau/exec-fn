@@ -41,7 +41,10 @@ let HP_GROWTH = 1.13; const ARMOR_EXP = 0.4, SHIELD_EXP = 0.335; // let: the sim
 // past HP_KNEE (HP_GROWTH before). Sim on the 2026-10-08 build: random players won 11% -> 5%, the curve's
 // scripted players 61 -> 48 of 80 (x1.12 cut them to 30 / 80)
 let HP_LATE = 1.115 /* 2026-10-11 (was 1.11) */; const HP_KNEE = 20; // let: the simulator sweeps it
-const hpPow = n => Math.pow(HP_GROWTH, Math.min(n, HP_KNEE) - 1) * Math.pow(HP_LATE, Math.max(0, n - HP_KNEE));
+// THE END GAME EASES (owner, 2026-10-11: "for waves that make lives go fix them"): towers are fully built by about
+// wave 80, so HP growing x HP_LATE on past it made waves 80-100 a wall (47 of 48 lives lost there); x HP_END past HP_END_KNEE
+let HP_END = 1.06, HP_END_KNEE = 80; // let: the simulator sweeps both. waverep x3: 1.115 won 9/36, 1.08 33, 1.06 35 (36 with FAST_LATE_MUL)
+const hpPow = n => Math.pow(HP_GROWTH, Math.min(n, HP_KNEE) - 1) * Math.pow(HP_LATE, Math.max(0, Math.min(n, HP_END_KNEE) - HP_KNEE)) * Math.pow(HP_END, Math.max(0, n - HP_END_KNEE));
 // one enemy's HP on wave n (before a boss's own multiplier); the wave list shows it too
 // shields GROW SLOWER (owner, 2026-10-06): to the SHIELD_EXP power of the old
 // steeper curve (was 0.4) - the same early (8 on wave 3, 11 on 10), about HALF

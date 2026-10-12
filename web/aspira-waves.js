@@ -49,6 +49,9 @@ const SWARM_MID_MUL = 2, SWARM_MID = [11, 60], SWARM_LATE_MUL = 1.5;
 const swarmMul = n => (n < SWARM_MID[0] ? 1 : n <= SWARM_MID[1] ? SWARM_MID_MUL : SWARM_LATE_MUL);
 let COUNT_SLOPE = 0.5, COUNT_CAP = Infinity; // a plain wave's base count: 10 + slope x n, uncapped (owner, 2026-10-11: the R10 battery, cap 28 left the late game easy)
 const WAVE_COUNT_MUL = { 1: 2 }; // wave 1 DOUBLED (owner, 2026-10-09)
+// FEWER LATE FAST (owner, 2026-10-11: "for waves that make lives go fix them"): fast cost 14 lives a wave past 80, every
+// other type under 2 - x FAST_LATE_MUL past FAST_LATE_FROM. waverep x3 with HP_END 1.06: 0.8 6.8 a wave, 0.65 2.6, 0.5 1.3
+const FAST_LATE_MUL = 0.65, FAST_LATE_FROM = 80;
 // how many of `type` a plain wave n brings (before the split onto lane copies) - wavePlan, and a boss's fleet (aspira-bosses.js)
 function waveCount(type, n) {
   const base = Math.min(10 + Math.floor(n * COUNT_SLOPE), COUNT_CAP); // let: the simulator sweeps both (owner, 2026-10-11: "enemy counts increase as the game progresses")
@@ -56,7 +59,7 @@ function waveCount(type, n) {
   // HALF the bodies at TWICE the health (owner, 2026-10-02)
   // x WAVE_COUNT_MUL[n]: waves 1-30 tuned so each comes about as close to the
   // core against one L1 tower of each kind (owner; scripts/aspira-sim/wavebal.mjs)
-  const c = (type === "swarm" ? base * 6 : base) / 2 * (WAVE_COUNT_MUL[n] ?? 1) * (TYPE_COUNT_MUL[type] ?? 1) * (type === "swarm" ? swarmMul(n) : 1); // swarms 6x (owner: doubled from 3x)
+  const c = (type === "swarm" ? base * 6 : base) / 2 * (WAVE_COUNT_MUL[n] ?? 1) * (TYPE_COUNT_MUL[type] ?? 1) * (type === "swarm" ? swarmMul(n) : 1) * (type === "fast" && n > FAST_LATE_FROM ? FAST_LATE_MUL : 1); // swarms 6x (owner: doubled from 3x)
   // SYMMETRICAL FORMATIONS (owner, 2026-10-11: "2n+1 for fast, 3n for armor"): whole Vs and full lattice rows
   const unit = FORM_UNIT[type] || 1;
   return Math.max(unit, Math.round(c / unit) * unit);
