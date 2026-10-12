@@ -60,6 +60,8 @@ const BOSS_HALO = { k: 1.45, a: 0.3 };
 // how FROZEN an enemy shows, 0..1: its slow (e.slowF, the share of its speed lost - effSpeed) over FROST_FULL, the slow
 // that shows full cyan - so a light chill is a hint of frost and a deep freeze is solid (2D outline; 3D tint, aspira-solids.js)
 const FROST_FULL = 0.6;
+// how much RIME an enemy holds, 0..1 of FRZ_RIME_FULL (aspira-frz.js): its outline that much white (owner, 2026-10-12)
+const rimeK = e => (e.rimeKeep == null ? 0 : Math.min(1, (1 - e.rimeKeep) / FRZ_RIME_FULL));
 const frostK = e => (e.slowT > 0 ? Math.min(1, Math.max(0, (e.slowF || 0) / FROST_FULL)) : 0);
 // solid: the 3D view draws the body itself as a real die (warpSolid, aspira-solids.js) - here only its tracer, shields and marks
 function drawEnemy(e, solid) {
@@ -92,6 +94,8 @@ function drawEnemy(e, solid) {
     ctx.strokeStyle = COL[d.color]; ctx.lineWidth = (e.armor ? 6.5 : 3) + (perma ? 3 : 0); ctx.stroke();
     const k = frostK(e); // the FROST outline as strong as the slow (owner, 2026-10-11: "slow correlated to opacity of frost indicator")
     if (k > 0) { const a = ctx.globalAlpha; ctx.strokeStyle = COL.cyan; ctx.globalAlpha = a * k; ctx.stroke(); ctx.globalAlpha = a; }
+    const w = rimeK(e); // RIME whitens the outline: none at no rime, all white at full (owner, 2026-10-12)
+    if (w > 0) { const a = ctx.globalAlpha; ctx.strokeStyle = COL.white; ctx.globalAlpha = a * w; ctx.stroke(); ctx.globalAlpha = a; }
     dieFacets(e, size);
   }
   // shield = SEGMENTS (owner): one per charge, on rings of its own shape

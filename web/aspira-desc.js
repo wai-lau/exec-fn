@@ -12,7 +12,7 @@ const ARC_KEEP = ["half", "most of", "nearly all of", "all of", "more than", "fa
 // ONLY BEHAVIOUR is told here (owner, 2026-10-07): a tier that just moves a number - harder
 // hits, a colder or wider aura, faster pulses, a stronger acid, more or bigger puddles -
 // changes no words; the card's stat rows show that change (now -> next)
-const FRZ_RIME_TEXT = ["", ...Array(5).fill(" Rime rings break shields; lasting rime stacks and spreads when full.")];
+const FRZ_RIME_TEXT = ["", ...Array(5).fill(" Rime rings leave lasting rime that stacks and spreads when full.")];
 const FRZ_MOONS = ["", " A moon copies it.", " Two moons copy it.", " Three moons copy it.", " Three moons copy it, each with a moonlet.", " Three moons copy it, each with three moonlets."];
 const SOL_RAYS = ["A ray", "Two rays", "Three rays", "Four rays", "Five rays", "Six rays"];
 const SOL_REFRACT = ["refracting on to one more enemy", "refracting on to three more enemies", "refracting on to six more enemies", "refracting on to ten more enemies", "refracting on to thirteen more enemies", "refracting through every enemy ahead"];
@@ -29,7 +29,8 @@ const DESCRIBE = {
   // "A chill slows all it holds." -> Temp III: and turns it brittle (its colder, wider aura is
   // stat rows); Rime: the rings of rime; Moons: the moons
   frz(sk) {
-    return ((sk.temp || 0) >= 6 ? "A deep chill" : "A chill") + " slows all it holds" + ((sk.temp || 0) >= 6 ? ", shattering them brittle." : (sk.temp || 0) >= 1 ? ", turning them brittle." : ".") + FRZ_RIME_TEXT[sk.rime || 0] + FRZ_MOONS[sk.moons || 0] + ((sk.moons || 0) ? " Cracks armor for good." : "");
+    const tp = sk.temp || 0; // Temp takes ARMOR (owner, 2026-10-12): reducing, then shattering, then decimating it
+    return "A chill that hurts more the colder you are" + (tp >= 6 ? ", decimating their armor." : tp >= 4 ? ", shattering their armor." : tp >= 1 ? ", reducing their armor." : ".") + FRZ_RIME_TEXT[sk.rime || 0] + FRZ_MOONS[sk.moons || 0] + ((sk.moons || 0) ? " Cracks armor for good." : "");
   },
   // "A ray of light, stopping at the first enemy struck; each beam weakens its target's armor for
   // good." (Breach is SOL's own from the start, owner 2026-10-08) -> Focus: two .. six rays, each a

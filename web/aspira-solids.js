@@ -101,7 +101,7 @@ function solidGeom(e) {
     const f = [slot[a], slot[b]].filter(x => x >= 0);
     if (f.length) edges.push({ v: Q[i], w: Q[j], n: f.length, f });
   }
-  return { faces, edges, spike, size, fa, col: COL[d.color], frz: SOLID_FROZEN_A * frostK(e), lw: (e.armor ? 2.2 : 1.2) * cam.k };
+  return { faces, edges, spike, size, fa, col: COL[d.color], frz: SOLID_FROZEN_A * frostK(e), rime: rimeK(e), lw: (e.armor ? 2.2 : 1.2) * cam.k };
 }
 // the opacity the floor's slices give depth z (aspira-fog.js warpBands): 1 at the floor, down to the deepest slice's
 const belowFade = z => Math.max(1 - (WARP_FADE_BANDS - 0.5) / WARP_FADE_BANDS, Math.min(1, 1 + z / WARP_FADE_Z));
@@ -115,7 +115,7 @@ function warpSolidBelow(g) {
     if (F.lo > 0 || !warpPath(F.poly3)) continue;
     const fa = g.fa * belowFade((F.lo + Math.min(0, F.hi)) / 2), fA = F.fA * fa;
     ctx.fillStyle = blendFill([[bgR, fa], [colR, fA], [cyR, fA * frz]]); ctx.fill();
-    warpEdges(F.poly3); ctx.strokeStyle = blendFill([[colR, 0.9 * fa], [cyR, 0.9 * fa * frz]]); ctx.stroke();
+    warpEdges(F.poly3); ctx.strokeStyle = blendFill([[colR, 0.9 * fa], [cyR, 0.9 * fa * frz], [rgbOf(COL.white), 0.9 * fa * g.rime]]); ctx.stroke();
   }
 }
 // a die kind's edges, once: [corner i, corner j, face a, face b] (every edge of these closed solids has two faces)
@@ -175,7 +175,7 @@ function warpSolid(e) {
       ctx.beginPath(); let any = false;
       for (const E of g.edges) if (E.n === n && E.f.some(fi => drawn[fi])) { warpLine(E.v, E.w); any = true; }
       if (!any) continue;
-      const one = [[colR, sa], [cyR, sa * frz]];
+      const one = [[colR, sa], [cyR, sa * frz], [rgbOf(COL.white), sa * g.rime]]; // rime whitens the edges (rimeK)
       ctx.strokeStyle = blendFill(n === 1 ? one : one.concat(one)); ctx.stroke();
     }
   }

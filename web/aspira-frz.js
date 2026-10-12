@@ -14,11 +14,11 @@ const FRZ_TEMP_SLOW = [0.4, 0.41, 0.42, 0.43, 0.44, 0.45]; // a small ramp (over
 // tower (damage(), which already reads e.brittle; drawStatus shows the crack)
 // from tier I (owner, 2026-10-11: slows are SHAPED now - aspira-game.js slowShape - so FRZ's payoff moves from how
 // slow to what the slowed suffer; was 1 1 1 1.15 1.2 1.25, from III)
-const FRZ_BRITTLE = [1, 1.15, 1.3, 1.45, 1.6, 1.75]; // BRITTLE is FRZ's damage lever (owner, 2026-10-11: "boost others"): everything in the aura takes this much from every tower; was 1.06 .. 1.3 - the no-ARC team 0/9 -> 5/9 with the ARC nerf and fast HP x0.75
+const FRZ_BRITTLE = [1, 1.15, 1.3, 1.45, 1.6, 1.75]; // BRITTLE now TAKES ARMOR (owner, 2026-10-12): an enemy the aura holds keeps (2 - this) of its armor; before, it took this much from every tower; was 1.06 .. 1.3 - the no-ARC team 0/9 -> 5/9 with the ARC nerf and fast HP x0.75
 // RIME SHATTERS SHIELDS (owner, 2026-10-11: "make upgrade choices matter" - Rime was the dead axis): a pulse that
 // reaches a shielded enemy breaks this share of its charges (160+ by wave 85) - Rime is FRZ's shield answer, Temp the
 // fast (slow + bite + brittle), Moons the armor (FRZ_MOON_CRACK)
-const FRZ_RIME_CRACK = [0, 0.1, 0.14, 0.18, 0.22, 0.26];
+const FRZ_RIME_CRACK = [0, 0.1, 0.14, 0.18, 0.22, 0.26]; // UNUSED since 2026-10-12 (Rime no longer strips shields)
 // MOONS CRACK ARMOR (owner, 2026-10-11: "make upgrade choices matter"): an enemy any of this FRZ's auras holds keeps only
 // (1 - this) of its armor against every tower (damage(), aspira-game.js)
 // BRITTLE IS FOR LIGHT BODIES (2026-10-11, "make upgrade choices matter"): x brittle on all made Temp the best axis
@@ -102,7 +102,9 @@ function frzStep(t, dt) {
     for (const e of G.enemies) {
       if (e.dead || (e.x - s.x) ** 2 + (e.y - s.y) ** 2 > r2) continue;
       applySlow(e, st.aura * s.k, FRZ_AURA_HOLD, s.id);
-      if (st.brittle > 1) e.brittle = Math.max(e.brittle || 1, st.brittle); // (it counts only while slowed - damage() - so a shield, which takes no slow, holds it off)
+      // BRITTLE TAKES ARMOR now (owner, 2026-10-12: "brittle is the armor counter, change it to affect armor instead of increasing
+      // other tower dmg"): while the aura holds it, an enemy's armor counts (2 - brittle) of itself against every tower (damage())
+      if (st.brittle > 1) { e.chillArmor = Math.max(e.chillT > 0 ? e.chillArmor : 0, Math.min(1, st.brittle - 1)); e.chillT = FRZ_AURA_HOLD; }
       if (!tick) continue;
       ticked = true;
       if (st.frost && e.armor > 0) e.armor *= 1 - st.frost; // Moons crack armor, for good
@@ -129,11 +131,11 @@ function frzStep(t, dt) {
       for (const e of G.enemies) {
         if (e.dead || p.hit.has(e.id) || (e.x - p.x) ** 2 + (e.y - p.y) ** 2 > r * r) continue;
         p.hit.add(e.id);
-        if (e.shield > 0 && st.rimeCrack) { e.shield = Math.floor(e.shield * (1 - st.rimeCrack)); if (e.shield < SHIELD_BREAK_N) shieldBreak(e); } // Rime shatters shields
+        // (Rime shattered shields until 2026-10-12 - owner: "rime should not strip shield")
         const to = rimeFull(e) ? rimeSpread(e) : e;
         if (!to) continue;
         if (to !== e) beam(e, to, TOWERS.frz.color, FRZ_SPREAD_FX, 1.5, 0, true);
-        applySlow(to, p.v, Infinity, p.id, "stack"); to.rimeKeep = (to.rimeKeep ?? 1) * (1 - p.v);
+        if (applySlow(to, p.v, Infinity, p.id, "stack")) to.rimeKeep = (to.rimeKeep ?? 1) * (1 - p.v); // (a shield takes no slow, so no rime)
       }
     }
     t.pulses = t.pulses.filter(p => p.age < FRZ_RIME_GROW);

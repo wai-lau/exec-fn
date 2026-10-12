@@ -62,14 +62,14 @@ const SKILL_TREES = {
 // PERMANENT slow on all it passes; Moons = 1 / 2 / 3 orbiting copies of the
 // tower at half of everything.
 SKILL_TREES.frz = [
-  { id: "temp", name: "Temp", base: "The aura slows what it holds.", tiers: [
+  { id: "temp", name: "Sublimation" /* (owner, 2026-10-12; was Temp) */, base: "The aura slows what it holds.", tiers: [
     { name: "Chill", desc: "A colder, wider aura slows what it holds, and turns the light ones brittle." },
     { name: "Freeze", desc: "A far colder, wider aura slows what it holds, and turns the light ones brittle." },
     { name: "Absolute Zero", desc: "A chill slows all it holds, and turns the light ones brittle." },
     { name: "Permafrost", desc: "A chill slows all it holds, and turns the light ones brittle." },
     { name: "Heat Death", desc: "A chill slows all it holds, and turns the light ones brittle." },
   ] },
-  { id: "rime", name: "Rime", base: "", tiers: [
+  { id: "rime", name: "Permafrost" /* (owner, 2026-10-12; was Rime) */, base: "", tiers: [
     { name: "Frost", desc: "Shatters shields. Pulses leave a slow that lingers past the aura and stacks; full rime spreads to the nearest enemy." },
     { name: "Glacier", desc: "Shatters shields. Faster pulses leave a deeper slow that lingers past the aura and stacks; full rime spreads to the nearest enemy." },
     { name: "Cryosphere", desc: "Shatters shields. The fastest pulses leave the deepest slow that lingers past the aura and stacks; full rime spreads to the nearest enemy." },
