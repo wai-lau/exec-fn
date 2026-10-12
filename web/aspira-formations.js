@@ -47,10 +47,11 @@ let ARMOR_ONE_BLOCK = false;
 // HOW MANY LANES each type rides (owner, 2026-10-12: "swarm should always use 5-6 paths, fast 2-3, armor 1-3, shield
 // 3-5"; was 1-6 for all): the wave's pick in the range, else the nearest in it that splits the groups evenly, else the
 // pick with the odd groups dropped (laneCount rounds the count down to whole groups per lane)
-const LANE_SPLIT = { swarm: [5, 6], fast: [3, 4] /* 3-4 (owner, 2026-10-12; was 2-3) */, armor: [1, 3] };
+const LANE_SPLIT = { swarm: [5, 6], fast: [3, 4] /* 3-4 (owner, 2026-10-12; was 2-3) */ };
+const ARMOR_LANES = 2; // ALWAYS two (owner, 2026-10-12: "armor should always use 2 paths"; was 1-3)
 const SHIELD_LANES = [2, 3]; // 2-3 (owner, 2026-10-12; briefly 3 or 5, never 4)
 function formSplit(type, count, n) {
-  if (type === "armor" && ARMOR_ONE_BLOCK) return 1;
+  if (type === "armor") return ARMOR_ONE_BLOCK ? 1 : ARMOR_LANES; // always (laneCount rounds up)
   if (type === "shield") return SHIELD_LANES[Math.floor(fixedRand(n, 3) * SHIELD_LANES.length)]; // always (laneCount rounds up)
   const [lo, hi] = LANE_SPLIT[type] || [1, 6], unit = FORM_GROUP[type] || 1, groups = Math.max(1, Math.floor(count / unit));
   const want = lo + Math.floor(fixedRand(n, 3) * (hi - lo + 1));
@@ -60,6 +61,7 @@ function formSplit(type, count, n) {
 // shields ROUND UP (owner, 2026-10-12: "round up units to hit 3-5 lanes"): each lane a count of whole 3- and 5-Vs
 const laneCount = (type, count, k) => {
   if (type === "shield") { let per = Math.ceil(count / k); while (!vFits(per)) per++; return per * k; }
+  if (type === "armor") return Math.ceil(count / k) * k; // rounded UP to fill every lane (a short last row sits centred)
   const unit = FORM_GROUP[type] || 1; return Math.floor(count / (k * unit)) * k * unit || count;
 };
 // from stepSpawns: spawn the next formation of `type` from wave part w at once; returns how many it took (0: none)

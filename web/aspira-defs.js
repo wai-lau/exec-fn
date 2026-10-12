@@ -112,7 +112,7 @@ function cellAt(x, y) {
   }));
 }
 // ONE SPEED, ONE SPIRAL PER TYPE (owner, 2026-10-08): every enemy moves at ENEMY_BASE_SPEED and its TYPE picks
-// its spiral pair (TYPE_PAIR, aspira-waves.js) - fast takes the most direct one. Each pair's turns were SOLVED so
+// its spiral pair (TYPE_PAIR, aspira-waves.js) - armor takes the most direct one, fast the windiest (swapped 2026-10-12). Each pair's turns were SOLVED so
 // the type keeps the TIME UNDER FIRE (inside FIRE_R of the core) it had at its old speed, averaged over its old
 // lanes: fast 9.3 s, swarm 10, boss 27.3, shield 33.4, armor 41.7 - with at least 1.5 turns under fire on every
 // lane (fast exactly 1.5; that set the speed). Pairs: 0 fast, 1 boss, 2 swarm, 3 shield, 4 armor, 5 spare (as 3).

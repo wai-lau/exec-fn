@@ -139,7 +139,7 @@ function sendWave() {
 // each wave turns the whole set laneTurn(n) about the core (5 slots a wave, as the
 // old (n*5 + k*7) % 12 rotation did) - the parts of a split group ride copies turned on from there.
 // (Was: type k of wave n took lane (n*5 + k*7) % 12, each type at its own speed.)
-const TYPE_PAIR = { fast: 0, bonus: 1, swarm: 2, shield: 3, armor: 4 };
+const TYPE_PAIR = { fast: 4, bonus: 1, swarm: 2, shield: 3, armor: 0 }; // fast and armor SWAPPED (owner, 2026-10-12: "make fast use more windy paths, make armor use more direct paths"; fast took pair 0, the most direct, armor pair 4, the windiest)
 const TYPE_ORDER = Object.keys(ENEMIES);
 const isCcw = pi => pi % 2 === 0;
 const laneTurn = n => ((n * 5) % N_PATHS) * 2 * Math.PI / N_PATHS;
