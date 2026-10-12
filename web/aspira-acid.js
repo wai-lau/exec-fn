@@ -156,6 +156,7 @@ function stepPuddles(t, st, dt) {
       for (const e of G.enemies) {
         if (e.dead || (e.x - p.x) ** 2 + (e.y - p.y) ** 2 > p.r * p.r) continue;
         damage(e, p.dps * every, t, false, false); e.burnT = 0.4; // a real hit: it pops one shield charge
+        if (st.corrode && !e.dead) { e.armor = (e.armor || 0) - p.dps * every * st.corrode; e.corrodeT = 0.4; } // Corrosion strips in the pools too (owner, 2026-10-12)
       }
     }
   }
