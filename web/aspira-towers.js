@@ -362,7 +362,7 @@ const innerR = (c, r0, slide = 1, kind = null) => c.minR ?? r0 * (1 - (1 - (TOWE
 const slideOut = (kind, r0, slide = 1) => Math.max(0, TOWER_REACH[kind] - r0) * SLIDE_KIND[kind] * Math.min(slide, SLIDE_MAX);
 // THE TRAVEL (owner, 2026-10-07): MOVE_SPAN (75%) of what innerR / slideOut give, worked from
 // TRAVEL_R0 (the ring's old radius) so it did not change when the slots moved in snug
-const MOVE_SPAN = 1.5 /* owner, 2026-10-11: "increase movement range of all towers by 2x" (was 0.75); the later cut to 1 REVERTED ("revert all the mvmt range reductions, only keep the screen limit") - the screen cap (leashR) is the only limit now */, NEAR_R = SLOT_R, CORNER_NEAR = 100;
+const MOVE_SPAN = 2.25 /* x1.5 (owner, 2026-10-12: "increase movement range (unless capped by screen) of all towers by 50%"; was 1.5); owner, 2026-10-11: "increase movement range of all towers by 2x" (was 0.75); the later cut to 1 REVERTED ("revert all the mvmt range reductions, only keep the screen limit") - the screen cap (leashR) is the only limit now */, NEAR_R = SLOT_R, CORNER_NEAR = 100;
 function slideLimits(c, kind, sl = 1) {
   const r0 = Math.hypot(c.x - CX, c.y - CY) || 1, rt = c.unlock ? r0 : TRAVEL_R0;
   const span = (slideOut(kind, rt, sl) + rt - innerR(c, rt, sl, kind)) * MOVE_SPAN;
