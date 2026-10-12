@@ -186,8 +186,8 @@ function drawSlotFlash() {
 // CREDITS_FX_T s after an interest payout "+Xc (+r%)" shows just under the rings
 const CREDITS_FX_T = 2.5;
 let creditsFx = null;
-// 3x larger (owner, 2026-10-11: "make the interest, lives lost popups and current credit counts 3x larger"; were 14 / 15 / 8)
-const POP_PX = 42, CRED_PX = 45, CRED_SUB_PX = 24;
+// 1.5x larger (owner, 2026-10-11: "3x larger", then "too large, like half that size"; were 14 / 15 / 8)
+const POP_PX = 21, CRED_PX = 23, CRED_SUB_PX = 12;
 const popY = () => CY + CORE_R + LIFE_GAP * LIFE_RINGS + 9 + POP_PX / 2; // just under the rings (was +16 at 14px)
 // a LOST LIFE puts "X lives left" in the same spot for as long (owner, 2026-10-11), over an interest pop-up older than it
 let livesFx = null;
@@ -200,8 +200,8 @@ function drawCredits(part) {
   const n = Math.floor(fxOn ? G.money - creditsFx.gain : G.money).toLocaleString("en-US");
   // a little "CRED" UNDER it (owner, 2026-10-06; was a "c", first after it on the same line)
   if (part !== "pop") {
-    text(n, CX, CY - 9, CRED_PX, "bg", "white"); // BLACK with a white halo (owner)
-    text("CRED", CX, CY + 27, CRED_SUB_PX, "bg", "white");
+    text(n, CX, CY - 5, CRED_PX, "bg", "white"); // BLACK with a white halo (owner)
+    text("CRED", CX, CY + 13, CRED_SUB_PX, "bg", "white");
   }
   if (part === "count" || G.enemies.some(e => e.arcana && !e.dead)) return; // a boss's name takes this spot (drawBossBar)
   const livesOn = livesFx && performance.now() / 1000 - livesFx.t0 < CREDITS_FX_T && (!fxOn || livesFx.t0 >= creditsFx.t0);
