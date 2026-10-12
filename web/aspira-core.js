@@ -33,7 +33,7 @@ const CORE_POWERS = [
 const TEMPORAL = [null, { dur: 2.5, cd: 4 }, { dur: 4, cd: 4 }, { dur: 6, cd: 3 }], /* halved (owner, 2026-10-12; was 5 / 8 / 12 s) - owner 2026-10-06: longer stop (was 2 / 4 s) */ TEMPORAL_GROW = 1.8, TEMPORAL_R = 560, TEMPORAL_FADE = 1, TEMPORAL_RING_EVERY = 1.5; // a ring shot out every TEMPORAL_RING_EVERY s for the whole freeze (owner, 2026-10-08); FEWER, SLOWER, LONGER (owner, 2026-10-11: were 0.6 s to spread, 0.4 s to fade, one every 0.5 s) - the look only, the stop is at once
 // the Relay: RELAY_MUL x the tower for `dur` s, the cooldown counted from when
 // it wears off (per tier for the dial's sake; only III is ever owned)
-const RELAY_MUL = 3, RELAY = [null, { dur: 45, cd: 4 }, { dur: 45, cd: 4 }, { dur: 45, cd: 4 }]; // 45 s: doubled (owner, 2026-10-11; was 22.5, halved from 45 on 2026-10-07)
+const RELAY_MUL = 3, RELAY = [null, { dur: 22.5, cd: 4 }, { dur: 22.5, cd: 4 }, { dur: 22.5, cd: 4 }]; // 22.5 s: halved (owner, 2026-10-12; was 45) // 45 s: doubled (owner, 2026-10-11; was 22.5, halved from 45 on 2026-10-07)
 
 const powerLvl = id => (G.core && G.core.pw ? G.core.pw[id] || 0 : 0);
 const coreLvl = () => (G.core && G.core.pw ? Object.values(G.core.pw).reduce((a, b) => a + b, 0) : 0);
