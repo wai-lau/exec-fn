@@ -15,7 +15,17 @@ const FRZ_TEMP_SLOW = [0.4, 0.41, 0.42, 0.43, 0.44, 0.45]; // a small ramp (over
 // from tier I (owner, 2026-10-11: slows are SHAPED now - aspira-game.js slowShape - so FRZ's payoff moves from how
 // slow to what the slowed suffer; was 1 1 1 1.15 1.2 1.25, from III)
 const FRZ_BRITTLE = [1, 1.15, 1.3, 1.45, 1.6, 1.75]; // BRITTLE is FRZ's damage lever (owner, 2026-10-11: "boost others"): everything in the aura takes this much from every tower; was 1.06 .. 1.3 - the no-ARC team 0/9 -> 5/9 with the ARC nerf and fast HP x0.75
-const FRZ_RIME = [0, 0.024, 0.035, 0.054, 0.064, 0.068]; // 2026-10-06: tier I was a dead point (was 1% / 1.9% / 3.7%) // each pulse's permanent stacking slow
+// RIME SHATTERS SHIELDS (owner, 2026-10-11: "make upgrade choices matter" - Rime was the dead axis): a pulse that
+// reaches a shielded enemy breaks this share of its charges (160+ by wave 85) - Rime is FRZ's shield answer, Temp the
+// fast (slow + bite + brittle), Moons the armor (FRZ_MOON_CRACK)
+const FRZ_RIME_CRACK = [0, 0.1, 0.14, 0.18, 0.22, 0.26];
+// MOONS CRACK ARMOR (owner, 2026-10-11: "make upgrade choices matter"): an enemy any of this FRZ's auras holds keeps only
+// (1 - this) of its armor against every tower (damage(), aspira-game.js)
+// BRITTLE IS FOR LIGHT BODIES (2026-10-11, "make upgrade choices matter"): x brittle on all made Temp the best axis
+// against every type - now fast, swarms and bosses shatter, and Moons (armor) and Rime (shields) answer the hard ones
+const FRZ_HARD = { armor: true, shield: true };
+const FRZ_MOON_CRACK = [0, 0.3, 0.45, 0.6, 0.7, 0.8];
+const FRZ_RIME = [0, 0.04, 0.07, 0.12, 0.17, 0.22]; // each pulse's permanent stacking slow - the SHIELD answer (2026-10-11: a slow, tanky shield takes the most pulses; was 0 .024 .035 .054 .064 .068): Rime build leaks 13% of shields, Temp 24, Moons 23
 // FRZ's own levers (owner: no generic multipliers): Rime pulses MORE OFTEN each tier, the moons are STRONGER copies each tier
 const FRZ_RIME_PERIOD = [2, 2, 1.7, 1.4, 1.2, 1], FRZ_MOON_BY = [0.6, 0.85, 0.86, 0.95, 0.95, 0.95]; /* stronger moons for the 140 orbit (2026-10-08; were .485 .515 .58 .58 .58 at 70): isolation I..V ~112 125 151 172 ~225% - V overshoots at any strength >= IV's: five moons that far out cover most of the lanes */ // weakened (owner, 2026-10-08; isolation: Moons V 499% team); was .78 .9 .95 1 1 1 // Moons IV / V: four and five full moons
 // TEMP CONDUCTS FASTER (owner, 2026-10-11: "make temp conduct faster"): each Temp tier shortens the aura's TICK (s) -
@@ -27,8 +37,8 @@ const FRZ_TICK_HIT = { armorPierce: 1 }; // a tick's hit on a shield: no armor b
 function frzSkillStats(t, s, b) {
   const f = skillOf(t, "temp");
   s.range = b.range * RANGE_BONUS;
-  s.aura = FRZ_TEMP_SLOW[f]; s.brittle = FRZ_BRITTLE[f]; s.dmg = b.dmg * b.rate * FRZ_TICK; s.rate = 1 / FRZ_TEMP_TICK[f]; // dmg / rate: a TICK - the same bite, more often up Temp
-  s.rime = FRZ_RIME[skillOf(t, "rime")]; s.rimeEvery = FRZ_RIME_PERIOD[skillOf(t, "rime")]; s.moonN = FRZ_MOON_COUNT[skillOf(t, "moons")]; s.moonK = FRZ_MOON_BY[skillOf(t, "moons")]; s.subN = FRZ_SUBMOON_N[skillOf(t, "moons")]; s.skill = true;
+  s.aura = FRZ_TEMP_SLOW[f]; s.brittle = FRZ_BRITTLE[f]; s.frost = FRZ_MOON_CRACK[skillOf(t, "moons")]; s.dmg = b.dmg * b.rate * FRZ_TICK; s.rate = 1 / FRZ_TEMP_TICK[f]; // dmg / rate: a TICK - the same bite, more often up Temp
+  s.rime = FRZ_RIME[skillOf(t, "rime")]; s.rimeCrack = FRZ_RIME_CRACK[skillOf(t, "rime")]; s.rimeEvery = FRZ_RIME_PERIOD[skillOf(t, "rime")]; s.moonN = FRZ_MOON_COUNT[skillOf(t, "moons")]; s.moonK = FRZ_MOON_BY[skillOf(t, "moons")]; s.subN = FRZ_SUBMOON_N[skillOf(t, "moons")]; s.skill = true;
 }
 // moons and SMALL MOONS by tier (owner, 2026-10-08): 1 / 2 / 3 moons at I-III, then still THREE at IV and V,
 // each with 1 (IV) or 3 (V) small moons of its own (was 4 and 5 moons, V's with 2 small moons each)
@@ -85,9 +95,10 @@ function frzStep(t, dt) {
     for (const e of G.enemies) {
       if (e.dead || (e.x - s.x) ** 2 + (e.y - s.y) ** 2 > r2) continue;
       applySlow(e, st.aura * s.k, FRZ_AURA_HOLD, s.id);
-      if (st.brittle > 1) e.brittle = Math.max(e.brittle || 1, st.brittle);
+      if (st.brittle > 1 && !FRZ_HARD[e.type]) e.brittle = Math.max(e.brittle || 1, st.brittle); // light bodies shatter; armor and shields do not
       if (!tick) continue;
       ticked = true;
+      if (st.frost && e.armor > 0) e.armor *= 1 - st.frost; // Moons crack armor, for good
       // a tick POPS a shield (owner, 2026-10-06) and is never blunted by armor;
       // otherwise it is quiet (no flash) but shows its NUMBER, sized by what it took
       if (e.shield > 0) { damage(e, st.dmg * s.k, t, false, false, FRZ_TICK_HIT); continue; }
@@ -111,6 +122,7 @@ function frzStep(t, dt) {
       for (const e of G.enemies) {
         if (e.dead || p.hit.has(e.id) || (e.x - p.x) ** 2 + (e.y - p.y) ** 2 > r * r) continue;
         p.hit.add(e.id);
+        if (e.shield > 0 && st.rimeCrack) { e.shield = Math.floor(e.shield * (1 - st.rimeCrack)); if (e.shield < SHIELD_BREAK_N) shieldBreak(e); } // Rime shatters shields
         const to = rimeFull(e) ? rimeSpread(e) : e;
         if (!to) continue;
         if (to !== e) beam(e, to, TOWERS.frz.color, FRZ_SPREAD_FX, 1.5, 0, true);

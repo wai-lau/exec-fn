@@ -87,7 +87,6 @@ function spawnEnemy(type, n, pi, ang = 0) {
 // Global enemy pace (owner: everything at half speed). Spawn gaps are divided
 // by it too, so enemies stay the same DISTANCE apart on the lane — that
 // spacing is a balance lever for chain reach.
-let FRZ_CRACK = 2; // (above) let: the simulator sweeps it
 let ENEMY_SPEED = 1.125; // 2026-10-11: the short lanes (owner: "reduce speed also"; was 1.5, briefly 1.875) // let: the simulator sweeps it
 const effSpeed = e => ENEMIES[e.type].speed * ENEMY_SPEED * (e.spd || 1) * PATHS[e.pi].pace * (e.stunT > 0 ? 0 : 1 - (e.slowT > 0 ? e.slowF : 0));
 
@@ -145,10 +144,8 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
   const raw = amt;
   // (SOL ignored armor until 2026-10-07; owner: "SOL should no longer ignore armor" - its damage rose x1.3 to match, solarmor.mjs)
   const pierce = (st && st.armorPierce) || 0;
-  // FROST CRACKS ARMOR (2026-10-11, FRZ's armor help in the counter matrix): a slowed, brittle enemy's armor counts
-  // (1 - (brittle - 1) x FRZ_CRACK) of itself against every tower's hit - Chill V (x1.3) with FRZ_CRACK 2 leaves 40%
-  const crack = e.slowT > 0 && e.brittle > 1 && (e.armor || 0) > 0 ? Math.max(0, 1 - (e.brittle - 1) * FRZ_CRACK) : 1;
-  const arm = Math.trunc((e.armor || 0) * crack); // whole armor, rounded toward zero (Breach/Corrosion strip it in fractions)
+  // (FROST CRACKED ARMOR here while slowed until 2026-10-11 - brittle x FRZ_CRACK; Moons now crack it for good, aspira-frz.js)
+  const arm = Math.trunc(e.armor || 0); // whole armor, rounded toward zero (Breach/Corrosion strip it in fractions)
   if (arm > 0 && !quiet && pierce < 1) amt = Math.max(amt * 0.1, amt - arm * (1 - pierce));
   // NEGATIVE armor (ACD's Corrosion, owner) is a flat bonus on every hit
   else if (arm < 0 && !quiet) amt -= arm;
