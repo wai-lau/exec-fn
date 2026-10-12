@@ -11,12 +11,16 @@
 import fs from "node:fs";
 import os from "node:os";
 import { Worker } from "node:worker_threads";
+import { SIM_VERSION, simBanner } from "./simver.mjs";
 
 export const WORKERS = Number(process.env.POOL_WORKERS) || Math.max(1, os.cpus().length - 2);
 
 export function runPool(taskUrl, jobs, { out = null, workers = WORKERS, quiet = false } = {}) {
   const done = new Map();
-  if (out && fs.existsSync(out)) for (const l of fs.readFileSync(out, "utf8").split("\n")) if (l) { const r = JSON.parse(l); done.set(JSON.stringify(r.args), r.res); }
+  if (!quiet) console.log(simBanner()); // every run says which game + simulator + patch it is (simver.mjs)
+  let stale = 0; // a resume takes ONLY rows of this sim version (stamped below)
+  if (out && fs.existsSync(out)) for (const l of fs.readFileSync(out, "utf8").split("\n")) if (l) { const r = JSON.parse(l); if (r.ver === SIM_VERSION) done.set(JSON.stringify(r.args), r.res); else stale++; }
+  if (stale && !quiet) console.error(`pool: ${stale} rows in ${out} are from another sim version - ignored, re-run`);
   const results = new Array(jobs.length);
   const todo = [];
   jobs.forEach((args, i) => { const k = JSON.stringify(args); if (done.has(k)) results[i] = done.get(k); else todo.push(i); });
@@ -35,7 +39,7 @@ export function runPool(taskUrl, jobs, { out = null, workers = WORKERS, quiet = 
       w.on("message", ({ i, res, err }) => {
         if (err) { reject(new Error(err)); return; }
         results[i] = res; finished++;
-        if (out) fs.appendFileSync(out, JSON.stringify({ args: jobs[i], res }) + "\n");
+        if (out) fs.appendFileSync(out, JSON.stringify({ ver: SIM_VERSION, args: jobs[i], res }) + "\n");
         if (!quiet) console.error(`pool: ${finished}/${todo.length} ${((Date.now() - t0) / 1000).toFixed(0)}s`);
         // the worker that answered LAST is still alive: terminate every one, or
         // the process never exits (and sat at 100% on one core, 2026-10-07)

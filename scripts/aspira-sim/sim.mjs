@@ -8,6 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { pickNext, usePowers } from "./corepower.mjs";
+import { patchProbe } from "./simver.mjs";
 // ASPIRA_WEB=<dir> pins a run to a SNAPSHOT of the game files: every game
 // re-reads them, so a balance commit landing mid-run would otherwise mix two
 // versions (2026-10-07)
@@ -29,7 +30,7 @@ export function makeGame(seed, patch = "") {
   };
   vm.createContext(ctx);
   for (const f of FILES) vm.runInContext(fs.readFileSync(WEB + f, "utf8"), ctx, { filename: f });
-  if (patch) vm.runInContext(patch, ctx, { filename: "patch" }); // balance experiments
+  if (patch) { const check = patchProbe(src => vm.runInContext(src, ctx), patch); vm.runInContext(patch, ctx, { filename: "patch" }); check(); } // balance experiments (a half-patched tier table is reported - simver.mjs)
   // tower stats depend only on kind / level / path / form (no aura mods remain),
   // so cache them - towerStats runs for every tower on every step
   vm.runInContext(`
