@@ -277,7 +277,7 @@ export function makePlayer(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = 
     if (Math.round(S.time / dt) % 10 === 0) for (const e of alive) if (!e.dead) { const w = waveStat(e); w.near = Math.min(w.near, Math.hypot(e.x - CORE_XY.x, e.y - CORE_XY.y)); }
     const n = Math.round(S.time / dt);
     if (strategy.core && n % 25 === 0) pickNext(g, strategy.core); // a boss's pick costs nothing: take it at once
-    if (strategy.useCore && n % 25 === 0) usePowers(g, S.coreMem, strategy.relayKind);
+    if (strategy.useCore && n % 25 === 0 && (strategy.econ !== "smart" || S.powersOk)) usePowers(g, S.coreMem, strategy.relayKind); // the smart saver holds its powers for a replay (smartWave)
     if (n % 10) return;
     let near = Infinity;
     for (const e of g.G.enemies) if (!e.dead) near = Math.min(near, Math.hypot(e.x - g.CX, e.y - g.CY));
@@ -346,13 +346,20 @@ const SMART_INTEREST = 4, HOARD_X = 4; // HOARD_X: a hoarder's bank over the sma
 // (owner, 2026-10-12: "if leak, rewind and buy 1 upgrade before wave starts; if still leak, rewind and buy 2") - nothing
 // bought during it; the first try that keeps every life stands, or the one that could afford no more
 function smartWave(p, playWave) {
-  const snap = p.snapshot(), lives = p.g.G.lives;
-  for (let n = 0; ; n++) {
-    if (n) { p.restore(snap); p.rewinds = (p.rewinds || 0) + 1; } // (rewinds on p, not S: a restore would roll S back)
+  // the CORE POWERS come first (owner, 2026-10-12: "treat the powers as the first step (if available), then buy upgrades
+  // as next"): try 0 saves everything and holds the powers; try 1 uses the powers (when one is ready) and buys nothing; then
+  // the powers and 1, 2, 3... upgrades
+  const snap = p.snapshot(), lives = p.g.G.lives, ready = p.strategy.useCore && p.g.run("CORE_POWERS.some(c => powerLvl(c.id) && cooldownLeft(c.id) <= 0)");
+  const tries = ready ? [[false, 0], [true, 0]] : [[false, 0]];
+  for (let i = 0; ; i++) {
+    const [pw, n] = tries[i] || [ready, i - tries.length + 1];
+    if (i) { p.restore(snap); p.rewinds = (p.rewinds || 0) + 1; } // (rewinds on p, not S: a restore would roll S back)
+    p.S.powersOk = pw;
     const made = p.buy(n);
     playWave();
     if (p.g.G.lives >= lives || made < n || p.g.G.over) break;
   }
+  p.S.powersOk = false;
 }
 export function play(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
   const p = makePlayer(strategy, seed, maxWave, dt, patch);
