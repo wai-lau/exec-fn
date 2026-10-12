@@ -100,7 +100,7 @@ function drawEnemy(e, solid) {
   }
   // shield = SEGMENTS (owner): one per charge, on rings of its own shape
   if (e.shield > 0 || e.shSegs) {
-    e.shSegs = syncSegs(e.shSegs || [], Math.max(0, e.shield), d.sides);
+    e.shSegs = syncSegs(e.shSegs || [], shieldShown(e, d.sides), d.sides);
     ctx.lineWidth = 1.4;
     if (!solid) drawSegs(e.x, e.y, e.shSegs, d.sides, e.rot, size, 2.5); // (3D: walls round the die, aspira-walls.js) // layers tight (owner: much thinner gap; was 5)
   }
@@ -211,6 +211,10 @@ function drawBossEye(e, size) {
 // segs: [true|false, ...], slot 0 = the innermost ring's first side
 // flashes (optional): [{ i, t }] - each lost segment is recorded so it can
 // flash (drawSegs); a gain shifts them outward with everything else
+// SHIELDS DRAWN ON AT MOST SHIELD_RINGS RINGS (owner, 2026-10-12: late shields grew a halo of 6+ rings and enemies looked
+// bigger every wave): past what those rings hold, each segment stands for a share of the charges and breaks as its share goes
+const SHIELD_RINGS = 2;
+const shieldShown = (e, sides) => { const cap = sides * SHIELD_RINGS * (SHIELD_RINGS + 1) / 2, s = Math.max(0, e.shield); return (e.shieldMax || 0) > cap ? Math.ceil(s * cap / e.shieldMax) : s; };
 function syncSegs(segs, n, sides, flashes) {
   let have = segs.reduce((a, v) => a + (v ? 1 : 0), 0);
   while (have > n) {
