@@ -382,7 +382,7 @@ const towerWide = () => matchMedia("(orientation: landscape) and (min-width: 700
 // the room changed, not every frame
 // winRoom: from the card's highest top to the window's bottom
 function fitPop(pop, room, winRoom) {
-  pop.__fitRoom = room; pop.__fitDirty = false;
+  pop.__fitRoom = room; pop.__fitDirty = false; fitDesc(pop); // a description over five lines shrinks to fit (aspira-sliders.js)
   pop.style.maxHeight = room + "px";
   const chart = pop.querySelector(".asp-chart");
   pop.style.minHeight = ""; // (a forced TOWER_CARD_H left empty bands - owner)

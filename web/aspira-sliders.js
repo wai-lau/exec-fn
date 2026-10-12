@@ -247,3 +247,13 @@ function inspectTower(el, t) {
     sfx("sell"); refreshPanels();
   });
 }
+// the description box holds a FIXED five lines (aspira.css .asp-desc); a longer one
+// shrinks its font until it fits, never clipped (owner, 2026-10-12)
+const DESC_SHRINK = 0.94, DESC_MIN = 0.55;
+function fitDesc(pop) {
+  const d = pop.querySelector(".asp-desc");
+  if (!d) return;
+  d.style.fontSize = "";
+  const base = parseFloat(getComputedStyle(d).fontSize);
+  for (let k = 1; d.scrollHeight > d.clientHeight + 1 && k > DESC_MIN; ) { k *= DESC_SHRINK; d.style.fontSize = base * k + "px"; }
+}
