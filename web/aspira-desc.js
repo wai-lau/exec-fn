@@ -12,7 +12,7 @@ const ARC_KEEP = ["half", "most of", "nearly all of", "all of", "more than", "fa
 // ONLY BEHAVIOUR is told here (owner, 2026-10-07): a tier that just moves a number - harder
 // hits, a colder or wider aura, faster pulses, a stronger acid, more or bigger puddles -
 // changes no words; the card's stat rows show that change (now -> next)
-const FRZ_RIME_TEXT = ["", ...Array(5).fill(" Rime rings leave lasting rime that stacks and spreads when full.")];
+const FRZ_RIME_TEXT = ["", ...Array(5).fill(" Frost rings leave lasting frost that stacks and spreads when full.") /* "rime" is FROST in every word shown (owner, 2026-10-12) */];
 const FRZ_MOONS = ["", " A moon copies it.", " Two moons copy it.", " Three moons copy it.", " Three moons copy it, each with a moonlet.", " Three moons copy it, each with three moonlets."];
 const SOL_RAYS = ["A ray", "Two rays", "Three rays", "Four rays", "Five rays", "Six rays"];
 const SOL_REFRACT = ["refracting on to one more enemy", "refracting on to three more enemies", "refracting on to six more enemies", "refracting on to ten more enemies", "refracting on to thirteen more enemies", "refracting through every enemy ahead"];

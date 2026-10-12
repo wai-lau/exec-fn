@@ -70,11 +70,11 @@ SKILL_TREES.frz = [
     { name: "Heat Death", desc: "A chill slows all it holds, and turns the light ones brittle." },
   ] },
   { id: "rime", name: "Permafrost" /* (owner, 2026-10-12; was Rime) */, base: "", tiers: [
-    { name: "Frost", desc: "Shatters shields. Pulses leave a slow that lingers past the aura and stacks; full rime spreads to the nearest enemy." },
-    { name: "Glacier", desc: "Shatters shields. Faster pulses leave a deeper slow that lingers past the aura and stacks; full rime spreads to the nearest enemy." },
-    { name: "Cryosphere", desc: "Shatters shields. The fastest pulses leave the deepest slow that lingers past the aura and stacks; full rime spreads to the nearest enemy." },
-    { name: "Ice Sheet", desc: "Shatters shields. Rings of rime roll out, leaving behind a rime that layers and never thaws; full rime spreads to the nearest enemy." },
-    { name: "Glaciation", desc: "Shatters shields. Rings of rime roll out, leaving behind a rime that layers and never thaws; full rime spreads to the nearest enemy." },
+    { name: "Frost", desc: "Pulses leave a slow that lingers past the aura and stacks; full frost spreads to the nearest enemy." },
+    { name: "Glacier", desc: "Faster pulses leave a deeper slow that lingers past the aura and stacks; full frost spreads to the nearest enemy." },
+    { name: "Cryosphere", desc: "The fastest pulses leave the deepest slow that lingers past the aura and stacks; full frost spreads to the nearest enemy." },
+    { name: "Ice Sheet", desc: "Rings of frost roll out, leaving behind a frost that layers and never thaws; full frost spreads to the nearest enemy." },
+    { name: "Glaciation", desc: "Rings of frost roll out, leaving behind a frost that layers and never thaws; full frost spreads to the nearest enemy." },
   ] },
   { id: "moons", name: "Moons", base: "", tiers: [
     { name: "Moon", desc: "One moon orbits the tower, a weaker copy of it. Its chill cracks armor for good." },

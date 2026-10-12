@@ -46,7 +46,7 @@ const GIGA_TIERS = {
   voltage: { name: "Gigavolt", desc: "Each jump carries twice the hit. Arcs pierce armor." },
   capacitance: { name: "Superstorm", desc: "Hits leave eight charges, which burst around the target when it is hit by anything, slowing what they hit." },
   temp: { name: "Zero Point", desc: "A deep chill slows all it holds, and shatters the light ones brittle." },
-  rime: { name: "Ice Age", desc: "Rings of rime roll out fast, shattering shields and leaving behind a rime that layers and never thaws; full rime spreads to the nearest enemy." },
+  rime: { name: "Ice Age", desc: "Rings of frost roll out fast, leaving behind a frost that layers and never thaws; full frost spreads to the nearest enemy." },
   moons: { name: "Constellation", desc: "Four moons orbit it, each with four small moons of its own. Its chill cracks armor for good." },
   focus: { name: "Solar Flare", desc: "Eight rays of light, each a full strike." },
   refraction: { name: "Corona", desc: "Refracting on through every enemy ahead in a wide cone, and out of sight. Light outruns the fast: far harder on them." },
