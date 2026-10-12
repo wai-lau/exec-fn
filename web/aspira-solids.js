@@ -146,6 +146,7 @@ function blendFill(layers) {
 // swarm - is one flat shape at its projected spot, drawn once in the top pass: 229 dice cost 38 ms of a 60 ms frame (profiled)
 const SOLID_LOD_PX = 12; // (a budget of full dice a frame, the rest flat, ran for an hour - owner: NO)
 function warpFlatDie(e) {
+  if (e.type !== "swarm") return false; // ONLY a tiny SWARMER is ever flat - every other enemy stays a die (owner, 2026-10-12)
   const P = warpProject(e.x, e.y), r = solidSize(e) * cam.k * P.s;
   if (!(r < SOLID_LOD_PX)) return false;
   if (warpBand && warpBand.lo !== 0) return true; // only the pass above the floor draws it
