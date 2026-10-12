@@ -67,7 +67,7 @@ function acdTick(t, st, l, every) {
     const dd = shotDamage(t, st, o, d);
     damage(o, dd, t, false, false, st); onHit(o, t, st, dd); o.burnT = 0.4; // burning: no longer Fresh (st: its shieldPop)
     if (st.burnSlow && !o.dead) applySlow(o, st.burnSlow, 0.5, t.id); // Residue: the burn slows
-    if (st.corrode && !o.dead) { o.armor = (o.armor || 0) - dd * st.corrode; o.corrodeT = 0.4; } // Corrosion: st.corrode of the tick's damage, past zero on purpose; corrodeT: dotted ring
+    if (st.corrode && !o.dead) corrodeHit(o, dd * st.corrode, st); // Corrosion: st.corrode of the tick's damage, past zero on purpose; corrodeT: dotted ring
   };
   const R = st.plagueR ? plagueRadius(l, st) : 0, center = l.e;
   burn(center);
@@ -101,6 +101,16 @@ function stepAcd(t, dt) {
 // dropped st.corrode, so the axis no longer touched armor. Each tick strips ACD_CORRODE of its damage, past zero -
 // negative armor is a flat bonus on every hit from every tower, bosses too. The weakest of 1x / 3x / 10x tried
 // (scripts/aspira-sim/trios.mjs): ARC+FRZ+ACD 90 -> won (Judgement, Death), ARC+SOL+ACD 96 -> won (Capacitance first)
+// the strip's FLOOR, in multiples of the wave's armored-enemy armor (2026-10-12, trio sim: unbounded, a
+// pile of negative armor was ACD's whole edge - with the strip off its trios leaked 50-100%, with it 0-5%,
+// while ARC+FRZ+SOL leaked 55%): Corrosion still eats below nothing, but only so far
+let ACD_CORRODE_FLOOR = [0, 0.25, 0.5, 0.75, 1, 1.25]; // swept x0.25 / x0.5 / x1 at HP x1.5: x0.5 brings ACD trios to 14-45% leaked at 81-89 (ARC+FRZ+SOL 45-55%)
+const acdArmorRef = new Map(), armorRefOf = n => acdArmorRef.get(n) ?? acdArmorRef.set(n, ENEMIES.armor.armor * ENEMY_HP_MUL * Math.pow(hpPow(n) + n * 4 / 18, ARMOR_EXP)).get(n);
+function corrodeHit(e, amt, st) {
+  const floor = -st.corrodeFloor * armorRefOf(e.wave || 1), a = e.armor || 0;
+  if (a > floor) e.armor = Math.max(floor, a - amt); // never raises armor already below (ARC's Melt)
+  e.corrodeT = 0.4;
+}
 const ACD_CORRODE = [0, 0.1, 0.2, 0.3, 0.45, 0.6]; // x2 (2026-10-12: Corrosion is the strip alone now; was .06 .. .3) // x6 (2026-10-11, roles: Corrosion meant as ACD's ARMOR answer - still behind spread in TEAM countermx; was .01 .. .05)
 // ROLES REWORK (owner, 2026-10-12: "what is acd weak to now? seems op"): a bare ACD is a tank killer, weak to the FAST
 // (no carry: a jet starts cold on every new enemy) and to SHIELDS (acid and pools pop one charge a tick, like any hit).
@@ -132,7 +142,7 @@ function acdSkillStats(t, s, b) {
   // every ACD hands 40% of a dead line's ramp on (early-game balance 2026-10-06;
   // fast waves reset it); from Corrosion I, Etch, ALL of it
   const f = skillOf(t, "spray"); // Flow (id kept: saves)
-  s.carry = ACD_FLOW_CARRY[f]; s.burnSlow = ACD_FLOW_SLOW[f]; s.corrode = ACD_CORRODE[c]; s.targets = ACD_LINES[f]; s.contagion = ACD_CONTAGION[skillOf(t, "contagion")];
+  s.carry = ACD_FLOW_CARRY[f]; s.burnSlow = ACD_FLOW_SLOW[f]; s.corrode = ACD_CORRODE[c]; s.corrodeFloor = ACD_CORRODE_FLOOR[c]; s.targets = ACD_LINES[f]; s.contagion = ACD_CONTAGION[skillOf(t, "contagion")];
   s.shieldPop = ACD_SHIELD_POP; // acid EATS shields: every tick pops ACD_SHIELD_POP (the shield answer, counter matrix)
   s.contagionHeat = ACD_PUDDLE_HEAT[skillOf(t, "contagion")]; s.sprayMul = ACD_SPRAY_MUL[skillOf(t, "spray")]; s.skill = true;
 }
@@ -158,7 +168,7 @@ function stepPuddles(t, st, dt) {
       for (const e of G.enemies) {
         if (e.dead || (e.x - p.x) ** 2 + (e.y - p.y) ** 2 > p.r * p.r) continue;
         damage(e, p.dps * every, t, false, false); e.burnT = 0.4; // a real hit: it pops one shield charge
-        if (st.corrode && !e.dead) { e.armor = (e.armor || 0) - p.dps * every * st.corrode; e.corrodeT = 0.4; } // Corrosion strips in the pools too (owner, 2026-10-12)
+        if (st.corrode && !e.dead) corrodeHit(e, p.dps * every * st.corrode, st); // Corrosion strips in the pools too (owner, 2026-10-12)
       }
     }
   }

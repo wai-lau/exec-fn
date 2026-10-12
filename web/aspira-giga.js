@@ -20,9 +20,9 @@ const GIGA_NUM = [
   [FRZ_MOON_COUNT, 4], [FRZ_MOON_BY, 1], [FRZ_SUBMOON_N, 4],
   // SOL: Focus eight rays; Refraction a wider cone, harder hops; Breach armor stripped for good, far bigger crits
   [SOL_BEAMS, 8], [SOL_FOCUS_DMG, 1.3], [SOL_SHIELD_POP, 5], [SOL_REFRACTION, Infinity], [SOL_REFRACTION_DMG, 4], [SOL_REFRACT_SWIFT, 7],
-  [SOL_CONE_BY, 100], [SOL_HOP, 1], [SOL_CRITMUL, 12], [SOL_BREACH_ARMOR, 150], [SOL_BREACH_CRIT, 0.08],
+  [SOL_CONE_BY, 100], [SOL_HOP, 1], [SOL_CRITMUL, 12], [SOL_BREACH_ARMOR, 300], [SOL_BREACH_CRIT, 0.08],
   // ACD: Corrosion the strongest acid; Flow eleven jets landing far hotter, slowing hard; Contagion MASSIVE, long pools
-  [ACD_CORROSION_DMG, 1], [ACD_CORRODE, 0.9], [ACD_LINES, 11], [ACD_FLOW_CARRY, 1.5], [ACD_FLOW_SLOW, 0.2], [ACD_SPRAY_MUL, 1],
+  [ACD_CORROSION_DMG, 1], [ACD_CORRODE, 0.9], [ACD_CORRODE_FLOOR, 2], [ACD_LINES, 11], [ACD_FLOW_CARRY, 1.5], [ACD_FLOW_SLOW, 0.2], [ACD_SPRAY_MUL, 1],
   [ACD_CONTAGION, { every: 1, life: 40, r: 150 }], [ACD_PUDDLE_HEAT, 0.2],
 ];
 for (const [table, v] of GIGA_NUM) if (table.length === GIGA_TIER) table.push(v);
