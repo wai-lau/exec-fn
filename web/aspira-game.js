@@ -93,7 +93,7 @@ const effSpeed = e => ENEMIES[e.type].speed * ENEMY_SPEED * (e.spd || 1) * PATHS
 
 // FRESH (owner): an enemy carrying NO debuff - slowed, stunned, bleeding,
 // burning, corroded, frostbitten, shredded, poisoned or charged
-const debuffed = e => e.slowT > 0 || e.stunT > 0 || e.bleedCrit > 0 || e.burnT > 0 || e.corrodeT > 0 ||
+const debuffed = e => e.slowT > 0 || e.stunT > 0 || e.bleedCrit > 0 || e.breachN > 0 || e.burnT > 0 || e.corrodeT > 0 ||
   e.biteT > 0 || e.shredT > 0 || e.dotT > 0 || !!e.charged || !!e.charge;
 const coreD2 = e => (e.x - CX) ** 2 + (e.y - CY) ** 2;
 const MODE_KEY = {

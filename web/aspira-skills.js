@@ -167,7 +167,7 @@ const SKILL_MOVE = {
   arc:    { conductivity: [[1, 1, 1], [1.02, 1, 1], [1.04, 1, 1], [1.07, 1, 1], [1.09, 1, 1], [1.12, 1, 1]], voltage: [[1, 1, 1], [1.02, 1, 1], [1.04, 1, 1], [1.07, 1, 1], [1.09, 1, 1], [1.12, 1, 1]], capacitance: [[1, 1, 1], [1, 1.3, 1], [1, 1.6, 1], [1, 2, 1], [1, 2.2, 1], [1, 2.4, 1]] },
   frz: { temp: [[1, 1, 1], [1.1, 1, 1], [1.2, 1, 1], [1.3, 1, 1], [1.4, 1, 1], [1.5, 1, 1]] /* wider again (owner, 2026-10-11: FRZ's reach back now its leash is screen-capped; was 1.08 .. 1.2) */ /* a narrower aura per tier (owner, 2026-10-08; was 1.25 .. 2.2) */, rime: [[1, 1, 1], [1, 4 / 3, 1], [1, 5 / 3, 1], [1, 2, 1], [1, 2.2, 1], [1, 2.4, 1]], moons: NO_MOVE }, // Rime buys back FRZ's halved slide (owner)
   sol: { focus: [[1, 1, 1], [1.2, 1, 1], [1.4, 1, 1], [1.7, 1, 1], [1.85, 1, 1], [2, 1, 1]], refraction: [[1, 1, 1], [1.1, 1, 1], [1.2, 1, 1], [1.35, 1, 1], [1.45, 1, 1], [1.55, 1, 1]], breach: [[1, 1, 1], [1, 1.3, 1], [1, 1.6, 1], [1, 2, 1], [1, 2.2, 1], [1, 2.4, 1]] },
-  acd:    { spray: [[1, 1, 1], [1.02, 1, 1], [1.04, 1, 1], [1.06, 1, 1], [1.12, 1, 1], [1.15, 1, 1]] /* Spray's lever now that each jet stays a full strike (owner, 2026-10-08; was 1.2 .. 2.3) */, contagion: [[1, 1, 1], [1, 1.15, 1.15], [1, 1.3, 1.3], [1, 1.5, 1.5], [1, 1.65, 1.65], [1, 1.8, 1.8]], corrosion: NO_MOVE },
+  acd:    { spray: [[1, 1, 1], [1.02, 1, 1], [1.04, 1, 1], [1.06, 1, 1], [1.12, 1, 1], [1.3, 1, 1]] /* V: RANGE instead of a hotter carry (owner, 2026-10-12; was 1.15) */ /* Spray's lever now that each jet stays a full strike (owner, 2026-10-08; was 1.2 .. 2.3) */, contagion: [[1, 1, 1], [1, 1.15, 1.15], [1, 1.3, 1.3], [1, 1.5, 1.5], [1, 1.65, 1.65], [1, 1.8, 1.8]], corrosion: NO_MOVE },
 };
 function skillMove(t, s) {
   for (const [ax, tiers] of Object.entries(SKILL_MOVE[t.kind])) {
@@ -343,7 +343,7 @@ const SOL_BEAMS = [1, 2, 3, 4, 5, 6], SOL_REFRACTION = [1, 3, 6, 10, 13, Infinit
 // BREACH IS SOL'S OWN, from the start (owner, 2026-10-08): every hit strips SOL_BREACH_ARMOR armor for good
 // (below zero too: a flat bonus on every later hit from every tower); the Breach axis massively
 // increases the strip and adds crit chance for every tower, SOL_BREACH_CRIT a hit (none at base)
-const SOL_BREACH_ARMOR = [2, 16, 48, 100, 174, 200] /* doubled back (2026-10-12, trio sim: ARC+FRZ+SOL, the trio without ACD, leaked 57% of armor at 81-89 - 45% with this) */ /* halved, rounded down (2026-10-08; was 2 16 49 101 174 200) */, SOL_BREACH_CRIT = [0, 0.01, 0.02, 0.03, 0.04, 0.05];
+const SOL_BREACH_ARMOR = [3, 24, 72, 150, 261, 300] /* x1.5 for the crit chance it no longer gives (owner, 2026-10-12: "remove extra crit chance, just reduce armor more") */ /* doubled back (2026-10-12, trio sim: ARC+FRZ+SOL, the trio without ACD, leaked 57% of armor at 81-89 - 45% with this) */ /* halved, rounded down (2026-10-08; was 2 16 49 101 174 200) */, SOL_BREACH_CRIT = [0, 0, 0, 0, 0, 0]; // NO crit chance any more (owner, 2026-10-12; was 0 .01 .02 .03 .04 .05)
 // a refraction lands within SOL_CONE degrees of the first shot's direction (at
 // any distance); one Breach = BREACH_ARMOR armor off and BREACH_CRIT crit
 // chance for every tower

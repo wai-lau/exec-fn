@@ -87,7 +87,7 @@ function solidGeom(e) {
   // mass, increasing in size the more breach"): one upright spike through the die's centre, longer and thicker per stack
   // (to BREACH_SPOKES), drawn before the faces so the die hides its middle
   let spike = null;
-  if (e.bleedCrit > 0) {
+  if (e.breachN > 0) {
     const n = Math.min(BREACH_SPOKES, Math.max(1, e.breachN || 1)), H = size * (1.3 + SOLID_BREACH_LEN * n);
     const [x0, y0] = scr([0, 0, -H / size]), [x1, y1] = scr([0, 0, H / size]);
     spike = { a: { x: x0, y: y0, z: -H }, b: { x: x1, y: y1, z: H }, w: (1.2 + SOLID_BREACH_W * n) * cam.k };

@@ -118,7 +118,7 @@ const ACD_CORRODE = [0, 0.1, 0.2, 0.3, 0.45, 0.6]; // x2 (2026-10-12: Corrosion 
 // Flow buys the fast back: ACD_FLOW_CARRY of a jet's ramp rides on when its enemy dies OR escapes, past 1 = it lands
 // hotter, and the jets slow (ACD_FLOW_SLOW, doubled on the fast like every slow - FAST_SLOW_MUL). Contagion buys the
 // shields back through COVERAGE: bigger, longer pools ticking on more enemies. Corrosion: the strongest acid, eats armor.
-const ACD_FLOW_CARRY = [0, 0.3, 0.5, 0.7, 0.9, 1.1], ACD_FLOW_SLOW = [0, 0.05, 0.08, 0.11, 0.14, 0.17];
+const ACD_FLOW_CARRY = [0, 0.3, 0.5, 0.7, 0.9, 0.9] /* V and VI no hotter (owner, 2026-10-12: "flow V should not flow faster" - range instead, SKILL_MOVE; was 1.1, VI 1.5) */, ACD_FLOW_SLOW = [0, 0.05, 0.08, 0.11, 0.14, 0.17];
 // CORROSION'S DAMAGE MOVED TO THE BASE (owner, 2026-10-12): a bare ACD burns ACD_BASE_DMG_MUL harder; Corrosion is
 // now the armor STRIP alone - into negative armor, a flat bonus on every tower's hits, so it pays on the unarmored too
 let ACD_BASE_DMG_MUL = 2; // let: the simulator sweeps it

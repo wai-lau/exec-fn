@@ -166,7 +166,7 @@ function drawStatus(e, d, size, solid) {
   // BREACH (SOL's Pierce; owner): thin spokes in SOL's colour sticking out of
   // the shape, one per stack (BREACH_SPOKES at most drawn), each at a RANDOM
   // angle (owner) fixed for that stack (a hash of the enemy and the stack), turning with it
-  if (e.bleedCrit > 0 && !solid) { // (3D: one upright spike through the die, warpSolid)
+  if (e.breachN > 0 && !solid) { // (3D: one upright spike through the die, warpSolid)
     const n = Math.min(BREACH_SPOKES, Math.max(1, e.breachN || 1));
     ctx.beginPath();
     for (let i = 0; i < n; i++) {
