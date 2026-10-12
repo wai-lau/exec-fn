@@ -209,11 +209,15 @@ const SLOW_TIME = 125 / 48; // ~2.6 real seconds (owner: 10x the old ~4.2s, then
 // bending toward SLOW_CAP and never reaching it - so an enemy keeps at least
 // 1 - SLOW_CAP of its speed, stacked or single (was a 0.9 stacked cap a single stronger
 // slow could pass, Fast up to 0.96). EVERY slow hits Fast enemies twice as hard (owner; global, reconfirmed 2026-10-12):
-// double the slow, shaped toward FAST_SLOW_CAP - set so a fully slowed Fast enemy
+// double the slow, shaped toward fastSlowCap() - set so a fully slowed Fast enemy
 // (1.5x speed) moves no slower than any other fully slowed one: 1.5 x (1 - 0.8) = 1 - 0.7
 // (2026-10-11: at SLOW_CAP the no-ARC trio FRZ+SOL+ACD lost every game to Fast leaks).
 const FAST_SLOW_MUL = 2;
-let SLOW_KNEE = 0.4, SLOW_CAP = 0.7, FAST_SLOW_CAP = 0.88; // let: the simulator sweeps them
+let SLOW_KNEE = 0.4, SLOW_CAP = 0.7; // let: the simulator sweeps them
+// DERIVED from fast's speed (owner, 2026-10-12: "fast enemies look like they get frozen in place by frz" - a fixed 0.88 was
+// set for 1.5x speed; at 1.91x a fully slowed fast enemy crawled at 0.23 of base, below everyone's 0.3): a fully slowed
+// fast enemy moves exactly as fast as a fully slowed base-speed one, whatever fast's speed
+const fastSlowCap = () => 1 - (1 - SLOW_CAP) * ENEMY_BASE_SPEED / ENEMIES.fast.speed;
 const slowShape = (s, cap = SLOW_CAP) => (s <= SLOW_KNEE ? s : SLOW_KNEE + (cap - SLOW_KNEE) * (1 - Math.exp(-(s - SLOW_KNEE) / (cap - SLOW_KNEE))));
 let debuffSeq = 0;
 function addDebuff(map, src, v, dur, shape) {
@@ -243,7 +247,7 @@ function sumSlows(e, dt = 0) {
     keep *= 1 - Math.min(1, s.v); t = Math.max(t, s.t);
   }
   // a FULL stop (Temporal Drive's 100%) is never shaped: the shaping caps tower slows, and had capped the freeze at 70% too
-  e.slowF = keep <= 0 ? 1 : slowShape(1 - keep, e.type === "fast" ? FAST_SLOW_CAP : SLOW_CAP);
+  e.slowF = keep <= 0 ? 1 : slowShape(1 - keep, e.type === "fast" ? fastSlowCap() : SLOW_CAP);
   e.slowT = t;
 }
 // a damage-taken MARK (SOL's shred, ARC's Static): the same shapes, x mul each
