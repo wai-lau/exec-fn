@@ -62,7 +62,7 @@ const farFx = e => q3d() && (e.x - CX) ** 2 + (e.y - CY) ** 2 > DETAIL_FAR_R * D
 // AUTO STEP-DOWN (owner, 2026-10-12: "extremely laggy on my partner's brave browser" - 3D is the default now): while the
 // player has NOT chosen a quality (nothing stored), a frame time averaging over AUTO_Q_MS for AUTO_Q_HOLD real seconds
 // drops 3D to high, then high to low, with a float that says so. A choice on the slider is never overridden
-const AUTO_Q_MS = 40, AUTO_Q_HOLD = 3;
+const AUTO_Q_MS = 34, AUTO_Q_HOLD = 3; // 34 (slow logs, 2026-10-12: a Brave averaged 36-40 ms in 3D and never stepped at 40)
 let autoQ = { ema: 16, slow: 0 }, autoQSteps = 0; // autoQSteps: how many step-downs this session (the slow log reads it)
 function autoQuality(dt) {
   try { if (localStorage.getItem("spire.qpick")) return; } catch (e) { /* no storage: still step down */ } // only a slider PICK stops it - a quality merely remembered from before does not (slow log, 2026-10-12)
