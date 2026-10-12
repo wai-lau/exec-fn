@@ -186,6 +186,9 @@ function drawSlotFlash() {
 // CREDITS_FX_T s after an interest payout "+Xc (+r%)" shows just under the rings
 const CREDITS_FX_T = 2.5;
 let creditsFx = null;
+// 3x larger (owner, 2026-10-11: "make the interest, lives lost popups and current credit counts 3x larger"; were 14 / 15 / 8)
+const POP_PX = 42, CRED_PX = 45, CRED_SUB_PX = 24;
+const popY = () => CY + CORE_R + LIFE_GAP * LIFE_RINGS + 9 + POP_PX / 2; // just under the rings (was +16 at 14px)
 // a LOST LIFE puts "X lives left" in the same spot for as long (owner, 2026-10-11), over an interest pop-up older than it
 let livesFx = null;
 function livesLost() { livesFx = { t0: performance.now() / 1000 }; }
@@ -197,16 +200,16 @@ function drawCredits(part) {
   const n = Math.floor(fxOn ? G.money - creditsFx.gain : G.money).toLocaleString("en-US");
   // a little "CRED" UNDER it (owner, 2026-10-06; was a "c", first after it on the same line)
   if (part !== "pop") {
-    text(n, CX, CY - 3, 15, "bg", "white"); // BLACK with a white halo (owner); smaller (owner, 2026-10-06; was 22)
-    text("CRED", CX, CY + 9, 8, "bg", "white");
+    text(n, CX, CY - 9, CRED_PX, "bg", "white"); // BLACK with a white halo (owner)
+    text("CRED", CX, CY + 27, CRED_SUB_PX, "bg", "white");
   }
   if (part === "count" || G.enemies.some(e => e.arcana && !e.dead)) return; // a boss's name takes this spot (drawBossBar)
   const livesOn = livesFx && performance.now() / 1000 - livesFx.t0 < CREDITS_FX_T && (!fxOn || livesFx.t0 >= creditsFx.t0);
-  if (livesOn) { text(G.lives + (G.lives === 1 ? " life left" : " lives left"), CX, CY + CORE_R + LIFE_GAP * LIFE_RINGS + 16, 14, "pink", true); return; }
+  if (livesOn) { text(G.lives + (G.lives === 1 ? " life left" : " lives left"), CX, popY(), POP_PX, "pink", true); return; }
   if (!fxOn) return;
   const parts = [["+" + creditsFx.gain + "c", "green"], [" (+" + creditsFx.pct.toFixed(1) + "%)", "green"]];
-  ctx.font = "14px " + CANVAS_FONT; // the interest pop-up, smaller (owner; was 20)
+  ctx.font = POP_PX + "px " + CANVAS_FONT; // the interest pop-up
   const ws = parts.map(p => ctx.measureText(p[0]).width);
   let x = CX - ws.reduce((a, w) => a + w, 0) / 2;
-  parts.forEach((p, i) => { text(p[0], x + ws[i] / 2, CY + CORE_R + LIFE_GAP * LIFE_RINGS + 16, 14, p[1], true); x += ws[i]; });
+  parts.forEach((p, i) => { text(p[0], x + ws[i] / 2, popY(), POP_PX, p[1], true); x += ws[i]; });
 }
