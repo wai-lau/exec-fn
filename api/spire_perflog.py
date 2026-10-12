@@ -1,7 +1,6 @@
 """/spire SLOW LOGS (owner, 2026-10-12: "make it so that each session takes slowlogs and sends them back to the server every
 3 min of play - put them somewhere tmp so they don't clog up the machine"): a session's frame-time and audio summary
-(web/aspira-perflog.js), one small JSON file each, in a TEMP folder - the container's /tmp, so a redeploy wipes them -
-capped at MAX_FILES (the oldest dropped). Read back by the owner (GET /api/spire/perflog).
+(web/aspira-perflog.js), one small JSON file each, in data/spire-perflog/ (kept across deploys) - capped at MAX_FILES (the oldest dropped). Read back by the owner (GET /api/spire/perflog).
 """
 import json
 import os
@@ -9,7 +8,10 @@ import secrets
 import time
 from pathlib import Path
 
-LOG_DIR = Path(os.environ.get("SPIRE_PERFLOG_DIR", "/tmp/spire-perflog"))
+from helpers import DATA_DIR  # noqa: E402
+
+# in the DATA folder, not /tmp (owner, 2026-10-12: "stop wiping old slowlogs" - every redeploy cleared /tmp); still capped
+LOG_DIR = Path(os.environ.get("SPIRE_PERFLOG_DIR", str(DATA_DIR / "spire-perflog")))
 MAX_FILES, MAX_BYTES = 400, 16_000
 
 
