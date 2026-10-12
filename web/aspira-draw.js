@@ -281,8 +281,8 @@ function drawRange(x, y, r, color, dim = false) {
 
 // a tower's range; the Reaper's outer HOLD ring (2x) is not drawn (owner),
 // ARC's REACH ring (how far its arcs may land, chainReach) is, dashed (owner)
-function drawTowerRange(t, dim) {
-  const st = towerStats(t), r = st.range, col = TOWERS[t.kind].color;
+function drawTowerRange(t, dim, colKey) {
+  const st = towerStats(t), r = st.range, col = colKey || TOWERS[t.kind].color;
   // Moons / Desolation: each moon's slowing circle INSTEAD of the tower's range (owner)
   if (st.moons) { for (const m of moonSpots(t, st)) drawRange(m.x, m.y, r, col, dim); return; }
   drawRange(t.x, t.y, r, col, dim);
@@ -457,8 +457,8 @@ function drawScene([sx, sy], clipR) {
   drawBoard();
   drawBossBar(); // a live boss's HP line along the horizon, UNDER the towers and their effects (owner)
   const sel = ui.sel && G.towers.find(t => t.id === ui.sel);
-  // EVERY tower colour survives the boss sky (owner, 2026-10-11): ranges, beams, tethers, jets, aims and shots
-  skyKeep(() => { for (const t of G.towers) if (t !== sel) drawTowerRange(t, true); if (sel) drawTowerRange(sel, false); });
+  const ranges = k => () => { for (const t of G.towers) if (t !== sel) drawTowerRange(t, true, k); if (sel) drawTowerRange(sel, false, k); }; // tower colours survive the boss sky (2026-10-11) - but RANGES go white, unkept, so the inversion turns them BLACK (owner, 2026-10-12)
+  if (skyOn()) ranges("white")(); else skyKeep(ranges());
   // stars go on top of lanes and range fills, which would otherwise tint them
   if (!lowQ && !q3d()) drawStars(); // low quality: no star field; 3D: round, on the overlay (warpEntities)
   // BEAMS turn over with the boss sky (owner, 2026-10-11: "inversion should invert tower movement indicators and tower
