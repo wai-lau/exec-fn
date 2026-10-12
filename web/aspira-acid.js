@@ -99,7 +99,10 @@ function stepAcd(t, dt) {
 // dropped st.corrode, so the axis no longer touched armor. Each tick strips ACD_CORRODE of its damage, past zero -
 // negative armor is a flat bonus on every hit from every tower, bosses too. The weakest of 1x / 3x / 10x tried
 // (scripts/aspira-sim/trios.mjs): ARC+FRZ+ACD 90 -> won (Judgement, Death), ARC+SOL+ACD 96 -> won (Capacitance first)
-const ACD_CORRODE = [0, 0.01, 0.02, 0.03, 0.04, 0.05];
+const ACD_CORRODE = [0, 0.06, 0.12, 0.18, 0.24, 0.3]; // x6 (2026-10-11, roles: Corrosion meant as ACD's ARMOR answer - still behind spread in TEAM countermx; was .01 .. .05)
+// ROLES (owner, 2026-10-11: "make upgrade choices matter" - Contagion was ACD's dead axis): Spray's jets bite the FAST
+// x ACD_SPRAY_SWIFT (damage(), st.swift); a Contagion puddle's tick pops ACD_PUDDLE_POP shield charges - ACD's shield answer
+const ACD_SPRAY_SWIFT = [1, 1.3, 1.6, 1.9, 2.2, 2.5], ACD_PUDDLE_POP = [1, 3, 4, 6, 8, 10];
 const ACD_CORROSION_DMG = [1, 1.4, 2.1, 3.1, 4.2, 4.9]; // x1.15 I..V (owner, 2026-10-11: ACD's strength back through Corrosion; was 1.213 1.823 2.674 3.631 4.253)
 const ACD_DOUBLE = [0.5, 0.39, 0.3, 0.12, 0.12, 0.12], ACD_LINES = [2, 3, 4, 6, 7, 8], /* early-game balance 2026-10-06: two lines from the start (was 1/2/3/5); Spray to be re-fitted */ ACD_SPRAY_MUL = [1, 1, 1, 1, 1, 1]; // every jet a full strike (owner, 2026-10-08: never below 1) - Spray's reach (SKILL_MOVE) is the lever
 // puddles by Seep tier (index 0 = the DEFAULT drip, owner): one every `every`
@@ -119,7 +122,7 @@ function acdSkillStats(t, s, b) {
   s.dmg = b.dmg * ACD_CORROSION_DMG[c]; s.range = b.range * RANGE_BONUS; s.double = ACD_DOUBLE[0]; s.cap = ACD_BASE_MAX; s.plagueR = 0;
   // every ACD hands 40% of a dead line's ramp on (early-game balance 2026-10-06;
   // fast waves reset it); from Corrosion I, Etch, ALL of it
-  s.carry = c >= 1 ? 1 : 0.4; s.corrode = ACD_CORRODE[c]; s.targets = ACD_LINES[skillOf(t, "spray")]; s.contagion = ACD_CONTAGION[skillOf(t, "contagion")];
+  s.carry = c >= 1 ? 1 : 0.4; s.corrode = ACD_CORRODE[c]; s.targets = ACD_LINES[skillOf(t, "spray")]; s.swift = ACD_SPRAY_SWIFT[skillOf(t, "spray")]; s.puddleHit = { shieldPop: ACD_PUDDLE_POP[skillOf(t, "contagion")] }; s.contagion = ACD_CONTAGION[skillOf(t, "contagion")];
   s.shieldPop = ACD_SHIELD_POP; // acid EATS shields: every tick pops ACD_SHIELD_POP (the shield answer, counter matrix)
   s.contagionHeat = ACD_PUDDLE_HEAT[skillOf(t, "contagion")]; s.contagionSlow = ACD_CONTAGION_SLOW[skillOf(t, "contagion")]; s.sprayMul = ACD_SPRAY_MUL[skillOf(t, "spray")]; s.skill = true;
 }
@@ -142,7 +145,7 @@ function stepPuddles(t, st, dt) {
       p.tick -= every;
       for (const e of G.enemies) {
         if (e.dead || (e.x - p.x) ** 2 + (e.y - p.y) ** 2 > p.r * p.r) continue;
-        damage(e, p.dps * every, t); e.burnT = 0.4; // a real hit: it pops shields too
+        damage(e, p.dps * every, t, false, false, st.puddleHit); e.burnT = 0.4; // a real hit: it pops shields - ACD_PUDDLE_POP of them
         if (st.contagionSlow && !e.dead) applySlow(e, st.contagionSlow, 0.5, t.id + ":pud");
       }
     }

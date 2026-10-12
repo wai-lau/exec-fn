@@ -101,11 +101,11 @@ SKILL_TREES.sol = [
     { name: "Supernova", desc: "Six rays of light, each a full strike." },
   ] },
   { id: "refraction", name: "Refraction", base: "", tiers: [
-    { name: "Lens", desc: "Shots bounce on to three more enemies ahead." },
-    { name: "Prism", desc: "Shots bounce harder on to six more enemies ahead." },
-    { name: "Spectrum", desc: "Shots bounce hardest on to ten more enemies ahead." },
-    { name: "Halo", desc: "Refracting on to thirteen more ahead." },
-    { name: "Aurora", desc: "Refracting on through every enemy ahead, and out of sight." },
+    { name: "Lens", desc: "Shots bounce on to three more enemies ahead. Light outruns the fast: far harder on them." },
+    { name: "Prism", desc: "Shots bounce harder on to six more enemies ahead. Light outruns the fast: far harder on them." },
+    { name: "Spectrum", desc: "Shots bounce hardest on to ten more enemies ahead. Light outruns the fast: far harder on them." },
+    { name: "Halo", desc: "Refracting on to thirteen more ahead. Light outruns the fast: far harder on them." },
+    { name: "Aurora", desc: "Refracting on through every enemy ahead, and out of sight. Light outruns the fast: far harder on them." },
   ] },
   { id: "breach", name: "Breach", base: "", tiers: [
     { name: "Pierce", desc: "Hits breach once: armor off and crits up for every tower, for good." },
@@ -121,25 +121,25 @@ SKILL_TREES.sol = [
 // the next); Pour = 2 / 3 / 5 lines at once; Seep = more, longer, bigger puddles.
 SKILL_TREES.acd = [
   { id: "corrosion", name: "Corrosion", base: "A jet keeps little of its concentration when it moves to a new target.", tiers: [
-    { name: "Etch", desc: "A jet keeps all of its concentration when it moves to a new target." },
-    { name: "Corrode", desc: "A stronger jet keeps all of its concentration when it moves to a new target." },
-    { name: "Dissolve", desc: "The strongest jet keeps all of its concentration when it moves to a new target." },
-    { name: "Erode", desc: "Acid flow holds when switching targets." },
-    { name: "Annihilate", desc: "Acid flow holds when switching targets." },
+    { name: "Etch", desc: "A jet keeps all of its concentration when it moves to a new target. Acid eats armor." },
+    { name: "Corrode", desc: "A stronger jet keeps all of its concentration when it moves to a new target. Acid eats armor." },
+    { name: "Dissolve", desc: "The strongest jet keeps all of its concentration when it moves to a new target. Acid eats armor." },
+    { name: "Erode", desc: "Acid flow holds when switching targets. Acid eats armor." },
+    { name: "Annihilate", desc: "Acid flow holds when switching targets. Acid eats armor." },
   ] },
   { id: "spray", name: "Spray", base: "Two jets of acid at once, each on its own enemy.", tiers: [
-    { name: "Mist", desc: "Three jets of acid at once, each on its own enemy." },
-    { name: "Downpour", desc: "Four jets of acid at once, each on its own enemy." },
-    { name: "Torrent", desc: "Six jets of acid at once, each on its own enemy." },
-    { name: "Deluge", desc: "Seven jets of acid, each corroding the enemy." },
-    { name: "Cascade", desc: "Eight jets of acid, each corroding the enemy." },
+    { name: "Mist", desc: "Three jets of acid at once, each on its own enemy. Jets bite the fast harder." },
+    { name: "Downpour", desc: "Four jets of acid at once, each on its own enemy. Jets bite the fast harder." },
+    { name: "Torrent", desc: "Six jets of acid at once, each on its own enemy. Jets bite the fast harder." },
+    { name: "Deluge", desc: "Seven jets of acid, each corroding the enemy. Jets bite the fast harder." },
+    { name: "Cascade", desc: "Eight jets of acid, each corroding the enemy. Jets bite the fast harder." },
   ] },
   { id: "contagion", name: "Contagion", base: "Jets drip puddles.", tiers: [
-    { name: "Blister", desc: "Jets drip blistering puddles, more often." },
-    { name: "Plague", desc: "Jets drip bigger blistering puddles, more often." },
-    { name: "Pandemic", desc: "Jets drip bigger blistering puddles, more often, that slow all who wade through them." },
-    { name: "Epidemic", desc: "Pools of acid that slow all who wade through them." },
-    { name: "Blight", desc: "Pools of acid that slow all who wade through them." },
+    { name: "Blister", desc: "Jets drip blistering puddles, more often. Puddles eat shields." },
+    { name: "Plague", desc: "Jets drip bigger blistering puddles, more often. Puddles eat shields." },
+    { name: "Pandemic", desc: "Jets drip bigger blistering puddles, more often, that slow all who wade through them. Puddles eat shields." },
+    { name: "Epidemic", desc: "Pools of acid that slow all who wade through them. Puddles eat shields." },
+    { name: "Blight", desc: "Pools of acid that slow all who wade through them. Puddles eat shields." },
   ] },
 ];
 const hasSkills = t => !!SKILL_TREES[t.kind];
@@ -359,11 +359,14 @@ const SOL_CRITMUL = [3, 4, 5, 7, 8, 9];
 const SOL_HOP = [1, 1, 1, 1, 1, 1]; // every refraction hop a full strike (overnight fit 2026-10-08: even 1.5x reached only 133% - Refraction needs a mechanic change, not numbers) // II / III raised 2026-10-07 (were 0.3 / 0.455) with the cone narrowed to 8 degrees: fewer hops land, so each counts more
 // Refraction peaked at I (107%) and fell by III (93%): range alone spread its fire
 // thin, so II / III also hit harder (owner, 2026-10-07)
+// LIGHT OUTRUNS THE FAST (owner, 2026-10-11: "make upgrade choices matter" - Refraction was SOL's dead axis): x this on a
+// fast enemy (damage(), st.swift) - Refraction is SOL's fast answer, Focus the shields, Breach the armor
+const SOL_REFRACT_SWIFT = [1, 2, 3, 4, 5, 6];
 const SOL_REFRACTION_DMG = [1, 1, 1.3, 1.84, 2.43, 3]; // III..V x1.15 / 1.35 / 1.5 with the 160-degree cone (owner, 2026-10-08: "even a 160 deg angle?" - the cone alone tops out at 156%)
 // each Focus tier's beam STRENGTH (2026-10-08, the tier fit's lever for Focus: more beams alone measured 168% at V)
 const SOL_FOCUS_DMG = [1, 1, 1, 1, 1.139, 1.176]; // never below 1 (owner, 2026-10-08: no upgrade lowers a stat) - more beams carry I..III (114 / 133 / 152%)
 function solSkillStats(t, s, b) {
-  s.dmg = b.dmg * SOL_REFRACTION_DMG[skillOf(t, "refraction")] * SOL_FOCUS_DMG[skillOf(t, "focus")]; s.range = b.range * RANGE_BONUS; s.crit = LVL_SOL_CRIT[0]; s.rate = b.rate;
+  s.dmg = b.dmg * SOL_REFRACTION_DMG[skillOf(t, "refraction")] * SOL_FOCUS_DMG[skillOf(t, "focus")]; s.swift = SOL_REFRACT_SWIFT[skillOf(t, "refraction")]; s.range = b.range * RANGE_BONUS; s.crit = LVL_SOL_CRIT[0]; s.rate = b.rate;
   s.shieldPop = SOL_SHIELD_POP[skillOf(t, "focus")]; // FOCUS pierces shields: each beam pops this many (SOL's shield help, counter matrix)
   s.beams = SOL_BEAMS[skillOf(t, "focus")]; s.refraction = SOL_REFRACTION[skillOf(t, "refraction")]; s.cone = SOL_CONE_BY[skillOf(t, "refraction")]; s.hop = SOL_HOP[skillOf(t, "refraction")];
   const bk = skillOf(t, "breach");
