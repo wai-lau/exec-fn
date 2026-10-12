@@ -91,6 +91,9 @@ function blit(c) { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlp
 const laneSeen = new Map(), LANE_FADE_IN_MS = 2000;
 const LIT_MIN_MS = 200;
 const LIT_STEPS = 16;
+// an ordinary lit lane, MUCH more apparent (owner, 2026-10-12: "make the non boss lanes much more apparent"; was
+// line 0.3 x1.4, haze 0.03, glow 0.22) - a boss lane keeps the old numbers, scaled by BOSS_LANE_K / BOSS_LANE_W
+const LIT_LINE_A = 0.75, LIT_LINE_W = 2.4, LIT_HAZE_A = 0.07, LIT_GLOW_A = 0.34;
 const BOSS_LANE_W = 3.5, BOSS_LANE_HALO_W = 22, BOSS_LANE_HALO_A = 0.06, BOSS_LANE_K = 1.5; // a boss lane: x widths, its glow (world px), x brightness (owner, 2026-10-09: "make boss lanes half as intense"; was 3)
 function drawLaneStrokes(live) {
   const S = laneSet(), { laneCv, lctx, glowCv, gctx, baseCv, bctx } = S;
@@ -139,13 +142,13 @@ function drawLaneStrokes(live) {
     lctx.strokeStyle = gctx.strokeStyle = COL[u.color];
     // a wide GLOW that grows in intensity toward the core (owner), on its own
     // layer with a much steeper fade outward (owner: "stronger gradient")
-    if (!lowQ) { gctx.globalAlpha = Math.min(1, 0.22 * k * u.a); gctx.lineWidth = 32 * w; gctx.lineCap = "butt"; gctx.stroke(PATHS[u.pi].glow2d); gctx.lineCap = "round"; } // butt: a round end was a disc by the core // thicker at the core (owner; was 0.18, 20)
+    if (!lowQ) { gctx.globalAlpha = Math.min(1, (u.star ? 0.22 * k : LIT_GLOW_A) * u.a); gctx.lineWidth = 32 * w; gctx.lineCap = "butt"; gctx.stroke(PATHS[u.pi].glow2d); gctx.lineCap = "round"; } // butt: a round end was a disc by the core // thicker at the core (owner; was 0.18, 20)
     gctx.restore();
-    lctx.globalAlpha = 0.03 * k * u.a; lctx.lineWidth = 6 * w; lctx.stroke(PATHS[u.pi].lit2d);
+    lctx.globalAlpha = (u.star ? 0.03 * k : LIT_HAZE_A) * u.a; lctx.lineWidth = 6 * w; lctx.stroke(PATHS[u.pi].lit2d);
     // a boss lane's halo: one wide faint stroke, not a shadowBlur along the whole (doubled) lane - with the Devil's six
     // lanes the blur was ~60% of an 82 ms layer rebuild (perf, 2026-10-11)
     if (u.star) { lctx.globalAlpha = BOSS_LANE_HALO_A * k * u.a; lctx.lineWidth = BOSS_LANE_HALO_W; lctx.stroke(PATHS[u.pi].lit2d); }
-    lctx.globalAlpha = 0.3 * k * u.a; lctx.lineWidth = 1.4 * w; lctx.stroke(PATHS[u.pi].lit2d);
+    lctx.globalAlpha = (u.star ? 0.3 * k : LIT_LINE_A) * u.a; lctx.lineWidth = u.star ? 1.4 * w : LIT_LINE_W; lctx.stroke(PATHS[u.pi].lit2d);
     lctx.restore();
   }
   if (!lowQ) applyMask(gctx, GLOW_FALLOFF);
