@@ -411,7 +411,9 @@ function stepEnemies(dt) {
       // the wander fades to nothing approaching the core (owner), so the swarm
       // funnels into a clean line instead of piling over the centre
       const j = e.jit * Math.min(1, Math.hypot(e.x - CX, e.y - CY) / JIT_FADE_R) ** 2; // squared: gone well before the core
-      e.x += Math.cos(e.ph) * j; e.y += Math.sin(e.ph * 1.3) * j;
+      // ACROSS the lane only, never back and forth along it (owner, 2026-10-12: "swarm should never jitter back and forth")
+      const q = pathAt(e.pi, e.s + 3, e.ang), tx = q.x - e.x, ty = q.y - e.y, tl = Math.hypot(tx, ty) || 1, w = Math.sin(e.ph) * j;
+      e.x += -ty / tl * w; e.y += tx / tl * w;
     }
     if (e.s >= PATHS[e.pi].len) {
       e.gone = true;

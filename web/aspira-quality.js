@@ -58,7 +58,7 @@ const LOW_SKIP_FX = { hit: 1, spark: 1, cone: 1, flash: 1, blast: 1, zen: 1 };
 // player has NOT chosen a quality (nothing stored), a frame time averaging over AUTO_Q_MS for AUTO_Q_HOLD real seconds
 // drops 3D to high, then high to low, with a float that says so. A choice on the slider is never overridden
 const AUTO_Q_MS = 40, AUTO_Q_HOLD = 3;
-let autoQ = { ema: 16, slow: 0 };
+let autoQ = { ema: 16, slow: 0 }, autoQSteps = 0; // autoQSteps: how many step-downs this session (the slow log reads it)
 function autoQuality(dt) {
   try { if (localStorage.getItem("spire.qpick")) return; } catch (e) { /* no storage: still step down */ } // only a slider PICK stops it - a quality merely remembered from before does not (slow log, 2026-10-12)
   if (qMode === "low" || !(dt > 0) || dt > 0.5) return; // (a stall, a tab switch: not a frame time)
@@ -66,7 +66,7 @@ function autoQuality(dt) {
   autoQ.slow = autoQ.ema > AUTO_Q_MS ? autoQ.slow + dt : 0;
   if (autoQ.slow < AUTO_Q_HOLD) return;
   const to = qMode === "3d" ? "high" : "low";
-  qMode = to; lowQ = to === "low"; autoQ = { ema: 16, slow: 0 }; // (set directly: setQuality would STORE it as a choice)
+  qMode = to; lowQ = to === "low"; autoQ = { ema: 16, slow: 0 }; autoQSteps++; // (set directly: setQuality would STORE it as a choice)
   if (typeof towerSprites !== "undefined") towerSprites.clear();
   if (typeof resize === "function") { resize(); if (typeof fitK !== "undefined") fitK = cam.fit; }
   updateQuality();
