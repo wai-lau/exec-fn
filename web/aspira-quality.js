@@ -10,10 +10,11 @@
 //   - a boss sky snaps instead of spreading (one draw a frame, never two)
 // THREE STEPS on a slider (owner, 2026-10-09: "change quality to a slider:
 // low, high, 3D"): 3D is high's picture laid on the spire (aspira-warp.js).
-// Remembered in localStorage ("spire.quality"); anything unknown is high.
+// Remembered in localStorage ("spire.quality"); anything unknown is 3D - the DEFAULT (owner, 2026-10-12: "make 3d default
+// quality"; it was high).
 const LOW_RES = 0.5, QUALITIES = ["low", "high", "3d"], QUALITY_LABEL = { low: "low", high: "high", "3d": "3D" };
-let qMode = "high";
-try { const q = localStorage.getItem("spire.quality"); if (QUALITIES.includes(q)) qMode = q; } catch (e) { qMode = "high"; }
+let qMode = "3d";
+try { const q = localStorage.getItem("spire.quality"); if (QUALITIES.includes(q)) qMode = q; } catch (e) { qMode = "3d"; }
 let lowQ = qMode === "low";
 const q3d = () => qMode === "3d";
 
@@ -27,7 +28,7 @@ const q3d = () => qMode === "3d";
 })();
 
 function setQuality(q) {
-  qMode = QUALITIES.includes(q) ? q : "high"; lowQ = qMode === "low";
+  qMode = QUALITIES.includes(q) ? q : "3d"; lowQ = qMode === "low";
   try { localStorage.setItem("spire.quality", qMode); } catch (e) { /* not remembered */ }
   // every cache keyed on the canvas size rebuilds on its own once resize()
   // changes it; the tower sprites are keyed on cam.k, which changes with it
