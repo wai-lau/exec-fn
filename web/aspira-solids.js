@@ -166,7 +166,7 @@ function warpSolid(e) {
   try { warpSolidWhole(e); } finally { warpBand = band; warpFade = fade; }
 }
 function warpSolidWhole(e) {
-  if (warpFlatDie(e)) return;
+  // (tiny swarmers drew FLAT here for an afternoon - owner, 2026-10-12: "swarm should render in full 3d all the time"; warpFlatDie unused)
   if (e.geomAt !== warp.frame) { e.geomAt = warp.frame; e.geom = solidGeom(e); }
   const g = e.geom, band = warpBand;
   if (!g) return;
