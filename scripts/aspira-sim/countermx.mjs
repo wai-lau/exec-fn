@@ -6,6 +6,8 @@
 // TEAM=1 (2026-10-11, "make upgrade choices matter"): ONE tower of the kind under test plus one of every OTHER kind,
 // those spread - a support axis (FRZ Rime cracking shields) only shows in a team that can kill what it opens up.
 // usage: node countermx.mjs [seeds=2]   env N=3 POINTS=8 WINDOWS=41-49,61-69 KINDS=... BV_PATCH=<file> TEAM=1
+// a window may carry its OWN points (owner, 2026-10-12: test each boss band at the points a player has there): WINDOWS=1-9:2,11-19:4
+// - a focused build then takes as many tiers as those points allow, capped at SKILL_TIERS
 import fs from "node:fs";
 import { isMainThread } from "node:worker_threads";
 import { makeGame, cellScores } from "./sim.mjs";
@@ -13,22 +15,22 @@ import { runPool } from "./pool.mjs";
 
 const KINDS = (process.env.KINDS || "arc,frz,sol,acd").split(","), TYPES = ["swarm", "fast", "shield", "armor"];
 const TEAM = process.env.TEAM === "1", N = TEAM ? 1 : Number(process.env.N || 3), POINTS = Number(process.env.POINTS || 8);
-const WINDOWS = (process.env.WINDOWS || "41-49,61-69").split(",").map(w => w.split("-").map(Number));
+const WINDOWS = (process.env.WINDOWS || "41-49,61-69").split(",").map(w => { const [r, p] = w.split(":"); return [...r.split("-").map(Number), p ? Number(p) : POINTS]; });
 const PATCH = process.env.BV_PATCH ? fs.readFileSync(process.env.BV_PATCH, "utf8") : "";
 
-export default async function task({ kind, build, type, from, to, seed }) {
+export default async function task({ kind, build, type, from, to, seed, points: POINTS, mates }) {
   const g = makeGame(seed, PATCH); g.reset();
   g.run(`for (let n = ${from}; n <= ${to}; n++) if (n % 10) WAVE_TYPE_FORCE[n] = ${JSON.stringify(type)};`);
   g.run(`G.started = true; G.money = 1e12; G.lives = 1e6; G.wave = ${from - 1}; G.lastType = ${JSON.stringify(type)};`);
   if (TEAM) g.run("OPEN_SLOTS = SLOT_ANGLES.slice(); G.opened ||= {}; CELLS.forEach((c, i) => { if (c.unlock) G.opened[i] = true; });"); // every slot: four towers
   const sc = cellScores(g, kind), open = g.run("CELLS.map((c, i) => i).filter(cellOpen)").sort((a, b) => sc[b] - sc[a]);
-  const axes = g.run(`SKILL_TREES[${JSON.stringify(kind)}].map(a => a.id)`), tiers = g.run("SKILL_TIERS");
+  const axes = g.run(`SKILL_TREES[${JSON.stringify(kind)}].map(a => a.id)`), tiers = Math.min(POINTS, g.run("SKILL_TIERS"));
   const sk = {};
   if (build === "spread") for (let p = 0; p < POINTS; p++) sk[axes[p % 3]] = (sk[axes[p % 3]] || 0) + 1;
   else { sk[build] = tiers; const rest = axes.filter(a => a !== build); for (let p = 0; p < POINTS - tiers; p++) sk[rest[p % 2]] = (sk[rest[p % 2]] || 0) + 1; }
   let placed = 0;
   for (const ci of open) { if (placed >= N) break; const t = g.place(kind, ci); if (!t) continue; t.skills = { ...sk }; t.lvl = 1 + POINTS; placed++; }
-  if (TEAM) for (const m of ["arc", "frz", "sol", "acd"].filter(k => k !== kind)) {
+  if (TEAM) for (const m of mates || ["arc", "frz", "sol", "acd"].filter(k => k !== kind)) {
     const ax = g.run(`SKILL_TREES[${JSON.stringify(m)}].map(a => a.id)`), ms = {};
     for (let p = 0; p < POINTS; p++) ms[ax[p % 3]] = (ms[ax[p % 3]] || 0) + 1;
     const msc = cellScores(g, m), free = g.run("CELLS.map((c, i) => i).filter(cellOpen)").filter(ci => !g.G.towers.some(t => t.cell === ci)).sort((a, b) => msc[b] - msc[a]);
@@ -50,13 +52,16 @@ export default async function task({ kind, build, type, from, to, seed }) {
 
 if (isMainThread && process.argv[1] && process.argv[1].endsWith("countermx.mjs")) {
   const SEEDS = Number(process.argv[2] || 2);
+  // TRIO=1 (owner, 2026-10-12): the game holds THREE towers - the kind plus two others, each trio that
+  // holds it in turn (four towers at the expected points leaked nothing anywhere: not a test)
+  const TRIO = TEAM && process.env.TRIO === "1", TRIOS = k => { const o = ["arc", "frz", "sol", "acd"].filter(x => x !== k); return [[o[0], o[1]], [o[0], o[2]], [o[1], o[2]]]; };
   const AX = { arc: ["conductivity", "voltage", "capacitance"], frz: ["temp", "rime", "moons"], sol: ["focus", "refraction", "breach"], acd: ["corrosion", "spray", "contagion"] };
   const jobs = [];
-  for (const [from, to] of WINDOWS) for (const kind of KINDS) for (const build of ["spread", ...AX[kind]]) for (const type of TYPES) for (let seed = 1; seed <= SEEDS; seed++) jobs.push({ kind, build, type, from, to, seed });
+  for (const [from, to, points] of WINDOWS) for (const kind of KINDS) for (const build of ["spread", ...AX[kind]]) for (const type of TYPES) for (let seed = 1; seed <= SEEDS; seed++) for (const mates of TRIO ? TRIOS(kind) : [null]) jobs.push({ kind, build, type, from, to, seed, points, mates });
   const res = await runPool(new URL(import.meta.url), jobs, { quiet: true });
-  console.log(TEAM ? "TEAM: one of the kind + one of every other kind (spread)," : `${N} towers of one kind,`, ` ${POINTS} points (spread, or that axis at V + rest spread), every ordinary wave forced to one type, ${SEEDS} seeds: % LEAKED`);
-  for (const [from, to] of WINDOWS) {
-    console.log(`\nwaves ${from}-${to}`.padEnd(26) + TYPES.map(t => t.padStart(8)).join(""));
+  console.log(TRIO ? "TRIO: the kind + two others (spread), every trio holding it," : TEAM ? "TEAM: one of the kind + one of every other kind (spread)," : `${N} towers of one kind,`, ` ${POINTS} points (spread, or that axis at V + rest spread), every ordinary wave forced to one type, ${SEEDS} seeds: % LEAKED`);
+  for (const [from, to, points] of WINDOWS) {
+    console.log(`\nwaves ${from}-${to} (${points} pts)`.padEnd(26) + TYPES.map(t => t.padStart(8)).join(""));
     for (const kind of KINDS) for (const build of ["spread", ...AX[kind]]) {
       const cells = TYPES.map(type => { const rs = jobs.map((j, i) => (j.kind === kind && j.build === build && j.type === type && j.from === from ? res[i] : null)).filter(Boolean);
         const l = rs.reduce((a, r) => a + r.leaked, 0), s = rs.reduce((a, r) => a + r.spawned, 0); return (s ? Math.round(100 * l / s) + "%" : "-").padStart(8); });
