@@ -298,6 +298,9 @@ function warpEntities() {
     const cellDraw = new Map(); drawCells((c, fn) => cellDraw.set(c, fn));
     if (ui.build && ui.hover) up(ui.hover.x, ui.hover.y, drawPlacement);
     // the bodies as real dice, the farthest first (aspira-solids.js), each inside its shield's walls (aspira-walls.js)
+    // past SOLID_FULL_MAX live enemies only the BIGGEST on screen stay full dice; the rest draw flat (perf, aspira-solids.js)
+    const live = G.enemies.filter(e => !e.dead);
+    if (live.length > SOLID_FULL_MAX) { const sz = e => solidSize(e) * warpProject(e.x, e.y).s; live.sort((a, b) => sz(b) - sz(a)).forEach((e, i) => { e.lodFlat = i >= SOLID_FULL_MAX && !e.arcana; }); } else for (const e of live) e.lodFlat = false;
     const dice = [...G.enemies].sort((a, b) => a.y - b.y).map(e => ({ e, w: enemyWallPieces(e), col: COL[ENEMIES[e.type].color] }));
     const drawDice = () => { for (const { e } of dice) warpSolid(e); };
     // the towers and the core STAND UP as hexagonal prisms (owner: "core taller than towers"), the farthest

@@ -142,8 +142,30 @@ function blendFill(layers) {
   if (!s) { if (blendCache.size > 4000) blendCache.clear(); s = "rgba(" + (r | 0) + "," + (g | 0) + "," + (b | 0) + "," + a / 1000 + ")"; blendCache.set(key, s); }
   return s;
 }
+// LOD (owner, 2026-10-12: "do some major perf work for 3d"): a die SMALLER than SOLID_LOD_PX on screen - most of a late
+// swarm - is one flat shape at its projected spot, drawn once in the top pass: 229 dice cost 38 ms of a 60 ms frame (profiled)
+const SOLID_LOD_PX = 12, SOLID_FULL_MAX = 60; // FULL_MAX: at most this many full dice a frame, the biggest on screen (warpEntities flags the rest e.lodFlat)
+function warpFlatDie(e) {
+  const P = warpProject(e.x, e.y), r = solidSize(e) * cam.k * P.s;
+  if (!(r < SOLID_LOD_PX) && !e.lodFlat) return false;
+  if (warpBand && warpBand.lo !== 0) return true; // only the pass above the floor draws it
+  const d = ENEMIES[e.type], n = d.sides, col = COL[d.color], fa = warpFade * Math.max(SOLID_FAR_MIN, Math.min(1, P.s / warp.p.z) ** 2);
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.beginPath();
+  for (let i = 0; i < n; i++) { const a = (e.rot || 0) + i * 6.283 / n; if (i) ctx.lineTo(P.x + Math.cos(a) * r, P.y + Math.sin(a) * r); else ctx.moveTo(P.x + Math.cos(a) * r, P.y + Math.sin(a) * r); }
+  ctx.closePath(); ctx.fillStyle = blendFill([[rgbOf(col), 0.35 * fa], [rgbOf(COL.cyan), 0.35 * fa * SOLID_FROZEN_A * frostK(e)]]); ctx.fill();
+  ctx.strokeStyle = blendFill([[rgbOf(col), 0.9 * fa], [rgbOf(COL.white), 0.9 * fa * rimeK(e)]]); ctx.lineWidth = 1.2 * cam.k; ctx.stroke();
+  return true;
+}
+// NO FOG ON ENEMIES (owner, 2026-10-12: "remove fog on enemies"): a die draws ONCE, whole and at full strength, in the pass
+// above the floor - no fading slices below it, no clipping (and that much less work a frame)
 function warpSolid(e) {
-  if (e.dead || !SOLIDS[e.type]) return;
+  if (e.dead || !SOLIDS[e.type] || (warpBand && warpBand.lo !== 0)) return;
+  const band = warpBand, fade = warpFade;
+  warpBand = null; warpFade = 1;
+  try { warpSolidWhole(e); } finally { warpBand = band; warpFade = fade; }
+}
+function warpSolidWhole(e) {
+  if (warpFlatDie(e)) return;
   if (e.geomAt !== warp.frame) { e.geomAt = warp.frame; e.geom = solidGeom(e); }
   const g = e.geom, band = warpBand;
   if (!g) return;
@@ -157,7 +179,7 @@ function warpSolid(e) {
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.lineJoin = "round";
   // the breach spike WHOLE, at full strength, in the pass above the floor: centred on the floor (owner, 2026-10-09: "SOL
   // breach effect should be centered on floor" - its lower half faded with the floor, so it read as rising from the die)
-  if (g.spike && band && band.lo === 0) { ctx.beginPath(); ctx.moveTo(g.spike.a.x, g.spike.a.y); ctx.lineTo(g.spike.b.x, g.spike.b.y); ctx.strokeStyle = COL[TOWERS.sol.color]; ctx.globalAlpha = 0.9 * fa; ctx.lineWidth = g.spike.w; ctx.stroke(); }
+  if (g.spike && (!band || band.lo === 0)) { ctx.beginPath(); ctx.moveTo(g.spike.a.x, g.spike.a.y); ctx.lineTo(g.spike.b.x, g.spike.b.y); ctx.strokeStyle = COL[TOWERS.sol.color]; ctx.globalAlpha = 0.9 * fa; ctx.lineWidth = g.spike.w; ctx.stroke(); }
   // PERF (2026-10-09): each face ONE fill of its layers blended up front (background, colour, frost - source-over
   // is associative, so it is the same colour), and the edges stroked once for the whole die: the outline (an edge of
   // one face) once, the inner edges (shared by two faces) as their two strokes blended

@@ -54,3 +54,21 @@ function updateQuality() {
 }
 // the effect kinds drawFx leaves out while low (the beams, rings and texts stay)
 const LOW_SKIP_FX = { hit: 1, spark: 1, cone: 1, flash: 1, blast: 1, zen: 1 };
+// AUTO STEP-DOWN (owner, 2026-10-12: "extremely laggy on my partner's brave browser" - 3D is the default now): while the
+// player has NOT chosen a quality (nothing stored), a frame time averaging over AUTO_Q_MS for AUTO_Q_HOLD real seconds
+// drops 3D to high, then high to low, with a float that says so. A choice on the slider is never overridden
+const AUTO_Q_MS = 40, AUTO_Q_HOLD = 3;
+let autoQ = { ema: 16, slow: 0 };
+function autoQuality(dt) {
+  try { if (localStorage.getItem("spire.quality")) return; } catch (e) { /* no storage: still step down */ }
+  if (qMode === "low" || !(dt > 0) || dt > 0.5) return; // (a stall, a tab switch: not a frame time)
+  autoQ.ema += (dt * 1000 - autoQ.ema) * 0.05;
+  autoQ.slow = autoQ.ema > AUTO_Q_MS ? autoQ.slow + dt : 0;
+  if (autoQ.slow < AUTO_Q_HOLD) return;
+  const to = qMode === "3d" ? "high" : "low";
+  qMode = to; lowQ = to === "low"; autoQ = { ema: 16, slow: 0 }; // (set directly: setQuality would STORE it as a choice)
+  if (typeof towerSprites !== "undefined") towerSprites.clear();
+  if (typeof resize === "function") { resize(); if (typeof fitK !== "undefined") fitK = cam.fit; }
+  updateQuality();
+  if (typeof float === "function") float(CX, CY - 120, "quality lowered for speed", "white", 18, 3, 1, 3);
+}

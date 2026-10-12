@@ -71,7 +71,8 @@ function drawEnemy(e, solid) {
   if (e.dead) return;
   // a boss shrinks all the way with its HP, to nothing at 0% (owner); others keep 45%
   const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max), size = d.size * (e.arcana ? f : 0.45 + 0.55 * f) * (e.sizeMul || 1);
-  if (TRAIL[e.type] && !lowQ) { // low quality: no tracers
+  // (3D: none behind a die drawn FLAT, under SOLID_LOD_PX on screen - perf, 2026-10-12; aspira-solids.js)
+  if (TRAIL[e.type] && !lowQ && !(solid && !e.arcana && size * cam.k * warpProject(e.x, e.y).s < SOLID_LOD_PX)) { // low quality: no tracers
     drawStarTrail(e, size);
     // the body is see-through, so blank its shape first: the tracer must not
     // show through the enemy it trails (owner)

@@ -465,6 +465,7 @@ function tickFps(now) {
 const freezing = () => timeStopped();
 let last = performance.now();
 function frame(now) {
+  autoQuality((now - last) / 1000); // a slow machine steps quality down (aspira-quality.js)
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   if (!ui.paused) {
