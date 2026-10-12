@@ -49,7 +49,8 @@ const canPull = (t, ax) => { const r = axisRoom(t, ax.id); return r.left > 0 && 
 const shapeOf = (axes, sk, n) => axes.map((ax, i) => axisPt(i, (sk && sk[ax.id]) || 0, n).map(v => v.toFixed(1)).join(",")).join(" ");
 // one pip a tier: filled = locked in, half-lit = pulled in the basket, hollow = still to buy
 // the last pip and the outer ring are the GIGA tier VI (aspira-giga.js), marked in orange (aspira.css)
-const pipsHtml = (lock, at) => Array.from({ length: SKILL_TIERS }, (_, k) => '<i class="' + (k < lock ? "lock" : k < at ? "pull" : "") + (k === SKILL_TIERS - 1 ? " giga" : "") + '"></i>').join("");
+// ...and once ANOTHER axis has BOUGHT its VI, this axis's VI pip is RED: gone for this tower (owner, 2026-10-12)
+const pipsHtml = (lock, at, gone) => Array.from({ length: SKILL_TIERS }, (_, k) => '<i class="' + (k < lock ? "lock" : k < at ? "pull" : "") + (k === SKILL_TIERS - 1 ? " giga" + (gone ? " gone" : "") : "") + '"></i>').join("");
 function sliderChart(t) {
   const axes = SKILL_TREES[t.kind], n = axes.length, add = basketFor(t), pv = previewTower(t);
   let svg = '<svg class="asp-chart asp-sliders" viewBox="0 ' + SL_TOP + ' 120 ' + SL_H + '">';
@@ -63,7 +64,7 @@ function sliderChart(t) {
     const lock = skillOf(t, ax.id), at = lock + (add[ax.id] || 0);
     return '<div class="asp-axis-row"><span class="asp-axis-name">' + ax.name + '<b class="asp-axis-tier">' + tierSpan(lock, at) + "</b></span>" +
       '<div class="asp-axis-ctl"><button class="asp-axis-btn minus" data-axis="' + i + '" data-d="-1" aria-label="' + ax.name + ' down">−</button>' +
-      '<span class="asp-pips">' + pipsHtml(lock, at) + "</span>" +
+      '<span class="asp-pips">' + pipsHtml(lock, at, !!gigaHolder(t, ax.id)) + "</span>" +
       '<button class="asp-axis-btn plus' + (canPull(t, ax) ? " can" : "") + '" data-axis="' + i + '" data-d="1" aria-label="' + ax.name + ' up">+</button></div></div>';
   }).join("");
   return '<div class="asp-ctl-row"><div class="asp-axes">' + rows + '</div><div class="asp-chart-box">' + svg + '<div class="asp-slider-note" id="asp-slider-note"></div></div></div>';
@@ -77,7 +78,7 @@ function updateSliderChart(t, svg) {
     const lock = skillOf(t, ax.id), at = lock + (add[ax.id] || 0), row = rows[i];
     if (!row) return;
     row.querySelector(".asp-axis-tier").textContent = tierSpan(lock, at);
-    row.querySelector(".asp-pips").innerHTML = pipsHtml(lock, at);
+    row.querySelector(".asp-pips").innerHTML = pipsHtml(lock, at, !!gigaHolder(t, ax.id));
     row.querySelector(".minus").classList.toggle("dim", at <= lock); // nothing pulled to put back
     const plus = row.querySelector(".plus");
     plus.classList.toggle("can", canPull(t, ax)); plus.disabled = at >= SKILL_TIERS; // (a giga taken elsewhere: the tap SAYS so - pullAxis)
@@ -100,7 +101,7 @@ function pullAxis(t, i, want) {
   const ax = SKILL_TREES[t.kind][i], add = basketFor(t), lock = skillOf(t, ax.id);
   const top = axisCap(t, ax.id, add), holder = gigaHolder(t, ax.id, add);
   const to = Math.max(lock, Math.min(top, want));
-  const why = want < lock ? ax.name + " " + roman(lock) + " is locked in · sell to undo"
+  const why = want < lock ? ax.name + " " + roman(lock) + " is locked in" // (no "sell to undo" - owner, 2026-10-12)
     : want > top && holder ? "One giga capstone per tower · " + holder.name + " " + roman(GIGA_TIER) + " holds it" : "";
   const was = add[ax.id] || 0;
   add[ax.id] = to - lock;
