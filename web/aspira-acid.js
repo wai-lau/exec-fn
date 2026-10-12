@@ -252,7 +252,7 @@ function puddleBlob(p, now, k, seed) {
 // are shared out so all of them together stay near POOL_LOD x PUDDLE_BUBBLES
 const POOL_LOD = 24;
 function drawPools(t, now) {
-  const many = (t.puddles || []).length > POOL_LOD;
+  const many = q3d() || (t.puddles || []).length > POOL_LOD; // 3D: always the plain circle - the board is drawn into a texture and warped, the rim's wobble barely shows and its fills cost (owner, 2026-10-12: pool perf in 3D)
   for (const p of t.puddles || []) {
     const fade = Math.min(1, (1 - p.age / p.life) * puddleGlow(p)), seed = p.seed ||= 1 + Math.floor(Math.random() * 1e6);
     if (many) { ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 0.9 * (0.8 + 0.2 * (1 - p.age / p.life)), 0, 6.283); ctx.globalAlpha = 0.14 * fade; ctx.fill(); ctx.globalAlpha = 0.4 * fade; ctx.stroke(); continue; }
@@ -265,7 +265,7 @@ function drawPuddles(t) {
   ctx.strokeStyle = ctx.fillStyle = COL.chatsubo; ctx.lineWidth = 1.2;
   drawPools(t, now);
   if (lowQ) { for (const p of t.puddles || []) { ctx.globalAlpha = 0.5 * (1 - p.age / p.life); ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 0.6, 0, 6.283); ctx.stroke(); } ctx.globalAlpha = 1; return; } // low quality: one ring, no bubbles
-  const n = (t.puddles || []).length, per = n > POOL_LOD ? POOL_LOD * PUDDLE_BUBBLES / n : PUDDLE_BUBBLES; // bubbles a pool, on average
+  const n = (t.puddles || []).length, per = Math.min(q3d() ? 2 : PUDDLE_BUBBLES, n > POOL_LOD ? POOL_LOD * PUDDLE_BUBBLES / n : PUDDLE_BUBBLES); // bubbles a pool, on average (3D: 2 at most)
   (t.puddles || []).forEach((p, j) => {
     const I = puddleGlow(p), fade = Math.min(1, (1 - p.age / p.life) * I), seed = p.seed ||= 1 + Math.floor(Math.random() * 1e6);
     ctx.lineWidth = 1.2 * I;
