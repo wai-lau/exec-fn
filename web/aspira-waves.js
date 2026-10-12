@@ -6,7 +6,7 @@
 // ---------- waves ----------
 // Waves go on a FIXED TIMER (owner, 2026-10-02), fast enough that 2+ waves are
 // usually on screen, and still at once whenever the field clears.
-const WAVE_TIMER = 8; // halved (owner, 2026-10-12: "halve all wave timers"; was 16) // owner: 10 -> 13 -> 16s to thin the field
+const WAVE_TIMER = 6.4; // 20% shorter (owner, 2026-10-12: "make wave timers 20% shorter across the board"; was 8) - halved (owner, 2026-10-12: "halve all wave timers"; was 16) // owner: 10 -> 13 -> 16s to thin the field
 // clear = nothing ALIVE on the board (ghosts of the dead may still be drifting in)
 // the boss (the star) or ANY of its fleet is alive, riding in (G.fleetQ) or still queued to spawn - no wave warps in
 // till the whole fleet is down (owner, 2026-10-12: "still want warps to stop until boss + fleet is defeated"; the fleet
