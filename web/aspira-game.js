@@ -131,9 +131,9 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
     if (quiet) return;
     e.shield = Math.max(0, e.shield - ((st && st.shieldPop) || 1)); // most hits pop one; ACD's acid and SOL's beams pop more (shieldPop)
     if (e.shield < SHIELD_BREAK_N) shieldBreak(e); // its last charges BREAK, loudly (aspira-floats.js)
-    fx.push({ k: "hit", x: e.x, y: e.y, r: 18, m: 1, color: "cyan", t: 0, life: 0.07 });
+    if (!(st && st.noFx)) fx.push({ k: "hit", x: e.x, y: e.y, r: 18, m: 1, color: "cyan", t: 0, life: 0.07 });
     // all of it soaked: a "0" in SHIELD blue, as BIG as the hit it swallowed (owner)
-    dmgNumber(e, "0", amt, "cyan", t);
+    if (!(st && st.noFx)) dmgNumber(e, "0", amt, "cyan", t);
     return;
   }
   // BLEED (SOL's Impale): every OTHER tower may crit a bleeding enemy too, for
@@ -159,7 +159,7 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
   amt = bossHitCap(e, amt); // Justice / Death cap a single hit (aspira-bosses.js)
   amt = Math.max(1, Math.floor(amt)); // a hit is a WHOLE number, rounded down - but one that lands always takes 1 (owner, 2026-10-08)
   e.hp -= amt;
-  if (!quiet) {
+  if (!quiet && !(st && st.noFx)) { // noFx: the hit lands in full, unseen (crowded acid pools - aspira-acid.js)
     // impact flash sized and lit by the damage; big hits also throw sparks
     const m = dmgMag(amt), col = t ? TOWERS[t.kind].color : "orange";
     fx.push({ k: "hit", x: e.x, y: e.y, r: 5 + 8 * m, m, color: col, t: 0, life: 0.05 + 0.027 * m });

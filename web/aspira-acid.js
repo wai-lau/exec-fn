@@ -162,18 +162,40 @@ function stepPuddles(t, st, dt) {
   }
   if (!t.puddles) return;
   const every = 1 / st.rate;
+  let grid = null; // built at the first tick that needs it
+  const hit = t.puddles.length > POOL_LOD ? POOL_QUIET : null; // a crowd of pools: no flash or number per hit
   for (const p of t.puddles) {
     p.age += dt; p.tick += dt;
     while (p.tick >= every) {
       p.tick -= every;
-      for (const e of G.enemies) {
+      for (const e of poolNear(grid ||= enemyGrid(), p)) {
         if (e.dead || (e.x - p.x) ** 2 + (e.y - p.y) ** 2 > p.r * p.r) continue;
-        damage(e, p.dps * every, t, false, false); e.burnT = 0.4; // a real hit: it pops one shield charge
+        damage(e, p.dps * every, t, false, false, hit); e.burnT = 0.4; // a real hit: it pops one shield charge
         if (st.corrode && !e.dead) corrodeHit(e, p.dps * every * st.corrode, st); // Corrosion strips in the pools too (owner, 2026-10-12)
       }
     }
   }
   t.puddles = t.puddles.filter(p => p.age < p.life);
+}
+// LATE-GAME LAG (owner, 2026-10-12: "make late game acid pools less laggy"): a giga Contagion keeps 300+ pools, each of
+// which checked EVERY enemy at every tick - now the live enemies are bucketed once a step into POOL_CELL squares and a
+// pool looks only in the squares it covers (the same hits, far fewer checks)
+const POOL_CELL = 128;
+// ...and past POOL_LOD pools their hits land UNSEEN (no flash, no number each): hundreds a second were most of the lag
+const POOL_QUIET = { noFx: true };
+function enemyGrid() {
+  const g = new Map();
+  for (const e of G.enemies) {
+    if (e.dead) continue;
+    const k = Math.floor(e.x / POOL_CELL) + "," + Math.floor(e.y / POOL_CELL);
+    const b = g.get(k); if (b) b.push(e); else g.set(k, [e]);
+  }
+  return g;
+}
+function poolNear(g, p) {
+  const out = [], x0 = Math.floor((p.x - p.r) / POOL_CELL), x1 = Math.floor((p.x + p.r) / POOL_CELL), y0 = Math.floor((p.y - p.r) / POOL_CELL), y1 = Math.floor((p.y + p.r) / POOL_CELL);
+  for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) { const b = g.get(x + "," + y); if (b) out.push(...b); }
+  return out;
 }
 // UI (drawAcd): a puddle is a cluster of BUBBLES (owner): PUDDLE_BUBBLES at
 // once, each at a jittered spot within it, growing to its own jittered max
@@ -197,9 +219,14 @@ function puddleBlob(p, now, k, seed) {
   for (let i = 1; i <= PUDDLE_RIM; i++) { const q = pt(i); m = mid(prev, q); ctx.quadraticCurveTo(prev[0], prev[1], m[0], m[1]); prev = q; }
   ctx.closePath();
 }
+// ...and DRAWN within a budget: past POOL_LOD pools a pool is a plain circle (no wobbling rim, no sheen) and the bubbles
+// are shared out so all of them together stay near POOL_LOD x PUDDLE_BUBBLES
+const POOL_LOD = 24;
 function drawPools(t, now) {
+  const many = (t.puddles || []).length > POOL_LOD;
   for (const p of t.puddles || []) {
     const fade = Math.min(1, (1 - p.age / p.life) * puddleGlow(p)), seed = p.seed ||= 1 + Math.floor(Math.random() * 1e6);
+    if (many) { ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 0.9 * (0.8 + 0.2 * (1 - p.age / p.life)), 0, 6.283); ctx.globalAlpha = 0.14 * fade; ctx.fill(); ctx.globalAlpha = 0.4 * fade; ctx.stroke(); continue; }
     puddleBlob(p, now, 1, seed); ctx.globalAlpha = 0.14 * fade; ctx.fill(); ctx.globalAlpha = 0.4 * fade; ctx.stroke();
     puddleBlob(p, now, 0.5, seed * 7); ctx.globalAlpha = 0.12 * fade; ctx.fill();
   }
@@ -209,10 +236,12 @@ function drawPuddles(t) {
   ctx.strokeStyle = ctx.fillStyle = COL.chatsubo; ctx.lineWidth = 1.2;
   drawPools(t, now);
   if (lowQ) { for (const p of t.puddles || []) { ctx.globalAlpha = 0.5 * (1 - p.age / p.life); ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 0.6, 0, 6.283); ctx.stroke(); } ctx.globalAlpha = 1; return; } // low quality: one ring, no bubbles
-  for (const p of t.puddles || []) {
+  const n = (t.puddles || []).length, per = n > POOL_LOD ? POOL_LOD * PUDDLE_BUBBLES / n : PUDDLE_BUBBLES; // bubbles a pool, on average
+  (t.puddles || []).forEach((p, j) => {
     const I = puddleGlow(p), fade = Math.min(1, (1 - p.age / p.life) * I), seed = p.seed ||= 1 + Math.floor(Math.random() * 1e6);
     ctx.lineWidth = 1.2 * I;
-    for (let i = 0; i < PUDDLE_BUBBLES; i++) {
+    const nb = Math.floor(per * (j + 1)) - Math.floor(per * j); // spread evenly: some pools get one, some none
+    for (let i = 0; i < nb; i++) {
       const ph = now / BUBBLE_T + i / PUDDLE_BUBBLES + (seed % 97) / 97, cyc = Math.floor(ph), f = ph - cyc;
       const h = k => fixedRand(cyc * 13 + i * 3 + k, seed); // this bubble's own jitter, fixed for its life
       const a = h(0) * 6.283, d = Math.sqrt(h(1)) * p.r * 0.8, x = p.x + Math.cos(a) * d, y = p.y + Math.sin(a) * d;
@@ -228,6 +257,6 @@ function drawPuddles(t) {
         ctx.globalAlpha = 0.6 * (1 - q) * fade; ctx.stroke();
       }
     }
-  }
+  });
   ctx.globalAlpha = 1;
 }
