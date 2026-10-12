@@ -307,7 +307,11 @@ export function makePlayer(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = 
     // the smart saver's BUY BEFORE THE WAVE: up to n purchases at once, from what it holds; returns how many it made
     buy(n) { S.buysLeft = n; act(0); const made = n - S.buysLeft; S.buysLeft = 0; return made; },
     // through wave `w`: play until that wave is sent (at 100 the 10th boss is fought and the game can be WON)
-    runTo(w) { while (!g.G.over && g.G.wave < w && g.G.wave <= maxWave && S.time < 60 * 60 * 2) tick(); return !g.G.over; },
+    runTo(w) { // the smart saver plays a wave at a time, rewinding a leaked one (smartWave); everyone else straight through
+      if (strategy.econ !== "smart" || strategy.rewind === false) { while (!g.G.over && g.G.wave < w && g.G.wave <= maxWave && S.time < 60 * 60 * 2) tick(); return !g.G.over; }
+      while (!this.done() && g.G.wave < w) { const w0 = g.G.wave; smartWave(this, () => { while (!g.G.over && g.G.wave <= w0 && g.G.wave <= maxWave && S.time < 60 * 60 * 2) tick(); }); if (g.G.wave === w0) break; }
+      return !g.G.over;
+    },
     done: () => g.G.over || g.G.wave > maxWave || S.time >= 60 * 60 * 2,
     // `next` rides along by tower id: re-choosing it would roll the player's RNG and fork the build order
     // the game's own state outside G: the positioning cache (posPred holds enemy refs - stale after a
@@ -338,27 +342,22 @@ export function makePlayer(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = 
 // life is played again from that snapshot with 1, 2, 3... upgrades bought before it starts - "allowed to go back to a snapshot and
 // spend money if the wave it held back on leaked". strategy.rewind false turns the replay off
 const SMART_INTEREST = 4, HOARD_X = 4; // HOARD_X: a hoarder's bank over the smart saver's // game seconds the replayed wave spends freely
+// one wave of the smart saver: from a snapshot, played saving; on a lost life, again with 1, 2, 3... purchases made BEFORE it
+// (owner, 2026-10-12: "if leak, rewind and buy 1 upgrade before wave starts; if still leak, rewind and buy 2") - nothing
+// bought during it; the first try that keeps every life stands, or the one that could afford no more
+function smartWave(p, playWave) {
+  const snap = p.snapshot(), lives = p.g.G.lives;
+  for (let n = 0; ; n++) {
+    if (n) { p.restore(snap); p.rewinds = (p.rewinds || 0) + 1; // (on p, not S: a restore would roll S back) }
+    const made = p.buy(n);
+    playWave();
+    if (p.g.G.lives >= lives || made < n || p.g.G.over) break;
+  }
+}
 export function play(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
   const p = makePlayer(strategy, seed, maxWave, dt, patch);
-  if (strategy.econ !== "smart" || strategy.rewind === false) { p.runTo(maxWave + 1); return p.result(); }
-  let rewinds = 0;
-  while (!p.done()) {
-    // EVERY wave it tries to save it all (owner, 2026-10-12: "smart savers should try to save every wave and rewind if it
-    // didnt work out"); a wave that cost a life is played again from its start, spending everything
-    // ...replayed with ONE upgrade bought before the wave starts, then two, then three... (owner, 2026-10-12: "if leak,
-    // rewind and buy 1 upgrade before wave starts; if still leak, rewind and buy 2") - nothing bought DURING a wave; the
-    // first try that keeps every life stands, or the one that could afford no more
-    const w = p.g.G.wave, snap = p.snapshot(), lives = p.g.G.lives;
-    for (let n = 0; ; n++) {
-      if (n) { p.restore(snap); rewinds++; }
-      const made = p.buy(n);
-      p.runTo(w + 1);
-      if (p.g.G.lives >= lives || made < n || p.done()) break;
-    }
-    if (p.g.G.wave === w && !p.done()) p.runTo(w + 1); // (a wave that would not end: let runTo's own clock stop it)
-    if (p.g.G.wave === w) break;
-  }
-  return { ...p.result(), rewinds };
+  p.runTo(maxWave + 1);
+  return { ...p.result(), rewinds: p.rewinds || 0 };
 }
 
 if (process.argv[1] && process.argv[1].endsWith("sim.mjs") && process.argv[2]) {
