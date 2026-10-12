@@ -144,45 +144,37 @@ const autoWaiting = () => {
     try { localStorage.setItem("spire.autowait", autoWait ? "1" : "0"); } catch (e) { /* not remembered */ }
   }, "asp-autowait");
   btn.setAttribute("role", "checkbox");
-  const sp = button(row, "asp-check", "", () => {
-    autoSpeed = !autoSpeed;
-    try { localStorage.setItem("spire.autospeed", autoSpeed ? "1" : "0"); } catch (e) { /* not remembered */ }
-  }, "asp-autospeed");
-  sp.setAttribute("role", "checkbox");
   qualityBox(row); // the visual quality toggle beside it (aspira-quality.js)
 })();
 // the checkbox as an SVG, not a font glyph (owner: the glyph sat off-centre
 // from its label); centred against the words by the button's flex row
 const ICON_UNCHECKED = '<svg class="asp-box" viewBox="0 0 20 20"><rect x="2" y="2" width="16" height="16" rx="2"/></svg>';
 const ICON_CHECKED = '<svg class="asp-box" viewBox="0 0 20 20"><rect x="2" y="2" width="16" height="16" rx="2"/><path d="M5.5 10.5l3 3 6-7"/></svg>';
-// AUTO-SPEED (owner, 2026-10-09: "add a checkbox (checked by default) for auto-speed: when no enemies are within the
-// range of a tower, speed up to x3"): with nothing in any tower's reach (range + leash) the game runs at AUTO_SPEED x at least (a faster
-// chosen speed stands); auto-wait still slows it near the core. Remembered in localStorage like auto-wait.
-const AUTO_SPEED = 3;
-// ON by default again (owner, 2026-10-11: "make it default on"; it was off for a while): only an explicit "0" turns it off
-let autoSpeed = true;
-try { autoSpeed = localStorage.getItem("spire.autospeed") !== "0"; } catch (e) { autoSpeed = true; }
-let asQuiet = false, asAt = -1;
-const autoSpeeding = () => {
-  if (!autoSpeed || ui.paused || !G.towers.length) return false;
+// AUTO-SPEED, ALWAYS ON (owner, 2026-10-12: "don't have an option for auto-speed - always have it on, but have waves
+// start at the auto-speed and gradually slow down as they approach the tower ranges"; was a checkbox, and a jump from
+// 3x to the chosen speed at the edge): AUTO_SPEED x while the nearest enemy is AUTO_RAMP or more outside every tower's
+// REACH (range + leash - what it could hit from anywhere it can be dragged; owner, 2026-10-11), easing smoothly down to
+// the chosen speed as it closes on that edge; a faster chosen speed stands, and auto-wait still slows it near the core
+const AUTO_SPEED = 3, AUTO_RAMP = 300; // world units
+let asGap = Infinity, asAt = -1;
+// how far the nearest live enemy is outside the nearest tower's reach (<= 0: inside one), every 8 ms at most
+const autoGap = () => {
   const now = performance.now();
-  if (now - asAt < 8) return asQuiet;
-  asAt = now;
-  // REACH = range + leash (owner, 2026-10-11: "out of range for range + mvmt range of all towers"): what a tower COULD hit
-  // from anywhere it can be dragged - a circle round its slot, its leash plus its range
-  asQuiet = !G.towers.some(t => {
+  if (now - asAt < 8) return asGap;
+  asAt = now; asGap = Infinity;
+  for (const t of G.towers) {
     const c = CELLS[t.cell], r = towerStats(t).range + leashR(t);
-    return G.enemies.some(e => !e.dead && (e.x - c.x) ** 2 + (e.y - c.y) ** 2 <= r * r);
-  });
-  return asQuiet;
+    for (const e of G.enemies) if (!e.dead) asGap = Math.min(asGap, Math.hypot(e.x - c.x, e.y - c.y) - r);
+  }
+  return asGap;
 };
-// the speed the game runs at: the chosen one, raised by auto-speed, held down by auto-wait
-const speedKey = () => Math.min(autoWaiting() || Infinity, autoSpeeding() ? Math.max(ui.speed, AUTO_SPEED) : ui.speed);
-function updateAutoSpeed() {
-  const btn = $("asp-autospeed"), html = (autoSpeed ? ICON_CHECKED : ICON_UNCHECKED) + "<span>auto-speed</span>";
-  if (btn.dataset.html !== html) { btn.dataset.html = html; btn.innerHTML = html; btn.setAttribute("aria-checked", String(autoSpeed)); }
-  btn.classList.toggle("on", autoSpeeding() && ui.speed < AUTO_SPEED); // lit while it is speeding the game up
-}
+const autoX = () => {
+  if (ui.paused || !G.towers.length || ui.speed >= AUTO_SPEED) return ui.speed;
+  const f = Math.min(1, Math.max(0, autoGap() / AUTO_RAMP)), ease = f * f * (3 - 2 * f);
+  return ui.speed + (AUTO_SPEED - ui.speed) * ease;
+};
+// the speed the game runs at (x, continuous): the chosen one, raised by auto-speed, held down by auto-wait
+const speedX = () => Math.min(autoWaiting() || Infinity, autoX());
 function updateAutoWait() {
   const btn = $("asp-autowait"), html = (autoWait ? ICON_CHECKED : ICON_UNCHECKED) + "<span>auto-wait</span>"; // the box bigger than the words (owner)
   if (btn.dataset.html !== html) { btn.dataset.html = html; btn.innerHTML = html; btn.setAttribute("aria-checked", String(autoWait)); }
@@ -318,7 +310,7 @@ function updateHud() {
   setText($("asp-lives"), G.lives);
   setText($("asp-int"), (G.interest * 100).toFixed(1) + "%");
   setText($("asp-wave"), G.wave); // the HUD keeps Arabic numerals (owner); the upcoming-wave list is Roman
-  updateAutoWait(); updateAutoSpeed();
+  updateAutoWait();
   // BEST is the furthest WAVE reached (owner: no one cares about score; the score
   // still counts underneath, it is what pays the extra lives - addScore)
   setText($("asp-best"), Math.max(best.wave || 0, G.wave));
@@ -476,7 +468,7 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   if (!ui.paused) {
-    let left = dt * SPEED_MULT[freezing() ? 1 : speedKey()]; // auto-wait only ever SLOWS; a time freeze runs at 1x
+    let left = dt * BASE_SPEED * (freezing() ? 1 : speedX()); // auto-wait only ever SLOWS; a time freeze runs at 1x
     while (left > 0) { const h = Math.min(0.02, left); step(h); stepFx(h); left -= h; }
     stepFloats(dt); // real time: unaffected by the game speed
     stepFlings(dt); // a let-go tower coasting (aspira-fling.js), real time too
