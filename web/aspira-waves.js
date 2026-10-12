@@ -88,13 +88,13 @@ function makeWave(n) {
 
 // Interest is paid on what you hold at the moment a wave is sent, so saving
 // beats spending early. Sending before the countdown ends pays the seconds left.
-const INTEREST_PER_WAVE = 4;
+const INTEREST_PER_WAVE = 20; // x5 (owner, 2026-10-12: "make saving money pay off" - at 4 a wave the cap held a saver to ~300 a wave against ~1500 of bounty; was 4)
 // Kill bounty = bountyBase(wave) x the type's bounty: +BOUNTY_SLOPE credits a wave,
 // x BOUNTY_EARLY on waves 1-BOUNTY_EARLY_TO (owner, 2026-10-06: "slight bounty
 // increase waves 1-30"), growing only BOUNTY_SLOPE_LATE a wave past BOUNTY_KNEE
 // ("slightly slower growth after 60": wave 80 pays 27 not 30, wave 100 31 not 37;
 // money run 'phase 7' - a spender was only fully built at wave ~91 already)
-const BOUNTY_BASE = 2, BOUNTY_SLOPE = 0.35, BOUNTY_KNEE = 60, BOUNTY_SLOPE_LATE = 0.2, BOUNTY_EARLY = 1.1, BOUNTY_EARLY_TO = 30;
+const BOUNTY_BASE = 2, BOUNTY_SLOPE = 0.35, BOUNTY_KNEE = 30 /* (owner, 2026-10-12: "reduce money gain ramping from wave 30 onwards"; was 60) */, BOUNTY_SLOPE_LATE = 0.1 /* was 0.2: wave 80 pays 17.5 not 27, wave 100 19.5 not 31 */, BOUNTY_EARLY = 1.1, BOUNTY_EARLY_TO = 30;
 const bountyBase = n => (BOUNTY_BASE + BOUNTY_SLOPE * Math.min(n, BOUNTY_KNEE) + BOUNTY_SLOPE_LATE * Math.max(0, n - BOUNTY_KNEE)) * (1 + (BOUNTY_EARLY - 1) * Math.min(1, Math.max(0, (BOUNTY_EARLY_TO - n) / 10))); // full to wave 20, easing off by 30 (no drop at 31)
 function sendWave() {
   if (G.over) return;
