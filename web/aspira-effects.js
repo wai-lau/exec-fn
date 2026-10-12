@@ -17,7 +17,9 @@ function drawAims() {
       // the shot's own cone flashes as before
       if (st.refraction || st.refraction) {
         const d = Math.hypot(l.e.x - t.x, l.e.y - t.y);
-        drawCone({ x: t.x, y: t.y, a: Math.atan2(l.e.y - t.y, l.e.x - t.x), half: ((towerStats(t).cone) || SOL_CONE) * Math.PI / 180, len: d * 1.6, color: TOWERS[t.kind].color }, Math.cbrt(p)); // up to half opacity at full charge
+        // ...NARROWING as it charges (owner, 2026-10-12: "as breach charges up, shrink the cone visually until it forms a line
+        // just before the shot fires"): its full width when the charge starts, a line at the shot
+        drawCone({ x: t.x, y: t.y, a: Math.atan2(l.e.y - t.y, l.e.x - t.x), half: (st.cone || SOL_CONE) * Math.PI / 180 * (1 - p), len: d * 1.6, color: TOWERS[t.kind].color }, Math.cbrt(p)); // up to half opacity at full charge
         ctx.strokeStyle = COL[TOWERS[t.kind].color];
       }
       ctx.globalAlpha = 0.32 + 0.32 * p * p; // never below half its full strength (owner)
