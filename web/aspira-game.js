@@ -140,7 +140,7 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
   if (!quiet && !crit && e.bleedCrit > 0 && !(t && t.kind === "sol") && Math.random() < e.bleedCrit) { crit = true; amt *= BLEED_CRIT_MUL; }
   if (e.shredT > 0) amt *= e.shredMul;
   if (e.slowT > 0 && e.brittle) amt *= e.brittle;
-  if (st && st.swift && e.type === "fast") amt *= st.swift; // SOL Refraction, ACD Spray: the FAST answers (2026-10-11)
+  // (SOL Refraction x the FAST here until 2026-10-12 - owner: no extra damage by enemy type)
   // armor takes a flat bite out of every hit (never below 10% of it)
   const raw = amt;
   // (SOL ignored armor until 2026-10-07; owner: "SOL should no longer ignore armor" - its damage rose x1.3 to match, solarmor.mjs)

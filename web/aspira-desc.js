@@ -29,14 +29,14 @@ const DESCRIBE = {
   // "A chill slows all it holds." -> Temp III: and turns it brittle (its colder, wider aura is
   // stat rows); Rime: the rings of rime; Moons: the moons
   frz(sk) {
-    return ((sk.temp || 0) >= 6 ? "A deep chill" : "A chill") + " slows all it holds" + ((sk.temp || 0) >= 6 ? ", shattering the light brittle." : (sk.temp || 0) >= 1 ? ", turning the light brittle." : ".") + FRZ_RIME_TEXT[sk.rime || 0] + FRZ_MOONS[sk.moons || 0] + ((sk.moons || 0) ? " Cracks armor for good." : "");
+    return ((sk.temp || 0) >= 6 ? "A deep chill" : "A chill") + " slows all it holds" + ((sk.temp || 0) >= 6 ? ", shattering them brittle." : (sk.temp || 0) >= 1 ? ", turning them brittle." : ".") + FRZ_RIME_TEXT[sk.rime || 0] + FRZ_MOONS[sk.moons || 0] + ((sk.moons || 0) ? " Cracks armor for good." : "");
   },
   // "A ray of light, stopping at the first enemy struck; each beam weakens its target's armor for
   // good." (Breach is SOL's own from the start, owner 2026-10-08) -> Focus: two .. six rays, each a
   // full strike; Refraction: refracting on to more; Breach: armor *greatly*, and pierces it so every tower crits it more
   sol(sk) {
     const f = sk.focus || 0, r = sk.refraction || 0, b = sk.breach || 0;
-    return SOL_RAYS[f] + " of light" + (f ? ", each a full strike" : "") + ", " + SOL_REFRACT[r] + "; each beam weakens armor" + (b >= 6 ? " utterly" : b ? " greatly" : "") + " for good" + (b >= 6 ? ", so every tower crits far more." : b ? ", so every tower crits more." : ".") + (r ? " Far harder on the fast." : "");
+    return SOL_RAYS[f] + " of light" + (f ? ", each a full strike" : "") + ", " + SOL_REFRACT[r] + "; each beam weakens armor" + (b >= 6 ? " utterly" : b ? " greatly" : "") + " for good" + (b >= 6 ? ", so every tower crits far more." : b ? ", so every tower crits more." : ".") + "";
   },
   // ACD roles rework (owner, 2026-10-12): Flow = more jets that slow and carry their acid on;
   // Corrosion = stronger acid that eats armor; Contagion = the always-on pools grow, massive at VI

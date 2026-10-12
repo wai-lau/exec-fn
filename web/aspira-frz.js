@@ -69,7 +69,7 @@ const FRZ_BITE = { ref: 40 }; // fast x3.4, swarm x3.1, shield x0.94, armor x0.7
 // speed ratio gave swarm, shield and armor all x1.9 and fast x2.85 - FRZ lost its niche. The designed bites, restored as a
 // table: the fast answer, good on swarms, weak against shield and armor (counter matrix, ARCHITECTURE.md section 22)
 const FRZ_BITE_BY = { fast: 9, swarm: 4.5, shield: 1.3, armor: 2 }; // swarm 3.1 -> 4.5, shield 0.94 -> 1.3 (2026-10-12, swap.mjs: FRZ the least needed tower, two FRZ kept 62 lives vs ARC 87 - with this 78) // fast 9 / armor 2 (2026-10-11 sweep, countermx 61-69: FRZ fast 30-77% -> 0-6% leaked, armor 97-100% -> 17-68%; FRZ+SOL+ACD 0/9 -> 6/9)
-const frzBite = e => (FRZ_BITE.ref ? FRZ_BITE_BY[e.type] ?? 1 : 1);
+const frzBite = () => 1; // NO BITE BY TYPE (owner, 2026-10-12: "get rid of all enemy based damage multis"; the table above is dead)
 // MAX RIME (owner, 2026-10-11: "if something reaches max rime, it spreads to the nearest unit that is not yet max
 // rime"): an enemy its rime alone slows FRZ_RIME_FULL (before the slow's shaping) holds no more - a pulse that reaches it
 // passes its rime to the nearest living enemy that can still take it, a frost line between them
@@ -95,7 +95,7 @@ function frzStep(t, dt) {
     for (const e of G.enemies) {
       if (e.dead || (e.x - s.x) ** 2 + (e.y - s.y) ** 2 > r2) continue;
       applySlow(e, st.aura * s.k, FRZ_AURA_HOLD, s.id);
-      if (st.brittle > 1 && !FRZ_HARD[e.type]) e.brittle = Math.max(e.brittle || 1, st.brittle); // light bodies shatter; armor and shields do not
+      if (st.brittle > 1) e.brittle = Math.max(e.brittle || 1, st.brittle); // light bodies shatter; armor and shields do not
       if (!tick) continue;
       ticked = true;
       if (st.frost && e.armor > 0) e.armor *= 1 - st.frost; // Moons crack armor, for good

@@ -359,14 +359,12 @@ const SOL_CRITMUL = [3, 4, 5, 7, 8, 9];
 const SOL_HOP = [1, 1, 1, 1, 1, 1]; // every refraction hop a full strike (overnight fit 2026-10-08: even 1.5x reached only 133% - Refraction needs a mechanic change, not numbers) // II / III raised 2026-10-07 (were 0.3 / 0.455) with the cone narrowed to 8 degrees: fewer hops land, so each counts more
 // Refraction peaked at I (107%) and fell by III (93%): range alone spread its fire
 // thin, so II / III also hit harder (owner, 2026-10-07)
-// LIGHT OUTRUNS THE FAST (owner, 2026-10-11: "make upgrade choices matter" - Refraction was SOL's dead axis): x this on a
-// fast enemy (damage(), st.swift) - Refraction is SOL's fast answer, Focus the shields, Breach the armor
-const SOL_REFRACT_SWIFT = [1, 2, 3, 4, 5, 6];
+// (LIGHT OUTRUNS THE FAST, Refraction x the fast, removed 2026-10-12 - owner: no extra damage by enemy type)
 const SOL_REFRACTION_DMG = [1, 1, 1.3, 1.84, 2.43, 3]; // III..V x1.15 / 1.35 / 1.5 with the 160-degree cone (owner, 2026-10-08: "even a 160 deg angle?" - the cone alone tops out at 156%)
 // each Focus tier's beam STRENGTH (2026-10-08, the tier fit's lever for Focus: more beams alone measured 168% at V)
 const SOL_FOCUS_DMG = [1, 1, 1, 1, 1.139, 1.176]; // never below 1 (owner, 2026-10-08: no upgrade lowers a stat) - more beams carry I..III (114 / 133 / 152%)
 function solSkillStats(t, s, b) {
-  s.dmg = b.dmg * SOL_REFRACTION_DMG[skillOf(t, "refraction")] * SOL_FOCUS_DMG[skillOf(t, "focus")]; s.swift = SOL_REFRACT_SWIFT[skillOf(t, "refraction")]; s.range = b.range * RANGE_BONUS; s.crit = LVL_SOL_CRIT[0]; s.rate = b.rate;
+  s.dmg = b.dmg * SOL_REFRACTION_DMG[skillOf(t, "refraction")] * SOL_FOCUS_DMG[skillOf(t, "focus")]; s.range = b.range * RANGE_BONUS; s.crit = LVL_SOL_CRIT[0]; s.rate = b.rate;
   s.shieldPop = SOL_SHIELD_POP[skillOf(t, "focus")]; // FOCUS pierces shields: each beam pops this many (SOL's shield help, counter matrix)
   s.beams = SOL_BEAMS[skillOf(t, "focus")]; s.refraction = SOL_REFRACTION[skillOf(t, "refraction")]; s.cone = SOL_CONE_BY[skillOf(t, "refraction")]; s.hop = SOL_HOP[skillOf(t, "refraction")];
   const bk = skillOf(t, "breach");
