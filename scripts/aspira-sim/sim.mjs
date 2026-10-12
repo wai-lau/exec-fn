@@ -181,7 +181,7 @@ export function makePlayer(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = 
   // INTEREST_PER_WAVE, and when that cap went 4 -> 20 (then away) the "smart" saver became a 5x hoarder and lost 18 of 19
   const interestPerWave = SMART_INTEREST;
   // every mutable bit of the player, so a snapshot is one clone
-  const S = { r: (seed * 9301 + 49297) % 233280, used: {}, time: 0, nearest: Infinity, lastLives: g.G.lives, hurtUntil: -1,
+  const S = { buysLeft: Infinity, r: (seed * 9301 + 49297) % 233280, used: {}, time: 0, nearest: Infinity, lastLives: g.G.lives, hurtUntil: -1,
     leaks: {}, leakWave: {}, coreMem: {}, trace: [], pivoted: [], hist: [], lastWave: -1, waveNear: Infinity, bossNear: Infinity, fired: [],
     econ: [], builtAt: null, fullAt: null }; // the economy's ledger: a line every 10 waves, the wave every slot was filled / every tower maxed
   let next = null; // the committed next action (holds a tower: snapshotted by id)
@@ -213,19 +213,19 @@ export function makePlayer(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = 
     const G = g.G;
     for (let guard = 0; guard < 20; guard++) {
       if (!next || (next.up && (next.up.lvl >= g.maxLvl(next.up) || !G.towers.includes(next.up)))) choose();
-      if (!next) return;
+      if (!next || (S.buysLeft <= 0 && G.towers.length >= (strategy.opening || []).length)) return; // (the smart saver's purchase budget for this wave - play(); never its opening)
       if (next.up) {
         const t = next.up, [p, f] = (strategy.paths || {})[t.kind] || [0, 0];
         if (G.money - g.upCost(t) < floor) return;
         const need = g.pendingChoice(t);
         const axis = need === "skill" ? ((strategy.skills || {})[t.kind] || []).find(id => ((t.skills || {})[id] || 0) < g.axisCap(t, id)) : null;
         g.upgrade(t, axis || (need === "path" ? p : f));
-        S.used[t.kind] = 1; next = null; continue;
+        S.used[t.kind] = 1; next = null; S.buysLeft--; continue;
       }
       if (G.money - g.run("towerCost('" + next.kind + "')") < (G.towers.length < 2 ? 0 : floor)) return;
       const best = order[next.kind].find(i => g.cellOpen(i) && !g.run("occupied(" + i + ")"));
       if (best == null) { next = null; return; }
-      g.place(next.kind, best, (strategy.modes || {})[next.kind]); next = null;
+      g.place(next.kind, best, (strategy.modes || {})[next.kind]); next = null; S.buysLeft--;
     }
   };
   const game = { setMode(kind, mode) { for (const t of g.G.towers) if (t.kind === kind) t.mode = mode; strategy.modes = { ...strategy.modes, [kind]: mode }; } };
@@ -280,7 +280,7 @@ export function makePlayer(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = 
     for (const e of g.G.enemies) if (!e.dead) near = Math.min(near, Math.hypot(e.x - g.CX, e.y - g.CY));
     S.nearest = Math.min(S.nearest, near); S.waveNear = Math.min(S.waveNear, near);
     const opened = g.G.towers.length >= (strategy.opening || []).length;
-    if (strategy.econ === "smart" && opened) act(S.saving ? Infinity : 0); // SAVE the whole wave, or (its replay) spend it all - play()
+    if (strategy.econ === "smart" && opened) act(0); // within this wave's purchase budget, S.buysLeft (play())
     else if (strategy.econ === "hoard" && opened) {
       // the interest-aware saver: the bank that earns the capped payout, the rest is surplus;
       // a threat (an enemy close, a life just lost, a boss now or next, few lives) opens the whole bank
@@ -330,9 +330,9 @@ export function makePlayer(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = 
 }
 
 // THE SMART SAVER (owner, 2026-10-12): it plays wave by wave from a snapshot, SAVING everything; a wave that costs a
-// life is played again from that snapshot spending everything (S.saving false) - "allowed to go back to a snapshot and
+// life is played again from that snapshot, spending as little as works (REPLAY_BUYS) - "allowed to go back to a snapshot and
 // spend money if the wave it held back on leaked". strategy.rewind false turns the replay off
-const SMART_INTEREST = 4, HOARD_X = 4; // HOARD_X: a hoarder's bank over the smart saver's // game seconds the replayed wave spends freely
+const SMART_INTEREST = 4, HOARD_X = 4, REPLAY_BUYS = [0, 1, 2, 4, 8, Infinity]; // HOARD_X: a hoarder's bank over the smart saver's // game seconds the replayed wave spends freely
 export function play(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
   const p = makePlayer(strategy, seed, maxWave, dt, patch);
   if (strategy.econ !== "smart" || strategy.rewind === false) { p.runTo(maxWave + 1); return p.result(); }
@@ -340,13 +340,16 @@ export function play(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
   while (!p.done()) {
     // EVERY wave it tries to save it all (owner, 2026-10-12: "smart savers should try to save every wave and rewind if it
     // didnt work out"); a wave that cost a life is played again from its start, spending everything
+    // ...replaying with as LITTLE as it can (owner: "it replays spending as little as possible"): 1, then 2, 4, 8
+    // purchases, then all - the first try that keeps every life stands (the last stands whatever)
     const w = p.g.G.wave, snap = p.snapshot(), lives = p.g.G.lives;
-    p.S.saving = true;
-    p.runTo(w + 1);
-    if (p.g.G.lives < lives) {
-      p.restore(snap); p.S.saving = false; rewinds++;
+    for (let i = 0; i < REPLAY_BUYS.length; i++) {
+      if (i) { p.restore(snap); rewinds++; }
+      p.S.buysLeft = REPLAY_BUYS[i];
       p.runTo(w + 1);
+      if (p.g.G.lives >= lives) break;
     }
+    p.S.buysLeft = Infinity;
     if (p.g.G.wave === w && !p.done()) p.runTo(w + 1); // (a wave that would not end: let runTo's own clock stop it)
     if (p.g.G.wave === w) break;
   }
