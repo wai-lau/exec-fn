@@ -23,7 +23,8 @@ const DESCRIBE = {
   arc(sk) {
     const c = sk.conductivity || 0, v = sk.voltage || 0, z = sk.capacitance || 0;
     let s = [c >= 6 ? "six" : c >= 5 ? "four" : c >= 4 ? "three" : c >= 3 ? "twin" : "", "arcs", c >= 6 ? "chain twice and" : c >= 1 ? "chain once and" : "", "fork", c >= 2 ? "into three" : "", c >= 3 ? "on hit, returning to struck enemies " + ARC_RETURN[c] + ", each jump carrying" : "on hit, each jump carrying", ARC_KEEP[v], "the hit."].filter(Boolean).join(" ");
-    if (z) s += " Hits leave " + ARC_CHARGES[ARC_CAPACITANCE[z].n] + ", which burst around the target when it is hit by anything" + (z >= 3 ? ", slowing what they hit." : ".");
+    if (v) s += " Arcs pierce armor.";
+    if (z) s += " Hits leave " + ARC_CHARGES[ARC_CAPACITANCE[z].n] + ", which burst around the target when it is hit by anything" + ", slowing what they hit.";
     return cap(s);
   },
   // "A chill slows all it holds." -> Temp III: and turns it brittle (its colder, wider aura is

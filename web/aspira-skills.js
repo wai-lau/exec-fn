@@ -41,15 +41,15 @@ const SKILL_TREES = {
       { name: "Storm", desc: "Four arcs chain once and fork into three on hit." },
     ] },
     { id: "voltage", name: "Voltage", base: "Each jump carries half the hit.", tiers: [
-      { name: "Spark", desc: "Harder hits; each jump carries most of the hit." },
-      { name: "Fry", desc: "Harder hits; each jump carries nearly all of the hit." },
-      { name: "Vaporize", desc: "Hardest hits; each jump carries all of the hit." },
-      { name: "Arc Flash", desc: "Each jump carries more than the hit." },
-      { name: "Plasma", desc: "Each jump carries far more than the hit." },
+      { name: "Spark", desc: "Harder hits; each jump carries most of the hit. Arcs pierce armor." },
+      { name: "Fry", desc: "Harder hits; each jump carries nearly all of the hit. Arcs pierce armor." },
+      { name: "Vaporize", desc: "Hardest hits; each jump carries all of the hit. Arcs pierce armor." },
+      { name: "Arc Flash", desc: "Each jump carries more than the hit. Arcs pierce armor." },
+      { name: "Plasma", desc: "Each jump carries far more than the hit. Arcs pierce armor." },
     ] },
     { id: "capacitance", name: "Capacitance", base: "", tiers: [
-      { name: "Static", desc: "Hits leave a charge, which bursts around the target when it is hit by anything." },
-      { name: "Charge", desc: "Hits leave two charges, which burst around the target when it is hit by anything." },
+      { name: "Static", desc: "Hits leave a charge, which bursts around the target when it is hit by anything, slowing what they hit." },
+      { name: "Charge", desc: "Hits leave two charges, which burst around the target when it is hit by anything, slowing what they hit." },
       { name: "Overload", desc: "Hits leave three charges, which burst around the target when it is hit by anything, slowing what they hit." },
       { name: "Discharge", desc: "Hits leave four charges, which burst around the target when it is hit by anything, slowing what they hit." },
       { name: "Tempest", desc: "Hits leave five charges, which burst around the target when it is hit by anything, slowing what they hit." },
@@ -185,7 +185,7 @@ function skillMove(t, s) {
 // is what each JUMP keeps of the hit before it (ARC_FALL 0.5 at 0; III = every jump
 // at full damage), on top of its damage step; the `pierce` flag it sets is only
 // the white core drawn in its arcs (aspira-draw.js), never a rule
-const ARC_VOLTAGE_DMG = [1, 2.068, 3.093, 4.272, 5.492, 6.793], ARC_VOLTAGE_FALL = [0.5, 0.65, 0.8, 1, 1.1, 1.25]; // IV / V (2026-10-07): a jump carries MORE than the hit before it // its RANGE is in SKILL_MOVE
+const ARC_VOLTAGE_DMG = [1, 3.31, 6.8, 11.96, 18.67, 27.17] /* x (1 + 0.6 tier) (2026-10-11, roles: TEAM countermx 81-89 - Voltage leaks 4% of armor, Conductivity 10, Capacitance 12; was 2.068 3.093 4.272 5.492 6.793) */, ARC_VOLTAGE_FALL = [0.5, 0.65, 0.8, 1, 1.1, 1.25]; // IV / V (2026-10-07): a jump carries MORE than the hit before it // its RANGE is in SKILL_MOVE
 // Conductivity's shape by tier (owner): strikes (separate first targets),
 // jumps, and forks per jump - 3, 7, 13, then two separate 13-hit attacks -
 // and r, how much further each JUMP reaches (owner; Voltage owns the tower's range)
@@ -211,12 +211,15 @@ const ARC_FALL = 0.5, ARC_SHRINK = 0.7;
 // effects nor reach"), so the jump keeps its old absolute size: 1.5 x the old 156
 // range, and Voltage still lengthens it by the old x1.15 / 1.3 / 1.45
 const ARC_JUMP_BASE = 234, ARC_VOLTAGE_JUMP = [1, 1.15, 1.3, 1.45, 1.6, 1.75];
+// VOLTAGE PIERCES ARMOR (owner, 2026-10-11: "make upgrade choices matter" - Voltage was ARC's dead axis, worst on every
+// type): its arcs ignore this share of armor - Voltage is ARC's armor answer, Conductivity the shields, Capacitance the fast
+const ARC_VOLTAGE_PIERCE = [0, 0.15, 0.3, 0.45, 0.6, 0.75];
 function arcSkillStats(t, s, b) {
   const c = skillOf(t, "conductivity"), v = skillOf(t, "voltage"), z = skillOf(t, "capacitance");
   s.dmg = b.dmg * ARC_VOLTAGE_DMG[v] * ARC_CONDUCTIVITY[c].d; s.range = b.range * RANGE_BONUS;
   const sh = ARC_CONDUCTIVITY[c]; // Conductivity: strikes, jumps AND forks
   s.arcRange = ARC_JUMP_BASE * ARC_VOLTAGE_JUMP[v] * sh.r; s.targets = sh.s; s.layers = sh.j; s.branch = sh.f; s.revisit = sh.v || 0;
-  s.arcFall = ARC_VOLTAGE_FALL[v]; s.arcShrink = ARC_SHRINK; s.charge = ARC_CAPACITANCE[z]; s.statSlow = ARC_STAT_SLOW[z]; s.skill = true;
+  s.arcFall = ARC_VOLTAGE_FALL[v]; s.arcShrink = ARC_SHRINK; s.charge = ARC_CAPACITANCE[z]; s.statSlow = ARC_STAT_SLOW[z]; s.armorPierce = ARC_VOLTAGE_PIERCE[v]; s.skill = true;
 }
 // what the upgrade cards offer: the next tier of each axis not yet full
 function skillOptions(t) {
@@ -268,7 +271,7 @@ function skillHit(c, e, d) {
 let staticQuiet = false;
 // Overload's leaps SLOW what they hit (owner, 2026-10-06, the no-FRZ niche search):
 // 30% for STAT_SLOW_T s - a late team without FRZ can answer the fast waves
-const ARC_STAT_SLOW = [0, 0, 0, 0.15, 0.17, 0.2] /* halved for the bursts (2026-10-08; were .3 .35 .4) */, STAT_SLOW_T = 0.6; // from III (owner, 2026-10-08: kept at III, not moved to V)
+const ARC_STAT_SLOW = [0, 0.25, 0.3, 0.35, 0.4, 0.45] /* from tier I and deeper (2026-10-11, roles: Capacitance is ARC's FAST answer - leaks 0% of fast, Conductivity 4; was 0 0 0 .15 .17 .2) */, STAT_SLOW_T = 0.6; // from III (owner, 2026-10-08: kept at III, not moved to V)
 // a DISCHARGE: every charge the enemy holds BURSTS round it (ARC_CAPACITANCE; 2026-10-08, was a chain of
 // arcs - too much like Conductivity). Quiet: a burst neither charges nor sets off charges, so there is
 // no chain reaction (staticQuiet).

@@ -13,7 +13,7 @@ const axisCap = (t, id, add = {}) => (gigaHolder(t, id, add) ? GIGA_TIER - 1 : G
 // ---------- the numbers: index 6 of every tier table (a leap, not a step) ----------
 const GIGA_NUM = [
   // ARC: Conductivity six arcs chaining twice; Voltage each jump carries twice the hit; Capacitance eight charges
-  [ARC_VOLTAGE_DMG, 9.5], [ARC_VOLTAGE_FALL, 1.6], [ARC_VOLTAGE_JUMP, 2], [ARC_STAT_SLOW, 0.3],
+  [ARC_VOLTAGE_DMG, 43.7], [ARC_VOLTAGE_FALL, 1.6], [ARC_VOLTAGE_JUMP, 2], [ARC_VOLTAGE_PIERCE, 0.9], [ARC_STAT_SLOW, 0.55],
   [ARC_CONDUCTIVITY, { s: 4 /* was 6 - the ARC nerf, 2026-10-11 */, j: 3, f: 3, r: 2.4, d: 1, v: 4 }], [ARC_CAPACITANCE, { n: 8, frac: 0.15 }],
   // FRZ: Temp a far deeper chill; Rime the fastest, deepest rings; Moons FOUR moons, each with four small moons
   [FRZ_TEMP_SLOW, 0.55], [FRZ_TEMP_TICK, 0.2], [FRZ_BRITTLE, 2], [FRZ_RIME, 0.3], [FRZ_RIME_PERIOD, 0.7], [FRZ_RIME_CRACK, 0.32], [FRZ_MOON_CRACK, 0.12],
@@ -43,7 +43,7 @@ for (const [kind, axes] of Object.entries(GIGA_MOVE)) {
 // ---------- the words: each axis's tier VI, and the composers' (aspira-desc.js) index 6 ----------
 const GIGA_TIERS = {
   conductivity: { name: "Hyperstorm", desc: "Six arcs chain twice and fork into three on hit." },
-  voltage: { name: "Gigavolt", desc: "Each jump carries twice the hit." },
+  voltage: { name: "Gigavolt", desc: "Each jump carries twice the hit. Arcs pierce armor." },
   capacitance: { name: "Superstorm", desc: "Hits leave eight charges, which burst around the target when it is hit by anything, slowing what they hit." },
   temp: { name: "Zero Point", desc: "A deep chill slows all it holds, and shatters the light ones brittle." },
   rime: { name: "Ice Age", desc: "Rings of rime roll out fast, shattering shields and leaving behind a rime that layers and never thaws; full rime spreads to the nearest enemy." },
