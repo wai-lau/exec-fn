@@ -357,7 +357,7 @@ function smartWave(p, playWave) {
     p.S.powersOk = pw;
     const made = p.buy(n);
     playWave();
-    if (p.g.G.lives >= lives || made < n || p.g.G.over) break;
+    if ((p.g.G.lives >= lives && !p.g.G.over) || made < n) break; // a BOSS breach (game over) is rewound like any leak
   }
   p.S.powersOk = false;
 }
