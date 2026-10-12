@@ -112,6 +112,7 @@ function temporalFreeze() {
   c.freeze = { t: 0, dur: lv.dur, hit: new Set() };
   c.frozenIds = c.freeze.hit; c.freezeUntil = c.clock + lv.dur; // for the look (aspira-core-fx.js)
   if (typeof sfx === "function") sfx("powertemporal");
+  if (typeof q3d === "function" && q3d() && typeof shakeScreen === "function") shakeScreen(); // the core SLAMS into the floor (coreH3d, aspira-warp.js)
   return true;
 }
 

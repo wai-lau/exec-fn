@@ -367,7 +367,17 @@ function warpEntities() {
 // every chart POINT (t.lvl - 1) adds WARP.prism.perPoint - the look's own level (shownLvl) moves only every five points.
 // The CORE stands (all towers' heights) / 6 + the tallest's (owner, 2026-10-09), a fresh tower's with none built
 const towerH = t => WARP.prism.tower + WARP.prism.perPoint * (t.lvl - 1);
-const coreH3d = () => { const hs = G.towers.map(towerH); return hs.length ? hs.reduce((a, b) => a + b, 0) / 6 + Math.max(...hs) : WARP.prism.tower; };
+const coreH3dFull = () => { const hs = G.towers.map(towerH); return hs.length ? hs.reduce((a, b) => a + b, 0) / 6 + Math.max(...hs) : WARP.prism.tower; };
+// TEMPORAL DRIVE SLAMS THE CORE (owner, 2026-10-12: "when starting temporal drive, slam the core into the floor so that the credit
+// count is just barely over the floor; bring it back up when temporal drive is ready again"): down in CORE_SLAM_DOWN s to
+// CORE_SLAM_H, held there while the power cools down, risen over CORE_SLAM_UP s once it is ready
+const CORE_SLAM_H = 2, CORE_SLAM_DOWN = 0.12, CORE_SLAM_UP = 0.8, coreSlam = { k: 1, at: 0 };
+function coreH3d() {
+  const now = performance.now() / 1000, dt = Math.min(0.1, now - (coreSlam.at || now)), down = powerLvl("temporal") > 0 && cooldownLeft("temporal") > 0;
+  coreSlam.at = now; coreSlam.k = Math.max(0, Math.min(1, coreSlam.k + (down ? -dt / CORE_SLAM_DOWN : dt / CORE_SLAM_UP)));
+  const k = down ? coreSlam.k ** 2 : 1 - (1 - coreSlam.k) ** 2, full = coreH3dFull(); // a hard slam, an eased rise
+  return CORE_SLAM_H + (full - CORE_SLAM_H) * k;
+}
 // the canvas transform that lays world (x, y) on the level plane h world units up, as seen at (x, y): its
 // projection there and one world unit along x and along y
 function warpFrame(x, y, h) {
