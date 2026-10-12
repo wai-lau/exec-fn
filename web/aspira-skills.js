@@ -389,7 +389,9 @@ function solConeDir(t, st, e, half) {
 function solRefraction(t, st, e) {
   const half = (st.cone || SOL_CONE) * Math.PI / 180, dir = solConeDir(t, st, e, half), hit = new Set([e]), ex = e.x, ey = e.y;
   const fromE = o => Math.hypot(o.x - ex, o.y - ey), inCone = o => angOff(Math.atan2(o.y - ey, o.x - ex), dir) <= half;
-  const forward = (from, o) => fromE(o) > (from === e ? 0 : fromE(from)) && (from === e || angOff(Math.atan2(o.y - from.y, o.x - from.x), dir) <= half);
+  // EVERYTHING inside the cone off the first enemy is fair game (owner, 2026-10-12: "everything needs to fit in the cone off the
+  // first enemy") - each hop only further OUT along it than the last, never a check on the hop's own heading
+  const forward = (from, o) => fromE(o) > (from === e ? 0 : fromE(from));
   let prev = e, from0 = t, far = Math.hypot(ex - t.x, ey - t.y), farE = 0;
   for (let k = 0; k < st.refraction; k++) {
     const from = prev, nxt = chainPick(t, prev, Infinity, o => hit.has(o) || !inCone(o) || !forward(from, o)); // within the cone, forward, by SOL's targeting
