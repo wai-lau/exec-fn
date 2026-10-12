@@ -465,7 +465,7 @@ function tickFps(now) {
 const freezing = () => timeStopped();
 let last = performance.now();
 function frame(now) {
-  autoQuality((now - last) / 1000); // a slow machine steps quality down (aspira-quality.js)
+  autoQuality((now - last) / 1000); if (typeof perfTick === "function") perfTick((now - last) / 1000); // quality step-down, slow logs (aspira-quality.js, aspira-perflog.js)
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   if (!ui.paused) {

@@ -25,9 +25,10 @@ from fastapi import HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
 import spire_board
+import spire_perflog
 from auth import SESSION_TOKEN, rate_exempt
 from helpers import DATA_DIR
-from routers import guest_protected, public
+from routers import guest_protected, protected, public
 from pages import _render_page, _tmpl
 
 SFX_DIR = (DATA_DIR / "aspira-sfx").resolve()
@@ -118,3 +119,29 @@ async def spire_ascend(request: Request):
     if not rate_exempt(request) and not _asc_rate_ok(_client_ip(request)):
         raise HTTPException(status_code=429, detail="too many ascensions - try again later")
     return {"entries": spire_board.ranked(spire_board.add(DATA_DIR, entry))[: spire_board.SHOW_MAX], "entry": entry}
+
+
+# ---------- SLOW LOGS (spire_perflog.py): a session's frame and audio summary every 3 min of play ----------
+PERF_MAX, PERF_WINDOW = 30, 3600.0  # a session sends one every 3 min: 30 an hour from one IP is plenty
+_perf_posts: dict[str, list[float]] = {}
+
+
+@guest_protected.post("/api/spire/perflog")
+async def spire_perflog_post(request: Request):
+    try:
+        body = await request.json()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="bad json")
+    ip, now = _client_ip(request), time.monotonic()
+    hits = [t for t in _perf_posts.get(ip, []) if t > now - PERF_WINDOW]
+    if len(hits) >= PERF_MAX and not rate_exempt(request):
+        raise HTTPException(status_code=429, detail="slow down")
+    _perf_posts[ip] = hits + [now]
+    if not spire_perflog.save(body, request.headers.get("user-agent", "")):
+        raise HTTPException(status_code=400, detail="not a small JSON object")
+    return {"ok": True}
+
+
+@protected.get("/api/spire/perflog")
+async def spire_perflog_get(n: int = 50):
+    return {"logs": spire_perflog.recent(max(1, min(n, 400)))}
