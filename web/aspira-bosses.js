@@ -45,7 +45,7 @@ const BOSS_HP = { star: 5.4, empress: 6.8, strength: 2.2, chariot: 3.4, lovers: 
 // (x the boss base) - owner, 2026-10-08: the bosses ACD is too good against get armor and speed and
 // lose HP, so SOL (whose hits strip armor) and ACD (whose ramp wants a long-lived target) boss alike
 const BOSS_ARMOR = { star: 0, empress: 0, strength: 0, chariot: 0, lovers: 0, temperance: 0, devil: 0, justice: 0, judgement: 0, death: 0 };
-const BOSS_SPEED = { star: 1, empress: 1, strength: 1, chariot: 1, lovers: 1, temperance: 1, devil: 1, justice: 1, judgement: 1, death: 1 };
+const BOSS_SPEED = { star: 1, empress: 1, strength: 1, chariot: 1, lovers: 1, temperance: 1, devil: 1, justice: 0.75 /* Justice slowed (owner, 2026-10-12: "boss 80 nerf by slow" - it broke through in 5 of 36 games) */, judgement: 1, death: 1 };
 // each boss's SHIELD (hits absorbed, whatever their size) and its REFILL a second - the counter to
 // SOL's few huge hits (owner, 2026-10-08): ACD's ticks, ARC's forks and FRZ's aura strip it cheaply
 const BOSS_SHIELD = { star: 0, empress: 0, strength: 0, chariot: 0, lovers: 0, temperance: 0, devil: 0, justice: 0, judgement: 0, death: 0 };
@@ -105,7 +105,7 @@ const FLEET_GAP = 10, FLEET_LAYER = 3 * V_BACK; // clear space between bodies, w
 // scripts/aspira-sim/bossfleet.mjs against the regular waves before each boss, which overlap where a boss wave does not
 // FLEET_TO_BOSS of every escort's HP moves onto its boss (owner, 2026-10-11: "move some life from boss fleet to boss")
 const FLEET_TO_BOSS = 0.3;
-const FLEET_MUL = { star: 1, empress: 1, strength: 1, chariot: 1, lovers: 1, temperance: 1, devil: 1, justice: 1, judgement: 1, death: 1 };
+const FLEET_MUL = { star: 1, empress: 1, strength: 1, chariot: 1, lovers: 1, temperance: 1, devil: 1, justice: 0.75 /* Justice slowed (owner, 2026-10-12: "boss 80 nerf by slow" - it broke through in 5 of 36 games) */, judgement: 1, death: 1 };
 // the slots ([lat, ahead of the boss]) for a boss's shield and armor escorts; R: the boss's own radius
 function fleetForm(e, R) {
   return {

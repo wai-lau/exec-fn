@@ -36,7 +36,7 @@ function entryS(pi) {
 // x1.13 a wave through wave 20 (owner, 2026-10-09: "1.13 1-20 good, then 1.11"; was 1.10) - every wave
 // from 20 on x1.67 the 2026-10-08 build. Sim (e13): random players 0 / 100 won, death p10 35 p50 60;
 // the curve's scripted players 44 -> 29 of 80 (SOL-SOL openings first leak on wave 4)
-let HP_GROWTH = 1.13; const ARMOR_EXP = 0.4, SHIELD_EXP = 0.335; // let: the simulator sweeps it
+let HP_GROWTH = 1.13; const ARMOR_EXP = 0.4, SHIELD_EXP = 0.29 /* FEWER shield charges (owner, 2026-10-12: "shields need nerf, less shield stacks overall"; was 0.335 - wave 80: 72 not 128), the HP side of hpMul still makes up for some */; // let: the simulator sweeps it
 // HARDER AFTER WAVE 20 (owner, 2026-10-08: "make the difficulty ramp harder after wave 20"): x HP_LATE a wave
 // past HP_KNEE (HP_GROWTH before). Sim on the 2026-10-08 build: random players won 11% -> 5%, the curve's
 // scripted players 61 -> 48 of 80 (x1.12 cut them to 30 / 80)
@@ -56,7 +56,8 @@ function shieldsOf(type, n) {
   const b = ENEMIES[type].shield;
   if (!b) return { shield: 0, hpMul: 1 };
   const r = sCurve(n) / sCurve(3), old = Math.max(b, b * Math.pow(r, 0.4)), shield = Math.max(b, Math.round(b * Math.pow(r, SHIELD_EXP)));
-  return { shield, hpMul: old / shield };
+  // HP made up for the charges as they were at 0.335, not for the ones taken away now: the nerf is a real nerf (2026-10-12)
+  return { shield, hpMul: old / Math.max(b, Math.round(b * Math.pow(r, 0.335))) };
 }
 // EARLY SHIELDS SOFTER (owner, 2026-10-12: "early game shield too hard" - rounded up to fill 3- and 5-Vs, wave 2 brings 9
 // not 5): x SHIELD_EARLY HP to wave 20, easing to full by wave 30
