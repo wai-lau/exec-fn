@@ -278,14 +278,15 @@ export function makePlayer(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = 
     for (const e of g.G.enemies) if (!e.dead) near = Math.min(near, Math.hypot(e.x - g.CX, e.y - g.CY));
     S.nearest = Math.min(S.nearest, near); S.waveNear = Math.min(S.waveNear, near);
     const opened = g.G.towers.length >= (strategy.opening || []).length;
-    if (strategy.econ === "smart" && opened) {
+    if ((strategy.econ === "smart" || strategy.econ === "hoard") && opened) {
       // the interest-aware saver: the bank that earns the capped payout, the rest is surplus;
       // a threat (an enemy close, a life just lost, a boss now or next, few lives) opens the whole bank
-      const G = g.G, bank = Math.floor(interestPerWave * (G.wave + 1) / G.interest);
+      // a HOARDER (owner, 2026-10-12: "hoarding irresponsibly should lose") holds HOARD_X the bank and opens it only near death
+      const hoard = strategy.econ === "hoard", G = g.G, bank = Math.floor(interestPerWave * (G.wave + 1) / G.interest * (hoard ? HOARD_X : 1));
       const boss = !strategy.noBossPrep && (G.wave % 10 === 0 || (G.wave + 1) % 10 === 0);
       const hurt = G.lives < S.lastLives; S.lastLives = G.lives;
       if (hurt) S.hurtUntil = S.time + 20; // stay open for a while after a leak
-      const open = near < (strategy.threat ?? 220) || boss || S.time < S.hurtUntil || G.lives <= 6; // threat 0: never by proximity
+      const open = hoard ? G.lives <= 6 : near < (strategy.threat ?? 220) || boss || S.time < S.hurtUntil || G.lives <= 6; // threat 0: never by proximity
       act(open ? 0 : bank);
     }
     else if (!strategy.threat || !opened) act();
@@ -325,10 +326,26 @@ export function makePlayer(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = 
   };
 }
 
+// THE SMART SAVER MAY REWIND (owner, 2026-10-12: "the smart saver is allowed to go back to a snapshot and spend money if
+// the wave it held back on leaked"): it plays wave by wave from a snapshot; a wave that costs a life (or the game) while
+// it held a bank is played AGAIN from that snapshot with the bank open (S.hurtUntil) - once a wave. A human saver reloads
+// in their head: next time they spend before that wave. strategy.rewind false turns it off
+const REWIND_OPEN_S = 60, HOARD_X = 4; // HOARD_X: a hoarder's bank over the smart saver's // game seconds the replayed wave spends freely
 export function play(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
   const p = makePlayer(strategy, seed, maxWave, dt, patch);
-  p.runTo(maxWave + 1);
-  return p.result();
+  if (strategy.econ !== "smart" || strategy.rewind === false) { p.runTo(maxWave + 1); return p.result(); }
+  let rewinds = 0;
+  while (!p.done()) {
+    const w = p.g.G.wave, snap = p.snapshot(), lives = p.g.G.lives;
+    p.runTo(w + 1);
+    if (p.g.G.lives < lives && p.g.G.money > 0) {
+      p.restore(snap); p.S.hurtUntil = p.S.time + REWIND_OPEN_S; rewinds++;
+      p.runTo(w + 1);
+    }
+    if (p.g.G.wave === w && !p.done()) p.runTo(w + 1); // (a wave that would not end: let runTo's own clock stop it)
+    if (p.g.G.wave === w) break;
+  }
+  return { ...p.result(), rewinds };
 }
 
 if (process.argv[1] && process.argv[1].endsWith("sim.mjs") && process.argv[2]) {

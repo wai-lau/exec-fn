@@ -25,7 +25,7 @@ export function randomPlayer(seed) {
   const useCore = r() < 0.5;
   return {
     up: 0.3 + r() * 0.5, maxTowers: 6, mix, opening: [pickOf(have), pickOf(have)], skills,
-    ...(r() < 0.5 ? { econ: "smart" } : {}),
+    ...((x => (x < 1 / 3 ? { econ: "smart" } : x < 2 / 3 ? { econ: "hoard" } : {}))(r())), // spend / smart / hoard, a third each
     relayKind: pickOf(have), core: r() < 0.5 ? [...ALL] : [...ALL].reverse(), useCore,
   };
 }
