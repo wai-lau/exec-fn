@@ -457,7 +457,7 @@ function drawScene([sx, sy], clipR) {
   drawBoard();
   drawBossBar(); // a live boss's HP line along the horizon, UNDER the towers and their effects (owner)
   const sel = ui.sel && G.towers.find(t => t.id === ui.sel);
-  const ranges = k => () => { for (const t of G.towers) if (t !== sel) drawTowerRange(t, true, k); if (sel) drawTowerRange(sel, false, k); }; // tower colours survive the boss sky (2026-10-11) - but RANGES go white, unkept, so the inversion turns them BLACK (owner, 2026-10-12)
+  const ranges = k => () => { for (const t of G.towers) if (t !== sel) drawTowerRange(t, !k, k); if (sel) drawTowerRange(sel, false, k); }; // (sky: every one at full strength - "range should be visible during boss waves") // tower colours survive the boss sky (2026-10-11) - but RANGES go white, unkept, so the inversion turns them BLACK (owner, 2026-10-12)
   if (skyOn()) ranges("white")(); else skyKeep(ranges());
   // stars go on top of lanes and range fills, which would otherwise tint them
   if (!lowQ && !q3d()) drawStars(); // low quality: no star field; 3D: round, on the overlay (warpEntities)
