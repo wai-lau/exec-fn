@@ -214,6 +214,7 @@ const SLOW_TIME = 125 / 48; // ~2.6 real seconds (owner: 10x the old ~4.2s, then
 // (2026-10-11: at SLOW_CAP the no-ARC trio FRZ+SOL+ACD lost every game to Fast leaks).
 const FAST_SLOW_MUL = 2;
 let SLOW_KNEE = 0.4, SLOW_CAP = 0.7; // let: the simulator sweeps them
+const TOWER_SLOW_MAX = 0.95; // one tower slow's ceiling before shaping (applySlow)
 // DERIVED from fast's speed (owner, 2026-10-12: "fast enemies look like they get frozen in place by frz" - a fixed 0.88 was
 // set for 1.5x speed; at 1.91x a fully slowed fast enemy crawled at 0.23 of base, below everyone's 0.3): a fully slowed
 // fast enemy moves exactly as fast as a fully slowed base-speed one, whatever fast's speed
@@ -232,6 +233,9 @@ function applySlow(e, f, dur, src = "x", shape = "refresh") {
   if (e.shield > 0 && !String(src).startsWith("core:")) return false;
   if (e.arcana) { f *= bossSlowMul(e); if (f <= 0) return true; } // Strength / Death (aspira-bosses.js)
   if (e.type === "fast") f *= FAST_SLOW_MUL;
+  // only Temporal Drive ("core:") is a FULL stop: a tower's slow stays under 1, so it is always shaped by the cap (owner,
+  // 2026-10-12, a recording: two fast enemies stopped dead - giga Temp's 0.55 doubled on the fast made 1.1, read as a stop)
+  if (!String(src).startsWith("core:")) f = Math.min(f, TOWER_SLOW_MAX);
   addDebuff(e.slows ||= {}, src, f, dur, shape);
   sumSlows(e);
   return true;
