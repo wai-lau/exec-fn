@@ -177,7 +177,9 @@ export function makePlayer(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = 
   g.reset();
   const scores = {}, order = {};
   for (const k of Object.keys(g.TOWERS)) { scores[k] = cellScores(g, k); order[k] = scores[k].map((v, i) => i).sort((a, b) => scores[k][b] - scores[k][a]); }
-  const interestPerWave = g.run("INTEREST_PER_WAVE");
+  // the smart saver's bank: what earns SMART_INTEREST x (wave + 1) a wave - its own number now (2026-10-12): it read the game's
+  // INTEREST_PER_WAVE, and when that cap went 4 -> 20 (then away) the "smart" saver became a 5x hoarder and lost 18 of 19
+  const interestPerWave = SMART_INTEREST;
   // every mutable bit of the player, so a snapshot is one clone
   const S = { r: (seed * 9301 + 49297) % 233280, used: {}, time: 0, nearest: Infinity, lastLives: g.G.lives, hurtUntil: -1,
     leaks: {}, leakWave: {}, coreMem: {}, trace: [], pivoted: [], hist: [], lastWave: -1, waveNear: Infinity, bossNear: Infinity, fired: [],
@@ -330,7 +332,7 @@ export function makePlayer(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = 
 // the wave it held back on leaked"): it plays wave by wave from a snapshot; a wave that costs a life (or the game) while
 // it held a bank is played AGAIN from that snapshot with the bank open (S.hurtUntil) - once a wave. A human saver reloads
 // in their head: next time they spend before that wave. strategy.rewind false turns it off
-const REWIND_OPEN_S = 60, HOARD_X = 4; // HOARD_X: a hoarder's bank over the smart saver's // game seconds the replayed wave spends freely
+const SMART_INTEREST = 4, REWIND_OPEN_S = 60, HOARD_X = 4; // HOARD_X: a hoarder's bank over the smart saver's // game seconds the replayed wave spends freely
 export function play(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
   const p = makePlayer(strategy, seed, maxWave, dt, patch);
   if (strategy.econ !== "smart" || strategy.rewind === false) { p.runTo(maxWave + 1); return p.result(); }
