@@ -69,7 +69,7 @@ function spawnEnemy(type, n, pi, ang = 0) {
   const d = ENEMIES[type], s0 = entryS(pi), p0 = pathAt(pi, s0, ang);
   // a SWARMER's HP - and its SIZE - jitter 30-300% of the average, which is SWARM_HP_X the wave's (owner, 2026-10-12: "increase
   // swarm hp (and size jitter) to 30-300%", "total hp increased by 1.5x"; was 50-200% at x1): 0.3 + 2.7 u^2.857 averages 1
-  const jit = type === "swarm" ? 0.3 + 2.7 * Math.random() ** 2.857 : 1;
+  const jit = type === "swarm" ? 0.5 + 2.5 * Math.random() ** 4 : 1; // 50-300%, averaging 1 (owner, 2026-10-12: "change both to 50% to 300%"; was 30-300%)
   const hp = Math.max(1, Math.floor(enemyHp(type, n) * jit)); // never 0 (2026-10-11: x0.225 HP left the early swarms at 0 - spawned dead, never drawn) // WHOLE numbers (owner, 2026-10-08): HP, armor and every hit round down
   // DEFENCES KEEP PACE WITH HP (overnight simulator, 2026-10-02): with flat
   // armor/shields, late waves were pure dps and ARC spam won. Armor grows with
@@ -89,7 +89,7 @@ function spawnEnemy(type, n, pi, ang = 0) {
     // swarm bounty must hold; money is shown rounded down)
     bounty: bountyBase(n) * d.bounty, // (aspira-waves.js) slowF: 0, slowT: 0, stunT: 0, markT: 0, markMul: 1,
   });
-  if (type === "swarm") G.enemies[G.enemies.length - 1].sizeMul = 0.3 + (jit - 0.3) * 1.2 / 2.7; // its HP share mapped onto 30-150% size (owner, 2026-10-12: "cap out at 150%"; was the HP share itself, to 300%)
+  if (type === "swarm") G.enemies[G.enemies.length - 1].sizeMul = jit; // as big as its HP share, 50-300% (owner, 2026-10-12; briefly 30-150%)
   if (type === "bonus") bossSpawn(G.enemies[G.enemies.length - 1], n); // which boss (aspira-bosses.js)
 }
 
