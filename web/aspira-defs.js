@@ -120,7 +120,7 @@ function cellAt(x, y) {
 // AN EIGHTH OF THE TURNS (owner, 2026-10-11: towers drag twice as far, so "quarter all the current lane distances", then
 // "halve the orbits again"): each pair's distance under fire fell to about a fifth (fast 1061 -> 263, armor 4765 -> 641);
 // the radial lead-in is unchanged. Was [1.9, 5.86, 2.06, 7.22, 8.78, 7.22]
-const PAIR_TURNS = [0.2375, 1.465 /* the BOSS pair doubled (owner, 2026-10-11: "double all current boss lane lengths"; was 0.7325) */, 0.2575, 0.9025, 1.0975, 0.9025], FIRE_R = 250;
+const PAIR_TURNS = [0.2375, 2.93 /* the BOSS pair doubled again (owner, 2026-10-12: "double ... number turns in the lane"; was 1.465); doubled (owner, 2026-10-11: "double all current boss lane lengths"; was 0.7325) */, 0.2575, 0.9025, 1.0975, 0.9025], FIRE_R = 250;
 // Winding is driven by the lane's PITCH (its angle off straight-in), not by
 // angle-vs-t: theta(t) = turns * 2pi * F(t) / F(1) with F' = t^TANGENT_Q / r(t).
 // The pitch then grows smoothly from 0 (tan pitch ~ t^q), so the lane leaves

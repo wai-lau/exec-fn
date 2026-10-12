@@ -40,7 +40,7 @@ const ARCANA = [
 // team, Lovers 50 got to 47 of the core (target 168). Was star 3.4, empress 2,
 // strength 0.9, chariot 4, lovers 3.1, temperance 3, devil 0.75, justice 4.4,
 // judgement 1.7. Death not refitted (the run was stopped for memory): kept 1.6.
-const BOSS_HP = { star: 2.7, empress: 3.4, strength: 1.1, chariot: 1.7, lovers: 1.2, temperance: 0.61, devil: 0.38, justice: 3.2, judgement: 1.7, death: 1.6 };
+const BOSS_HP = { star: 5.4, empress: 6.8, strength: 2.2, chariot: 3.4, lovers: 2.4, temperance: 1.22, devil: 0.76, justice: 6.4, judgement: 3.4, death: 3.2 }; // every one DOUBLED (owner, 2026-10-12: "double each bosses hp"; was 2.7 3.4 1.1 1.7 1.2 0.61 0.38 3.2 1.7 1.6)
 // each boss's ARMOR (x the armored enemy's growth curve at its wave, like ENEMIES.armor) and SPEED
 // (x the boss base) - owner, 2026-10-08: the bosses ACD is too good against get armor and speed and
 // lose HP, so SOL (whose hits strip armor) and ACD (whose ramp wants a long-lived target) boss alike
