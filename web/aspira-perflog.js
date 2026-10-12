@@ -20,6 +20,16 @@ function perfTick(dt) {
   perf.maxEnemies = Math.max(perf.maxEnemies, G.enemies.length);
   if (perf.secs >= PERF_SEND_S) perfSend();
 }
+// which GPU the browser hands WebGL - read once (the 3D view's own context if it has one, else a throwaway one)
+let perfGpuName = null;
+function perfGpu() {
+  if (perfGpuName) return perfGpuName;
+  try {
+    const gl = (typeof warp !== "undefined" && warp.gl) || document.createElement("canvas").getContext("webgl"), x = gl && gl.getExtension("WEBGL_debug_renderer_info");
+    perfGpuName = !gl ? "no webgl" : x ? String(gl.getParameter(x.UNMASKED_RENDERER_WEBGL)) : String(gl.getParameter(gl.RENDERER));
+  } catch (e) { perfGpuName = "?"; }
+  return perfGpuName;
+}
 function perfSend() {
   const ver = document.querySelector(".asp-ver span");
   const body = {
@@ -27,6 +37,7 @@ function perfSend() {
     buckets: Object.fromEntries(PERF_BUCKETS.map((b, i) => ["<" + b, perf.buckets[i]])), worst: perf.worst, maxEnemies: perf.maxEnemies,
     quality: qMode, autoQ: typeof autoQ !== "undefined" ? Math.round(autoQ.ema) : null, wave: G.wave, brave: !!navigator.brave,
     screen: [innerWidth, innerHeight, devicePixelRatio], canvas: [cv.width, cv.height],
+    gpu: perfGpu(), // the WebGL renderer ("SwiftShader" / "llvmpipe" = software, no GPU)
     audio: { ac: typeof AC !== "undefined" && AC ? AC.state : null, samples: typeof SAMPLES !== "undefined" ? Object.values(SAMPLES).filter(s => s.length).length : null, calls: perf.sfxCalls, played: perf.sfxPlayed, muted: typeof muted !== "undefined" ? muted : null, volume: typeof volume !== "undefined" ? volume : null },
   };
   perfReset();
