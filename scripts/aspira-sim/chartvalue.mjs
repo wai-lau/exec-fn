@@ -1,7 +1,7 @@
 // Skill-chart value (owner, 2026-10-07; replaces formvalue.mjs, which measured
 // the old path/form tree): for each kind, every way to spend its 6 chart points
 // over its 3 axes (max 3 a tier) vs the even 2/2/2 - the test tower MAXED at
-// cell 0 with three L1 helpers (the other kinds), lives refilled so every wave
+// cell 0 with two L1 helpers (two of the other kinds, by seed), lives refilled so every wave
 // plays out, over waves FROM..TO. The metric is the TEAM's damage (so FRZ's
 // slow counts through the others' hits); the tower's own damage, the leaks
 // and the boss BREACHES (a boss at the core, which would have ended a real
@@ -22,7 +22,9 @@ export default async function task({ kind, dist, seed }) {
   const axes = g.run(`SKILL_TREES[${JSON.stringify(kind)}].map(a => a.id)`);
   const sk = {}; dist.forEach((n, i) => { if (n) sk[axes[i]] = n; });
   const t = g.place(kind, 0); t.skills = sk; t.lvl = 1 + dist.reduce((a, b) => a + b, 0);
-  KINDS.filter(k => k !== kind).forEach((k, i) => g.place(k, [2, 3, 4][i]));
+  // TWO helpers (2026-10-12: the game holds three towers), the pair turning with the seed so every pairing gets its turn
+  const others = KINDS.filter(k => k !== kind); others.splice(seed % 3, 1);
+  others.forEach((k, i) => g.place(k, [2, 3][i]));
   g.run(`let prev = "swarm"; for (let k = 1; k < ${FROM}; k++) { const w = wavePlan(k, prev); if (w.type !== "bonus") prev = w.type; } G.lastType = prev; G.nextIn = 0;`);
   let guard = 0, lost = 0, breaches = 0;
   while (g.G.wave <= TO && guard++ < 200000) {
