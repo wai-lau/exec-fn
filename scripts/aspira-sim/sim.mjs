@@ -280,7 +280,7 @@ export function makePlayer(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = 
     for (const e of g.G.enemies) if (!e.dead) near = Math.min(near, Math.hypot(e.x - g.CX, e.y - g.CY));
     S.nearest = Math.min(S.nearest, near); S.waveNear = Math.min(S.waveNear, near);
     const opened = g.G.towers.length >= (strategy.opening || []).length;
-    if (strategy.econ === "smart" && opened) act(0); // within this wave's purchase budget, S.buysLeft (play())
+    if (strategy.econ === "smart" && opened) act(0); // buys nothing mid-wave (S.buysLeft 0) - play() buys before each try
     else if (strategy.econ === "hoard" && opened) {
       // the interest-aware saver: the bank that earns the capped payout, the rest is surplus;
       // a threat (an enemy close, a life just lost, a boss now or next, few lives) opens the whole bank
@@ -301,6 +301,8 @@ export function makePlayer(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = 
   act();
   return {
     g, strategy, S, game, look: () => observe(false),
+    // the smart saver's BUY BEFORE THE WAVE: up to n purchases at once, from what it holds; returns how many it made
+    buy(n) { S.buysLeft = n; act(0); const made = n - S.buysLeft; S.buysLeft = 0; return made; },
     // through wave `w`: play until that wave is sent (at 100 the 10th boss is fought and the game can be WON)
     runTo(w) { while (!g.G.over && g.G.wave < w && g.G.wave <= maxWave && S.time < 60 * 60 * 2) tick(); return !g.G.over; },
     done: () => g.G.over || g.G.wave > maxWave || S.time >= 60 * 60 * 2,
@@ -330,9 +332,9 @@ export function makePlayer(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = 
 }
 
 // THE SMART SAVER (owner, 2026-10-12): it plays wave by wave from a snapshot, SAVING everything; a wave that costs a
-// life is played again from that snapshot, spending as little as works (REPLAY_BUYS) - "allowed to go back to a snapshot and
+// life is played again from that snapshot with 1, 2, 3... upgrades bought before it starts - "allowed to go back to a snapshot and
 // spend money if the wave it held back on leaked". strategy.rewind false turns the replay off
-const SMART_INTEREST = 4, HOARD_X = 4, REPLAY_BUYS = [0, 1, 2, 4, 8, Infinity]; // HOARD_X: a hoarder's bank over the smart saver's // game seconds the replayed wave spends freely
+const SMART_INTEREST = 4, HOARD_X = 4; // HOARD_X: a hoarder's bank over the smart saver's // game seconds the replayed wave spends freely
 export function play(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
   const p = makePlayer(strategy, seed, maxWave, dt, patch);
   if (strategy.econ !== "smart" || strategy.rewind === false) { p.runTo(maxWave + 1); return p.result(); }
@@ -340,16 +342,16 @@ export function play(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
   while (!p.done()) {
     // EVERY wave it tries to save it all (owner, 2026-10-12: "smart savers should try to save every wave and rewind if it
     // didnt work out"); a wave that cost a life is played again from its start, spending everything
-    // ...replaying with as LITTLE as it can (owner: "it replays spending as little as possible"): 1, then 2, 4, 8
-    // purchases, then all - the first try that keeps every life stands (the last stands whatever)
+    // ...replayed with ONE upgrade bought before the wave starts, then two, then three... (owner, 2026-10-12: "if leak,
+    // rewind and buy 1 upgrade before wave starts; if still leak, rewind and buy 2") - nothing bought DURING a wave; the
+    // first try that keeps every life stands, or the one that could afford no more
     const w = p.g.G.wave, snap = p.snapshot(), lives = p.g.G.lives;
-    for (let i = 0; i < REPLAY_BUYS.length; i++) {
-      if (i) { p.restore(snap); rewinds++; }
-      p.S.buysLeft = REPLAY_BUYS[i];
+    for (let n = 0; ; n++) {
+      if (n) { p.restore(snap); rewinds++; }
+      const made = p.buy(n);
       p.runTo(w + 1);
-      if (p.g.G.lives >= lives) break;
+      if (p.g.G.lives >= lives || made < n || p.done()) break;
     }
-    p.S.buysLeft = Infinity;
     if (p.g.G.wave === w && !p.done()) p.runTo(w + 1); // (a wave that would not end: let runTo's own clock stop it)
     if (p.g.G.wave === w) break;
   }
