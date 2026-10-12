@@ -149,8 +149,9 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
   const arm = Math.trunc(e.armor || 0); // whole armor, rounded toward zero (Breach/Corrosion strip it in fractions)
   if (arm > 0 && pierce < 1) // EVERY hit, quiet ones too - FRZ ticks, splash, damage over time, Nova (owner, 2026-10-12; quiet hits skipped armor until then)
     amt = Math.max(amt * 0.1, amt - arm * (1 - pierce));
-  // NEGATIVE armor (ACD's Corrosion, owner) is a flat bonus on every hit
-  else if (arm < 0 && !quiet) amt -= arm;
+  // NEGATIVE armor (ACD's Corrosion, owner) is a flat bonus on every hit - quiet ones too (owner, 2026-10-12: "allow
+  // negative armor to apply to everything also"; FRZ ticks, splash, damage over time and Nova skipped it until then)
+  else if (arm < 0) amt -= arm;
   const blunted = amt < raw;
   // per-tower tally: damage counts only up to the HP the enemy had left
   if (t) t.dealt = (t.dealt || 0) + Math.min(amt, Math.max(0, e.hp));
