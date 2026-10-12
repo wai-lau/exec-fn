@@ -61,7 +61,7 @@ const BOSS_HALO = { k: 1.45, a: 0.3 };
 // that shows full cyan - so a light chill is a hint of frost and a deep freeze is solid (2D outline; 3D tint, aspira-solids.js)
 const FROST_FULL = 0.6;
 // how much RIME an enemy holds, 0..1 of FRZ_RIME_FULL (aspira-frz.js): its outline that much white (owner, 2026-10-12)
-const rimeK = e => (e.rimeKeep == null ? 0 : Math.min(1, (1 - e.rimeKeep) / FRZ_RIME_FULL));
+const rimeK = e => frostShare(e); // (aspira-frz.js)
 const frostK = e => (e.slowT > 0 ? Math.min(1, Math.max(0, (e.slowF || 0) / FROST_FULL)) : 0);
 // solid: the 3D view draws the body itself as a real die (warpSolid, aspira-solids.js) - here only its tracer, shields and marks
 function drawEnemy(e, solid) {

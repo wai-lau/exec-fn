@@ -29,7 +29,7 @@ const SPEC = {
     : [["Slow", Math.round(st.slow * 100) + "%"], ["Lasts", st.permafrost ? "forever" : SLOW_TIME.toFixed(1) + "s"],
     ["Targets", st.all ? "all" : st.targets], ["Shields", "−1 / pulse"],
     ["Shatter", st.shatter ? dmgUnits(st.dmg * st.shatter.mul) + " r" + st.shatter.r : "—"],
-    ["Extra", st.frostbite ? "blast slows " + st.frostbite + "s" : st.brittle ? "armor -" + Math.round(Math.min(1, st.brittle - 1) * 100) + "%"
+    ["Extra", st.frostbite ? "blast slows " + st.frostbite + "s" : st.brittle ? "+" + Math.round((st.brittle - 1) * 100) + "% taken"
       : st.chillStop ? "95% for " + st.chillStop + "s" : "—"]],
   // acidic terms, never heat (owner, 2026-10-07): the acid CORRODES, BUILDS on its target, PEAKS
   acd: st => [["Corrode", dmgUnits(st.dmg) + "/s"], ["Builds", "×2 / " + st.double + "s"],

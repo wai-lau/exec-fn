@@ -16,7 +16,7 @@ const GIGA_NUM = [
   [ARC_VOLTAGE_DMG, 43.7], [ARC_VOLTAGE_FALL, 1.6], [ARC_VOLTAGE_JUMP, 2], [ARC_VOLTAGE_PIERCE, 0.9], [ARC_STAT_SLOW, 0.55],
   [ARC_CONDUCTIVITY, { s: 4 /* was 6 - the ARC nerf, 2026-10-11 */, j: 3, f: 3, r: 2.4, d: 1, v: 4 }], [ARC_CAPACITANCE, { n: 8, frac: 0.2 /* was 0.15, kept above V when V went to 0.14 (2026-10-12) */ }],
   // FRZ: Temp a far deeper chill; Rime the fastest, deepest rings; Moons FOUR moons, each with four small moons
-  [FRZ_TEMP_SLOW, 0.55], [FRZ_TEMP_TICK, 0.2], [FRZ_BRITTLE, 2], [FRZ_RIME, 0.3], [FRZ_RIME_PERIOD, 0.7], [FRZ_RIME_CRACK, 0.32], [FRZ_MOON_CRACK, 0.12],
+  [FRZ_TEMP_SLOW, 0.55], [FRZ_TEMP_TICK, 0.2], [FRZ_BRITTLE, 2], [FRZ_RIME, 0.3], [FRZ_RIME_PERIOD, 0.7], [FRZ_RIME_CRACK, 1.2], [FRZ_MOON_CRACK, 0.12],
   [FRZ_MOON_COUNT, 4], [FRZ_MOON_BY, 1], [FRZ_SUBMOON_N, 4],
   // SOL: Focus eight rays; Refraction a wider cone, harder hops; Breach armor stripped for good, far bigger crits
   [SOL_BEAMS, 8], [SOL_FOCUS_DMG, 1.3], [SOL_SHIELD_POP, 5], [SOL_REFRACTION, Infinity], [SOL_REFRACTION_DMG, 4],

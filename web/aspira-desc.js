@@ -29,8 +29,8 @@ const DESCRIBE = {
   // "A chill slows all it holds." -> Temp III: and turns it brittle (its colder, wider aura is
   // stat rows); Rime: the rings of rime; Moons: the moons
   frz(sk) {
-    const tp = sk.temp || 0; // Temp takes ARMOR (owner, 2026-10-12): reducing, then shattering, then decimating it
-    return "A chill that hurts more the colder you are" + (tp >= 6 ? ", decimating their armor." : tp >= 4 ? ", shattering their armor." : tp >= 1 ? ", reducing their armor." : ".") + FRZ_RIME_TEXT[sk.rime || 0] + FRZ_MOONS[sk.moons || 0] + "";
+    const tp = sk.temp || 0, rm = sk.rime || 0; // Sublimation turns them brittle; Permafrost's frost takes ARMOR - reducing, shattering, decimating (owner, 2026-10-12)
+    return "A chill that hurts more the colder you are" + (tp >= 6 ? ", shattering them brittle." : tp >= 1 ? ", turning them brittle." : ".") + (rm ? " Frost rings leave lasting frost that stacks and spreads when full, " + (rm >= 6 ? "decimating" : rm >= 4 ? "shattering" : "reducing") + " their armor." : "") + FRZ_MOONS[sk.moons || 0] + "";
   },
   // "A ray of light, stopping at the first enemy struck; each beam weakens its target's armor for
   // good." (Breach is SOL's own from the start, owner 2026-10-08) -> Focus: two .. six rays, each a
