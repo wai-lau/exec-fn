@@ -1,7 +1,7 @@
 /* /spire - TOP PLAYERS on the game-over screen (aspira-ascend.js): three letters, then the shared board - the
    Ascendants (wins) in gold, everyone else in green, tower names in their own colours */
 #asp-asc[hidden] { display: none; }
-#asp-asc { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
+#asp-asc { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); margin-top: var(--space-8); } /* room between Play again and the board (owner, 2026-10-12) */
 .asp-asc-title { font-size: var(--fs-sm); letter-spacing: var(--tracking-mega); text-transform: uppercase; color: hsl(var(--orange-hsl)); }
 #asp-asc-form { display: flex; gap: var(--space-2); }
 #asp-asc-form[hidden] { display: none; }

@@ -106,7 +106,7 @@ function stepAcd(t, dt) {
 // while ARC+FRZ+SOL leaked 55%): Corrosion still eats below nothing, but only so far
 let ACD_BOSS_FLOOR = 16; // a BOSS's floor x this: a long fight is where Corrosion's pile matters (2026-10-12: with the plain floor ARC+FRZ+ACD lost Justice at 80 in every game; x4 still 80, x8 died at 90, x16 won 6/6)
 let ACD_CORRODE_FLOOR = [0, 0.25, 0.5, 0.75, 1, 1.25]; // swept x0.25 / x0.5 / x1 at HP x1.5: x0.5 brings ACD trios to 14-45% leaked at 81-89 (ARC+FRZ+SOL 45-55%)
-const acdArmorRef = new Map(), armorRefOf = n => acdArmorRef.get(n) ?? acdArmorRef.set(n, ENEMIES.armor.armor * ENEMY_HP_MUL * Math.pow(hpPow(n) + n * 4 / 18, ARMOR_EXP)).get(n);
+const acdArmorRef = new Map(), armorRefOf = n => acdArmorRef.get(n) ?? acdArmorRef.set(n, ENEMIES.armor.armor * ENEMY_HP_MUL * Math.pow(hpPow(eqWave(n)) + eqWave(n) * 4 / 18, ARMOR_EXP)).get(n);
 // DAMAGE CREDIT (owner, 2026-10-12: "damage caused by debuff from another tower should attribute damage source to
 // the debuffing tower"): of a hit's tally (`got`), what BRITTLE added goes to the FRZ that made it brittle (e.brittleBy),
 // what LOWER ARMOR added (stripped by Breach / Corrosion - e.strip, by tower id - and frost, e.frostBy) to those towers

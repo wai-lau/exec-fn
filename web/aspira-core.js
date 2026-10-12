@@ -20,7 +20,7 @@
 // NO PICKING (owner, 2026-10-11: "temporal drive available at level 20 no picking, orbital relay at 40"): each power is
 // GIVEN, at full strength, as the REWARD for its wave's boss (grantPowers, from bossKilled - owner: "losing to a boss is
 // losing anyway"). Was a choice at the falls of Strength (30) and Temperance (60)
-const CORE_GRANTS = [[20, "temporal"], [40, "relay"]];
+const CORE_GRANTS = [[2 * STAR_EVERY, "temporal"], [4 * STAR_EVERY, "relay"]]; // the 2nd and 4th bosses (24 / 48 since the 12-wave cycle)
 const CORE_UNLOCK = CORE_GRANTS[0][0], CORE_TIERS = 3, CORE_PICKS = [] /* (the picks are gone; corePicks() stays 0) */, CORE_POINTS = CORE_TIERS * CORE_GRANTS.length;
 const CORE_POWERS = [
   { id: "relay", name: "Orbital Relay", /* planetary defence names (owner, 2026-10-06; was Fortifications) */ how: "drag the core onto a tower",

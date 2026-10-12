@@ -31,8 +31,8 @@ export function randomPlayer(seed) {
 }
 
 export default async function task({ seed }) {
-  const strat = randomPlayer(seed), p = makePlayer(strat, seed, 100, 0.02, PATCH);
-  p.runTo(101);
+  const strat = randomPlayer(seed), p = makePlayer(strat, seed, 120, 0.02, PATCH);
+  p.runTo(121);
   const r = p.result();
   return { seed, wave: r.wave, won: r.won, lives: r.lives, leaks: r.leaks, kinds: Object.keys(strat.mix).filter(k => strat.mix[k] > 0), econ: strat.econ || "spend", useCore: strat.useCore, up: strat.up };
 }
@@ -44,7 +44,7 @@ if (isMainThread && process.argv[1] && process.argv[1].endsWith("rand.mjs")) {
   const jobs = Array.from({ length: N }, (_, i) => ({ seed: i + 1 }));
   const res = (await runPool(new URL(import.meta.url), jobs, { out: OUT })).filter(Boolean);
   const w = res.map(x => x.wave), won = res.filter(x => x.won).length;
-  console.log(`${res.length} random players, full games to 100${PATCH ? " (patched)" : ""}`);
+  console.log(`${res.length} random players, full games to 120${PATCH ? " (patched)" : ""}`);
   console.log(`won ${won}/${res.length} (${Math.round(100 * won / res.length)}%)   death wave p10 ${pct(w, 0.1)} p50 ${pct(w, 0.5)} p90 ${pct(w, 0.9)}`);
   const by = (label, key) => {
     const g = {}; for (const x of res) (g[key(x)] ||= []).push(x);

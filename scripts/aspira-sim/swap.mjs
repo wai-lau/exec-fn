@@ -13,7 +13,7 @@ const STYLES = { greedy: { up: 0.8, econ: "spend" }, balanced: { up: 0.5 }, save
 export default async function task({ trio, out, dbl, style, seed }) {
   const team = out ? [...trio.filter(k => k !== out), dbl] : trio, mix = {};
   for (const k of team) mix[k] = (mix[k] || 0) + 1;
-  const r = play({ ...STYLES[style], maxTowers: 3, opening: team, mix, core: ALL, useCore: true }, seed, 100);
+  const r = play({ ...STYLES[style], maxTowers: 3, opening: team, mix, core: ALL, useCore: true }, seed, 120);
   return { wave: r.wave, won: r.won, lives: Math.max(0, r.lives), leaks: r.leaks };
 }
 if (isMainThread && process.argv[1] && process.argv[1].endsWith("swap.mjs")) {

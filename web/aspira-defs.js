@@ -45,6 +45,10 @@ const CELL_S = 32, SLOT_R = 78 /* out from 65.5 to fit the bigger core and tower
 // [[-150, 20], [-30, 40], [90, 60]] (angle, the wave whose boss opened it); the code
 // that builds and opens them runs over an empty list, so nothing else changed
 const CORNER_SLOTS = [], CORNER_IN = 171, TILE_R = CORNER_IN;
+// A BOSS EVERY 12 WAVES (owner, 2026-10-12: "add 2 waves before each boss"; every 10 until then): the difficulty, count and
+// money curves were tuned on 10-wave cycles, so they read a wave as its 10-cycle EQUIVALENT (wave 12 = old 10, 120 = old 100)
+// - each boss as strong as before, two more waves before it
+const WAVE_K = 10 / 12, eqWave = n => n * WAVE_K;
 const BUILD_R = RIM_R - 6;
 // the graticule spokes and the star field start out here (no longer tied to
 // the build area, which now spans the whole chart)
@@ -338,7 +342,7 @@ const ENEMIES = {
 // THE SHORT-LANE MIX (owner, 2026-10-11: "generally faster enemies (and more money)", "much harder", then the eighth-turn
 // lanes with "cut HP to make it work"): every type's HP x ENEMY_HP_MUL and bounty x BOUNTY_MUL, applied once here so the
 // tables above keep their fitted shape. trios.mjs on this board: 3 of 4 trios win, FRZ+SOL+ACD best 95
-const ENEMY_HP_MUL = 0.225, BOUNTY_MUL = 1; // BOUNTY 1.25 -> 1 (owner, 2026-10-11: "mid game pressure yes" - no lives went before wave 81)
+const ENEMY_HP_MUL = 0.225, BOUNTY_MUL = 0.7; // 0.7 (owner, 2026-10-12: "feels like there's way too much money in the game") - BOUNTY 1.25 -> 1 (owner, 2026-10-11: "mid game pressure yes" - no lives went before wave 81)
 for (const k in ENEMIES) { ENEMIES[k].hp *= ENEMY_HP_MUL; ENEMIES[k].bounty *= BOUNTY_MUL; }
 
 const POWERS = [

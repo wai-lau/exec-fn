@@ -87,8 +87,8 @@ check("a wave spawns, towers fire, enemies draw", () => {
 });
 
 check("boss wave: the sky spreads, fills, draws both ways", () => {
-  run(`G.wave = 9; sendWave(); for (let i = 0; i < 200; i++) step(1 / 30);`);
-  if (!run("G.enemies.some(e => e.arcana)")) return "no boss on wave 10";
+  run(`G.wave = STAR_EVERY - 1; sendWave(); for (let i = 0; i < 200; i++) step(1 / 30);`); // the first boss wave, whatever the cycle
+  if (!run("G.enemies.some(e => e.arcana)")) return "no boss on the first boss wave";
   run("bossSkyStep(); bossInv.t0 -= 1.5");
   const spreading = drawn(env, () => frames(env, 1)).n;
   run("bossInv.t0 -= 10");

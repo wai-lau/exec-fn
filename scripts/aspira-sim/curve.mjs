@@ -16,7 +16,7 @@ const MIX = { arc: 1, frz: 1, sol: 1, acd: 1 };
 const CORE = process.env.CURVE_CORE === "none" ? null : ALL;
 
 export default async function task({ style, opening, seed }) {
-  const r = play({ ...STYLES[style], maxTowers: 9, opening: OPENINGS[opening], mix: MIX, core: CORE, useCore: !!CORE }, seed, 100);
+  const r = play({ ...STYLES[style], maxTowers: 9, opening: OPENINGS[opening], mix: MIX, core: CORE, useCore: !!CORE }, seed, 120);
   return { wave: r.wave, lives: r.lives, won: r.won, leaks: r.leaks, leakWave: r.leakWave, towers: Object.fromEntries(Object.entries(r.towers).map(([k, v]) => [k, v.n])) };
 }
 
@@ -29,7 +29,7 @@ if (isMainThread && process.argv[1] && process.argv[1].endsWith("curve.mjs")) {
   const res = await runPool(new URL(import.meta.url), jobs, { out: OUT });
   console.log(`${Object.keys(STYLES).length} styles x ${Object.keys(OPENINGS).length} openings x ${SEEDS} seeds, core ${CORE ? "picked at every boss pick" : "none"}\n`);
   console.log("player".padEnd(22) + "  p10  p50  p90  won   first leak p50");
-  const firstLeak = r => { const ws = Object.keys(r.leakWave).map(Number); return ws.length ? Math.min(...ws) : 101; };
+  const firstLeak = r => { const ws = Object.keys(r.leakWave).map(Number); return ws.length ? Math.min(...ws) : 121; };
   for (const style of Object.keys(STYLES)) for (const opening of Object.keys(OPENINGS)) {
     const rs = jobs.map((j, i) => j.style === style && j.opening === opening ? res[i] : null).filter(Boolean);
     const w = rs.map(r => r.wave);

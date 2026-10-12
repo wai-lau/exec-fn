@@ -26,7 +26,7 @@ const bossNext = () => (G.wave + 1) % STAR_EVERY === 0;
 // fast - one of each, to meet them in turn; from wave 5 a random type, never
 // the one before
 const UNLOCK = ["swarm", "shield", "armor", "fast"];
-const STAR_EVERY = 10; // the star rides waves 10, 20, 30... (owner, 2026-10-02; was every wave from 3)
+const STAR_EVERY = 12; // a boss every 12 waves (owner, 2026-10-12: "add 2 waves before each boss"; was 10) - the star rides waves 10, 20, 30... (owner, 2026-10-02; was every wave from 3)
 // Waves are the SAME every game (owner, 2026-10-02): type, lane split, star
 // slot and star drop all come from fixedRand(wave, salt), a hash, never
 // Math.random. Only crits, swarm jitter and stun chance stay random.
@@ -58,13 +58,14 @@ const WAVE_COUNT_MUL = {}; // (wave 1 was DOUBLED from 2026-10-09; dropped 2026-
 // other type under 2 - x FAST_LATE_MUL past FAST_LATE_FROM. waverep x3 with HP_END 1.06: 0.8 6.8 a wave, 0.65 2.6, 0.5 1.3
 const FAST_LATE_MUL = 0.65, FAST_LATE_FROM = 80;
 // how many of `type` a plain wave n brings (before the split onto lane copies) - wavePlan, and a boss's fleet (aspira-bosses.js)
-function waveCount(type, n) {
+function waveCount(type, n0) {
+  const n = eqWave(n0); // (the 10-cycle equivalent - aspira-defs.js; WAVE_COUNT_MUL keys stay real waves)
   const base = Math.min(10 + Math.floor(n * COUNT_SLOPE), COUNT_CAP); // let: the simulator sweeps both (owner, 2026-10-11: "enemy counts increase as the game progresses")
   // swarms: 3x the bodies (owner); split k ways onto rotated lane copies
   // HALF the bodies at TWICE the health (owner, 2026-10-02)
   // x WAVE_COUNT_MUL[n]: waves 1-30 tuned so each comes about as close to the
   // core against one L1 tower of each kind (owner; scripts/aspira-sim/wavebal.mjs)
-  const c = (type === "swarm" ? base * 6 : base) / 2 * (WAVE_COUNT_MUL[n] ?? 1) * (TYPE_COUNT_MUL[type] ?? 1) * (type === "swarm" ? swarmMul(n) * (n >= SWARM_X2_FROM ? 2 : 1) : 1) * (type === "fast" && n > FAST_LATE_FROM ? FAST_LATE_MUL : 1); // swarms 6x (owner: doubled from 3x)
+  const c = (type === "swarm" ? base * 6 : base) / 2 * (WAVE_COUNT_MUL[n0] ?? 1) * (TYPE_COUNT_MUL[type] ?? 1) * (type === "swarm" ? swarmMul(n) * (n >= SWARM_X2_FROM ? 2 : 1) : 1) * (type === "fast" && n > FAST_LATE_FROM ? FAST_LATE_MUL : 1); // swarms 6x (owner: doubled from 3x)
   // SYMMETRICAL FORMATIONS (owner, 2026-10-11: "2n+1 for fast, 3n for armor"): whole Vs and full lattice rows
   const unit = FORM_UNIT[type] || 1;
   return Math.max(unit, Math.round(c / unit) * unit);
