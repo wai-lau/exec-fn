@@ -144,10 +144,10 @@ function blendFill(layers) {
 }
 // LOD (owner, 2026-10-12: "do some major perf work for 3d"): a die SMALLER than SOLID_LOD_PX on screen - most of a late
 // swarm - is one flat shape at its projected spot, drawn once in the top pass: 229 dice cost 38 ms of a 60 ms frame (profiled)
-const SOLID_LOD_PX = 12, SOLID_FULL_MAX = 60; // FULL_MAX: at most this many full dice a frame, the biggest on screen (warpEntities flags the rest e.lodFlat)
+const SOLID_LOD_PX = 12; // (a budget of full dice a frame, the rest flat, ran for an hour - owner: NO)
 function warpFlatDie(e) {
   const P = warpProject(e.x, e.y), r = solidSize(e) * cam.k * P.s;
-  if (!(r < SOLID_LOD_PX) && !e.lodFlat) return false;
+  if (!(r < SOLID_LOD_PX)) return false;
   if (warpBand && warpBand.lo !== 0) return true; // only the pass above the floor draws it
   const d = ENEMIES[e.type], n = d.sides, col = COL[d.color], fa = warpFade * Math.max(SOLID_FAR_MIN, Math.min(1, P.s / warp.p.z) ** 2);
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.beginPath();
