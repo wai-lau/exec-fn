@@ -125,7 +125,7 @@ function frzStep(t, dt) {
     t.rimeT = (t.rimeT || 0) - dt;
     if (t.rimeT <= 0) {
       t.rimeT += st.rimeEvery;
-      for (const s of srcs) (t.pulses ||= []).push({ x: s.x, y: s.y, R: st.range * s.k, v: st.rime * s.k, id: s.id + ":rime", age: 0, hit: new Set() });
+      for (const s of srcs) (t.pulses ||= []).push({ x: s.x, y: s.y, R: st.range * s.k, v: st.rime * s.k, id: s.id + ":rime", age: 0, hit: new Set(), moon: s !== srcs[0] });
     }
   }
   if (t.pulses) {
@@ -148,22 +148,26 @@ function frzStep(t, dt) {
 // UI: the aura discs, the moons and the Rime rings (aspira-effects.js drawTethers)
 const MOON_TRI = 11; // a moon's triangle, corner to centre
 const FRZ_AURA_A = 0.4, FRZ_RIM_A = 0.25; // the aura's disc and rim, toned down (owner, 2026-10-07; were 0.8 / 0.45)
+const MOON_FX = 0.45; // a moon's look against the tower's own (drawFrzSkill, drawTowerRange's orbit)
 function drawFrzSkill(t, st) {
   const col = COL[TOWERS.frz.color];
   frzSources(t, st).forEach((s, i) => {
-    gradDisc(s.x, s.y, st.range * s.k, col, FRZ_AURA_A); // fainter (owner, 2026-10-07; was 0.8)
+    // a MOON's own aura, rim and rings at MOON_FX of the tower's (owner, 2026-10-12: "reduce intensity of all moon related
+    // effects (except main one)") - the tower's own aura stays as it was
+    const m = i ? MOON_FX : 1;
+    gradDisc(s.x, s.y, st.range * s.k, col, FRZ_AURA_A * m); // fainter (owner, 2026-10-07; was 0.8)
     // Frost (owner): a FROSTED RIM, thicker the colder the aura (its slow)
-    ctx.strokeStyle = col; ctx.globalAlpha = FRZ_RIM_A; ctx.lineWidth = FRZ_RIM_W * st.aura * s.k;
+    ctx.strokeStyle = col; ctx.globalAlpha = FRZ_RIM_A * m; ctx.lineWidth = FRZ_RIM_W * st.aura * s.k;
     ctx.beginPath(); ctx.arc(s.x, s.y, st.range * s.k, 0, 6.283); ctx.stroke();
     // a MOON (every source after the tower; Moons III's are full strength, so
     // not "k < 1" - owner: they went missing) is a TRIANGLE pointing at the tower
-    if (i) { ctx.fillStyle = col; ctx.globalAlpha = 0.95; poly(s.x, s.y, s.small ? MOON_TRI * 0.55 : MOON_TRI, 3, Math.atan2(t.y - s.y, t.x - s.x), false); ctx.fill(); }
+    if (i) { ctx.fillStyle = col; ctx.globalAlpha = 0.95 * MOON_FX; poly(s.x, s.y, s.small ? MOON_TRI * 0.55 : MOON_TRI, 3, Math.atan2(t.y - s.y, t.x - s.x), false); ctx.fill(); }
   });
   // Rime (owner): a THIN expanding ring with a GLOW
   ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.shadowColor = col; ctx.shadowBlur = 12 * cam.k;
   for (const p of t.pulses || []) {
     const f = Math.min(1, p.age / FRZ_RIME_GROW);
-    ctx.globalAlpha = 0.9 * (1 - f * 0.6); ctx.beginPath(); ctx.arc(p.x, p.y, p.R * f, 0, 6.283); ctx.stroke();
+    ctx.globalAlpha = 0.9 * (1 - f * 0.6) * (p.moon ? MOON_FX : 1); ctx.beginPath(); ctx.arc(p.x, p.y, p.R * f, 0, 6.283); ctx.stroke();
   }
   ctx.shadowBlur = 0; ctx.globalAlpha = 1;
 }
