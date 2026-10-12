@@ -143,3 +143,11 @@ cv.addEventListener("dblclick", refit); // (with zoom and pan fixed, only a stal
 cv.addEventListener("contextmenu", ev => ev.preventDefault());
 cv.addEventListener("touchstart", ev => ev.preventDefault(), { passive: false });
 cv.addEventListener("selectstart", ev => ev.preventDefault());
+// THE CURSOR SHOWS ON ANY SKY (owner, 2026-10-12: "during boss, cannot see cursor" - the system crosshair vanished on the
+// inverted boss sky): a crosshair of the light line laid over a dark outline, both from the palette (COL), so one of the
+// two always stands out; the system crosshair is the fallback. ui.js calls it once the palette is read
+function contrastCursor() {
+  const line = (c, w) => `<path d="M12 2v8M12 14v8M2 12h8M14 12h8" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24">${line(COL.bg, 4)}${line(COL.white, 1.6)}</svg>`;
+  cv.style.cursor = `url("data:image/svg+xml,${encodeURIComponent(svg)}") 12 12, crosshair`;
+}

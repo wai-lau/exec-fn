@@ -485,7 +485,7 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
-resolveColors();
+resolveColors(); contrastCursor(); // the two-tone crosshair (aspira-camera.js)
 resize();
 refreshPanels();
 requestAnimationFrame(t => { last = t; frame(t); });
