@@ -98,29 +98,55 @@ function stepFloats(dt) {
 // there. Game time (step, aspira-game.js), so the simulator banks them too, a beat later than it used to.
 const COIN_V0 = 0, COIN_ACC = 25, COIN_HOLD = 3, COIN_R = 2.5; // owner, 2026-10-09: "gold should start with no velocity, and then very slowly accelerate towards core" (was 200 / 900), then "reduce gold acceleration" (150 -> 60), then "slow down gold acceleration even more, make gold stationary for 2s" (HOLD s still, then 25), then "make gold stationary for 3s"
 let coins = [];
-function creditDot(x, y, b) { coins.push({ x, y, b, t: 0 }); }
+// COINS (owner, 2026-10-12): a kill's credits break into coins - 20, 10, 5, then 1s (the old dot) - each dropped with some
+// jitter from the enemy (COIN_JIT units); every coin banks its own value, and the kill's "+Nc" pops once, when its LAST
+// coin lands (the group's `left`). A fraction rides on the last coin; a sub-1 bounty is one plain dot.
+const COIN_FACES = [20, 10, 5], COIN_JIT = 14;
+function creditDot(x, y, b) {
+  const vals = [];
+  let rest = b;
+  for (const f of COIN_FACES) while (rest >= f) { vals.push(f); rest -= f; }
+  while (rest >= 1) { vals.push(1); rest -= 1; }
+  if (rest > 1e-9) { if (vals.length) vals[vals.length - 1] += rest; else vals.push(rest); }
+  const grp = { b, left: vals.length };
+  for (const v of vals) {
+    const a = Math.random() * 6.283, r = vals.length > 1 ? COIN_JIT * Math.sqrt(Math.random()) : 0;
+    coins.push({ x: x + Math.cos(a) * r, y: y + Math.sin(a) * r, b: v, face: COIN_FACES.find(f => v >= f && v < f + 1) || 1, grp, t: 0 });
+  }
+}
 function stepCoins(dt) {
   for (const c of coins) {
     c.t += dt;
     const dx = CX - c.x, dy = CY - c.y, d = Math.hypot(dx, dy), tm = c.t - COIN_HOLD, step = tm > 0 ? (COIN_V0 + COIN_ACC * tm) * dt : 0;
     if (d <= CORE_R || step >= d) {
       c.done = true; G.money += c.b;
+      if (--c.grp.left > 0) continue; // the kill's popup waits for its last coin
       // SMALLER and from ABOVE the core, so it never hides it (owner, 2026-10-09): in 3D above its raised top too - a height
       // h stands h x tan(tilt) floor units up the screen
       const lift = typeof q3d === "function" && q3d() && warp.lightZ ? warp.lightZ * Math.tan(WARP.tilt) : 0;
       // SIZED LIKE A DAMAGE NUMBER (owner, 2026-10-09: "gold popups should also be sized like damage"): by its share of
       // the biggest payout yet, on the damage numbers' scale (was a flat 12px)
-      G.maxGold = Math.max(G.maxGold || 1, c.b);
-      const rel = (c.b / G.maxGold) ** DMG_SIZE_EXP;
-      float(CX, CY - CORE_R - 22 - lift, "+" + (c.b < 10 ? +c.b.toFixed(1) : Math.round(c.b)) + "c", "orange", Math.round(DMG_PX_MIN + DMG_PX_SPAN * rel), 2.0); // credits read "Nc"
+      const gb = c.grp.b;
+      G.maxGold = Math.max(G.maxGold || 1, gb);
+      const rel = (gb / G.maxGold) ** DMG_SIZE_EXP;
+      float(CX, CY - CORE_R - 22 - lift, "+" + (gb < 10 ? +gb.toFixed(1) : Math.round(gb)) + "c", "orange", Math.round(DMG_PX_MIN + DMG_PX_SPAN * rel), 2.0); // credits read "Nc"
       fx[fx.length - 1].shrink = true; // it holds, then shrinks + fades like a damage number (owner)
     } else { c.x += dx / d * step; c.y += dy / d * step; }
   }
   coins = coins.filter(c => !c.done);
 }
+// a coin's look by face (owner): 1 the plain gold dot; 5 a gold ring around black; 10 a gold ring around white;
+// 20 a white ring around gold - [radius, ring colour, fill colour]
+const COIN_LOOK = { 1: [COIN_R, "orange", "orange"], 5: [4, "orange", "bg"], 10: [4.5, "orange", "white"], 20: [5, "white", "orange"] };
 function drawCoins() {
   if (!coins.length) return;
-  ctx.fillStyle = COL.orange; ctx.globalAlpha = 1; ctx.beginPath();
-  for (const c of coins) { ctx.moveTo(c.x + COIN_R, c.y); ctx.arc(c.x, c.y, COIN_R, 0, 6.283); }
-  ctx.fill();
+  ctx.globalAlpha = 1;
+  for (const face of [1, 5, 10, 20]) {
+    const [r, ring, fill] = COIN_LOOK[face], set = coins.filter(c => c.face === face);
+    if (!set.length) continue;
+    ctx.beginPath();
+    for (const c of set) { ctx.moveTo(c.x + r, c.y); ctx.arc(c.x, c.y, r, 0, 6.283); }
+    ctx.fillStyle = COL[fill]; ctx.fill();
+    if (ring !== fill) { ctx.strokeStyle = COL[ring]; ctx.lineWidth = 1.5; ctx.stroke(); }
+  }
 }
