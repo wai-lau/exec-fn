@@ -43,7 +43,7 @@ const DESCRIBE = {
   // Corrosion = stronger acid that eats armor; Contagion = the always-on pools grow, massive at VI
   acd(sk) {
     const c = sk.contagion || 0, f = sk.spray || 0, k = sk.corrosion || 0; // pools from the start (owner, 2026-10-12)
-    return ACD_JETS[f] + (f ? " slowing" : "") + " jets of " + (k >= 6 ? "the strongest acid, dissolving armor" : k ? "strong acid that eats armor" : "acid") + ", dripping " + (c >= 6 ? "massive" : c >= 3 ? "wide" : c ? "larger" : "large") + " pools. " + (f >= 5 ? "A jet lands hotter on its next enemy." : f ? "A jet keeps its acid on its next enemy." : "A jet starts cold on each new enemy.");
+    return ACD_JETS[f] + (f ? " slowing" : "") + " jets of " + "acid" + (k >= 6 ? " that dissolves armor far below nothing" : k ? " that eats armor below nothing" : "") + ", dripping " + (c >= 6 ? "massive" : c >= 3 ? "wide" : c ? "larger" : "large") + " pools. " + (f >= 5 ? "A jet lands hotter on its next enemy." : f ? "A jet keeps its acid on its next enemy." : "A jet starts cold on each new enemy.");
   },
 };
 // the description for a chart (`skills`): the composer, else the axes' sentences run together

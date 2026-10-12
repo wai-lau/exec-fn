@@ -121,11 +121,11 @@ SKILL_TREES.sol = [
 // the next); Pour = 2 / 3 / 5 lines at once; Seep = more, longer, bigger puddles.
 SKILL_TREES.acd = [
   { id: "corrosion", name: "Corrosion", base: "Acid that builds while a jet holds its enemy.", tiers: [
-    { name: "Etch", desc: "Stronger acid that eats armor." },
-    { name: "Corrode", desc: "Stronger acid that eats armor." },
-    { name: "Dissolve", desc: "Far stronger acid that eats armor." },
-    { name: "Erode", desc: "Far stronger acid that eats armor." },
-    { name: "Annihilate", desc: "The strongest acid, eating armor." },
+    { name: "Etch", desc: "Acid eats armor, even below nothing: every tower hits the eaten harder." },
+    { name: "Corrode", desc: "Acid eats armor faster, even below nothing." },
+    { name: "Dissolve", desc: "Acid eats armor faster still, even below nothing." },
+    { name: "Erode", desc: "Acid devours armor, far below nothing." },
+    { name: "Annihilate", desc: "Acid devours armor, far below nothing." },
   ] },
   { id: "spray", name: "Flow", base: "Two jets, each starting cold on a new enemy.", tiers: [
     { name: "Mist", desc: "Three slowing jets; a jet keeps some of its acid on its next enemy." },
