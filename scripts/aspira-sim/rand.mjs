@@ -25,7 +25,7 @@ export function randomPlayer(seed) {
   const useCore = r() < 0.5;
   return {
     up: 0.3 + r() * 0.5, maxTowers: 6, mix, opening: [pickOf(have), pickOf(have)], skills,
-    ...(r() < 0.5 ? { econ: "smart" } : {}), // spend or smart, half each (a hoarder third ran for an afternoon, 2026-10-12)
+    // (spend or smart, half each, until 2026-10-12 - every sim player is the smart saver now, sim.mjs)
     relayKind: pickOf(have), core: r() < 0.5 ? [...ALL] : [...ALL].reverse(), useCore,
   };
 }

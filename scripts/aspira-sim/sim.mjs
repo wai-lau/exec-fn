@@ -173,6 +173,9 @@ export function cellScores(g, kind) {
 // snapshot() / restore() branch the game (G, the seeded RNG, the player's own
 // state and the strategy's live knobs), result() is play()'s return value.
 export function makePlayer(strategy, seed = 1, maxWave = 60, dt = 0.02, patch = "") {
+  // EVERY sim player is the smart saver unless it says otherwise (owner, 2026-10-12: "all sims should use smart saver from
+  // now on"); econ: "spend" is the old spend-as-you-go player
+  if (!strategy.econ) strategy.econ = "smart";
   const g = makeGame(seed, patch);
   g.reset();
   const scores = {}, order = {};
