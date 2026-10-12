@@ -390,17 +390,20 @@ function solRefraction(t, st, e) {
   const half = (st.cone || SOL_CONE) * Math.PI / 180, dir = solConeDir(t, st, e, half), hit = new Set([e]), ex = e.x, ey = e.y;
   const fromE = o => Math.hypot(o.x - ex, o.y - ey), inCone = o => angOff(Math.atan2(o.y - ey, o.x - ex), dir) <= half;
   const forward = (from, o) => fromE(o) > (from === e ? 0 : fromE(from)) && (from === e || angOff(Math.atan2(o.y - from.y, o.x - from.x), dir) <= half);
-  let prev = e, from0 = t, far = Math.hypot(ex - t.x, ey - t.y);
+  let prev = e, from0 = t, far = Math.hypot(ex - t.x, ey - t.y), farE = 0;
   for (let k = 0; k < st.refraction; k++) {
     const from = prev, nxt = chainPick(t, prev, Infinity, o => hit.has(o) || !inCone(o) || !forward(from, o)); // within the cone, forward, by SOL's targeting
     if (!nxt) { solOutOfSight(t, st, from0, prev); break; } // no one left in the cone: on out of sight (owner, 2026-10-08: always, not only V)
     from0 = prev;
     rayHit(t, st, nxt, st.dmg * (st.hop || 1), prev); hit.add(nxt); prev = nxt;
-    far = Math.max(far, Math.hypot(nxt.x - t.x, nxt.y - t.y));
+    far = Math.max(far, Math.hypot(nxt.x - t.x, nxt.y - t.y)); farE = Math.max(farE, fromE(nxt));
   }
   // the cone DRAWN from the tower along the shot, as before (owner, 2026-10-12: "draw the cone from the tower still anyway"),
   // to just past the furthest enemy it bent to - the bending itself runs from the first enemy (above)
   fx.push({ k: "cone", x: t.x, y: t.y, a: Math.atan2(ey - t.y, ex - t.x), half, len: far + 30, color: TOWERS[t.kind].color, t: 0, life: SOL_CONE_LIFE });
+  // ...and AGAIN from the first enemy struck, the way the hops really bend (owner, 2026-10-12: "when an enemy is hit with the
+  // first refraction bounce, show the cone again")
+  if (farE > 0) fx.push({ k: "cone", x: ex, y: ey, a: dir, half, len: farE + 30, color: TOWERS[t.kind].color, t: 0, life: SOL_CONE_LIFE });
 }
 // a shot that runs OUT OF TARGETS goes on from the last enemy struck, along its last leg, far past the screen's edge (owner, 2026-10-08)
 const SOL_OUT_LEN = 3000;
