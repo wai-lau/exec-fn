@@ -131,11 +131,10 @@ function fleetForm(e, R) {
     },
   };
 }
-// THE FLEET RIDES 3-5 LANES (owner, 2026-10-12: "bosses should arrive in 3-5 parallel lanes"): copies of the boss's lane spread
-// evenly round the rim, the boss on the first, each lane its own share of the escorts in the same formation round where the
-// boss would be. The Judgement's boss rides ONE lane and its swarm TWELVE others ("change judgement boss to have boss arrive
+// THE JUDGEMENT'S FLEET SPREADS: lane copies evenly round the rim, each its own share of the escorts in the same formation
+// round where the boss would be. The Judgement's boss rides ONE lane and its swarm TWELVE others ("change judgement boss to have boss arrive
 // on one lane and the swarms in 12 different ones"); the Devil's six and the Lovers' two already come from their own lanes
-const fleetLanes = (e, n) => (isA(e, "devil") || isA(e, "lovers") ? { L: 1, off: 0 } : isA(e, "judgement") ? { L: 12, off: 0.5 } : { L: 3 + Math.floor(fixedRand(n, 7) * 3), off: 0 });
+const fleetLanes = (e, n) => (isA(e, "judgement") ? { L: 12, off: 0.5 } : { L: 1, off: 0 }); // only the Judgement spreads its escorts (owner, 2026-10-12: "escorts don't spread, only judgement"; every fleet rode 3-5 lanes briefly)
 function bossFleet(e, n) {
   const kinds = FLEET[e.arcana];
   if (!kinds) return;
