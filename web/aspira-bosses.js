@@ -48,6 +48,9 @@ const BOSS_ARMOR = { star: 0, empress: 0, strength: 0, chariot: 0, lovers: 0, te
 const BOSS_SPEED = { star: 1, empress: 1, strength: 1, chariot: 1, lovers: 1, temperance: 1, devil: 1, justice: 0.75 /* Justice slowed (owner, 2026-10-12: "boss 80 nerf by slow" - it broke through in 5 of 36 games) */, judgement: 1, death: 1 };
 // each boss's SHIELD (hits absorbed, whatever their size) and its REFILL a second - the counter to
 // SOL's few huge hits (owner, 2026-10-08): ACD's ticks, ARC's forks and FRZ's aura strip it cheaply
+// EVERY boss carries a little SHIELD (owner, 2026-10-12: "SOL feels too good vs bosses - give them all a little bit of
+// shields"): BOSS_SHIELD_K of a shield enemy's charges at its wave, on top of its own BOSS_SHIELD
+const BOSS_SHIELD_K = 0.5;
 const BOSS_SHIELD = { star: 0, empress: 0, strength: 0, chariot: 0, lovers: 0, temperance: 0, devil: 0, justice: 0, judgement: 0, death: 0 };
 const BOSS_SHIELD_REGEN = { star: 0, empress: 0, strength: 0, chariot: 0, lovers: 0, temperance: 0, devil: 0, justice: 0, judgement: 0, death: 0 };
 const BOSS_INTRO = 2.5; // s between a boss wave starting and its boss arriving (its warning plays)
@@ -78,7 +81,7 @@ function bossSpawn(e, n) {
   const grow = hpPow(n) + n * 4 / 18; // the armored enemy's armor curve (spawnEnemy)
   e.armor = e.armor0 = Math.floor((BOSS_ARMOR[e.arcana] || 0) * Math.pow(grow, ARMOR_EXP));
   e.baseSpd = e.spd; e.broodAt = 0.8; e.sprintT = CHARIOT_EVERY;
-  e.shield = e.shieldMax = BOSS_SHIELD[e.arcana] || 0; e.shieldBuf = 0;
+  e.shield = e.shieldMax = (BOSS_SHIELD[e.arcana] || 0) + Math.round(BOSS_SHIELD_K * shieldsOf("shield", n).shield); e.shieldBuf = 0;
   // HP per boss: BOSS_HP (fitted, see there; the Devil's is each of six)
   e.max *= BOSS_HP[e.arcana] || 1;
   // ...and by the DISTANCE its lane makes it travel (owner): a long lane keeps
