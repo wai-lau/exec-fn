@@ -66,13 +66,16 @@ let detailFarR = DETAIL_MAX_R, detailEma = 16;
 // side (slow log, 2026-10-12: a Brave spent ~5 ms of a 25 ms frame in JS - the rest was handing that picture to the GPU)
 const TEX_CAP_MIN = 1024, TEX_CAP_MAX = 2048, TEX_CAP_RATE = 400; // RATE: px a second
 let warpTexCap = TEX_CAP_MAX;
+const WARP_RES_MIN = 0.5, WARP_RES_MAX = 0.75;
 function stepDetail(dt) {
   if (!(dt > 0) || dt > 0.5) return;
   detailEma += (dt * 1000 - detailEma) * 0.05;
   const slow = detailEma > DETAIL_SLOW_MS, quick = detailEma < DETAIL_FAST_MS;
   // slow: first the detail radius comes in, then the 3D picture shrinks (glows always stay - owner, 2026-10-12); quick: back the other way
-  if (slow) { if (detailFarR > DETAIL_MIN_R) detailFarR = Math.max(DETAIL_MIN_R, detailFarR - DETAIL_RATE * dt); else warpTexCap = Math.max(TEX_CAP_MIN, warpTexCap - TEX_CAP_RATE * dt); }
-  else if (quick) { if (warpTexCap < TEX_CAP_MAX) warpTexCap = Math.min(TEX_CAP_MAX, warpTexCap + TEX_CAP_RATE * dt); else detailFarR = Math.min(DETAIL_MAX_R, detailFarR + DETAIL_RATE * dt); }
+  // ...and last, the 3D view's own resolution, 0.75 down to WARP_RES_MIN (slow logs: the paint, not the code, was the cost)
+  const res = typeof WARP_RES !== "undefined";
+  if (slow) { if (detailFarR > DETAIL_MIN_R) detailFarR = Math.max(DETAIL_MIN_R, detailFarR - DETAIL_RATE * dt); else if (warpTexCap > TEX_CAP_MIN) warpTexCap = Math.max(TEX_CAP_MIN, warpTexCap - TEX_CAP_RATE * dt); else if (res) WARP_RES = Math.max(WARP_RES_MIN, WARP_RES - 0.1 * dt); }
+  else if (quick) { if (res && WARP_RES < WARP_RES_MAX) WARP_RES = Math.min(WARP_RES_MAX, WARP_RES + 0.1 * dt); else if (warpTexCap < TEX_CAP_MAX) warpTexCap = Math.min(TEX_CAP_MAX, warpTexCap + TEX_CAP_RATE * dt); else detailFarR = Math.min(DETAIL_MAX_R, detailFarR + DETAIL_RATE * dt); }
 }
 const farFx = e => q3d() && (e.x - CX) ** 2 + (e.y - CY) ** 2 > detailFarR * detailFarR;
 // AUTO STEP-DOWN (owner, 2026-10-12: "extremely laggy on my partner's brave browser" - 3D is the default now): while the

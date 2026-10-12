@@ -32,9 +32,9 @@ const towerPts = (t, g = 1) => { const c = CELLS[t.cell], k = TOWER_K * g; retur
 const towerPick = w => { let best = null, bd = CELL_S * PICK_GROW; for (const t of G.towers) { const d = Math.hypot(w.x - t.x, w.y - t.y); if (d <= bd) { bd = d; best = t; } } return best; };
 // the 3D pick, in the view's own pixels and camera (warp3d): the NEAREST solid under the press wins
 function pick3d(ev) {
-  const r = cv.getBoundingClientRect(), d = canvasDpr() * WARP_RES, x = (ev.clientX - r.left) * d, y = (ev.clientY - r.top) * d;
+  const r = cv.getBoundingClientRect(), d = canvasDpr() * warpRes(), x = (ev.clientX - r.left) * d, y = (ev.clientY - r.top) * d;
   const c0 = { k: cam.k, ox: cam.ox, oy: cam.oy };
-  cam.k *= WARP_RES; cam.ox *= WARP_RES; cam.oy *= WARP_RES;
+  cam.k *= warpRes(); cam.ox *= warpRes(); cam.oy *= warpRes();
   try {
     const solids = G.towers.map(t => ({ t, at: warpProject(t.x, t.y, 0).s, hit: () => inPrism(towerPts(t, PICK_GROW), towerH(t), x, y) }));
     solids.push({ core: true, at: warpProject(CX, CY, 0).s, hit: () => inPrism(hexPts(CX, CY, CORE_R), coreH3d(), x, y) || inPoly(hexPts(CX, CY, coreOuterR()).map(p => warpProject(p.x, p.y, 0)), x, y) });

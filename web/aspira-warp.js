@@ -180,22 +180,23 @@ const WARP_TEX_R = 860, WARP_TEX_MAX = 2048; // (was 3072 - perf, 2026-10-12)
 // LOWER RESOLUTION in 3D (owner, 2026-10-09: "reduce reso to match phone"): the 3D view's canvases (picture, bell and
 // sprites) are WARP_RES of the 2D canvas's pixels a side, the CSS stretching them back - on a phone at 2x, 1.5x. The
 // frame runs with the camera scaled by it (warp3d), so all the 3D maths stays in the smaller canvas's pixels.
-const WARP_RES = 0.75;
+let WARP_RES = 0.75; // let: a slow machine steps it down to 0.5 (stepDetail, aspira-quality.js)
+const warpRes = () => Math.round(WARP_RES * 20) / 20; // read in steps of 0.05, so the canvases are not resized every frame
 const warpScreenFull = () => { const r = cv.getBoundingClientRect(), d = canvasDpr(); return { w: Math.round(r.width * d), h: Math.round(r.height * d) }; };
-const warpScreen = () => { const s = warpScreenFull(); return { w: Math.round(s.w * WARP_RES), h: Math.round(s.h * WARP_RES) }; };
+const warpScreen = () => { const s = warpScreenFull(); return { w: Math.round(s.w * warpRes()), h: Math.round(s.h * warpRes()) }; };
 // one 3D frame (aspira-ui.js frame), the camera scaled to the smaller canvases
 function warp3d() {
   const c0 = { k: cam.k, ox: cam.ox, oy: cam.oy };
   // the leash cap under the VIEW's camera, held for the frame: drawn under the texture camera it came out another size
   // than the drag's, so on a wide desktop a tower sat outside its own dashed circle (owner, 2026-10-12)
   if (warp.p) { moveMaxR3d(); moveMax3d.lock = true; }
-  cam.k *= WARP_RES; cam.ox *= WARP_RES; cam.oy *= WARP_RES;
+  cam.k *= warpRes(); cam.ox *= warpRes(); cam.oy *= warpRes();
   try { warpRender(); warpDraw(); } finally { Object.assign(cam, c0); moveMax3d.lock = false; }
 }
 // a 2D-canvas pixel (full resolution) back to the canvas spot under it, through the bell; null off it
 function unwarpFull(x, y) {
-  const q = unwarp(x * WARP_RES, y * WARP_RES);
-  return q && { x: q.x / WARP_RES, y: q.y / WARP_RES };
+  const q = unwarp(x * warpRes(), y * warpRes());
+  return q && { x: q.x / warpRes(), y: q.y / warpRes() };
 }
 function warpRender() {
   // SHARP (owner: "all these are so blurry, make them sharp"): the picture is a SQUARE as fine as the view's own scale

@@ -384,7 +384,7 @@ function moveMaxR3d() {
   const key = [cam.k, cam.ox, cam.oy, WARP.tilt, WARP.fov].join();
   if (moveMax3d.key === key) return moveMax3d.r;
   const c0 = { k: cam.k, ox: cam.ox, oy: cam.oy };
-  cam.k *= WARP_RES; cam.ox *= WARP_RES; cam.oy *= WARP_RES;
+  cam.k *= warpRes(); cam.ox *= warpRes(); cam.oy *= warpRes();
   let lo = 0;
   try {
     const lim = moveMaxR2d(), k = cam.k, c = warpProject(CX, CY, 0);
