@@ -128,7 +128,7 @@ function buildCard(k, i) {
   const b = TOWERS[k], cost = towerCost(k);
   // "good vs" right under the title (owner); the base stats on ONE line so all
   // four cards fit on a phone above the spend bar (owner: everything fits)
-  return '<div class="name">' + (i + 1) + " · " + b.name + " · " + cr(cost) + "</div>" + '<div class="asp-goodvs">good vs ' + GOOD_VS[k] + "</div>" +
+  return '<div class="name">' + (i + 1) + " · " + b.name + " · -" + cr(cost) + "</div>" + '<div class="asp-goodvs">good vs ' + GOOD_VS[k] + "</div>" +
     '<p class="asp-hint">' + b.blurb + "</p>"; // WHY it works, no stat dump (owner, 2026-10-07)
 }
 function openBuildChooser(ci) {

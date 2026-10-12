@@ -304,7 +304,7 @@ function refreshPanels() {
   if (ui.build) {
     const k = ui.build, b = TOWERS[k];
     placing.dataset.kind = k;
-    placing.innerHTML = '<div class="name">' + b.name + " · " + cr(towerCost(k)) + "</div>" + '<p class="asp-hint">' + b.blurb +
+    placing.innerHTML = '<div class="name">' + b.name + " · -" + cr(towerCost(k)) + "</div>" + '<p class="asp-hint">' + b.blurb +
       " Good against " + GOOD_VS[k] + ".</p>"; // what it counters (owner)
   }
 }
@@ -325,7 +325,7 @@ function updateHud() {
   for (const k of KINDS) {
     const btn = $("asp-tw-" + k);
     btn.classList.toggle("poor", G.money < towerCost(k) && ui.build !== k); // tappable: a tap flashes the cost
-    setHtml(btn.querySelector(".c"), cr(short(towerCost(k))));
+    setHtml(btn.querySelector(".c"), "-" + cr(short(towerCost(k)))); // buy costs read "-Xc" (owner, 2026-10-11)
     btn.classList.toggle("on", ui.build === k);
   }
   // the upcoming-wave list (aspira-wavelist.js), 4x a second: rebuilding its

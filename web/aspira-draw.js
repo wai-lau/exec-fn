@@ -249,7 +249,7 @@ function drawCells(at = (c, fn) => fn()) { // at: 3D draws each slot flat at its
     const free = canPlace(ci);
     // before the first tower the free slots FLASH (owner; the build buttons used to)
     // a slot the bank cannot fill is FADED (owner, 2026-10-07), its price too
-    if (!ui.build) { if (free) { const poor = G.money < towerCost("arc"), fade = poor ? SLOT_POOR_A : 1; cellPath(c, TOWER_K); ctx.strokeStyle = COL.white; ctx.lineWidth = 3.5; ctx.globalAlpha = fade * (G.towers.length ? 0.55 : 0.6 + 0.4 * Math.sin(performance.now() / 250)); ctx.stroke(); ctx.lineWidth = 2; ctx.globalAlpha = 0.9 * fade; text(towerCost("arc") + "c", c.x, c.y, 14, "white"); } return; } // thicker, more opaque; the build price inside (owner)
+    if (!ui.build) { if (free) { const poor = G.money < towerCost("arc"), fade = poor ? SLOT_POOR_A : 1; cellPath(c, TOWER_K); ctx.strokeStyle = COL.white; ctx.lineWidth = 3.5; ctx.globalAlpha = fade * (G.towers.length ? 0.55 : 0.6 + 0.4 * Math.sin(performance.now() / 250)); ctx.stroke(); ctx.lineWidth = 2; ctx.globalAlpha = 0.9 * fade; text("-" + towerCost("arc") + "c", c.x, c.y, 14, "white"); } return; } // thicker, more opaque; the build price inside (owner)
     cellPath(c, TOWER_K);
     const col = COL[TOWERS[ui.build].color];
     if (free) { ctx.fillStyle = col; ctx.globalAlpha = 0.15; ctx.fill(); }
