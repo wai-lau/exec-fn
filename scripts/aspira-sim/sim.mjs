@@ -348,7 +348,7 @@ const SMART_INTEREST = 4, HOARD_X = 4; // HOARD_X: a hoarder's bank over the sma
 function smartWave(p, playWave) {
   const snap = p.snapshot(), lives = p.g.G.lives;
   for (let n = 0; ; n++) {
-    if (n) { p.restore(snap); p.rewinds = (p.rewinds || 0) + 1; // (on p, not S: a restore would roll S back) }
+    if (n) { p.restore(snap); p.rewinds = (p.rewinds || 0) + 1; } // (rewinds on p, not S: a restore would roll S back)
     const made = p.buy(n);
     playWave();
     if (p.g.G.lives >= lives || made < n || p.g.G.over) break;
