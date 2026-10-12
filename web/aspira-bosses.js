@@ -131,39 +131,45 @@ function fleetForm(e, R) {
     },
   };
 }
+// THE FLEET RIDES 3-5 LANES (owner, 2026-10-12: "bosses should arrive in 3-5 parallel lanes"): copies of the boss's lane spread
+// evenly round the rim, the boss on the first, each lane its own share of the escorts in the same formation round where the
+// boss would be. The Judgement's boss rides ONE lane and its swarm TWELVE others ("change judgement boss to have boss arrive
+// on one lane and the swarms in 12 different ones"); the Devil's six and the Lovers' two already come from their own lanes
+const fleetLanes = (e, n) => (isA(e, "devil") || isA(e, "lovers") ? { L: 1, off: 0 } : isA(e, "judgement") ? { L: 12, off: 0.5 } : { L: 3 + Math.floor(fixedRand(n, 7) * 3), off: 0 });
 function bossFleet(e, n) {
   const kinds = FLEET[e.arcana];
   if (!kinds) return;
   e.fleet = [];
-  const bodies = bossCount(n), reach = [ENEMIES.bonus.size * (e.sizeMul || 1), ENEMIES.bonus.size * (e.sizeMul || 1)]; // how far ahead / behind is taken
-  let i = 0;
+  const bodies = bossCount(n), R = ENEMIES.bonus.size * (e.sizeMul || 1), { L, off } = fleetLanes(e, n), span = [0, 0];
   // FORMATIONS ROUND THE BOSS (owner, 2026-10-11): shield escorts fly a V with the boss as its leader, armor a square
   // lattice ARMOR_W wide with the boss in its middle; fast and swarms keep the line ahead of and behind it
-  const R = reach[0], form = fleetForm(e, R);
-  for (const k of kinds) {
-    const count = Math.max(1, Math.round(waveCount(k, n) * (FLEET_MUL[e.arcana] ?? 1) / kinds.length / bodies));
-    const slots = form[k] ? form[k](count) : null;
-    for (let c = 0; c < count; c++, i++) {
-      spawnEnemy(k, n, e.pi, e.ang || 0);
-      const m = G.enemies[G.enemies.length - 1], r = ENEMIES[k].size;
-      if (slots) { // its place in the boss's formation: across the lane, and ahead (+) or behind (-) the boss
-        m.form = true; m.lat = slots[c][0]; m.s = e.s + slots[c][1]; m.ahead = slots[c][1]; m.aheadC = 0; // the boss is the centre
-        reach[0] = Math.max(reach[0], slots[c][1] + r); reach[1] = Math.max(reach[1], -slots[c][1] + r);
-      } else {
-      // spaced so NOTHING OVERLAPS (owner, 2026-10-09: "increase spacing between all units and boss during boss waves so
-      // that they don't overlap"): each clears the boss and the one before it by FLEET_GAP, ahead, behind, ahead...
-      const side = i % 2;
-      reach[side] += FLEET_GAP + r;
-      m.s = e.s + (side ? -1 : 1) * reach[side];
-      reach[side] += r;
+  const form = fleetForm(e, R);
+  for (let j = 0; j < L; j++) {
+    const ang = ((e.ang || 0) + (j + off) * Math.PI * 2 / L) % (Math.PI * 2), reach = [R, R];
+    let i = 0;
+    for (const k of kinds) {
+      const all = Math.max(1, Math.round(waveCount(k, n) * (FLEET_MUL[e.arcana] ?? 1) / kinds.length / bodies)), count = Math.floor(all / L) + (j < all % L ? 1 : 0);
+      const slots = form[k] && count ? form[k](count) : null;
+      for (let c = 0; c < count; c++, i++) {
+        spawnEnemy(k, n, e.pi, ang);
+        const m = G.enemies[G.enemies.length - 1], r = ENEMIES[k].size;
+        if (slots) { // its place in the formation: across the lane, and ahead (+) or behind (-) the boss's spot
+          m.form = true; m.lat = slots[c][0]; m.s = e.s + slots[c][1]; m.ahead = slots[c][1]; m.aheadC = 0;
+          reach[0] = Math.max(reach[0], slots[c][1] + r); reach[1] = Math.max(reach[1], -slots[c][1] + r);
+        } else {
+          // spaced so NOTHING OVERLAPS (owner, 2026-10-09): each clears the boss's spot and the one before it by FLEET_GAP
+          const side = i % 2;
+          reach[side] += FLEET_GAP + r; m.s = e.s + (side ? -1 : 1) * reach[side]; reach[side] += r;
+        }
+        // in FORMATION: at the boss's own pace, so the spacing holds (a fast escort behind would run through it)
+        m.spd = (e.spd || 1) * ENEMIES.bonus.speed / ENEMIES[k].speed; m.jit = 0; // (a swarmer's wander would carry it into its neighbours)
+        m.bossKin = true; m.fleetSpd = m.spd; e.fleet.push(m);
+        const moved = isA(e, "temperance") ? 0 : Math.floor(m.max * FLEET_TO_BOSS); // not onto Temperance: her regen is a share of her HP (2026-10-11: w60 killed 11 of 32 two-tower openings) m.max -= moved; m.hp = m.max; e.max += moved; e.hp = e.max;
       }
-      // in FORMATION: at the boss's own pace, so the spacing holds (a fast escort behind would run through it)
-      m.spd = (e.spd || 1) * ENEMIES.bonus.speed / ENEMIES[k].speed; m.jit = 0; // (a swarmer's wander would carry it into its neighbours)
-      m.bossKin = true; m.fleetSpd = m.spd; e.fleet.push(m);
-      const moved = isA(e, "temperance") ? 0 : Math.floor(m.max * FLEET_TO_BOSS); // not onto Temperance: her regen is a share of her HP (2026-10-11: w60 killed 11 of 32 two-tower openings) m.max -= moved; m.hp = m.max; e.max += moved; e.hp = e.max;
     }
+    span[0] = Math.max(span[0], reach[0]); span[1] = Math.max(span[1], reach[1]);
   }
-  e.fleetSpan = reach[0] + reach[1]; G.lastBoss = e; // how much lane it takes, ahead + behind (stepSpawns spaces a second boss by it)
+  e.fleetSpan = span[0] + span[1]; G.lastBoss = e; // how much lane it takes, ahead + behind (stepSpawns spaces a second boss by it)
   queueFleet(e);
 }
 // the fleet ENTERS ONE AT A TIME at the lane's mouth like any wave (owner, 2026-10-12: "make boss wave spawn 1 unit at a
