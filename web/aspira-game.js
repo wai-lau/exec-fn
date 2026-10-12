@@ -147,8 +147,11 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
   // (SOL ignored armor until 2026-10-07; owner: "SOL should no longer ignore armor" - its damage rose x1.3 to match, solarmor.mjs)
   const pierce = (st && st.armorPierce) || 0;
   // (FROST CRACKED ARMOR here while slowed until 2026-10-11 - brittle x FRZ_CRACK; Moons now crack it for good, aspira-frz.js)
-  // FRZ's chill (Temp) takes a share of POSITIVE armor while it holds the enemy (aspira-frz.js); negative armor stands
-  const arm = Math.trunc((e.armor || 0) * (e.chillT > 0 && e.armor > 0 ? 1 - e.chillArmor : 1)); // whole armor, rounded toward zero (Breach/Corrosion strip it in fractions)
+  // FRZ's Brittle (Sublimation) takes a FLAT share of the wave's armor reference (armorRefOf, aspira-acid.js) while its aura
+  // holds the enemy - so it STACKS with Corrosion and runs below zero like it (owner, 2026-10-12: "brittle should stack
+  // with corrosion (both should allow negative)")
+  const chill = e.chillT > 0 ? e.chillArmor * armorRefOf(e.wave || 1) : 0;
+  const arm = Math.trunc((e.armor || 0) - chill); // whole armor, rounded toward zero (Breach/Corrosion strip it in fractions)
   if (arm > 0 && pierce < 1) // EVERY hit, quiet ones too - FRZ ticks, splash, damage over time, Nova (owner, 2026-10-12; quiet hits skipped armor until then)
     amt = Math.max(amt * 0.1, amt - arm * (1 - pierce));
   // NEGATIVE armor (ACD's Corrosion, owner) is a flat bonus on every hit - quiet ones too (owner, 2026-10-12: "allow

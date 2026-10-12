@@ -103,11 +103,11 @@ function frzStep(t, dt) {
       if (e.dead || (e.x - s.x) ** 2 + (e.y - s.y) ** 2 > r2) continue;
       applySlow(e, st.aura * s.k, FRZ_AURA_HOLD, s.id);
       // BRITTLE TAKES ARMOR now (owner, 2026-10-12: "brittle is the armor counter, change it to affect armor instead of increasing
-      // other tower dmg"): while the aura holds it, an enemy's armor counts (2 - brittle) of itself against every tower (damage())
+      // other tower dmg"): while the aura holds it, (brittle - 1) x the wave's armor reference comes off its armor, past zero (damage())
       if (st.brittle > 1) { e.chillArmor = Math.max(e.chillT > 0 ? e.chillArmor : 0, Math.min(1, st.brittle - 1)); e.chillT = FRZ_AURA_HOLD; }
       if (!tick) continue;
       ticked = true;
-      if (st.frost && e.armor > 0) e.armor *= 1 - st.frost; // Moons crack armor, for good
+      // (Moons cracked armor for good here until 2026-10-12 - owner: "moons should not affect armor"; Brittle is the armor answer)
       // a tick POPS a shield (owner, 2026-10-06) and is never blunted by armor;
       // otherwise it is quiet (no flash) but shows its NUMBER, sized by what it took
       if (e.shield > 0) { damage(e, st.dmg * s.k, t, false, false, FRZ_TICK_HIT); continue; } // a tick POPS a shield (owner, 2026-10-12: "shields should not absorb ticks")
