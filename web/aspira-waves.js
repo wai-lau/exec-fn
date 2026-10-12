@@ -88,7 +88,7 @@ function makeWave(n) {
 
 // Interest is paid on what you hold at the moment a wave is sent, so saving
 // beats spending early. Sending before the countdown ends pays the seconds left.
-const INTEREST_PER_WAVE = 20; // x5 (owner, 2026-10-12: "make saving money pay off" - at 4 a wave the cap held a saver to ~300 a wave against ~1500 of bounty; was 4)
+const INTEREST_PER_WAVE = 20; // the game no longer caps interest (2026-10-12); kept as the simulator's "smart" saver target (sim.mjs: hold what earns this x the wave)
 // Kill bounty = bountyBase(wave) x the type's bounty: +BOUNTY_SLOPE credits a wave,
 // x BOUNTY_EARLY on waves 1-BOUNTY_EARLY_TO (owner, 2026-10-06: "slight bounty
 // increase waves 1-30"), growing only BOUNTY_SLOPE_LATE a wave past BOUNTY_KNEE
@@ -100,7 +100,7 @@ function sendWave() {
   if (G.over) return;
   // the payout is CAPPED at INTEREST_PER_WAVE x the wave being sent (owner, 2026-10-06, "late money is way
   // too much"): the core's 9 powers cost up to 20000, so a saver's 5-8% was out-earning the whole field
-  const gain = Math.min(Math.floor(G.money * G.interest), INTEREST_PER_WAVE * (G.wave + 1));
+  const gain = Math.floor(G.money * G.interest); // NO CAP (owner, 2026-10-12: "no interest cap pls"; INTEREST_PER_WAVE x the wave until then)
   if (gain > 0) { G.money += gain; creditsFx = { gain, pct: G.interest * 100, t0: performance.now() / 1000 }; }
   G.wave++;
   if (typeof tickPowerCooldowns === "function") tickPowerCooldowns(); // core power cooldowns count waves (aspira-core.js)
