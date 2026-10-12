@@ -150,31 +150,9 @@ const autoWaiting = () => {
 // from its label); centred against the words by the button's flex row
 const ICON_UNCHECKED = '<svg class="asp-box" viewBox="0 0 20 20"><rect x="2" y="2" width="16" height="16" rx="2"/></svg>';
 const ICON_CHECKED = '<svg class="asp-box" viewBox="0 0 20 20"><rect x="2" y="2" width="16" height="16" rx="2"/><path d="M5.5 10.5l3 3 6-7"/></svg>';
-// AUTO-SPEED, ALWAYS ON (owner, 2026-10-12: "don't have an option for auto-speed - always have it on, but have waves
-// start at the auto-speed and gradually slow down as they approach the tower ranges"; was a checkbox, and a jump from
-// 3x to the chosen speed at the edge): AUTO_SPEED x while the nearest enemy is AUTO_RAMP or more outside every tower's
-// REACH (range + leash - what it could hit from anywhere it can be dragged; owner, 2026-10-11), easing smoothly down to
-// the chosen speed as it closes on that edge; a faster chosen speed stands, and auto-wait still slows it near the core
-const AUTO_SPEED = 3, AUTO_RAMP = 300; // world units
-let asGap = Infinity, asAt = -1;
-// how far the nearest live enemy is outside the nearest tower's reach (<= 0: inside one), every 8 ms at most
-const autoGap = () => {
-  const now = performance.now();
-  if (now - asAt < 8) return asGap;
-  asAt = now; asGap = Infinity;
-  for (const t of G.towers) {
-    const c = CELLS[t.cell], r = towerStats(t).range + leashR(t);
-    for (const e of G.enemies) if (!e.dead) asGap = Math.min(asGap, Math.hypot(e.x - c.x, e.y - c.y) - r);
-  }
-  return asGap;
-};
-const autoX = () => {
-  if (ui.paused || !G.towers.length || ui.speed >= AUTO_SPEED) return ui.speed;
-  const f = Math.min(1, Math.max(0, autoGap() / AUTO_RAMP)), ease = f * f * (3 - 2 * f);
-  return ui.speed + (AUTO_SPEED - ui.speed) * ease;
-};
-// the speed the game runs at (x, continuous): the chosen one, raised by auto-speed, held down by auto-wait
-const speedX = () => Math.min(autoWaiting() || Infinity, autoX());
+// (AUTO-SPEED - 3x far from every tower's reach, easing to the chosen speed - ran 2026-10-09..12; removed, owner: "remove auto-speed feature")
+// the speed the game runs at (x): the chosen one, held down by auto-wait
+const speedX = () => Math.min(autoWaiting() || Infinity, ui.speed);
 function updateAutoWait() {
   const btn = $("asp-autowait"), html = (autoWait ? ICON_CHECKED : ICON_UNCHECKED) + "<span>auto-wait</span>"; // the box bigger than the words (owner)
   if (btn.dataset.html !== html) { btn.dataset.html = html; btn.innerHTML = html; btn.setAttribute("aria-checked", String(autoWait)); }

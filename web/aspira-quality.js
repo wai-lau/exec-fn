@@ -57,14 +57,25 @@ const LOW_SKIP_FX = { hit: 1, spark: 1, cone: 1, flash: 1, blast: 1, zen: 1 };
 // DETAIL BY DISTANCE (owner, 2026-10-12: "details by distance yes"): in 3D, past DETAIL_FAR_R from the core - the far half of
 // the board, where little is decided - no tracers, no hit flashes, no damage numbers, and swarmers draw flat (CPU per frame
 // was the slow machines' limit); the centre keeps everything
-const DETAIL_FAR_R = 360;
-const farFx = e => q3d() && (e.x - CX) ** 2 + (e.y - CY) ** 2 > DETAIL_FAR_R * DETAIL_FAR_R;
+// ...SCALED BY THE FRAME RATE (owner, 2026-10-12: "3d detail by distance should be scaled based on FPS - try to stay above 600
+// units"): the radius shrinks while frames run slow (an average over DETAIL_SLOW_MS) and grows back while they are quick, never
+// under DETAIL_MIN_R; a fast machine keeps every detail everywhere
+const DETAIL_MIN_R = 600, DETAIL_MAX_R = 1600, DETAIL_SLOW_MS = 28, DETAIL_FAST_MS = 20, DETAIL_RATE = 300; // RATE: world units a second
+let detailFarR = DETAIL_MAX_R, detailEma = 16;
+function stepDetail(dt) {
+  if (!(dt > 0) || dt > 0.5) return;
+  detailEma += (dt * 1000 - detailEma) * 0.05;
+  if (detailEma > DETAIL_SLOW_MS) detailFarR = Math.max(DETAIL_MIN_R, detailFarR - DETAIL_RATE * dt);
+  else if (detailEma < DETAIL_FAST_MS) detailFarR = Math.min(DETAIL_MAX_R, detailFarR + DETAIL_RATE * dt);
+}
+const farFx = e => q3d() && (e.x - CX) ** 2 + (e.y - CY) ** 2 > detailFarR * detailFarR;
 // AUTO STEP-DOWN (owner, 2026-10-12: "extremely laggy on my partner's brave browser" - 3D is the default now): while the
 // player has NOT chosen a quality (nothing stored), a frame time averaging over AUTO_Q_MS for AUTO_Q_HOLD real seconds
 // drops 3D to high, then high to low, with a float that says so. A choice on the slider is never overridden
 const AUTO_Q_MS = 34, AUTO_Q_HOLD = 3; // 34 (slow logs, 2026-10-12: a Brave averaged 36-40 ms in 3D and never stepped at 40)
 let autoQ = { ema: 16, slow: 0 }, autoQSteps = 0; // autoQSteps: how many step-downs this session (the slow log reads it)
 function autoQuality(dt) {
+  stepDetail(dt); // the 3D detail radius follows the frame rate, chosen quality or not
   try { if (localStorage.getItem("spire.qpick")) return; } catch (e) { /* no storage: still step down */ } // only a slider PICK stops it - a quality merely remembered from before does not (slow log, 2026-10-12)
   if (qMode === "low" || !(dt > 0) || dt > 0.5) return; // (a stall, a tab switch: not a frame time)
   autoQ.ema += (dt * 1000 - autoQ.ema) * 0.05;
