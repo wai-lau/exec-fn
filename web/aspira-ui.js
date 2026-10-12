@@ -4,7 +4,8 @@
 // 1x is REAL TIME (owner): every rate/duration in the code is in real seconds.
 // the old 2x is the new 1x (owner, 2026-10-02): every button runs the game
 // twice as fast as its label used to (0.5x added, 10x for testing - owner)
-const BASE_SPEED = 2;
+// ...and back (owner, 2026-10-12: "make whatever is 1/2 speed the new 1x speed"): every button at half its 2-based rate
+const BASE_SPEED = 1;
 const SPEED_MULT = { 0.25: 0.25 * BASE_SPEED, 0.5: 0.5 * BASE_SPEED, 1: BASE_SPEED, 2: 2 * BASE_SPEED, 3: 3 * BASE_SPEED, 10: 10 * BASE_SPEED };
 const SPEEDS = [0.25, 0.5, 1, 2, 3, 10], speedId = v => "asp-sp-" + String(v).replace(".", "_");
 const ui = { build: null, sel: null, hover: null, speed: 1, paused: false };
