@@ -43,7 +43,9 @@ function fixedRand(n, salt) {
 // armor and shields); used for EVERY wave (owner: no upgrades in the test)
 const TYPE_COUNT_MUL = { swarm: 0.26 /* 2026-10-08 owner: half as many, double hp (was 0.52) */, shield: 0.99, armor: 1.07, fast: 2 /* 2026-10-07: the early fit wanted 1.99 (was 1.47) - fast put the least early pressure of any type */ }, WAVE_TYPE_FORCE = {};
 for (const k in TYPE_COUNT_MUL) TYPE_COUNT_MUL[k] *= 0.9; // 2026-10-11: a tenth fewer of each, with the faster short-lane mix (aspira-defs.js)
-TYPE_COUNT_MUL.swarm *= 2; // DOUBLE the swarms, each at its own HP (owner, 2026-10-12: "dont triple swarms, just double")
+// DOUBLE the swarms past SWARM_X2_FROM, each at its own HP (owner, 2026-10-12: "dont triple swarms, just double"; then
+// not before wave 11 - SOL openers died at wave 6 to wave 1's doubled swarm, SOL being weak to it)
+const SWARM_X2_FROM = 11;
 // swarms are DOUBLED on waves 11-60 and x1.5 after (owner, 2026-10-06): a
 // SOL-heavy build must find a swarm answer; x2 past 60 cost ARC+SOL+FRZ teams 20 waves
 const SWARM_MID_MUL = 2, SWARM_MID = [11, 60], SWARM_LATE_MUL = 1.5;
@@ -60,7 +62,7 @@ function waveCount(type, n) {
   // HALF the bodies at TWICE the health (owner, 2026-10-02)
   // x WAVE_COUNT_MUL[n]: waves 1-30 tuned so each comes about as close to the
   // core against one L1 tower of each kind (owner; scripts/aspira-sim/wavebal.mjs)
-  const c = (type === "swarm" ? base * 6 : base) / 2 * (WAVE_COUNT_MUL[n] ?? 1) * (TYPE_COUNT_MUL[type] ?? 1) * (type === "swarm" ? swarmMul(n) : 1) * (type === "fast" && n > FAST_LATE_FROM ? FAST_LATE_MUL : 1); // swarms 6x (owner: doubled from 3x)
+  const c = (type === "swarm" ? base * 6 : base) / 2 * (WAVE_COUNT_MUL[n] ?? 1) * (TYPE_COUNT_MUL[type] ?? 1) * (type === "swarm" ? swarmMul(n) * (n >= SWARM_X2_FROM ? 2 : 1) : 1) * (type === "fast" && n > FAST_LATE_FROM ? FAST_LATE_MUL : 1); // swarms 6x (owner: doubled from 3x)
   // SYMMETRICAL FORMATIONS (owner, 2026-10-11: "2n+1 for fast, 3n for armor"): whole Vs and full lattice rows
   const unit = FORM_UNIT[type] || 1;
   return Math.max(unit, Math.round(c / unit) * unit);
