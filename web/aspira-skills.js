@@ -370,27 +370,34 @@ function solSkillStats(t, s, b) {
   const bk = skillOf(t, "breach");
   s.breach = 1; s.critMul = SOL_CRITMUL[bk]; s.bleedArmor = SOL_BREACH_ARMOR[bk]; s.bleedCrit = SOL_BREACH_CRIT[bk]; s.skill = true;
 }
-// from fireRay: bend on from the first enemy hit to st.refraction more, each the
-// nearest not yet hit to the last one, ANYWHERE inside ONE light cone from the
-// TOWER (owner), SOL_CONE degrees either side of the first shot - no reach
-// limit between hops, nor the tower's range: the cone is the only bound
+// from fireRay: bend on from the first enemy hit to st.refraction more, each the nearest not yet hit to the last one,
+// inside ONE light cone, SOL_CONE degrees either side - no reach limit between hops, nor the tower's range.
+// THE CONE STARTS AT THE FIRST ENEMY STRUCK (owner, 2026-10-12: "on first bounce of any refraction, pretend like the cone
+// originated from that enemy and direct that cone towards the optimal angle to hit the most"): it points where it holds
+// the most living enemies (up to the hops it has - solConeDir), and every hop runs FORWARD, further from that first enemy
+// than the last hit and along the cone (it was the TOWER's cone along the shot, which a lattice coming head-on mostly
+// left: 3-4 hops of 10-13, soldiag.mjs); SOL's targeting picks among what the cone holds (chainPick)
+const angOff = (a, b) => Math.abs(((a - b + 3 * Math.PI) % (2 * Math.PI)) - Math.PI);
+function solConeDir(t, st, e, half) {
+  const others = G.enemies.filter(o => !o.dead && o !== e), ang = others.map(o => Math.atan2(o.y - e.y, o.x - e.x));
+  let dir = Math.atan2(e.y - t.y, e.x - t.x), best = 0; // nothing round it: on along the shot
+  for (const a of ang) { let n = 0; for (const b of ang) if (angOff(a, b) <= half) n++; n = Math.min(n, st.refraction); if (n > best) { best = n; dir = a; } }
+  return dir;
+}
 function solRefraction(t, st, e) {
-  const dir = Math.atan2(e.y - t.y, e.x - t.x), half = (st.cone || SOL_CONE) * Math.PI / 180, hit = new Set([e]);
-  const off = a => Math.abs(((a - dir + 3 * Math.PI) % (2 * Math.PI)) - Math.PI); // an angle's distance from the shot's line
-  const inCone = o => off(Math.atan2(o.y - t.y, o.x - t.x)) <= half;
-  let prev = e, from0 = t, far = Math.hypot(e.x - t.x, e.y - t.y);
-  // every hop travels FORWARD (owner, 2026-10-08: "shots shouldn't go backwards"): further from the tower than the
-  // last hit, and the hop's own direction within the cone's half-angle of the shot - no beam bends back on itself
-  const forward = (from, o) => Math.hypot(o.x - t.x, o.y - t.y) > Math.hypot(from.x - t.x, from.y - t.y) && off(Math.atan2(o.y - from.y, o.x - from.x)) <= half;
+  const half = (st.cone || SOL_CONE) * Math.PI / 180, dir = solConeDir(t, st, e, half), hit = new Set([e]), ex = e.x, ey = e.y;
+  const fromE = o => Math.hypot(o.x - ex, o.y - ey), inCone = o => angOff(Math.atan2(o.y - ey, o.x - ex), dir) <= half;
+  const forward = (from, o) => fromE(o) > (from === e ? 0 : fromE(from)) && (from === e || angOff(Math.atan2(o.y - from.y, o.x - from.x), dir) <= half);
+  let prev = e, from0 = t, far = 0;
   for (let k = 0; k < st.refraction; k++) {
     const from = prev, nxt = chainPick(t, prev, Infinity, o => hit.has(o) || !inCone(o) || !forward(from, o)); // within the cone, forward, by SOL's targeting
     if (!nxt) { solOutOfSight(t, st, from0, prev); break; } // no one left in the cone: on out of sight (owner, 2026-10-08: always, not only V)
     from0 = prev;
     rayHit(t, st, nxt, st.dmg * (st.hop || 1), prev); hit.add(nxt); prev = nxt;
-    far = Math.max(far, Math.hypot(nxt.x - t.x, nxt.y - t.y));
+    far = Math.max(far, fromE(nxt));
   }
-  // the cone, from the tower to just past the furthest enemy it bent to
-  fx.push({ k: "cone", x: t.x, y: t.y, a: dir, half, len: far + 30, color: TOWERS[t.kind].color, t: 0, life: SOL_CONE_LIFE });
+  // the cone, from the first enemy struck to just past the furthest one it bent to
+  fx.push({ k: "cone", x: ex, y: ey, a: dir, half, len: far + 30, color: TOWERS[t.kind].color, t: 0, life: SOL_CONE_LIFE });
 }
 // a shot that runs OUT OF TARGETS goes on from the last enemy struck, along its last leg, far past the screen's edge (owner, 2026-10-08)
 const SOL_OUT_LEN = 3000;
