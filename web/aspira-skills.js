@@ -349,7 +349,7 @@ const SOL_BREACH_ARMOR = [3, 24, 72, 150, 261, 300] /* x1.5 for the crit chance 
 // chance for every tower
 // the cone's half-angle by Refraction tier (owner, 2026-10-08: it WIDENS with the tier and starts wider, since every hop
 // must now travel forward - see solRefraction; was a flat 8, before that 25)
-const SOL_CONE_BY = [20, 60, 60, 80, 80, 80], SOL_CONE = SOL_CONE_BY[0], BREACH_CRIT = 0.01; // (the pre-chart path's per-stack crit; the chart SOL uses SOL_BREACH_CRIT)
+const SOL_CONE_BY = [15, 45, 45, 60, 60, 60] /* x0.75 once the cone started at the first enemy (owner, 2026-10-12: "reduce refraction angle now for all levels"; soldiag ARC+FRZ+SOL armor leaks 3-9% -> 11-19%, Refraction builds 4%; was 20 60 60 80 80 80) */, SOL_CONE = SOL_CONE_BY[0], BREACH_CRIT = 0.01; // (the pre-chart path's per-stack crit; the chart SOL uses SOL_BREACH_CRIT)
 // SOL's own lever (owner: more crit): Breach also raises the crit MULTIPLIER, x3 at base
 const SOL_CRITMUL = [3, 4, 5, 7, 8, 9];
 // FITTED 2026-10-06 to +25 / +50 / +100% (on an HP-scaled field, so nothing
@@ -388,16 +388,17 @@ function solRefraction(t, st, e) {
   const half = (st.cone || SOL_CONE) * Math.PI / 180, dir = solConeDir(t, st, e, half), hit = new Set([e]), ex = e.x, ey = e.y;
   const fromE = o => Math.hypot(o.x - ex, o.y - ey), inCone = o => angOff(Math.atan2(o.y - ey, o.x - ex), dir) <= half;
   const forward = (from, o) => fromE(o) > (from === e ? 0 : fromE(from)) && (from === e || angOff(Math.atan2(o.y - from.y, o.x - from.x), dir) <= half);
-  let prev = e, from0 = t, far = 0;
+  let prev = e, from0 = t, far = Math.hypot(ex - t.x, ey - t.y);
   for (let k = 0; k < st.refraction; k++) {
     const from = prev, nxt = chainPick(t, prev, Infinity, o => hit.has(o) || !inCone(o) || !forward(from, o)); // within the cone, forward, by SOL's targeting
     if (!nxt) { solOutOfSight(t, st, from0, prev); break; } // no one left in the cone: on out of sight (owner, 2026-10-08: always, not only V)
     from0 = prev;
     rayHit(t, st, nxt, st.dmg * (st.hop || 1), prev); hit.add(nxt); prev = nxt;
-    far = Math.max(far, fromE(nxt));
+    far = Math.max(far, Math.hypot(nxt.x - t.x, nxt.y - t.y));
   }
-  // the cone, from the first enemy struck to just past the furthest one it bent to
-  fx.push({ k: "cone", x: ex, y: ey, a: dir, half, len: far + 30, color: TOWERS[t.kind].color, t: 0, life: SOL_CONE_LIFE });
+  // the cone DRAWN from the tower along the shot, as before (owner, 2026-10-12: "draw the cone from the tower still anyway"),
+  // to just past the furthest enemy it bent to - the bending itself runs from the first enemy (above)
+  fx.push({ k: "cone", x: t.x, y: t.y, a: Math.atan2(ey - t.y, ex - t.x), half, len: far + 30, color: TOWERS[t.kind].color, t: 0, life: SOL_CONE_LIFE });
 }
 // a shot that runs OUT OF TARGETS goes on from the last enemy struck, along its last leg, far past the screen's edge (owner, 2026-10-08)
 const SOL_OUT_LEN = 3000;
