@@ -62,6 +62,7 @@ function formSplit(type, count, n) {
 const laneCount = (type, count, k) => {
   if (type === "shield") { let per = Math.ceil(count / k); while (!vFits(per)) per++; return per * k; }
   if (type === "armor") return Math.ceil(count / k) * k; // rounded UP to fill every lane (a short last row sits centred)
+  if (type === "swarm") return Math.max(1, Math.round(count / k)) * k; // to the NEAREST lane-full: rounded down, wave 7 brought 6 to wave 1's 12 (2026-10-12)
   const unit = FORM_GROUP[type] || 1; return Math.floor(count / (k * unit)) * k * unit || count;
 };
 // from stepSpawns: spawn the next formation of `type` from wave part w at once; returns how many it took (0: none)
