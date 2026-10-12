@@ -93,6 +93,7 @@ const LIT_MIN_MS = 200;
 const LIT_STEPS = 16;
 // an ordinary lit lane, MUCH more apparent (owner, 2026-10-12: "make the non boss lanes much more apparent"; was
 // line 0.3 x1.4, haze 0.03, glow 0.22) - a boss lane keeps the old numbers, scaled by BOSS_LANE_K / BOSS_LANE_W
+const SWARM_LANE_A = 0.5; // a swarm's lanes at half strength: it rides 10-12 of them (aspira-formations.js)
 const LIT_LINE_A = 0.75, LIT_LINE_W = 2.4, LIT_HAZE_A = 0.07, LIT_GLOW_A = 0.34;
 const BOSS_LANE_W = 3.5, BOSS_LANE_HALO_W = 22, BOSS_LANE_HALO_A = 0.06, BOSS_LANE_K = 1.5; // a boss lane: x widths, its glow (world px), x brightness (owner, 2026-10-09: "make boss lanes half as intense"; was 3)
 function drawLaneStrokes(live) {
@@ -110,6 +111,7 @@ function drawLaneStrokes(live) {
   if (!live.length) { S.litKey = ""; blit(baseCv); return; }
   const now = performance.now();
   for (const u of live) {
+    if (u.swarm) u.a *= SWARM_LANE_A; // twice the lanes, each fainter (owner, 2026-10-12)
     if (u.star) continue; // a boss lane has its own fade (litLanes)
     // a lane FADES IN over LANE_FADE_IN_MS of REAL time, whatever the game speed (owner)
     const key = u.pi + ":" + u.ang;

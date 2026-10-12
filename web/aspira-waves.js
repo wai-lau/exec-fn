@@ -121,9 +121,9 @@ function sendWave() {
     const boss = G.wave % STAR_EVERY === 0;
     // FORMATIONS stay whole (aspira-formations.js): shields split only into whole Vs, armor into whole rows
     const want = boss ? bossSplit(G.wave) : formSplit(list[0], list.length, G.wave);
-    const k = Math.min(list.length, want), per = Math.floor(list.length / k);
-    for (let j = 0; j < k; j++) {
-      const part = list.slice(j * per, (j + 1) * per);
+    const k = Math.min(list.length, want), per = Math.floor(list.length / k), share = list[0] === "swarm"; // swarm: the remainder SHARED out, one more on the first lanes
+    for (let j = 0, at = 0; j < k; j++) {
+      const len = share ? per + (j < list.length - per * k ? 1 : 0) : per, part = list.slice(at, at + len); at += len;
       if (!part.length) continue;
       const ang = (laneTurn(G.wave) + (j / k) * Math.PI * 2) % (Math.PI * 2); // the wave's turn round the rim, then the split
       // a boss arrives BOSS_INTRO s into its wave, after its warning (owner)
@@ -168,7 +168,7 @@ function activeLanes() {
     if (e.dead) continue;
     const key = laneKey(e.pi, e.ang || 0), u = out.get(key);
     if (u) { u.alive++; if (ENEMIES[e.type].star && !u.star) Object.assign(u, { star: true, color: ENEMIES[e.type].color }); } // a boss lane whichever rider comes first
-    else out.set(key, { pi: e.pi, ang: e.ang || 0, color: ENEMIES[e.type].color, n: e.n, star: !!ENEMIES[e.type].star, alive: 1 });
+    else out.set(key, { pi: e.pi, ang: e.ang || 0, color: ENEMIES[e.type].color, n: e.n, star: !!ENEMIES[e.type].star, swarm: e.type === "swarm", alive: 1 });
   }
   const queued = new Set();
   for (const w of G.spawns) for (let i = w.idx; i < w.list.length; i++) queued.add(laneKey(w.lanes[w.list[i]], w.ang || 0));
