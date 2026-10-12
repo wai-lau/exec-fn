@@ -108,7 +108,7 @@ function frzStep(t, dt) {
       applySlow(e, st.aura * s.k, FRZ_AURA_HOLD, s.id);
       // BRITTLE: x this from EVERY tower while slowed (damage()) - back to that (owner, 2026-10-12: "brittle should increase damage
       // like before, not reduce armor"; it took armor for an hour). A shield takes no slow, so it holds Brittle off
-      if (st.brittle > 1) e.brittle = Math.max(e.brittle || 1, st.brittle);
+      if (st.brittle > 1 && st.brittle >= (e.brittle || 1)) { e.brittle = st.brittle; e.brittleBy = t.id; } // brittleBy: its added damage is this FRZ's (damageCredit)
       if (!tick) continue;
       ticked = true;
       // (Moons cracked armor for good here until 2026-10-12 - owner: "moons should not affect armor"; Brittle is the armor answer)
@@ -139,7 +139,7 @@ function frzStep(t, dt) {
         const to = rimeFull(e) ? rimeSpread(e) : e;
         if (!to) continue;
         if (to !== e) beam(e, to, TOWERS.frz.color, FRZ_SPREAD_FX, 1.5, 0, true);
-        if (applySlow(to, p.v, Infinity, p.id, "stack")) { to.rimeKeep = (to.rimeKeep ?? 1) * (1 - p.v); to.frostArmor = Math.max(to.frostArmor || 0, st.rimeCrack); } // (a shield takes no slow, so no frost)
+        if (applySlow(to, p.v, Infinity, p.id, "stack")) { to.rimeKeep = (to.rimeKeep ?? 1) * (1 - p.v); to.frostArmor = Math.max(to.frostArmor || 0, st.rimeCrack); to.frostBy = t.id; } // (a shield takes no slow, so no frost)
       }
     }
     t.pulses = t.pulses.filter(p => p.age < FRZ_RIME_GROW);

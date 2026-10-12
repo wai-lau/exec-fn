@@ -67,7 +67,7 @@ function acdTick(t, st, l, every) {
     const dd = shotDamage(t, st, o, d);
     damage(o, dd, t, false, false, st); onHit(o, t, st, dd); o.burnT = 0.4; // burning: no longer Fresh (st: its shieldPop)
     if (st.burnSlow && !o.dead) applySlow(o, st.burnSlow, 0.5, t.id); // Residue: the burn slows
-    if (st.corrode && !o.dead) corrodeHit(o, dd * st.corrode, st); // Corrosion: st.corrode of the tick's damage, past zero on purpose; corrodeT: dotted ring
+    if (st.corrode && !o.dead) corrodeHit(o, dd * st.corrode, st, t); // Corrosion: st.corrode of the tick's damage, past zero on purpose; corrodeT: dotted ring
   };
   const R = st.plagueR ? plagueRadius(l, st) : 0, center = l.e;
   burn(center);
@@ -107,9 +107,28 @@ function stepAcd(t, dt) {
 let ACD_BOSS_FLOOR = 16; // a BOSS's floor x this: a long fight is where Corrosion's pile matters (2026-10-12: with the plain floor ARC+FRZ+ACD lost Justice at 80 in every game; x4 still 80, x8 died at 90, x16 won 6/6)
 let ACD_CORRODE_FLOOR = [0, 0.25, 0.5, 0.75, 1, 1.25]; // swept x0.25 / x0.5 / x1 at HP x1.5: x0.5 brings ACD trios to 14-45% leaked at 81-89 (ARC+FRZ+SOL 45-55%)
 const acdArmorRef = new Map(), armorRefOf = n => acdArmorRef.get(n) ?? acdArmorRef.set(n, ENEMIES.armor.armor * ENEMY_HP_MUL * Math.pow(hpPow(n) + n * 4 / 18, ARMOR_EXP)).get(n);
-function corrodeHit(e, amt, st) {
+// DAMAGE CREDIT (owner, 2026-10-12: "damage caused by debuff from another tower should attribute damage source to
+// the debuffing tower"): of a hit's tally (`got`), what BRITTLE added goes to the FRZ that made it brittle (e.brittleBy),
+// what LOWER ARMOR added (stripped by Breach / Corrosion - e.strip, by tower id - and frost, e.frostBy) to those towers
+// by their shares, and the rest to the hitter. hit(a, A): the hit `a` through armor A, as damage() takes it
+function stripBy(e, t, amt) { if (t && amt > 0) (e.strip ||= {})[t.id] = (e.strip[t.id] || 0) + amt; }
+function damageCredit(e, t, pre, amt, frost, pierce, got) {
+  const A0 = e.armor0 || 0, hit = (a, A) => { A = Math.trunc(A); return A > 0 && pierce < 1 ? Math.max(a * 0.1, a - A * (1 - pierce)) : A < 0 ? a - A : a; };
+  const base = hit(pre, A0), brit = Math.max(0, hit(amt, A0) - base), full = hit(amt, (e.armor || 0) - frost), arm = Math.max(0, full - base - brit);
+  const k = full > 0 ? got / full : 0, give = (id, v) => { const o = id != null && G.towers.find(x => x.id === id); if (o && v > 0) { o.dealt = (o.dealt || 0) + v; return v; } return 0; };
+  let mine = got;
+  if (brit) mine -= give(e.brittleBy, brit * k);
+  if (arm) {
+    const parts = Object.entries(e.strip || {}).map(([id, v]) => [Number(id), v]);
+    if (frost > 0) parts.push([e.frostBy, frost]);
+    const sum = parts.reduce((s, p) => s + p[1], 0);
+    if (sum > 0) for (const [id, v] of parts) mine -= give(id, arm * k * v / sum);
+  }
+  t.dealt = (t.dealt || 0) + mine;
+}
+function corrodeHit(e, amt, st, t) {
   const floor = -st.corrodeFloor * armorRefOf(e.wave || 1) * (e.arcana ? ACD_BOSS_FLOOR : 1), a = e.armor || 0;
-  if (a > floor) e.armor = Math.max(floor, a - amt); // never raises armor already below (ARC's Melt)
+  if (a > floor) { e.armor = Math.max(floor, a - amt); stripBy(e, t, a - e.armor); } // never raises armor already below (ARC's Melt)
   e.corrodeT = 0.4;
 }
 const ACD_CORRODE = [0, 0.1, 0.2, 0.3, 0.45, 0.6]; // x2 (2026-10-12: Corrosion is the strip alone now; was .06 .. .3) // x6 (2026-10-11, roles: Corrosion meant as ACD's ARMOR answer - still behind spread in TEAM countermx; was .01 .. .05)
@@ -173,7 +192,7 @@ function stepPuddles(t, st, dt) {
         const hp0 = e.hp;
         damage(e, p.dps * every, t, false, false, hit); e.burnT = 0.4;
         if (hit && hp0 > e.hp) (t.poolAcc ||= new Map()).set(e, (t.poolAcc.get(e) || 0) + hp0 - Math.max(0, e.hp)); // a real hit: it pops one shield charge
-        if (st.corrode && !e.dead) corrodeHit(e, p.dps * every * st.corrode, st); // Corrosion strips in the pools too (owner, 2026-10-12)
+        if (st.corrode && !e.dead) corrodeHit(e, p.dps * every * st.corrode, st, t); // Corrosion strips in the pools too (owner, 2026-10-12)
       }
     }
   }

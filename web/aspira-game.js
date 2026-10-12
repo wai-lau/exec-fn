@@ -71,7 +71,7 @@ function spawnEnemy(type, n, pi, ang = 0) {
   const { shield } = shieldsOf(type, n); // fewer late shields, more HP (shieldsOf)
   const armor = d.armor ? Math.floor(d.armor * ENEMY_HP_MUL * Math.pow(grow, ARMOR_EXP)) : 0; // x ENEMY_HP_MUL like the HP (2026-10-11: left out of the HP cut, armor ate 4.4x more of each hit)
   G.enemies.push({
-    armor, shield, shieldMax: shield, wave: n, // the wave it CAME from (the end screen's leaks)
+    armor, armor0: armor, shield, shieldMax: shield, wave: n, // armor0: as spawned (damageCredit) // the wave it CAME from (the end screen's leaks)
     // swarm members wander widely off the lane, each at its own speed (+-20%)
     // and its own wobble rate, so a clump churns as it moves
     jit: type === "swarm" ? 12 + Math.random() * 30 : 0, ph: Math.random() * 6.283, // owner: tripled, halved twice, doubled 2026-10-08
@@ -140,6 +140,7 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
   // x BLEED_CRIT_MUL (SOL rolls the bleed into its own crit, rayHit)
   if (!quiet && !crit && e.bleedCrit > 0 && !(t && t.kind === "sol") && Math.random() < e.bleedCrit) { crit = true; amt *= BLEED_CRIT_MUL; }
   if (e.shredT > 0) amt *= e.shredMul;
+  const pre = amt; // before Brittle - damageCredit splits what the debuffs added
   if (e.slowT > 0 && e.brittle) amt *= e.brittle;
   // (SOL Refraction x the FAST here until 2026-10-12 - owner: no extra damage by enemy type)
   // armor takes a flat bite out of every hit (never below 10% of it)
@@ -159,7 +160,7 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
   else if (arm < 0) amt -= arm;
   const blunted = amt < raw;
   // per-tower tally: damage counts only up to the HP the enemy had left
-  if (t) t.dealt = (t.dealt || 0) + Math.min(amt, Math.max(0, e.hp));
+  if (t) damageCredit(e, t, pre, amt, frost, pierce, Math.min(amt, Math.max(0, e.hp))); // the debuffers' shares to THEM (aspira-acid.js)
   amt = bossHitCap(e, amt); // Justice / Death cap a single hit (aspira-bosses.js)
   amt = Math.max(1, Math.floor(amt)); // a hit is a WHOLE number, rounded down - but one that lands always takes 1 (owner, 2026-10-08)
   e.hp -= amt;

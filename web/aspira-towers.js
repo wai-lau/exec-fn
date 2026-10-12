@@ -264,10 +264,10 @@ function stepSol(t, dt) {
 //                 its own shield charge
 //   st.smash      a kill bursts for frac x the shot within r (Nova)
 const BOUNCE_R = 120, BLEED_CRIT_CAP = 1; // Ricochet hop at 75%, with every range (owner)
-function bleed(e, st) {
+function bleed(e, st, t) {
   if (!st.bleedArmor || e.dead) return;
   const k = st.breach || 1; // the chart SOL: Breach stacks per hit (aspira-skills.js)
-  e.armor = (e.armor || 0) - st.bleedArmor * k; // permanent, and on past zero (owner)
+  e.armor = (e.armor || 0) - st.bleedArmor * k; stripBy(e, t, st.bleedArmor * k); // permanent, and on past zero (owner); its share of the damage it adds is SOL's (damageCredit)
   e.bleedCrit = Math.min(BLEED_CRIT_CAP, (e.bleedCrit || 0) + st.bleedCrit * k); e.breachN = (e.breachN || 0) + k; // stacks, for the spokes
 }
 function rayHit(t, st, e, base, from) {
@@ -277,7 +277,7 @@ function rayHit(t, st, e, base, from) {
   beam(from, e, TOWERS[t.kind].color, RAY_BEAM_LIFE, m > 1 ? 5 : 3, d, true);
   if (n > 1 && from === t) fx[fx.length - 1].beams = n; // n converging beams from the tower; a Refract hop past the first enemy is ONE thick beam (owner)
   for (let i = 0; i < n && !e.dead; i++) {
-    damage(e, part, t, false, crit, st); onHit(e, t, st, part); bleed(e, st); // a crit shows as a PINK number (owner); st: its shieldPop
+    damage(e, part, t, false, crit, st); onHit(e, t, st, part); bleed(e, st, t); // a crit shows as a PINK number (owner); st: its shieldPop
   }
   if (e.dead && st.smash && !e.smashed) {
     // Nova / Supernova: the kill bursts (a filled blast that lingers, owner)
