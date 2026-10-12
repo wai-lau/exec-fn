@@ -268,6 +268,17 @@ function skyOwn(o, fn) {
   if (skyPal()) { o.col = invertColor(col); try { ownColours(fn); } finally { o.col = col; } return; }
   withPalette(() => { inverted = false; o.col = invertColor(col); try { fn(); } finally { inverted = true; o.col = col; } });
 }
+// the overlay's context, its transforms and shadow blurs scaled by warp.entScale (set once on the context)
+function entCtx(c) {
+  const x = c.getContext("2d");
+  if (x.__ent) return x;
+  x.__ent = true;
+  const st = x.setTransform.bind(x), k = () => warp.entScale || 1;
+  x.setTransform = (a, b, c2, d, e, f) => (typeof a === "object" ? st(a) : st(a * k(), b * k(), c2 * k(), d * k(), e * k(), f * k()));
+  const P = CanvasRenderingContext2D.prototype, sb = Object.getOwnPropertyDescriptor(P, "shadowBlur");
+  if (sb && sb.set) Object.defineProperty(x, "shadowBlur", { configurable: true, get() { return sb.get.call(this) / k(); }, set(v) { sb.set.call(this, v * k()); } });
+  return x;
+}
 function warpEntities() {
   if (!warp.ent) {
     const c = document.createElement("canvas");
@@ -281,6 +292,14 @@ function warpEntities() {
   if (c.width !== sc.w || c.height !== sc.h) { c.width = sc.w; c.height = sc.h; }
   ctx = c.getContext("2d");
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, c.width, c.height);
+  // the TOWERS and the CORE on a layer of their own over it, at the screen's FULL density (owner, 2026-10-12: "make the towers
+  // and core exempt from the pixel limitation ... make them another, non 3d layer"): its drawing still speaks the overlay's
+  // pixels - every transform and blur scaled up by entScale on the way in (entCtx); the pop-up texts ride on it too, over all
+  if (!warp.top) { const t = document.createElement("canvas"); t.id = "asp-top"; t.setAttribute("aria-hidden", "true"); c.after(t); warp.top = t; }
+  const top = warp.top, full = warpScreenFull();
+  if (top.width !== full.w || top.height !== full.h) { top.width = full.w; top.height = full.h; }
+  warp.entScale = full.w / Math.max(1, sc.w);
+  const topCtx = entCtx(top); topCtx.setTransform(1, 0, 0, 1, 0, 0); topCtx.clearRect(0, 0, top.width, top.height);
   // FACING UP (owner: "render towers and enemies as if facing up, not toward the camera"), and ONE SHAPE
   // everywhere ("towers should not change shape based on distance from core"): the camera's lean squashes
   // every sprite alike (cos tilt) and only its size follows the perspective - no per-spot skew
@@ -334,12 +353,13 @@ function warpEntities() {
     // BELOW the floor, fading slice by slice, then the tracers and marks on it, then ABOVE (aspira-fog.js; owner: "geometry
     // should just start losing opacity in a gradient when lower than the floor")
     warp.coreWalls = coreWallPieces(); // once a frame (it keeps the life segments in step)
-    warpBands(above => { if (above) for (const e of G.enemies) up(e.x, e.y, () => drawEnemy(e, true)); drawDice(); drawSolids(above); }, () => { warpLanesOver(); if (!lowQ) { ctx.setTransform(1, 0, 0, 1, 0, 0); drawStars(warpStar); } warpShieldLines(warp.coreWalls.filter(p => !coreFront(p)), COL.white, 1, [CX, CY]); for (const { e, w, col } of dice) if (w.length) warpShieldLines(w, col, 0.8, [e.x, e.y]); }); // the shields: lines on the floor, with the lanes // (the tracers and marks: flat on the floor, through the die's centre)
+    warpBands(above => { if (above) for (const e of G.enemies) up(e.x, e.y, () => drawEnemy(e, true)); drawDice(); }, () => { warpLanesOver(); if (!lowQ) { ctx.setTransform(1, 0, 0, 1, 0, 0); drawStars(warpStar); } warpShieldLines(warp.coreWalls.filter(p => !coreFront(p)), COL.white, 1, [CX, CY]); for (const { e, w, col } of dice) if (w.length) warpShieldLines(w, col, 0.8, [e.x, e.y]); }); // the shields: lines on the floor, with the lanes // (the tracers and marks: flat on the floor, through the die's centre)
     // every POP-UP text over all of it (owner: "make sure all pop up text, like interest, is above the rendering"),
     // facing the camera (at) so it stays readable: damage numbers, the floating texts, the banner and the boss's title
     // and with NO perspective (owner: "no perspective effects on that"): at its spot, the board's plain scale
     // - except the DAMAGE numbers, smaller the farther off (owner: "have them smaller if further away"): the perspective's
     // size there, never its skew
+    ctx = topCtx; warpBands(above => drawSolids(above)); // the towers and the core, on their own full-density layer (above)
     const pop = (x, y, fn, far) => { const P = warpProject(x, y), k = cam.k * (far ? P.s : 1); ctx.setTransform(k, 0, 0, k, P.x - x * k, P.y - y * k); ctx.save(); fn(); ctx.restore(); };
     drawFx("dmg", (x, y, fn) => pop(x, y, fn, true)); drawFx("text", pop);
     if (bannerT > 0) pop(CX, 70, () => { ctx.globalAlpha = Math.min(1, bannerT); text(bannerText, CX, 70, 30, bannerCol, true); ctx.globalAlpha = 1; });
@@ -349,16 +369,19 @@ function warpEntities() {
   // carries the bell's picture under everything it draws, and the sky's circle - projected onto the floor, the whole
   // view once it is full - is laid over all of it as a DIFFERENCE with white. So no sprite is drawn in the
   // inverted palette any more, and the bell's own picture is plain (the shader turns the 2D sky back)
+  const entCtx2d = ctx;
   try {
     ctx.drawImage(warp.cv, 0, 0); // (the full sky: already turned over, in GL - warpFlip)
     if (skyPal()) withPalette(all); else all();
-    if (skyOn() && !skyPal()) {
+    // the sky's DIFFERENCE over both layers, the overlay and the towers' own
+    if (skyOn() && !skyPal()) for (const [x, cnv] of [[entCtx2d, c], [topCtx, top]]) {
+      ctx = x;
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = "difference"; ctx.fillStyle = COL.white; ctx.beginPath();
       // the circle on the floor; a point of it BEHIND the camera (a big circle, spreading or collapsing) would make a
       // garbage polygon that flips the colours frame to frame (owner: "colors rapidly switch as the boss dies") - such a
       // circle covers the whole view, so the whole view is inverted
       const ring = bossInv.full ? null : Array.from({ length: 64 }, (_, i) => { const a = i * Math.PI / 32; return warpProject(bossInv.x + Math.cos(a) * bossInv.r, bossInv.y + Math.sin(a) * bossInv.r, 0); });
-      if (!ring || ring.some(Q => !(Q.s > 0) || !isFinite(Q.x) || !isFinite(Q.y))) ctx.rect(0, 0, c.width, c.height);
+      if (!ring || ring.some(Q => !(Q.s > 0) || !isFinite(Q.x) || !isFinite(Q.y))) ctx.rect(0, 0, cnv.width, cnv.height);
       else ring.forEach((Q, i) => (i ? ctx.lineTo(Q.x, Q.y) : ctx.moveTo(Q.x, Q.y)));
       ctx.fill(); ctx.globalCompositeOperation = "source-over";
     }

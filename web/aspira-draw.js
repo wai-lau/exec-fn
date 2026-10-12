@@ -18,7 +18,7 @@ const cam = { k: 1, ox: 0, oy: 0, fit: 1 };
 // the canvas draws at most RES_CAP device pixels per CSS pixel (owner: "need
 // more perf"): a phone at 3x drew 3.4 million pixels a frame; 2x is 2.25x fewer
 // for a barely softer line. EVERY dpr use in the game reads canvasDpr().
-const RES_CAP = 2, RES_CAP_3D = 1.25;
+const RES_CAP = 2; let RES_CAP_3D = 2; // 3D: full until frames run slow, then down to 1.25 (stepDetail, aspira-quality.js)
 const canvasDpr = () => Math.min(window.devicePixelRatio || 1, q3d() ? RES_CAP_3D : RES_CAP) * (lowQ ? LOW_RES : 1); // 3D: 1.5 (slow log, 2026-10-12: a 2.25x Brave averaged 56 ms a frame) // low quality: far fewer pixels (aspira-quality.js)
 function resize() {
   const r = cv.getBoundingClientRect(), dpr = canvasDpr();

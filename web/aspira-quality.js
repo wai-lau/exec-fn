@@ -66,7 +66,16 @@ let detailFarR = DETAIL_MAX_R, detailEma = 16;
 // side (slow log, 2026-10-12: a Brave spent ~5 ms of a 25 ms frame in JS - the rest was handing that picture to the GPU)
 const TEX_CAP_MIN = 1024, TEX_CAP_MAX = 2048, TEX_CAP_RATE = 400; // RATE: px a second
 let warpTexCap = TEX_CAP_MAX;
-const WARP_RES_MIN = 0.5, WARP_RES_MAX = 0.75;
+const WARP_RES_MIN = 0.5, WARP_RES_MAX = 0.75, DPR_3D_MIN = 1.25, DPR_3D_MAX = 2; // DPR: the very last step (a resize)
+// the 3D canvases' pixel density - the LAST thing a slow frame gives up (owner, 2026-10-12: "pixel density should only be reduced
+// if fps drops too low"); applied (a resize) only when it crosses a 0.25 step
+let dpr3dRaw = DPR_3D_MAX;
+function setDpr3d(v) {
+  if (typeof RES_CAP_3D === "undefined") return;
+  dpr3dRaw = Math.max(DPR_3D_MIN, Math.min(DPR_3D_MAX, v));
+  const stepped = Math.round(dpr3dRaw * 4) / 4;
+  if (stepped !== RES_CAP_3D) { RES_CAP_3D = stepped; if (q3d() && typeof resize === "function") resize(); }
+}
 function stepDetail(dt) {
   if (!(dt > 0) || dt > 0.5) return;
   detailEma += (dt * 1000 - detailEma) * 0.05;
@@ -74,8 +83,8 @@ function stepDetail(dt) {
   // slow: first the detail radius comes in, then the 3D picture shrinks (glows always stay - owner, 2026-10-12); quick: back the other way
   // ...and last, the 3D view's own resolution, 0.75 down to WARP_RES_MIN (slow logs: the paint, not the code, was the cost)
   const res = typeof WARP_RES !== "undefined";
-  if (slow) { if (detailFarR > DETAIL_MIN_R) detailFarR = Math.max(DETAIL_MIN_R, detailFarR - DETAIL_RATE * dt); else if (warpTexCap > TEX_CAP_MIN) warpTexCap = Math.max(TEX_CAP_MIN, warpTexCap - TEX_CAP_RATE * dt); else if (res) WARP_RES = Math.max(WARP_RES_MIN, WARP_RES - 0.1 * dt); }
-  else if (quick) { if (res && WARP_RES < WARP_RES_MAX) WARP_RES = Math.min(WARP_RES_MAX, WARP_RES + 0.1 * dt); else if (warpTexCap < TEX_CAP_MAX) warpTexCap = Math.min(TEX_CAP_MAX, warpTexCap + TEX_CAP_RATE * dt); else detailFarR = Math.min(DETAIL_MAX_R, detailFarR + DETAIL_RATE * dt); }
+  if (slow) { if (detailFarR > DETAIL_MIN_R) detailFarR = Math.max(DETAIL_MIN_R, detailFarR - DETAIL_RATE * dt); else if (warpTexCap > TEX_CAP_MIN) warpTexCap = Math.max(TEX_CAP_MIN, warpTexCap - TEX_CAP_RATE * dt); else if (res && WARP_RES > WARP_RES_MIN) WARP_RES = Math.max(WARP_RES_MIN, WARP_RES - 0.1 * dt); else setDpr3d(dpr3dRaw - 0.25 * dt); }
+  else if (quick) { if (dpr3dRaw < DPR_3D_MAX) setDpr3d(dpr3dRaw + 0.25 * dt); else if (res && WARP_RES < WARP_RES_MAX) WARP_RES = Math.min(WARP_RES_MAX, WARP_RES + 0.1 * dt); else if (warpTexCap < TEX_CAP_MAX) warpTexCap = Math.min(TEX_CAP_MAX, warpTexCap + TEX_CAP_RATE * dt); else detailFarR = Math.min(DETAIL_MAX_R, detailFarR + DETAIL_RATE * dt); }
 }
 const farFx = e => q3d() && (e.x - CX) ** 2 + (e.y - CY) ** 2 > detailFarR * detailFarR;
 // AUTO STEP-DOWN (owner, 2026-10-12: "extremely laggy on my partner's brave browser" - 3D is the default now): while the
