@@ -267,7 +267,7 @@ const BOUNCE_R = 120, BLEED_CRIT_CAP = 1; // Ricochet hop at 75%, with every ran
 function bleed(e, st, t) {
   if (!st.bleedArmor || e.dead) return;
   const k = st.breach || 1; // the chart SOL: Breach stacks per hit (aspira-skills.js)
-  const per = st.breachRef ? st.breachRef * armorRefOf(e.wave || 1) : st.bleedArmor; // the chart SOL: in wave armors (aspira-skills.js)
+  const per = st.bleedArmor;
   e.armor = (e.armor || 0) - per * k; stripBy(e, t, per * k); // permanent, and on past zero (owner); its share of the damage it adds is SOL's (damageCredit)
   e.bleedCrit = Math.min(BLEED_CRIT_CAP, (e.bleedCrit || 0) + st.bleedCrit * k); e.breachN = (e.breachN || 0) + k; // stacks, for the spokes
 }

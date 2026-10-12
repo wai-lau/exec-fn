@@ -44,7 +44,7 @@ const SPEC = {
   sol: st => [["Crit", Math.round(st.crit * 100) + "%"], ["Crit ×", st.critMul], ["Locks", st.targets],
     ["Beams", st.beams || 1], ...(st.skill ? [["Refract", st.refraction ? (st.refraction === Infinity ? "all" : "+" + st.refraction) + " in a " + (st.cone || SOL_CONE) * 2 + "° cone" : "—"]] : []),
     // short enough for the card's right column (owner, 2026-10-07: "1 × (−1.5 armor, +1% crit) / hit" ran off it)
-    [st.skill ? "Breach" : "Bleed", st.bleedArmor ? "−" + (st.breachRef ? st.breachRef + "× wave armor" : dmgUnits(st.bleedArmor) + " armor") + (st.bleedCrit ? ", +" + Math.round(st.bleedCrit * 100) + "% crit" : "") + (st.breach > 1 ? " ×" + st.breach : "") + "/hit" : "—"],
+    [st.skill ? "Breach" : "Bleed", st.bleedArmor ? "−" + dmgUnits(st.bleedArmor) + " armor" + (st.bleedCrit ? ", +" + Math.round(st.bleedCrit * 100) + "% crit" : "") + (st.breach > 1 ? " ×" + st.breach : "") + "/hit" : "—"],
     ["Form", rayForm(st)]],
 };
 
