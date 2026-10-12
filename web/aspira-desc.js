@@ -12,32 +12,31 @@ const ARC_KEEP = ["half", "most of", "nearly all of", "all of", "more than", "fa
 // ONLY BEHAVIOUR is told here (owner, 2026-10-07): a tier that just moves a number - harder
 // hits, a colder or wider aura, faster pulses, a stronger acid, more or bigger puddles -
 // changes no words; the card's stat rows show that change (now -> next)
-const FRZ_RIME_TEXT = ["", ...Array(5).fill(" Rings of rime roll out, shattering shields and leaving behind a rime that layers and never thaws; rime that can hold no more spreads to the nearest enemy.")];
-const FRZ_MOONS = ["", " One moon orbits it, a copy of the tower.", " Two moons orbit it, copies of the tower.", " Three moons orbit it, copies of the tower.", " Three moons orbit it, copies of the tower, each with a small moon of its own.", " Three moons orbit it, copies of the tower, each with three small moons of its own."];
+const FRZ_RIME_TEXT = ["", ...Array(5).fill(" Rime rings break shields; lasting rime stacks and spreads when full.")];
+const FRZ_MOONS = ["", " A moon copies it.", " Two moons copy it.", " Three moons copy it.", " Three moons copy it, each with a moonlet.", " Three moons copy it, each with three moonlets."];
 const SOL_RAYS = ["A ray", "Two rays", "Three rays", "Four rays", "Five rays", "Six rays"];
-const SOL_REFRACT = ["refracting from the first enemy struck on to one more ahead", "refracting from the first enemy struck on to three more ahead", "refracting from the first enemy struck on to six more ahead", "refracting from the first enemy struck on to ten more ahead", "refracting from the first enemy struck on to thirteen more ahead", "refracting from the first enemy struck on through every enemy ahead, and on out of sight"];
+const SOL_REFRACT = ["refracting on to one more enemy", "refracting on to three more enemies", "refracting on to six more enemies", "refracting on to ten more enemies", "refracting on to thirteen more enemies", "refracting through every enemy ahead"];
 const ACD_JETS = ["Two", "Three", "Four", "Six", "Seven", "Eight"]; // acidic terms, never heat (owner)
 const DESCRIBE = {
   // "Arcs fork on hit, each jump carrying half the hit." -> Conductivity: chain once and / into
   // three / twin; Voltage: most of .. all of (its harder hit is a stat row); Capacitance: the charge sentence (owner's words)
   arc(sk) {
     const c = sk.conductivity || 0, v = sk.voltage || 0, z = sk.capacitance || 0;
-    let s = [c >= 6 ? "six" : c >= 5 ? "four" : c >= 4 ? "three" : c >= 3 ? "twin" : "", "arcs", c >= 6 ? "chain twice and" : c >= 1 ? "chain once and" : "", "fork", c >= 2 ? "into three" : "", c >= 3 ? "on hit, returning to struck enemies " + ARC_RETURN[c] + ", each jump carrying" : "on hit, each jump carrying", ARC_KEEP[v], "the hit."].filter(Boolean).join(" ");
-    if (v) s += " Arcs pierce armor.";
-    if (z) s += " Hits leave " + ARC_CHARGES[ARC_CAPACITANCE[z].n] + ", which burst around the target when it is hit by anything" + ", slowing what they hit.";
+    let s = [c >= 6 ? "six" : c >= 5 ? "four" : c >= 4 ? "three" : c >= 3 ? "twin" : "", "arcs", c >= 6 ? "chain twice and" : c >= 1 ? "chain once and" : "", "fork", c >= 2 ? "in three" : "", c >= 3 ? "on hit, re-striking " + ARC_RETURN[c] + "; each jump carries" : "on hit; each jump carries", ARC_KEEP[v], v ? "the hit and pierces armor." : "the hit."].filter(Boolean).join(" ");
+    if (z) s += " Hits leave " + ARC_CHARGES[ARC_CAPACITANCE[z].n] + (ARC_CAPACITANCE[z].n > 1 ? " that burst" : " that bursts") + " on a later hit, slowing all near.";
     return cap(s);
   },
   // "A chill slows all it holds." -> Temp III: and turns it brittle (its colder, wider aura is
   // stat rows); Rime: the rings of rime; Moons: the moons
   frz(sk) {
-    return ((sk.temp || 0) >= 6 ? "A deep chill" : "A chill") + " slows all it holds" + ((sk.temp || 0) >= 6 ? ", and shatters the light ones brittle." : (sk.temp || 0) >= 1 ? ", and turns the light ones brittle." : ".") + FRZ_RIME_TEXT[sk.rime || 0] + FRZ_MOONS[sk.moons || 0] + ((sk.moons || 0) ? " Its chill cracks armor for good." : "");
+    return ((sk.temp || 0) >= 6 ? "A deep chill" : "A chill") + " slows all it holds" + ((sk.temp || 0) >= 6 ? ", shattering the light brittle." : (sk.temp || 0) >= 1 ? ", turning the light brittle." : ".") + FRZ_RIME_TEXT[sk.rime || 0] + FRZ_MOONS[sk.moons || 0] + ((sk.moons || 0) ? " Cracks armor for good." : "");
   },
   // "A ray of light, stopping at the first enemy struck; each beam weakens its target's armor for
   // good." (Breach is SOL's own from the start, owner 2026-10-08) -> Focus: two .. six rays, each a
   // full strike; Refraction: refracting on to more; Breach: armor *greatly*, and pierces it so every tower crits it more
   sol(sk) {
     const f = sk.focus || 0, r = sk.refraction || 0, b = sk.breach || 0;
-    return SOL_RAYS[f] + " of light" + (f ? ", each a full strike" : "") + ", " + SOL_REFRACT[r] + "; each beam weakens its target's armor" + (b >= 6 ? " utterly" : b ? " greatly" : "") + " for good" + (b >= 6 ? ", and pierces it so every tower crits it far more." : b ? ", and pierces it so every tower crits it more." : ".") + (r ? " Light outruns the fast: far harder on them." : "");
+    return SOL_RAYS[f] + " of light" + (f ? ", each a full strike" : "") + ", " + SOL_REFRACT[r] + "; each beam weakens armor" + (b >= 6 ? " utterly" : b ? " greatly" : "") + " for good" + (b >= 6 ? ", so every tower crits far more." : b ? ", so every tower crits more." : ".") + (r ? " Far harder on the fast." : "");
   },
   // ACD roles rework (owner, 2026-10-12): Flow = more jets that slow and carry their acid on;
   // Corrosion = stronger acid that eats armor; Contagion = the always-on pools grow, massive at VI

@@ -59,7 +59,7 @@ for (const axes of Object.values(SKILL_TREES)) for (const ax of axes) if (ax.tie
 ARC_KEEP.push("twice"); ARC_RETURN.push("four times");
 ARC_CHARGES.push("six charges", "seven charges", "eight charges"); // indexed by the charge COUNT (ARC_CAPACITANCE[z].n)
 FRZ_RIME_TEXT.push(FRZ_RIME_TEXT[5]);
-FRZ_MOONS.push(" Four moons orbit it, copies of the tower, each with four small moons of its own.");
+FRZ_MOONS.push(" Four moons copy it, each with four moonlets.");
 SOL_RAYS.push("Eight rays");
-SOL_REFRACT.push("refracting from the first enemy struck on through every enemy ahead in a wide cone, and on out of sight");
+SOL_REFRACT.push("refracting through every enemy in a wide cone");
 ACD_JETS.push("Eleven");
