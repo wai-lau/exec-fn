@@ -24,7 +24,7 @@ const q3d = () => qMode === "3d";
 (function muteShadows() {
   const P = CanvasRenderingContext2D.prototype, d = Object.getOwnPropertyDescriptor(P, "shadowBlur");
   if (!d || !d.set) return;
-  Object.defineProperty(P, "shadowBlur", { configurable: true, get: d.get, set(v) { d.set.call(this, lowQ ? 0 : v); } });
+  Object.defineProperty(P, "shadowBlur", { configurable: true, get: d.get, set(v) { d.set.call(this, lowQ || noGlow ? 0 : v); } });
 })();
 
 function setQuality(q) {
@@ -62,11 +62,19 @@ const LOW_SKIP_FX = { hit: 1, spark: 1, cone: 1, flash: 1, blast: 1, zen: 1 };
 // under DETAIL_MIN_R; a fast machine keeps every detail everywhere
 const DETAIL_MIN_R = 600, DETAIL_MAX_R = 1600, DETAIL_SLOW_MS = 28, DETAIL_FAST_MS = 20, DETAIL_RATE = 300; // RATE: world units a second
 let detailFarR = DETAIL_MAX_R, detailEma = 16;
+// ...and once the radius is at its floor and frames are STILL slow, the 3D board's picture shrinks too, 2048 down to 1024 a
+// side (slow log, 2026-10-12: a Brave spent ~5 ms of a 25 ms frame in JS - the rest was handing that picture to the GPU)
+const TEX_CAP_MIN = 1024, TEX_CAP_MAX = 2048, TEX_CAP_RATE = 400; // RATE: px a second
+let warpTexCap = TEX_CAP_MAX;
+// ...and at the smallest picture, still slow: no shadow-blur GLOWS either (a blur is one of the GPU's dearest draws)
+let noGlow = false;
 function stepDetail(dt) {
   if (!(dt > 0) || dt > 0.5) return;
   detailEma += (dt * 1000 - detailEma) * 0.05;
-  if (detailEma > DETAIL_SLOW_MS) detailFarR = Math.max(DETAIL_MIN_R, detailFarR - DETAIL_RATE * dt);
-  else if (detailEma < DETAIL_FAST_MS) detailFarR = Math.min(DETAIL_MAX_R, detailFarR + DETAIL_RATE * dt);
+  const slow = detailEma > DETAIL_SLOW_MS, quick = detailEma < DETAIL_FAST_MS;
+  // slow: first the detail radius comes in, then the 3D picture shrinks, then the glows go; quick: back the other way
+  if (slow) { if (detailFarR > DETAIL_MIN_R) detailFarR = Math.max(DETAIL_MIN_R, detailFarR - DETAIL_RATE * dt); else if (warpTexCap > TEX_CAP_MIN) warpTexCap = Math.max(TEX_CAP_MIN, warpTexCap - TEX_CAP_RATE * dt); else noGlow = true; }
+  else if (quick) { if (noGlow) noGlow = false; else if (warpTexCap < TEX_CAP_MAX) warpTexCap = Math.min(TEX_CAP_MAX, warpTexCap + TEX_CAP_RATE * dt); else detailFarR = Math.min(DETAIL_MAX_R, detailFarR + DETAIL_RATE * dt); }
 }
 const farFx = e => q3d() && (e.x - CX) ** 2 + (e.y - CY) ** 2 > detailFarR * detailFarR;
 // AUTO STEP-DOWN (owner, 2026-10-12: "extremely laggy on my partner's brave browser" - 3D is the default now): while the

@@ -200,7 +200,7 @@ function unwarpFull(x, y) {
 function warpRender() {
   // SHARP (owner: "all these are so blurry, make them sharp"): the picture is a SQUARE as fine as the view's own scale
   // (capped at WARP_TEX_MAX px), not the screen-sized canvas squeezed to fit the board - that was ~3x coarser than the view
-  const S = Math.min(WARP_TEX_MAX, Math.ceil(2 * WARP_TEX_R * cam.k));
+  const S = Math.min(WARP_TEX_MAX, Math.round(warpTexCap / 64) * 64, Math.ceil(2 * WARP_TEX_R * cam.k)); // warpTexCap follows the frame rate (aspira-quality.js), stepped by 64 so it is not resized every frame
   if (cv.width !== S || cv.height !== S) { cv.width = S; cv.height = S; } // (resize() sets it back for 2D)
   const view = { ...cam }, k = S / (2 * WARP_TEX_R);
   Object.assign(cam, { k, ox: S / 2 - CX * k, oy: S / 2 - CY * k });
