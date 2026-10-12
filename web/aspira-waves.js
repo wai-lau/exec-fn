@@ -8,8 +8,10 @@
 // usually on screen, and still at once whenever the field clears.
 const WAVE_TIMER = 8; // halved (owner, 2026-10-12: "halve all wave timers"; was 16) // owner: 10 -> 13 -> 16s to thin the field
 // clear = nothing ALIVE on the board (ghosts of the dead may still be drifting in)
-// the boss (the star) is alive or still queued to spawn
-const bossUp = () => G.enemies.some(e => !e.dead && ENEMIES[e.type].star) ||
+// the boss (the star) or ANY of its fleet is alive, riding in (G.fleetQ) or still queued to spawn - no wave warps in
+// till the whole fleet is down (owner, 2026-10-12: "still want warps to stop until boss + fleet is defeated"; the fleet
+// held unseen in G.fleetQ, and escorts left after their boss, used to let the timer run)
+const bossUp = () => G.enemies.some(e => !e.dead && (ENEMIES[e.type].star || e.bossKin)) || G.fleetQ.length > 0 ||
   G.spawns.some(w => w.list.slice(w.idx).some(t => ENEMIES[t].star));
 const waveClear = () => !G.enemies.some(e => !e.dead) && G.spawns.length === 0 && !G.fleetQ.length;
 // the NEXT wave is a boss's: it waits for a clear field, no timer (aspira-game.js step, the wave list)
