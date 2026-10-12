@@ -170,19 +170,29 @@ function stepPuddles(t, st, dt) {
       p.tick -= every;
       for (const e of poolNear(grid ||= enemyGrid(), p)) {
         if (e.dead || (e.x - p.x) ** 2 + (e.y - p.y) ** 2 > p.r * p.r) continue;
-        damage(e, p.dps * every, t, false, false, hit); e.burnT = 0.4; // a real hit: it pops one shield charge
+        const hp0 = e.hp;
+        damage(e, p.dps * every, t, false, false, hit); e.burnT = 0.4;
+        if (hit && hp0 > e.hp) (t.poolAcc ||= new Map()).set(e, (t.poolAcc.get(e) || 0) + hp0 - Math.max(0, e.hp)); // a real hit: it pops one shield charge
         if (st.corrode && !e.dead) corrodeHit(e, p.dps * every * st.corrode, st); // Corrosion strips in the pools too (owner, 2026-10-12)
       }
     }
   }
   t.puddles = t.puddles.filter(p => p.age < p.life);
+  // the unseen hits SUMMED: one number an enemy every POOL_SUM_S (owner, 2026-10-12: "instead of hiding damage counts
+  // entirely, just show the accumulated damage once per half second")
+  t.poolSumT = (t.poolSumT ?? POOL_SUM_S) - dt;
+  if (t.poolSumT > 0 || !t.poolAcc) return;
+  t.poolSumT += POOL_SUM_S;
+  for (const [e, d] of t.poolAcc) dmgNumber(e, String(dmgUnits(d)), d, "white", t);
+  t.poolAcc.clear();
 }
 // LATE-GAME LAG (owner, 2026-10-12: "make late game acid pools less laggy"): a giga Contagion keeps 300+ pools, each of
 // which checked EVERY enemy at every tick - now the live enemies are bucketed once a step into POOL_CELL squares and a
 // pool looks only in the squares it covers (the same hits, far fewer checks)
 const POOL_CELL = 128;
-// ...and past POOL_LOD pools their hits land UNSEEN (no flash, no number each): hundreds a second were most of the lag
-const POOL_QUIET = { noFx: true };
+// ...and past POOL_LOD pools their hits land with no flash and no number EACH (hundreds a second were most of the lag) -
+// their damage summed into one number an enemy every POOL_SUM_S instead
+const POOL_QUIET = { noFx: true }, POOL_SUM_S = 0.5;
 function enemyGrid() {
   const g = new Map();
   for (const e of G.enemies) {
