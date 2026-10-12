@@ -120,26 +120,26 @@ SKILL_TREES.sol = [
 // burn ramps faster (tier III: a line whose enemy dies hands half its ramp to
 // the next); Pour = 2 / 3 / 5 lines at once; Seep = more, longer, bigger puddles.
 SKILL_TREES.acd = [
-  { id: "corrosion", name: "Corrosion", base: "A jet keeps little of its concentration when it moves to a new target.", tiers: [
-    { name: "Etch", desc: "A jet keeps all of its concentration when it moves to a new target. Acid eats armor." },
-    { name: "Corrode", desc: "A stronger jet keeps all of its concentration when it moves to a new target. Acid eats armor." },
-    { name: "Dissolve", desc: "The strongest jet keeps all of its concentration when it moves to a new target. Acid eats armor." },
-    { name: "Erode", desc: "Acid flow holds when switching targets. Acid eats armor." },
-    { name: "Annihilate", desc: "Acid flow holds when switching targets. Acid eats armor." },
+  { id: "corrosion", name: "Corrosion", base: "Acid that builds while a jet holds its enemy.", tiers: [
+    { name: "Etch", desc: "Stronger acid that eats armor." },
+    { name: "Corrode", desc: "Stronger acid that eats armor." },
+    { name: "Dissolve", desc: "Far stronger acid that eats armor." },
+    { name: "Erode", desc: "Far stronger acid that eats armor." },
+    { name: "Annihilate", desc: "The strongest acid, eating armor." },
   ] },
-  { id: "spray", name: "Flow", base: "Two jets of acid at once, each on its own enemy.", tiers: [
-    { name: "Mist", desc: "Three jets of acid at once, each on its own enemy. Jets bite the fast harder." },
-    { name: "Downpour", desc: "Four jets of acid at once, each on its own enemy. Jets bite the fast harder." },
-    { name: "Torrent", desc: "Six jets of acid at once, each on its own enemy. Jets bite the fast harder." },
-    { name: "Deluge", desc: "Seven jets of acid, each corroding the enemy. Jets bite the fast harder." },
-    { name: "Cascade", desc: "Eight jets of acid, each corroding the enemy. Jets bite the fast harder." },
+  { id: "spray", name: "Flow", base: "Two jets, each starting cold on a new enemy.", tiers: [
+    { name: "Mist", desc: "Three slowing jets; a jet keeps some of its acid on its next enemy." },
+    { name: "Downpour", desc: "Four slowing jets; a jet keeps half its acid on its next enemy." },
+    { name: "Torrent", desc: "Six slowing jets; a jet keeps most of its acid on its next enemy." },
+    { name: "Deluge", desc: "Seven slowing jets; a jet keeps nearly all its acid on its next enemy." },
+    { name: "Cascade", desc: "Eight slowing jets; a jet lands hotter on its next enemy." },
   ] },
-  { id: "contagion", name: "Contagion", base: "Jets drip puddles.", tiers: [
-    { name: "Blister", desc: "Jets drip blistering puddles, more often. Puddles eat shields." },
-    { name: "Plague", desc: "Jets drip bigger blistering puddles, more often. Puddles eat shields." },
-    { name: "Pandemic", desc: "Jets drip bigger blistering puddles, more often, that slow all who wade through them. Puddles eat shields." },
-    { name: "Epidemic", desc: "Pools of acid that slow all who wade through them. Puddles eat shields." },
-    { name: "Blight", desc: "Pools of acid that slow all who wade through them. Puddles eat shields." },
+  { id: "contagion", name: "Contagion", base: "Jets drip large pools of acid.", tiers: [
+    { name: "Blister", desc: "Jets drip larger pools that linger longer." },
+    { name: "Plague", desc: "Jets drip larger pools that linger longer." },
+    { name: "Pandemic", desc: "Jets drip wide pools that linger long." },
+    { name: "Epidemic", desc: "Jets drip wide pools that linger long." },
+    { name: "Blight", desc: "Jets drip vast pools that linger long." },
   ] },
 ];
 const hasSkills = t => !!SKILL_TREES[t.kind];

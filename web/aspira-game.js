@@ -205,7 +205,7 @@ const SLOW_TIME = 125 / 48; // ~2.6 real seconds (owner: 10x the old ~4.2s, then
 // SLOW_KNEE it counts in full, past it every extra slow counts less and less,
 // bending toward SLOW_CAP and never reaching it - so an enemy keeps at least
 // 1 - SLOW_CAP of its speed, stacked or single (was a 0.9 stacked cap a single stronger
-// slow could pass, Fast up to 0.96). FRZ hits Fast enemies twice as hard (owner):
+// slow could pass, Fast up to 0.96). EVERY slow hits Fast enemies twice as hard (owner; global, reconfirmed 2026-10-12):
 // double the slow, shaped toward FAST_SLOW_CAP - set so a fully slowed Fast enemy
 // (1.5x speed) moves no slower than any other fully slowed one: 1.5 x (1 - 0.8) = 1 - 0.7
 // (2026-10-11: at SLOW_CAP the no-ARC trio FRZ+SOL+ACD lost every game to Fast leaks).

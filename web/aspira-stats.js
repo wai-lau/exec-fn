@@ -40,7 +40,7 @@ const SPEC = {
     // reads now -> next on its own and its colour judges that one number
     // always the same rows ("—" with no puddles), so a pull from Contagion 0 lines up now -> next
     ["Pool burn", st.contagion ? Math.round(st.contagionHeat * 100) + "% of jet" : "—"], ["Drips every", st.contagion ? st.contagion.every + "s" : "—"],
-    ["Pool size", st.contagion ? st.contagion.r : "—"], ["Pool lasts", st.contagion ? st.contagion.life + "s" : "—"], ["Pool slow", st.contagionSlow ? Math.round(st.contagionSlow * 100) + "%" : "—"]],
+    ["Pool size", st.contagion ? st.contagion.r : "—"], ["Pool lasts", st.contagion ? st.contagion.life + "s" : "—"], ["Carry", st.carry ? Math.round(st.carry * 100) + "%" : "—"], ["Jet slow", st.burnSlow ? Math.round(st.burnSlow * 100) + "%" : "—"]],
   sol: st => [["Crit", Math.round(st.crit * 100) + "%"], ["Crit ×", st.critMul], ["Locks", st.targets],
     ["Beams", st.beams || 1], ...(st.skill ? [["Refract", st.refraction ? (st.refraction === Infinity ? "all" : "+" + st.refraction) + " in a " + (st.cone || SOL_CONE) * 2 + "° cone" : "—"]] : []),
     // short enough for the card's right column (owner, 2026-10-07: "1 × (−1.5 armor, +1% crit) / hit" ran off it)

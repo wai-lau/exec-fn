@@ -39,12 +39,11 @@ const DESCRIBE = {
     const f = sk.focus || 0, r = sk.refraction || 0, b = sk.breach || 0;
     return SOL_RAYS[f] + " of light" + (f ? ", each a full strike" : "") + ", " + SOL_REFRACT[r] + "; each beam weakens its target's armor" + (b >= 6 ? " utterly" : b ? " greatly" : "") + " for good" + (b >= 6 ? ", and pierces it so every tower crits it far more." : b ? ", and pierces it so every tower crits it more." : ".") + (r ? " Light outruns the fast: far harder on them." : "");
   },
-  // "Two jets of acid, each corroding the enemy. Acid flow is reduced when switching targets."
-  // (owner's words) -> Spray: three .. six jets; Corrosion I: the flow HOLDS on a switch;
-  // Contagion I: leaving behind pools of acid that slow all who wade through them (from I, 2026-10-08)
+  // ACD roles rework (owner, 2026-10-12): Flow = more jets that slow and carry their acid on;
+  // Corrosion = stronger acid that eats armor; Contagion = the always-on pools grow, massive at VI
   acd(sk) {
-    const c = sk.contagion || 0; // no pools until Contagion I (owner)
-    return ACD_JETS[sk.spray || 0] + " jets of acid, each corroding the enemy" + ((sk.corrosion || 0) >= 6 ? " and dissolving its armor" : (sk.corrosion || 0) ? " and eating through its armor" : "") + (c ? ", leaving behind " + (c >= 6 ? "great " : "") + "pools of acid that slow all who wade through them and eat shields" : "") + ". Acid flow " + ((sk.corrosion || 0) ? "holds" : "is reduced") + " when switching targets." + ((sk.spray || 0) ? " Jets bite the fast harder." : "");
+    const c = sk.contagion || 0, f = sk.spray || 0, k = sk.corrosion || 0; // pools from the start (owner, 2026-10-12)
+    return ACD_JETS[f] + (f ? " slowing" : "") + " jets of " + (k >= 6 ? "the strongest acid, dissolving armor" : k ? "strong acid that eats armor" : "acid") + ", dripping " + (c >= 6 ? "massive" : c >= 3 ? "wide" : c ? "larger" : "large") + " pools. " + (f >= 5 ? "A jet lands hotter on its next enemy." : f ? "A jet keeps its acid on its next enemy." : "A jet starts cold on each new enemy.");
   },
 };
 // the description for a chart (`skills`): the composer, else the axes' sentences run together

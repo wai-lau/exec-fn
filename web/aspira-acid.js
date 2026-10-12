@@ -32,7 +32,9 @@ function acdLines(t, st) {
   // a line whose enemy left range lives on for st.residue seconds (Residue)
   lines = lines.filter(l => {
     if (inRange(l.e)) { l.left = st.residue || 0; return true; }
-    return (l.left ?? 0) > 0;
+    if ((l.left ?? 0) > 0) return true;
+    if (st.carry) t.spare = Math.max(t.spare || 0, l.held * st.carry); // Flow: an escaped enemy hands its ramp on too (the fast answer)
+    return false;
   });
   let live = lines.filter(l => inRange(l.e)).length;
   for (const e of pickTargets(t, st, st.targets + lines.length)) {
@@ -100,31 +102,35 @@ function stepAcd(t, dt) {
 // negative armor is a flat bonus on every hit from every tower, bosses too. The weakest of 1x / 3x / 10x tried
 // (scripts/aspira-sim/trios.mjs): ARC+FRZ+ACD 90 -> won (Judgement, Death), ARC+SOL+ACD 96 -> won (Capacitance first)
 const ACD_CORRODE = [0, 0.06, 0.12, 0.18, 0.24, 0.3]; // x6 (2026-10-11, roles: Corrosion meant as ACD's ARMOR answer - still behind spread in TEAM countermx; was .01 .. .05)
-// ROLES (owner, 2026-10-11: "make upgrade choices matter" - Contagion was ACD's dead axis): Spray's jets bite the FAST
-// x ACD_SPRAY_SWIFT (damage(), st.swift); a Contagion puddle's tick pops ACD_PUDDLE_POP shield charges - ACD's shield answer
-const ACD_SPRAY_SWIFT = [1, 1.3, 1.6, 1.9, 2.2, 2.5], ACD_PUDDLE_POP = [1, 3, 4, 6, 8, 10];
+// ROLES REWORK (owner, 2026-10-12: "what is acd weak to now? seems op"): a bare ACD is a tank killer, weak to the FAST
+// (no carry: a jet starts cold on every new enemy) and to SHIELDS (acid and pools pop one charge a tick, like any hit).
+// Flow buys the fast back: ACD_FLOW_CARRY of a jet's ramp rides on when its enemy dies OR escapes, past 1 = it lands
+// hotter, and the jets slow (ACD_FLOW_SLOW, doubled on the fast like every slow - FAST_SLOW_MUL). Contagion buys the
+// shields back through COVERAGE: bigger, longer pools ticking on more enemies. Corrosion: the strongest acid, eats armor.
+const ACD_FLOW_CARRY = [0, 0.3, 0.5, 0.7, 0.9, 1.1], ACD_FLOW_SLOW = [0, 0.05, 0.08, 0.11, 0.14, 0.17];
 const ACD_CORROSION_DMG = [1, 1.4, 2.1, 3.1, 4.2, 4.9]; // x1.15 I..V (owner, 2026-10-11: ACD's strength back through Corrosion; was 1.213 1.823 2.674 3.631 4.253)
 const ACD_DOUBLE = [0.5, 0.39, 0.3, 0.12, 0.12, 0.12], ACD_LINES = [2, 3, 4, 6, 7, 8], /* early-game balance 2026-10-06: two lines from the start (was 1/2/3/5); Spray to be re-fitted */ ACD_SPRAY_MUL = [1, 1, 1, 1, 1, 1]; // every jet a full strike (owner, 2026-10-08: never below 1) - Spray's reach (SKILL_MOVE) is the lever
 // puddles by Seep tier (index 0 = the DEFAULT drip, owner): one every `every`
 // s per line, lasting `life` s, radius r; each burns at ACD_PUDDLE_HEAT of its
 // line's heat when it fell, by Seep tier
 // index 0 = NO puddles (owner, 2026-10-07: "ACD shouldn't have puddles at level 0"; was a default drip { every: 1.4, life: 1.5, r: 20 })
-const ACD_CONTAGION = [null, { every: 1.24, life: 4, r: 36 }, { every: 1.18, life: 5, r: 43 }, { every: 1.18, life: 6, r: 55 }, { every: 1.18, life: 8, r: 65 }, { every: 1.18, life: 10, r: 85 }]; // BIGGER (x1.3) and LONGER (x1.5) pools that burn LESS (owner, 2026-10-08; were life 2.4 3.1 4.2 5 6.5, r 28 33 42 50 65) // drip 1.24 / 1.18s (owner, 2026-10-08: Contagion under 200% - was 1.2 .. 0.7; V at 643%); size and life keep climbing; // pools bigger (x1.25) and longer (x1.3) at every tier (owner, 2026-10-08); V the capstone
+// pools from the START, large and long (owner, 2026-10-12: "ACD should have pools ... large and last longer from the start";
+// Contagion grows them, massive at VI); was null at 0, then life 4 .. 10, r 36 .. 85
+const ACD_CONTAGION = [{ every: 1.2, life: 6, r: 55 }, { every: 1.2, life: 7, r: 62 }, { every: 1.18, life: 8, r: 70 }, { every: 1.18, life: 10, r: 80 }, { every: 1.18, life: 12, r: 92 }, { every: 1.18, life: 14, r: 105 }]; // BIGGER (x1.3) and LONGER (x1.5) pools that burn LESS (owner, 2026-10-08; were life 2.4 3.1 4.2 5 6.5, r 28 33 42 50 65) // drip 1.24 / 1.18s (owner, 2026-10-08: Contagion under 200% - was 1.2 .. 0.7; V at 643%); size and life keep climbing; // pools bigger (x1.25) and longer (x1.3) at every tier (owner, 2026-10-08); V the capstone
 // a puddle ramps to the OLD x32 ceiling (owner, 2026-10-08: "increase the puddle damage to compensate" for the jets' cap halved to x16)
 const ACD_PUDDLE_CAP = 8; // (2026-10-08: x8, was x32 - a pool held the jet's whole ramp)
-let ACD_SHIELD_POP = 3; // 2026-10-11 (was 1, as every hit; 2 left ACD 16-34% leaked on shield waves, 3 gives 6-23%): let: the simulator sweeps it
-const ACD_PUDDLE_HEAT = [0.15, 0.15, 0.15, 0.15, 0.15, 0.15]; // 2026-10-11: x1.5 so ACD answers a swarm a little (owner: "FRZ ACD handle swarms a bit better") // 10% of the jet with the bigger, longer pools (owner, 2026-10-08; was 30%): isolation I..V 108 117 133 160 197%, the curve it had (108 123 128 146 197) // flat 30% of the jet (2026-10-08, Contagion under 200%; no tier lowers it) // restored (overnight 2026-10-08): the tier fit cut it to ~15%, and without ARC the pools are the only swarm answer - FRZ+SOL+ACD went 0/6 -> 4/6 with them back
-// Contagion III (Pandemic) puddles SLOW what stands in them (owner, 2026-10-06,
-// the no-FRZ niche search: 3 SOL + 6 ACD reached 98, was 74; FRZ teams unchanged)
-const ACD_CONTAGION_SLOW = [0, 0.02, 0.03, 0.04, 0.05, 0.05]; // a light second slow (owner, 2026-10-08: "reduce slow if you have to, but i just wanted another slow"; was .05 .. .25) // slows from I, ramping slowly to III's old 25% at V (owner, 2026-10-08) // was 0.3 (2026-10-06 reach rework: with the roaming bonus 0.3 made Pandemic ~5x; phase 4 found 0.2-0.3 all open the niche)
+let ACD_SHIELD_POP = 1; // 1 (owner, 2026-10-12: ACD pops 1x, pools too - shields are a bare ACD's weakness); // 2026-10-11 (was 1, as every hit; 2 left ACD 16-34% leaked on shield waves, 3 gives 6-23%): let: the simulator sweeps it
+const ACD_PUDDLE_HEAT = [0.1, 0.11, 0.12, 0.13, 0.14, 0.15]; // 2026-10-12: base pools burn low (they are free now) // 2026-10-11: x1.5 so ACD answers a swarm a little (owner: "FRZ ACD handle swarms a bit better") // 10% of the jet with the bigger, longer pools (owner, 2026-10-08; was 30%): isolation I..V 108 117 133 160 197%, the curve it had (108 123 128 146 197) // flat 30% of the jet (2026-10-08, Contagion under 200%; no tier lowers it) // restored (overnight 2026-10-08): the tier fit cut it to ~15%, and without ARC the pools are the only swarm answer - FRZ+SOL+ACD went 0/6 -> 4/6 with them back
+// (the pools' slow moved to Flow's jets, owner 2026-10-12: "these rays could slow instead of contagion")
 function acdSkillStats(t, s, b) {
   const c = skillOf(t, "corrosion");
   s.dmg = b.dmg * ACD_CORROSION_DMG[c]; s.range = b.range * RANGE_BONUS; s.double = ACD_DOUBLE[0]; s.cap = ACD_BASE_MAX; s.plagueR = 0;
   // every ACD hands 40% of a dead line's ramp on (early-game balance 2026-10-06;
   // fast waves reset it); from Corrosion I, Etch, ALL of it
-  s.carry = c >= 1 ? 1 : 0.4; s.corrode = ACD_CORRODE[c]; s.targets = ACD_LINES[skillOf(t, "spray")]; s.swift = ACD_SPRAY_SWIFT[skillOf(t, "spray")]; s.puddleHit = { shieldPop: ACD_PUDDLE_POP[skillOf(t, "contagion")] }; s.contagion = ACD_CONTAGION[skillOf(t, "contagion")];
+  const f = skillOf(t, "spray"); // Flow (id kept: saves)
+  s.carry = ACD_FLOW_CARRY[f]; s.burnSlow = ACD_FLOW_SLOW[f]; s.corrode = ACD_CORRODE[c]; s.targets = ACD_LINES[f]; s.contagion = ACD_CONTAGION[skillOf(t, "contagion")];
   s.shieldPop = ACD_SHIELD_POP; // acid EATS shields: every tick pops ACD_SHIELD_POP (the shield answer, counter matrix)
-  s.contagionHeat = ACD_PUDDLE_HEAT[skillOf(t, "contagion")]; s.contagionSlow = ACD_CONTAGION_SLOW[skillOf(t, "contagion")]; s.sprayMul = ACD_SPRAY_MUL[skillOf(t, "spray")]; s.skill = true;
+  s.contagionHeat = ACD_PUDDLE_HEAT[skillOf(t, "contagion")]; s.sprayMul = ACD_SPRAY_MUL[skillOf(t, "spray")]; s.skill = true;
 }
 // every step (stepAcd): each line drips a puddle every seep.every s; each
 // puddle ticks its burn on whatever stands in it, st.rate times a second
@@ -145,8 +151,7 @@ function stepPuddles(t, st, dt) {
       p.tick -= every;
       for (const e of G.enemies) {
         if (e.dead || (e.x - p.x) ** 2 + (e.y - p.y) ** 2 > p.r * p.r) continue;
-        damage(e, p.dps * every, t, false, false, st.puddleHit); e.burnT = 0.4; // a real hit: it pops shields - ACD_PUDDLE_POP of them
-        if (st.contagionSlow && !e.dead) applySlow(e, st.contagionSlow, 0.5, t.id + ":pud");
+        damage(e, p.dps * every, t, false, false); e.burnT = 0.4; // a real hit: it pops one shield charge
       }
     }
   }

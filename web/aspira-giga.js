@@ -21,9 +21,9 @@ const GIGA_NUM = [
   // SOL: Focus eight rays; Refraction a wider cone, harder hops; Breach armor stripped for good, far bigger crits
   [SOL_BEAMS, 8], [SOL_FOCUS_DMG, 1.3], [SOL_SHIELD_POP, 5], [SOL_REFRACTION, Infinity], [SOL_REFRACTION_DMG, 4], [SOL_REFRACT_SWIFT, 7],
   [SOL_CONE_BY, 100], [SOL_HOP, 1], [SOL_CRITMUL, 12], [SOL_BREACH_ARMOR, 150], [SOL_BREACH_CRIT, 0.08],
-  // ACD: Corrosion the strongest acid; Spray eleven jets; Contagion great, fast-dripping, long pools
-  [ACD_CORROSION_DMG, 6.7], [ACD_CORRODE, 0.4], [ACD_LINES, 11], [ACD_SPRAY_SWIFT, 3], [ACD_PUDDLE_POP, 13], [ACD_SPRAY_MUL, 1],
-  [ACD_CONTAGION, { every: 0.9, life: 14, r: 110 }], [ACD_PUDDLE_HEAT, 0.2], [ACD_CONTAGION_SLOW, 0.08],
+  // ACD: Corrosion the strongest acid; Flow eleven jets landing far hotter, slowing hard; Contagion MASSIVE, long pools
+  [ACD_CORROSION_DMG, 6.7], [ACD_CORRODE, 0.4], [ACD_LINES, 11], [ACD_FLOW_CARRY, 1.5], [ACD_FLOW_SLOW, 0.2], [ACD_SPRAY_MUL, 1],
+  [ACD_CONTAGION, { every: 1, life: 20, r: 150 }], [ACD_PUDDLE_HEAT, 0.2],
 ];
 for (const [table, v] of GIGA_NUM) if (table.length === GIGA_TIER) table.push(v);
 // the reach a giga tier buys ([range, slide, speed], SKILL_MOVE): ARC stays near today's cut (owner, 2026-10-11)
@@ -51,9 +51,9 @@ const GIGA_TIERS = {
   focus: { name: "Solar Flare", desc: "Eight rays of light, each a full strike." },
   refraction: { name: "Corona", desc: "Refracting on through every enemy ahead in a wide cone, and out of sight. Light outruns the fast: far harder on them." },
   breach: { name: "Starfire", desc: "Each beam strips its target's armor for good, and pierces it so every tower crits it far more." },
-  corrosion: { name: "Oblivion", desc: "Acid flow holds when switching targets, and dissolves armor." },
-  spray: { name: "Monsoon", desc: "Eleven jets of acid, each corroding the enemy. Jets bite the fast harder." },
-  contagion: { name: "Extinction", desc: "Great pools of acid that slow all who wade through them and eat shields." },
+  corrosion: { name: "Oblivion", desc: "The strongest acid, dissolving armor." },
+  spray: { name: "Monsoon", desc: "Eleven slowing jets; a jet lands far hotter on its next enemy." },
+  contagion: { name: "Extinction", desc: "Massive pools of acid that linger long." },
 };
 for (const axes of Object.values(SKILL_TREES)) for (const ax of axes) if (ax.tiers.length === GIGA_TIER - 1 && GIGA_TIERS[ax.id]) ax.tiers.push(GIGA_TIERS[ax.id]);
 ARC_KEEP.push("twice"); ARC_RETURN.push("four times");
