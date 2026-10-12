@@ -202,7 +202,7 @@ let ARC_CONDUCTIVITY = [{ s: 1, j: 1, f: 2, r: 1, d: 1, v: 0 }, { s: 1, j: 2, f:
 // charges instead of arcing more ... hits add more and more charges as you level up"): an ARC hit leaves `n`
 // charges, each worth `frac` of the hit; the next hit from anything sets them ALL off, each a BURST of radius
 // ARC_BURST_R round the enemy hitting everything inside (each burst its own hit: armor bites each, each pops a shield)
-const ARC_CAPACITANCE = [null, { n: 1, frac: 0.1 }, { n: 2, frac: 0.1 }, { n: 3, frac: 0.1 }, { n: 4, frac: 0.1 }, { n: 5, frac: 0.1 }]; // a burst hits all round it, so each charge is small: isolation I..V 110 119 150 167 184% (with the slows below)
+const ARC_CAPACITANCE = [null, { n: 1, frac: 0.14 }, { n: 2, frac: 0.14 }, { n: 3, frac: 0.14 }, { n: 4, frac: 0.14 }, { n: 5, frac: 0.14 }]; // frac 0.1 -> 0.14 (2026-10-12, chartvalue 30-60: tier III read 96% of the 2/2/2 team and 3/0/3 92% - now 99% / 98%) // a burst hits all round it, so each charge is small: isolation I..V 110 119 150 167 184% (with the slows below)
 const ARC_BURST_R = 70, ARC_BURST_A = 0.45;
 // each jump hits ARC_FALL as hard and reaches ARC_SHRINK as far as the one before (owner)
 const ARC_FALL = 0.5, ARC_SHRINK = 0.7;
