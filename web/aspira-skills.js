@@ -127,7 +127,7 @@ SKILL_TREES.acd = [
     { name: "Erode", desc: "Acid flow holds when switching targets. Acid eats armor." },
     { name: "Annihilate", desc: "Acid flow holds when switching targets. Acid eats armor." },
   ] },
-  { id: "spray", name: "Spray", base: "Two jets of acid at once, each on its own enemy.", tiers: [
+  { id: "spray", name: "Flow", base: "Two jets of acid at once, each on its own enemy.", tiers: [
     { name: "Mist", desc: "Three jets of acid at once, each on its own enemy. Jets bite the fast harder." },
     { name: "Downpour", desc: "Four jets of acid at once, each on its own enemy. Jets bite the fast harder." },
     { name: "Torrent", desc: "Six jets of acid at once, each on its own enemy. Jets bite the fast harder." },
