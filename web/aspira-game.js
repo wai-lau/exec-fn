@@ -13,7 +13,7 @@ function newGame() {
   if (typeof pushCells === "function") pushCells(0);
   return {
     money: START_MONEY, lives: 18, score: 0, wave: 0, interest: 0.03, // 18 = two full shield rings (owner)
-    towers: [], enemies: [], spawns: [], chains: [], nextIn: 0, started: false, over: false,
+    towers: [], enemies: [], spawns: [], fleetQ: [], chains: [], nextIn: 0, started: false, over: false,
     power: { SCR: 0, RNG: 0, MNY: 0, DAM: 0 }, charge: 0,
     nextLifeAt: 50000, id: 1,
   };
@@ -423,7 +423,7 @@ function step(dt) {
   // ...and not while the boss's inverted sky is still CLOSING (owner, 2026-10-09: "wait until boss inversion circle closes
   // before sending in next wave"; bossInv runs in the UI's render, so the simulator never waits)
   else if (!stopped && bossInv.phase !== "out" && ((G.nextIn <= 0 && !bossNext()) || waveClear())) { sendWave(); return; } // a BOSS wave never comes on the timer, only on a clear field (owner, 2026-10-09: "no time for boss waves")
-  if (!stopped) stepSpawns(dt);
+  if (!stopped) { stepSpawns(dt); stepFleetQ(dt); } // a boss fleet still riding in (aspira-bosses.js)
   stepEnemies(dt);
   if (G.over) return;
   stepChains(dt);

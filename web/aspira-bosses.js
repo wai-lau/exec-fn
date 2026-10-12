@@ -144,14 +144,14 @@ function bossFleet(e, n) {
       spawnEnemy(k, n, e.pi, e.ang || 0);
       const m = G.enemies[G.enemies.length - 1], r = ENEMIES[k].size;
       if (slots) { // its place in the boss's formation: across the lane, and ahead (+) or behind (-) the boss
-        m.form = true; m.lat = slots[c][0]; m.s = Math.max(0, e.s + slots[c][1]); m.ahead = slots[c][1]; m.aheadC = 0; // the boss is the centre
+        m.form = true; m.lat = slots[c][0]; m.s = e.s + slots[c][1]; m.ahead = slots[c][1]; m.aheadC = 0; // the boss is the centre
         reach[0] = Math.max(reach[0], slots[c][1] + r); reach[1] = Math.max(reach[1], -slots[c][1] + r);
       } else {
       // spaced so NOTHING OVERLAPS (owner, 2026-10-09: "increase spacing between all units and boss during boss waves so
       // that they don't overlap"): each clears the boss and the one before it by FLEET_GAP, ahead, behind, ahead...
       const side = i % 2;
       reach[side] += FLEET_GAP + r;
-      m.s = Math.max(0, e.s + (side ? -1 : 1) * reach[side]);
+      m.s = e.s + (side ? -1 : 1) * reach[side];
       reach[side] += r;
       }
       // in FORMATION: at the boss's own pace, so the spacing holds (a fast escort behind would run through it)
@@ -161,6 +161,27 @@ function bossFleet(e, n) {
     }
   }
   e.fleetSpan = reach[0] + reach[1]; G.lastBoss = e; // how much lane it takes, ahead + behind (stepSpawns spaces a second boss by it)
+  queueFleet(e);
+}
+// the fleet ENTERS ONE AT A TIME at the lane's mouth like any wave (owner, 2026-10-12: "make boss wave spawn 1 unit at a
+// time like the other waves"; it popped in whole, the escorts ahead mid-lane): the formation slid back so its front unit
+// starts at the mouth, and every unit still behind the mouth (the boss too) HELD in G.fleetQ, riding on at its own pace
+// unseen, till it reaches the mouth (stepFleetQ)
+function queueFleet(e) {
+  const s0 = entryS(e.pi), all = [e, ...e.fleet], back = Math.max(...all.map(m => m.s)) - s0;
+  for (const m of all) {
+    m.s -= back;
+    if (m.s < s0 - 0.01) { G.enemies.splice(G.enemies.indexOf(m), 1); G.fleetQ.push(m); }
+  }
+}
+function stepFleetQ(dt) {
+  if (!G.fleetQ.length) return;
+  G.fleetQ = G.fleetQ.filter(m => {
+    m.s += effSpeed(m) * dt;
+    if (m.s < entryS(m.pi)) return true;
+    const p = pathAt(m.pi, m.s, m.ang || 0); m.x = p.x; m.y = p.y; G.enemies.push(m);
+    return false;
+  });
 }
 // each step, for a live boss: Empress's brood, the sprint, regeneration
 function bossStep(e, dt) {

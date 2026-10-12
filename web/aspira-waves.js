@@ -11,7 +11,7 @@ const WAVE_TIMER = 16; // owner: 10 -> 13 -> 16s to thin the field
 // the boss (the star) is alive or still queued to spawn
 const bossUp = () => G.enemies.some(e => !e.dead && ENEMIES[e.type].star) ||
   G.spawns.some(w => w.list.slice(w.idx).some(t => ENEMIES[t].star));
-const waveClear = () => !G.enemies.some(e => !e.dead) && G.spawns.length === 0;
+const waveClear = () => !G.enemies.some(e => !e.dead) && G.spawns.length === 0 && !G.fleetQ.length;
 // the NEXT wave is a boss's: it waits for a clear field, no timer (aspira-game.js step, the wave list)
 const bossNext = () => (G.wave + 1) % STAR_EVERY === 0;
 // ONE enemy type per wave (owner, 2026-10-02, back from the 1-5 type mix):
@@ -72,8 +72,8 @@ function wavePlan(n, prev) {
   const raw = waveCount(type, n);
   // split k ways, ROUNDED DOWN so every lane copy gets the same number (owner)
   // FORMATIONS stay whole (aspira-formations.js): shields split only into whole Vs, armor into whole rows
-  const split = formSplit(type, raw, Math.min(raw, 1 + Math.floor(fixedRand(n, 3) * 6)));
-  return { type, count: Math.floor(raw / split) * split, split, star: n % STAR_EVERY === 0 };
+  const split = formSplit(type, raw, n);
+  return { type, count: laneCount(type, raw, split), split, star: n % STAR_EVERY === 0 };
 }
 function makeWave(n) {
   const { type, count } = wavePlan(n, G.lastType);
@@ -114,9 +114,8 @@ function sendWave() {
     // (a boss wave takes its split from the boss: the Devil's six come from
     // six directions, one per rotated copy of the lane)
     const boss = G.wave % STAR_EVERY === 0;
-    const want0 = boss ? bossSplit(G.wave) : 1 + Math.floor(fixedRand(G.wave, 3) * 6);
     // FORMATIONS stay whole (aspira-formations.js): shields split only into whole Vs, armor into whole rows
-    const want = boss ? want0 : formSplit(list[0], list.length, want0);
+    const want = boss ? bossSplit(G.wave) : formSplit(list[0], list.length, G.wave);
     const k = Math.min(list.length, want), per = Math.floor(list.length / k);
     for (let j = 0; j < k; j++) {
       const part = list.slice(j * per, (j + 1) * per);

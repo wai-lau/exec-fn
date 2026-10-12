@@ -41,15 +41,18 @@ const FORM_UNIT = { shield: V_N, fast: 2 }, FORM_GROUP = { shield: V_N, armor: A
 // (2026-10-11: one armor block on one lane made armor free - all 36 sim games won, armor 0 lives - so armor splits
 // again, in WHOLE ROWS; ARMOR_ONE_BLOCK true brings the single block back. let: the simulator sweeps it)
 let ARMOR_ONE_BLOCK = false;
-function formSplit(type, count, want) {
-  const unit = FORM_GROUP[type];
-  if (!unit) return Math.min(count, want);
+// HOW MANY LANES each type rides (owner, 2026-10-12: "swarm should always use 5-6 paths, fast 2-3, armor 1-3, shield
+// 3-5"; was 1-6 for all): the wave's pick in the range, else the nearest in it that splits the groups evenly, else the
+// pick with the odd groups dropped (laneCount rounds the count down to whole groups per lane)
+const LANE_SPLIT = { swarm: [5, 6], fast: [2, 3], armor: [1, 3], shield: [3, 5] };
+function formSplit(type, count, n) {
   if (type === "armor" && ARMOR_ONE_BLOCK) return 1;
-  const groups = Math.max(1, Math.floor(count / unit));
-  let k = Math.min(want, groups);
-  while (k > 1 && groups % k) k--;
-  return k;
+  const [lo, hi] = LANE_SPLIT[type] || [1, 6], unit = FORM_GROUP[type] || 1, groups = Math.max(1, Math.floor(count / unit));
+  const want = lo + Math.floor(fixedRand(n, 3) * (hi - lo + 1));
+  for (let d = 0; d <= hi - lo; d++) for (const k of [want - d, want + d]) if (k >= lo && k <= hi && k <= groups && groups % k === 0) return k;
+  return Math.min(want, groups);
 }
+const laneCount = (type, count, k) => { const unit = FORM_GROUP[type] || 1; return Math.floor(count / (k * unit)) * k * unit || count; };
 // from stepSpawns: spawn the next formation of `type` from wave part w at once; returns how many it took (0: none)
 function formSpawn(w, type) {
   const f = FORMS[type];
