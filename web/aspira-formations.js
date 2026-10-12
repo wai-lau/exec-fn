@@ -47,8 +47,8 @@ let ARMOR_ONE_BLOCK = false;
 // HOW MANY LANES each type rides (owner, 2026-10-12: "swarm should always use 5-6 paths, fast 2-3, armor 1-3, shield
 // 3-5"; was 1-6 for all): the wave's pick in the range, else the nearest in it that splits the groups evenly, else the
 // pick with the odd groups dropped (laneCount rounds the count down to whole groups per lane)
-const LANE_SPLIT = { swarm: [5, 6], fast: [2, 3], armor: [1, 3] };
-const SHIELD_LANES = [3, 5]; // 3 OR 5, never 4 (owner, 2026-10-12: "make it 3 or 5 - shield should not use 4 lanes")
+const LANE_SPLIT = { swarm: [5, 6], fast: [3, 4] /* 3-4 (owner, 2026-10-12; was 2-3) */, armor: [1, 3] };
+const SHIELD_LANES = [2, 3]; // 2-3 (owner, 2026-10-12; briefly 3 or 5, never 4)
 function formSplit(type, count, n) {
   if (type === "armor" && ARMOR_ONE_BLOCK) return 1;
   if (type === "shield") return SHIELD_LANES[Math.floor(fixedRand(n, 3) * SHIELD_LANES.length)]; // always (laneCount rounds up)
