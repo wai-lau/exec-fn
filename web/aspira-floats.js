@@ -111,7 +111,7 @@ function creditDot(x, y, b) {
   const grp = { b, left: vals.length };
   for (const v of vals) {
     const a = Math.random() * 6.283, r = vals.length > 1 ? COIN_JIT * Math.sqrt(Math.random()) : 0;
-    coins.push({ x: x + Math.cos(a) * r, y: y + Math.sin(a) * r, b: v, face: COIN_FACES.find(f => v >= f && v < f + 1) || 1, grp, t: 0 });
+    coins.push({ x: x + Math.cos(a) * r, y: y + Math.sin(a) * r, b: v, face: COIN_FACES.find(f => v >= f && v < f + 1) || 1, grp, t: 0, ph: Math.random() * 6.283 });
   }
 }
 // coins GRAVITATE to the NEAREST of the core and the towers (owner, 2026-10-12), re-picked every step since towers
@@ -147,17 +147,20 @@ function stepCoins(dt) {
   coins = coins.filter(c => !c.done);
 }
 // a coin's look by face (owner): 1 the plain gold dot; 5 a gold ring around black; 10 a gold ring around white;
-// 20 a white ring around gold - [radius, ring colour, fill colour]
-const COIN_LOOK = { 1: [COIN_R, "orange", "orange"], 5: [4, "orange", "bg"], 10: [4.5, "orange", "white"], 20: [5, "white", "orange"] };
+// 20 a white ring around gold - [radius, ring colour, fill colour]. SMALLER, fainter, and each TWINKLES slowly on its
+// own phase (owner, 2026-10-12: "make all coins smaller, less opaque and twinkle slowly"; were r 2.5 / 4 / 4.5 / 5, opaque)
+const COIN_LOOK = { 1: [1.8, "orange", "orange"], 5: [2.8, "orange", "bg"], 10: [3.1, "orange", "white"], 20: [3.5, "white", "orange"] };
+const COIN_ALPHA = 0.55, COIN_TWINKLE = 0.3, COIN_TWINKLE_HZ = 0.35; // alpha swings COIN_ALPHA +- COIN_TWINKLE, real time
 function drawCoins() {
   if (!coins.length) return;
-  ctx.globalAlpha = 1;
-  for (const face of [1, 5, 10, 20]) {
-    const [r, ring, fill] = COIN_LOOK[face], set = coins.filter(c => c.face === face);
-    if (!set.length) continue;
-    ctx.beginPath();
-    for (const c of set) { ctx.moveTo(c.x + r, c.y); ctx.arc(c.x, c.y, r, 0, 6.283); }
+  const now = performance.now() / 1000;
+  ctx.lineWidth = 1.1;
+  for (const c of coins) {
+    const [r, ring, fill] = COIN_LOOK[c.face];
+    ctx.globalAlpha = COIN_ALPHA + COIN_TWINKLE * Math.sin(now * COIN_TWINKLE_HZ * 6.283 + c.ph);
+    ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, 6.283);
     ctx.fillStyle = COL[fill]; ctx.fill();
-    if (ring !== fill) { ctx.strokeStyle = COL[ring]; ctx.lineWidth = 1.5; ctx.stroke(); }
+    if (ring !== fill) { ctx.strokeStyle = COL[ring]; ctx.stroke(); }
   }
+  ctx.globalAlpha = 1;
 }
