@@ -71,7 +71,7 @@ const arcanaOf = n => ARCANA[Math.min(ARCANA.length, Math.max(1, Math.round(n / 
 // how many bosses ride a boss wave: the Lovers come as two, the Devil as six,
 // one on each of six lane copies
 const bossCount = n => (arcanaOf(n).id === "devil" ? 1 + DEVIL_COPIES : arcanaOf(n).id === "lovers" ? 2 : 1);
-const bossSplit = n => (arcanaOf(n).id === "devil" ? 1 + DEVIL_COPIES : 1);
+const bossSplit = n => (arcanaOf(n).id === "devil" ? 1 + DEVIL_COPIES : arcanaOf(n).id === "lovers" ? 2 : 1); // the Lovers on TWO lanes, opposite (owner, 2026-10-12; they shared one)
 const isA = (e, id) => e.arcana === id;
 
 // from spawnEnemy: name the boss for its wave, and pair up the two of a pair
