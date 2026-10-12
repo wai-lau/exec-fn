@@ -49,7 +49,7 @@ const SOLIDS = (() => {
 const SOLID_ROLL = 10, SOLID_FAR_MIN = 0.2, SOLID_BREACH_LEN = 0.25, SOLID_BREACH_W = 0.15, SOLID_FROZEN_A = 0.5; // BREACH_*: the spike's half length (x size) and width (px) added per stack // ROLL: size x this per radian (owner: "reduce rotation rate by 10x", was 1)
 
 // the die's size (drawEnemy's)
-const solidSize = e => { const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max); return d.size * (e.arcana ? 1 : 0.45 + 0.55 * f) * (e.sizeMul || 1) /* a BOSS stays full size, the biggest on the board, whatever its HP (owner, 2026-10-12) */; };
+const solidSize = e => { const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max); return d.size * (e.arcana ? f : 0.45 + 0.55 * f) * (e.sizeMul || 1); };
 // one enemy as its die: P its projected floor spot, k / c / s the local scale and the camera's lean
 // its GEOMETRY is built once a frame (solidGeom, cached on the enemy by warp.frame) and only DRAWN per floor slice -
 // it was rebuilt in each of warpBands' nine passes, half the 3D frame with 130 enemies (profiled 2026-10-09)

@@ -70,7 +70,7 @@ function drawEnemy(e, solid) {
   // a ghost (dead enemy) is INVISIBLE: it only carries the beams that follow it
   if (e.dead) return;
   // a boss shrinks all the way with its HP, to nothing at 0% (owner); others keep 45%
-  const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max), size = d.size * (e.arcana ? 1 : 0.45 + 0.55 * f) * (e.sizeMul || 1) /* a BOSS stays full size, the biggest on the board, whatever its HP (owner, 2026-10-12) */;
+  const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max), size = d.size * (e.arcana ? f : 0.45 + 0.55 * f) * (e.sizeMul || 1);
   if (TRAIL[e.type] && !lowQ) { // low quality: no tracers
     drawStarTrail(e, size);
     // the body is see-through, so blank its shape first: the tracer must not
