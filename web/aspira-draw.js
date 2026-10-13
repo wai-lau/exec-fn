@@ -468,7 +468,7 @@ function drawScene([sx, sy], clipR) {
   // in 3D the towers, the core and the enemies are drawn FLAT over the bell instead (warpEntities, aspira-warp.js)
   drawLeash(); // the movement indicator turns over with the sky too (owner, 2026-10-11)
   skyKeep(() => { if (!q3d()) for (const t of G.towers) drawTower(t); drawRelayArm(); }); // towers keep their colours on a boss sky (owner); an armed Relay rings them (aspira-powers.js)
-  drawSlotFlash(); drawCoins(); // a corner slot that just opened (aspira-waves.js); the credits flying home (aspira-floats.js)
+  drawSlotFlash(); drawCoins(); drawThreat(); // (drawThreat: the nearest danger's ring and spoke, aspira-ui.js) a corner slot that just opened (aspira-waves.js); the credits flying home (aspira-floats.js)
   if (!q3d()) {
     if (ui.build && ui.hover) drawPlacement();
     drawCore();

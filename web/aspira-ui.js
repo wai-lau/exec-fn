@@ -120,6 +120,24 @@ try { autoWait = localStorage.getItem("spire.autowait") !== "0"; } catch (e) { a
 // Worked out at most once a frame (it is asked several times).
 const AUTO_RELEASE = 1.25, AUTO_HOLD_MS = 1500;
 let awLevel = 0, awSince = 0, awAt = -1;
+// THE THREAT, SHOWN (owner, 2026-10-12: "when units get close, draw a faint red around the core under the enemies - the radius
+// the distance between the enemy and core - and a spoke from core to the nearest enemy, at the distances where auto-wait
+// engages (regardless if it is on or not)"): each enemy within AUTO_WAIT_S of the core (the soonest THREAT_N) rings the
+// core at its own distance with a spoke out to it, fainter far off and stronger as it closes
+const THREAT_A = 0.35;
+const THREAT_N = 10; // up to the 10 soonest (owner, 2026-10-12: "nearest up to 10 enemies")
+function drawThreat() {
+  const near = [];
+  for (const e of G.enemies) if (!e.dead) { const t = etaToCore(e); if (t <= AUTO_WAIT_S) near.push([t, e]); }
+  if (!near.length) return;
+  near.sort((a, b) => a[0] - b[0]);
+  ctx.save(); ctx.strokeStyle = COL.pink; ctx.lineWidth = 2;
+  for (const [t, e] of near.slice(0, THREAT_N)) {
+    ctx.globalAlpha = THREAT_A * (0.3 + 0.7 * (1 - t / AUTO_WAIT_S));
+    ctx.beginPath(); ctx.arc(CX, CY, Math.hypot(e.x - CX, e.y - CY), 0, 6.283); ctx.moveTo(CX, CY); ctx.lineTo(e.x, e.y); ctx.stroke();
+  }
+  ctx.restore();
+}
 const autoWaiting = () => {
   if (!autoWait || ui.paused) { awLevel = 0; return 0; }
   const now = performance.now();
