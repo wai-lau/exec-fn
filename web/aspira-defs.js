@@ -48,6 +48,8 @@ const CORNER_SLOTS = [], CORNER_IN = 171, TILE_R = CORNER_IN;
 // A BOSS EVERY 12 WAVES (owner, 2026-10-12: "add 2 waves before each boss"; every 10 until then): the difficulty, count and
 // money curves were tuned on 10-wave cycles, so they read a wave as its 10-cycle EQUIVALENT (wave 12 = old 10, 120 = old 100)
 // - each boss as strong as before, two more waves before it
+// every NON-boss enemy x1.5 HP (owner, 2026-10-12: the 12-cycle battery won 36/36 losing ~3 lives a game - "yes" to x1.5)
+const PLAIN_HP_MUL = 1.5;
 const WAVE_K = 10 / 12, eqWave = n => n * WAVE_K;
 const BUILD_R = RIM_R - 6;
 // the graticule spokes and the star field start out here (no longer tied to
