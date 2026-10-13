@@ -54,7 +54,7 @@ void main() {
 }`;
 const WARP_FS = `
 precision mediump float;
-uniform sampler2D tex; uniform vec2 edge; uniform vec3 gridCol; uniform vec4 grid; // grid: ring, spoke angle, far, alpha
+uniform sampler2D tex, dyn; uniform vec2 edge; // dyn: the moving layer, premultiplied, over the board (aspira-warplayers.js) uniform vec3 gridCol; uniform vec4 grid; // grid: ring, spoke angle, far, alpha
 uniform float towers, onBoard, op, neck, bgA, invR; uniform vec3 bgCol, shape; // shape: the funnel's head rim, foot (world units), power // op: the whole bell SEMI-TRANSPARENT, nothing occluded (owner)
 varying vec2 uv; varying float sh, rr, th;
 float line(float d, float wd) { return 1.0 - smoothstep(wd * 0.5, wd * 1.5, d); }
@@ -74,7 +74,7 @@ void main() {
   // up to the core (the spokes fade where they crowd it), half as strong over the head
   float gk = max(ring, spoke * smoothstep(20.0, 60.0, rr)) * grid.w * (0.5 + 0.5 * smoothstep(towers, towers + 30.0, rr)) * (1.0 - smoothstep(grid.z * 0.7, grid.z, rr));
   gk *= 1.0 - board * (1.0 - onBoard); // faint over the board itself: the lanes stay readable
-  vec3 raw = texture2D(tex, uv).rgb;
+  vec4 dv = texture2D(dyn, uv); vec3 raw = texture2D(tex, uv).rgb * (1.0 - dv.a) + dv.rgb;
   // a BOSS SKY inverts the board (white ground, dark ink): back to the plain palette here, or its white reads as ink
   // and the bell turns into a grey slab (owner, 2026-10-09)
   // only INSIDE the sky's circle round the core (invR, world units; the 2D view inverts exactly there): a guess by colour
@@ -196,15 +196,7 @@ function unwarpFull(x, y) {
   const q = unwarp(x * warpRes(), y * warpRes());
   return q && { x: q.x / warpRes(), y: q.y / warpRes() };
 }
-function warpRender() {
-  // SHARP (owner: "all these are so blurry, make them sharp"): the picture is a SQUARE as fine as the view's own scale
-  // (capped at WARP_TEX_MAX px), not the screen-sized canvas squeezed to fit the board - that was ~3x coarser than the view
-  const S = Math.min(WARP_TEX_MAX, Math.round(warpTexCap / 64) * 64, Math.ceil(2 * WARP_TEX_R * cam.k)); // warpTexCap follows the frame rate (aspira-quality.js), stepped by 64 so it is not resized every frame
-  if (cv.width !== S || cv.height !== S) { cv.width = S; cv.height = S; } // (resize() sets it back for 2D)
-  const view = { ...cam }, k = S / (2 * WARP_TEX_R);
-  Object.assign(cam, { k, ox: S / 2 - CX * k, oy: S / 2 - CY * k });
-  try { render(); } finally { warp.texCam = { ...cam }; Object.assign(cam, view); }
-}
+// warpRender: the picture, in two layers (aspira-warplayers.js)
 // one frame: the 2D picture onto the bell (aspira-ui.js frame calls this after render)
 function warpDraw() {
   const gl = warpInit();
@@ -217,11 +209,10 @@ function warpDraw() {
   gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.disable(gl.DEPTH_TEST); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); // no depth: the far side shows through the near (owner: "should not occlude")
   gl.useProgram(pr);
-  gl.bindTexture(gl.TEXTURE_2D, warp.tex);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv);
   const u = n => gl.getUniformLocation(pr, n);
+  warpLayersBind(gl, u); // the board and the moving layer, each sent up only when redrawn (aspira-warplayers.js)
   gl.uniform2f(u("core"), p.core[0], p.core[1]); gl.uniform2f(u("size"), sc.w, sc.h); gl.uniform2f(u("texSize"), cv.width, cv.height);
-  const tc = warp.texCam || cam; gl.uniform3f(u("texCam"), tc.ox + CX * tc.k, tc.oy + CY * tc.k, tc.k);
+  const tc = warp.texCam || cam, [shx, shy] = warp.shake || [0, 0]; gl.uniform3f(u("texCam"), tc.ox + CX * tc.k + shx, tc.oy + CY * tc.k + shy, tc.k); // (shake: the whole picture, both layers)
   for (const n of ["D", "L", "P", "T", "hc", "e", "c", "s", "f", "k", "z", "oy"]) gl.uniform1f(u(n), p[n]);
   gl.uniform2f(u("edge"), WARP.edge[0], WARP.edge[1]);
   gl.uniform3fv(u("gridCol"), warpGridRgb()); gl.uniform3fv(u("bgCol"), warpGridRgb("bg"));

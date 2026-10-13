@@ -443,9 +443,17 @@ function drawScene([sx, sy], clipR) {
   ctx.setTransform(cam.k, 0, 0, cam.k, cam.ox + sx, cam.oy + sy);
   ctx.save();
   if (clipR) { ctx.beginPath(); ctx.arc(bossInv.x, bossInv.y, clipR, 0, 6.283); ctx.clip(); }
+  drawSceneBase(); drawSceneTop();
+  ctx.restore();
+}
+// the BOARD under everything - in 3D its own layer, redrawn only every WARP_STAT_MS (aspira-warplayers.js)
+function drawSceneBase() {
   ctx.fillStyle = COL.bg; ctx.globalAlpha = 1; ctx.fillRect(CX - 4000, CY - 4000, 8000, 8000);
   if (!q3d()) drawFx("dmg"); // (3D: flat, warpEntities) damage numbers just above the background, under all else (the cooldown dial moved to buttons above the title - aspira-powers.js)
   drawBoard();
+}
+// everything that MOVES, over the board - in 3D its own layer, every frame
+function drawSceneTop() {
   drawBossBar(); // a live boss's HP line along the horizon, UNDER the towers and their effects (owner)
   const sel = ui.sel && G.towers.find(t => t.id === ui.sel);
   const ranges = k => () => { for (const t of G.towers) if (t !== sel) drawTowerRange(t, !k, k); if (sel) drawTowerRange(sel, false, k); }; // (sky: every one at full strength - "range should be visible during boss waves") // tower colours survive the boss sky (2026-10-11) - but RANGES go white, unkept, so the inversion turns them BLACK (owner, 2026-10-12)
@@ -473,7 +481,6 @@ function drawScene([sx, sy], clipR) {
     text(bannerText, CX, 70, 30, bannerCol, true); // smaller (owner, 2026-10-06; was 44)
     ctx.globalAlpha = 1;
   }
-  ctx.restore();
 }
 // the whole palette inverted while fn draws (invertColor keeps alpha); the
 // inverted set is built once, COL being fixed after resolveColors
