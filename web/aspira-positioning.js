@@ -104,13 +104,22 @@ function bestSpot(t, range) {
 let autoMove = false;
 try { autoMove = localStorage.getItem("spire.automove") === "1"; } catch (e) { /* not remembered */ }
 const HUMAN_V = 600; // a phone's width (500 units) in under a second
+const GLIDE_TURNS = [0, 0.5, -0.5, 1, -1, 1.4, -1.4], GLIDE_GIVE_UP = 2; // radians off the straight line, tried in order
 function autoGlide(t, dt) {
   t.posT = (t.posT || 0) - dt;
   if (t.posT <= 0) { t.posT = POS_EVERY; const s = bestSpot(t, towerStats(t).range); if (s) t.goal = s; }
   if (!t.goal || (typeof towerHeld === "function" && towerHeld(t)) || t.fling) return;
   const real = dt / Math.max(0.01, typeof speedX === "function" ? speedX() : 1), dx = t.goal.x - t.x, dy = t.goal.y - t.y, d = Math.hypot(dx, dy), step = HUMAN_V * real;
   if (d <= step) { moveTower(t, t.goal); t.goal = null; return; }
-  if (!moveTower(t, { x: t.x + dx / d * step, y: t.y + dy / d * step })) t.goal = null; // blocked: think again next time
+  // NEVER STUCK (owner, 2026-10-13: "ensure that the towers don't get stuck during simulations"): straight at it, else STEERED
+  // round what is in the way (another tower, the core) - the first heading GLIDE_TURNS off the line that both moves it and
+  // brings it nearer; none: the goal is dropped and the next plan waits GLIDE_GIVE_UP x POS_EVERY (a sim: 3-6% of steps stalled)
+  const a0 = Math.atan2(dy, dx);
+  for (const da of GLIDE_TURNS) {
+    const s = legalSpot(t, { x: t.x + Math.cos(a0 + da) * step, y: t.y + Math.sin(a0 + da) * step });
+    if (s && Math.hypot(s.x - t.x, s.y - t.y) > step * 0.3 && Math.hypot(t.goal.x - s.x, t.goal.y - s.y) < d) { t.x = s.x; t.y = s.y; return; }
+  }
+  t.goal = null; t.posT = POS_EVERY * GLIDE_GIVE_UP;
 }
 // the simulator's player, every step (aspira-game.js) - GLIDING like auto-move when POS_GLIDE (owner, 2026-10-13: "limit the
 // tower movements to the current auto-move settings"; it jumped). let: the simulator sets it
