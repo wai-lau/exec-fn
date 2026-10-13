@@ -4049,7 +4049,8 @@ slug -- cannot test guessed names (or name + passphrase) against stored
 public keys.
 
 **Accepted limits**: Ask noodle still sends its text + the pickable dates
-through the server to Haiku (never stored); anyone with the SLUG (no key
+through the server to Haiku (never stored) -- owner's call 2026-10-12: a
+grey note under the Ask box says so (`.nd-ask-note`), no redesign; anyone with the SLUG (no key
 needed) can post seats whose sealed contents are junk (dropped when drawn,
 no cap on how many), and a link holder can claim a name first; the claim
 key derives from the poll key, so anyone the creator hands the raw draft

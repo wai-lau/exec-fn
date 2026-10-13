@@ -25,7 +25,7 @@
   cursor: pointer;
 }
 .nd-ask-go:disabled { border-color: hsl(var(--gray-hsl) / 0.45); color: hsl(var(--gray-hsl) / 0.45); cursor: default; }
-.nd-ask .nd-status { margin: 0; }
+.nd-ask .nd-status, .nd-ask .nd-ask-note { margin: 0; }
 .nd-card textarea { resize: none; line-height: var(--lh-snug); }
 
 /* the Ask box's text is small (feedback 2026-10-03): the box is a few lines
