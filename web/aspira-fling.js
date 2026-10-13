@@ -25,6 +25,7 @@ function flingRelease(mv) {
 }
 // every frame (frame, aspira-ui.js), in real seconds
 function stepFlings(dt) {
+  if (towersFrozen()) return; // (aspira-camera.js)
   // a leash that SHRANK (a resize, a zoom, a tier) pulls its tower back inside: the dashed circle always holds it (owner)
   for (const t of G.towers) { const c = CELLS[t.cell]; if (!t.fling && !towerHeld(t) && Math.hypot(t.x - c.x, t.y - c.y) > leashR(t) + 0.5) moveTo(t, t); }
   for (const t of G.towers) {

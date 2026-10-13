@@ -36,8 +36,11 @@ function grabPower(ev) {
   }
   return grabTower(ev);
 }
+// towers STAY PUT while the game is paused or the boss sky turns over (owner, 2026-10-12: "no tower movement during game pause
+// and inversion change"): no grab, no drag, no coasting (stepFlings)
+const towersFrozen = () => ui.paused || (G.started && typeof skyTurning === "function" && skyTurning());
 function grabTower(ev) {
-  const w = toWorld(ev), t = !ui.build && !ui.relayArm && pickTower(ev);
+  const w = toWorld(ev), t = !ui.build && !ui.relayArm && !towersFrozen() && pickTower(ev);
   return t ? { kind: "move", t, dx: t.x - w.x, dy: t.y - w.y } : null;
 }
 // a power drag let go: the Relay on the tower under it
@@ -93,7 +96,7 @@ cv.addEventListener("pointermove", ev => {
   const mv = moves.get(ev.pointerId);
   if (mv) { // this finger holds a tower: it follows the finger, held to its leash (moveTo), no pan
     if (!mv.dragged && Math.hypot(now.x - mv.down.x, now.y - mv.down.y) > DRAG_PX * canvasDpr()) mv.dragged = dragged = true;
-    if (mv.dragged) { const w = toWorld(ev); moveTo(mv.t, { x: w.x + mv.dx, y: w.y + mv.dy }); relayFollow(mv.t); flingTrack(mv); } // the Relay follows the tower last dragged (aspira-core.js)
+    if (mv.dragged && !towersFrozen()) { const w = toWorld(ev); moveTo(mv.t, { x: w.x + mv.dx, y: w.y + mv.dy }); relayFollow(mv.t); flingTrack(mv); } // the Relay follows the tower last dragged (aspira-core.js)
     return;
   }
   if (moves.size) return; // the other finger holds a tower: this one does nothing

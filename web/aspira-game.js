@@ -10,7 +10,7 @@ const START_MONEY = 120; // owner, 2026-10-02 (was 100; the 10000 playtest start
 function newGame() {
   // NULLIFY moved the slots out; a new game puts them home (aspira-core.js
   // loads after this file, so the very first call finds no pushCells yet)
-  if (typeof pushCells === "function") pushCells(0);
+  if (typeof pushCells === "function") pushCells(0); if (typeof bossInv === "object") Object.assign(bossInv, { phase: "off", full: false, r: 0 }); // (no boss sky carried over)
   return {
     money: START_MONEY, lives: 18, score: 0, wave: 0, interest: 0.03, // 18 = two full shield rings (owner)
     towers: [], enemies: [], spawns: [], fleetQ: [], chains: [], nextIn: 0, started: false, over: false,
@@ -421,7 +421,7 @@ function stepEnemies(dt) {
       e.dead = true;
       const before = G.lives;
       G.lives -= ENEMIES[e.type].leak || 1;
-      sfx("leak"); shakeScreen(); livesLost(); threatBounce(e); // (threatBounce: its threat ring bounces out, aspira-ui.js) "X lives left" where the interest pop-up goes (aspira-waves.js)
+      sfx("leak"); shakeScreen(); livesLost(); if (typeof threatBounce === "function") threatBounce(e); // (threatBounce: its threat ring bounces out, aspira-ui.js) "X lives left" where the interest pop-up goes (aspira-waves.js)
       ring(e.x, e.y, 40, "pink", 0.17);
       // a BOSS that gets through ends the game outright (owner, 2026-10-02)
       if (ENEMIES[e.type].star) { G.lives = 0; G.breachBy = e.arcana; } // the end title names the boss (BOSS_BREACH)
