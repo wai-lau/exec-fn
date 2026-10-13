@@ -34,6 +34,9 @@ JOURNAL_NAME = "spire_ascendants.jsonl"
 # the full session carries owner: true; games from before that flag are named in OWNER_MARKS ([ts, initials] pairs, set
 # once by `python spire_board.py mark-owner <keep...>`) - the journal stays append-only, nothing in it is rewritten
 OWNER_MARKS = "spire_ascendants_owner.json"
+# games taken off the board for EVERYONE, by (ts, initials) (owner, 2026-10-13: "remove wai ugh and boo from the board"; written by
+# `python spire_board.py hide <initials...>`) - like OWNER_MARKS, the journal stays append-only and keeps them
+HIDDEN = "spire_ascendants_hidden.json"
 SHOW_MAX = 500  # the most the GET returns (display only - the store keeps every entry)
 MAX_LIVES = 100000
 MIN_WAVE, WIN_WAVE, MAX_WAVE = 11, 120, 1000  # (a win is wave 120 since the 12-wave boss cycle, 2026-10-12)
@@ -143,12 +146,29 @@ def _owner_marks(data_dir: Path) -> set:
         return set()
 
 
+def _hidden(data_dir: Path) -> set:
+    try:
+        return {(int(ts), str(ini)) for ts, ini in json.loads((data_dir / HIDDEN).read_text())}
+    except (OSError, ValueError, TypeError):
+        return set()
+
+
 def visible(data_dir: Path, rows: list, owner: bool) -> list:
-    """`rows` as this caller may see them: everything for the owner, everyone else without the owner's own games."""
+    """`rows` as this caller may see them: never a HIDDEN game; everything else for the owner, everyone else without the owner's own games."""
+    gone = _hidden(data_dir)
+    rows = [r for r in rows if (r.get("ts"), r.get("initials")) not in gone]
     if owner:
         return rows
     marks = _owner_marks(data_dir)
     return [r for r in rows if not r.get("owner") and (r.get("ts"), r.get("initials")) not in marks]
+
+
+def hide(data_dir: Path, initials: set) -> int:
+    """Take every game under these initials off the board for everyone - by NAME in HIDDEN, the journal untouched; returns how many."""
+    rows = [r for r in load(data_dir) if r.get("initials") in initials and isinstance(r.get("ts"), int)]
+    marks = sorted(_hidden(data_dir) | {(r["ts"], r["initials"]) for r in rows})
+    _write_board(data_dir / HIDDEN, [list(m) for m in marks])
+    return len(rows)
 
 
 def mark_owner(data_dir: Path, keep: set) -> int:
@@ -194,8 +214,11 @@ def _merge(journal: list, board: list) -> list:
 if __name__ == "__main__":  # docker compose exec api python spire_board.py mark-owner JUU SMD
     import sys
 
-    if len(sys.argv) >= 2 and sys.argv[1] == "mark-owner":
+    if len(sys.argv) >= 2 and sys.argv[1] == "hide":  # docker compose exec api python spire_board.py hide WAI UGH BOO
+        n = hide(Path(os.environ.get("DATA_DIR", "/app/data")), set(a.upper() for a in sys.argv[2:]))
+        print(f"hid {n} games")
+    elif len(sys.argv) >= 2 and sys.argv[1] == "mark-owner":
         n = mark_owner(Path(os.environ.get("DATA_DIR", "/app/data")), set(a.upper() for a in sys.argv[2:]))
         print(f"marked {n} games as the owner's")
     else:
-        print("usage: python spire_board.py mark-owner <initials to keep...>")
+        print("usage: python spire_board.py mark-owner <initials to keep...> | hide <initials...>")

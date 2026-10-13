@@ -108,3 +108,13 @@ def test_owner_games_are_hidden_from_guests(tmp_path):
     assert sorted(r["ts"] for r in spire_board.visible(tmp_path, rows, owner=False)) == [2, 4]
     assert len(spire_board.visible(tmp_path, rows, owner=True)) == 4
     assert len(spire_board.load(tmp_path)) == 4  # nothing removed from the store
+
+
+def test_hide_takes_initials_off_for_everyone_and_keeps_the_journal(tmp_path):
+    for ini in ("AAA", "WAI", "BOO"):
+        spire_board.add(tmp_path, spire_board.clean_entry({"initials": ini, "lives": 10, "team": ["sol"]}) | {"ts": len(ini) + ord(ini[0])})
+    assert spire_board.hide(tmp_path, {"WAI", "BOO"}) == 2
+    rows = spire_board.load(tmp_path)
+    for owner in (True, False):
+        assert [r["initials"] for r in spire_board.visible(tmp_path, rows, owner)] == ["AAA"]
+    assert len(spire_board._read_journal(tmp_path / spire_board.JOURNAL_NAME)) == 3  # never lost, only hidden
