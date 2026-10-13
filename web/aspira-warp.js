@@ -54,7 +54,7 @@ void main() {
 }`;
 const WARP_FS = `
 precision mediump float;
-uniform sampler2D tex, dyn; uniform vec2 edge; // dyn: the moving layer, premultiplied, over the board (aspira-warplayers.js) uniform vec3 gridCol; uniform vec4 grid; // grid: ring, spoke angle, far, alpha
+uniform sampler2D tex, dyn; /* dyn: the moving layer, premultiplied, over the board (aspira-warplayers.js) */ uniform vec2 edge; uniform vec3 gridCol; uniform vec4 grid; // grid: ring, spoke angle, far, alpha
 uniform float towers, onBoard, op, neck, bgA, invR; uniform vec3 bgCol, shape; // shape: the funnel's head rim, foot (world units), power // op: the whole bell SEMI-TRANSPARENT, nothing occluded (owner)
 varying vec2 uv; varying float sh, rr, th;
 float line(float d, float wd) { return 1.0 - smoothstep(wd * 0.5, wd * 1.5, d); }
