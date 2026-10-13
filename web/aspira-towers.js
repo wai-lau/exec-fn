@@ -395,19 +395,26 @@ function moveTower(t, p) { const s = legalSpot(t, p); if (s) { t.x = s.x; t.y = 
 const LEASH_HINT_S = 4, LEASH_HINT_FADE_S = 1;
 const hintLeash = t => { t.leashHint = performance.now() / 1000 + LEASH_HINT_S; };
 // AN UPGRADE READY (owner, 2026-10-13: "when a tower's upgrade is available, show a plus, centered on the origin hexagon of the
-// tower, flashing slowly, bold, flash the hex too at the same speed"): affordable and not maxed; both pulse at UP_FLASH_HZ
+// tower, flashing slowly, bold, flash the hex too at the same speed" - an UP ARROW since): affordable and not maxed; both pulse at UP_FLASH_HZ
 const UP_FLASH_HZ = 0.5, UP_PLUS_PX = 26;
 const upReady = t => t.lvl < maxLvl(t) && G.money >= upCost(t);
 const upPulse = now => 0.5 + 0.5 * Math.sin(now * UP_FLASH_HZ * 2 * Math.PI);
 // MORE OUTLINES THE HIGHER (owner, 2026-10-13: "they should have more outlines the higher level they are"): one hex per
 // UP_RING_LVLS levels (1 at L1-3 .. 6 at L16-18), each UP_RING_K of the hex further out
 const UP_RING_LVLS = 3, UP_RING_K = 0.14, upRings = t => Math.ceil(t.lvl / UP_RING_LVLS);
+// an UPWARD ARROW, h tall, centred on (x, y): filled in col with a dark outline (owner, 2026-10-13: "instead of + show upwards arrow")
+function upArrow(x, y, h, col) {
+  const w = h * 0.62, sw = h * 0.24, hh = h * 0.5, top = y - h / 2;
+  ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x + w / 2, top + hh); ctx.lineTo(x + sw / 2, top + hh); ctx.lineTo(x + sw / 2, top + h);
+  ctx.lineTo(x - sw / 2, top + h); ctx.lineTo(x - sw / 2, top + hh); ctx.lineTo(x - w / 2, top + hh); ctx.closePath();
+  ctx.lineJoin = "round"; ctx.strokeStyle = COL.bg; ctx.lineWidth = 3; ctx.stroke(); ctx.fillStyle = col; ctx.fill();
+}
 function drawUpPlus() { // over the towers (render, aspira-draw.js), so a tower on its own slot does not hide it
   const now = performance.now() / 1000;
   for (const t of G.towers) {
     if (!upReady(t)) continue;
     const c = CELLS[t.cell];
-    ctx.globalAlpha = 0.25 + 0.75 * upPulse(now); text("+", c.x, c.y, UP_PLUS_PX, TOWERS[t.kind].color, true, true);
+    ctx.globalAlpha = 0.25 + 0.75 * upPulse(now); upArrow(c.x, c.y, UP_PLUS_PX, COL[TOWERS[t.kind].color]);
   }
   ctx.globalAlpha = 1;
 }
