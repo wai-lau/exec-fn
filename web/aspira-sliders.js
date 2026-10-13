@@ -102,7 +102,7 @@ function pullAxis(t, i, want) {
   const top = axisCap(t, ax.id, add), holder = gigaHolder(t, ax.id, add);
   const to = Math.max(lock, Math.min(top, want));
   const why = want < lock ? ax.name + " " + roman(lock) + " is locked in" // (no "sell to undo" - owner, 2026-10-12)
-    : want > top && holder ? "One giga capstone per tower · " + holder.name + " " + roman(GIGA_TIER) + " holds it" : "";
+    : want > top && holder ? "One capstone per tower · " + holder.name + " " + roman(GIGA_TIER) + " holds it" : "";
   const was = add[ax.id] || 0;
   add[ax.id] = to - lock;
   if (was !== to - lock) refreshUpgradePreview(t);
