@@ -49,7 +49,7 @@ async function ascLoad() {
   try { const r = await fetch(ASC_URL); if (r.ok) ascBoard((await r.json()).entries || []); } catch (_e) { ascBoard([]); }
 }
 async function ascSend(ev) {
-  if (autoBarred()) { if (ev) ev.preventDefault(); return; } // (AUTO_MOVE_MAX_S, below)
+  if (autoBarred()) { if (ev) ev.preventDefault(); return; } // (autoBarred, below)
   ev.preventDefault();
   const input = $("asp-asc-in"), note = $("asp-asc-note"), initials = input.value.toUpperCase();
   if (!/^[A-Z]{3}$/.test(initials)) { note.textContent = "Three letters."; return; }
@@ -64,13 +64,13 @@ async function ascSend(ev) {
   } catch (e) { note.textContent = e.message; input.disabled = false; }
 }
 // the entry form: a win, or a game over past wave 10
-// AUTO-MOVE BARS THE BOARD (owner, 2026-10-13: "no leaderboard if auto move activated for more than 1m over entire game"): its
-// real seconds this game (G.autoMoveS, aspira-ui.js) past AUTO_MOVE_MAX_S - the board shows, the entry form does not
-const AUTO_MOVE_MAX_S = 60, autoBarred = () => (G.autoMoveS || 0) > AUTO_MOVE_MAX_S;
+// AUTO-MOVE BARS THE BOARD (owner, 2026-10-13: "any amount of auto-move disqualifies you from leaderboard"; it was over a minute):
+// any real time with it on this game (G.autoMoveS, aspira-ui.js) - the board shows, the entry form does not
+const autoBarred = () => (G.autoMoveS || 0) > 0;
 function showAscend() {
   const box = ascBox(), won = !!G.won;
   box.hidden = false;
-  if (autoBarred()) { box.innerHTML = ASC_TITLE + '<p id="asp-asc-note">Auto-move ran over a minute - this game stays off the board.</p><div id="asp-asc-board"></div>'; ascLoad(); return; }
+  if (autoBarred()) { box.innerHTML = ASC_TITLE + '<p id="asp-asc-note">Auto-move was used - this game stays off the board.</p><div id="asp-asc-board"></div>'; ascLoad(); return; }
   box.innerHTML = ASC_TITLE + '<form id="asp-asc-form"><input id="asp-asc-in" class="' + (won ? "asp-asc-gold" : "asp-asc-green") + '" maxlength="3" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="AAA" aria-label="your initials">' +
     '<button class="asp-primary" type="submit">' + (won ? "ascend" : "post") + '</button></form><p id="asp-asc-note">' +
     (won ? "Leave your initials among the Ascendants." : "Wave " + G.wave + " - leave your initials on the board.") + '</p><div id="asp-asc-board"></div>';

@@ -148,7 +148,14 @@ const autoWaiting = () => {
     try { localStorage.setItem("spire.autowait", autoWait ? "1" : "0"); } catch (e) { /* not remembered */ }
   }, "asp-autowait");
   btn.setAttribute("role", "checkbox");
-  button(row, "asp-check", "", () => { autoMove = !autoMove; try { localStorage.setItem("spire.automove", autoMove ? "1" : "0"); } catch (e) { /* not remembered */ } }, "asp-automove").setAttribute("role", "checkbox"); // AUTO-MOVE (autoGlide, aspira-positioning.js)
+  // AUTO-MOVE (autoGlide, aspira-positioning.js): turning it ON takes a second tap within SELL_ARM_MS - it disqualifies the game
+  // (owner, 2026-10-13: "require confirmation to activate"); off is one tap
+  const mvb = button(row, "asp-check", "", () => {
+    if (!autoMove && !mvb.dataset.armed) { mvb.dataset.armed = "1"; setTimeout(() => { delete mvb.dataset.armed; }, SELL_ARM_MS); return; }
+    delete mvb.dataset.armed; autoMove = !autoMove;
+    try { localStorage.setItem("spire.automove", autoMove ? "1" : "0"); } catch (e) { /* not remembered */ }
+  }, "asp-automove");
+  mvb.setAttribute("role", "checkbox");
   qualityBox(row); // the visual quality toggle beside it (aspira-quality.js)
 })();
 // the checkbox as an SVG, not a font glyph (owner: the glyph sat off-centre
@@ -162,8 +169,8 @@ function updateAutoWait() {
   const btn = $("asp-autowait"), html = (autoWait ? ICON_CHECKED : ICON_UNCHECKED) + "<span>auto-wait</span>"; // the box bigger than the words (owner)
   if (btn.dataset.html !== html) { btn.dataset.html = html; btn.innerHTML = html; btn.setAttribute("aria-checked", String(autoWait)); }
   btn.classList.toggle("on", autoWaiting()); // lit while it is holding the game at 1/2x
-  const mv = $("asp-automove"), mh = (autoMove ? ICON_CHECKED : ICON_UNCHECKED) + "<span>auto-move</span>" +
-    (autoBarred() ? '<span class="asp-amt">(DQ)</span>' : ""); // off the board: (DQ) beside it, no timer (owner, 2026-10-13)
+  const mv = $("asp-automove"), mh = (autoMove ? ICON_CHECKED : ICON_UNCHECKED) + "<span>" + (mv.dataset.armed ? "tap again" : "auto-move") + "</span>" +
+    (autoBarred() || mv.dataset.armed ? '<span class="asp-amt">(DQ)</span>' : ""); // used this game: (DQ) beside it; armed: what a second tap costs (owner, 2026-10-13)
   mv.hidden = !best.ascended; // ASCENDANTS only (owner, 2026-10-13: "non-ascendants do not get that checkbox")
   if (mv.dataset.html !== mh) { mv.dataset.html = mh; mv.innerHTML = mh; mv.setAttribute("aria-checked", String(autoMove)); }
 }
