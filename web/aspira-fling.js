@@ -27,7 +27,8 @@ function flingRelease(mv) {
 function stepFlings(dt) {
   if (towersFrozen()) return; // (aspira-camera.js)
   // a leash that SHRANK (a resize, a zoom, a tier) pulls its tower back inside: the dashed circle always holds it (owner)
-  for (const t of G.towers) { const c = CELLS[t.cell]; if (!t.fling && !towerHeld(t) && Math.hypot(t.x - c.x, t.y - c.y) > leashR(t) + 0.5) moveTower(t, t); }
+  // ...and a tower that cannot stay where it is (a neighbour on it, off the phone's box) goes home to its slot - never stuck
+  for (const t of G.towers) { const c = CELLS[t.cell]; if (!t.fling && !towerHeld(t) && (Math.hypot(t.x - c.x, t.y - c.y) > leashR(t) + 0.5 || !legalSpot(t, t)) && !moveTower(t, t)) moveTower(t, c); }
   for (const t of G.towers) {
     const f = t.fling;
     if (!f) continue;
