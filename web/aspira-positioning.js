@@ -104,5 +104,5 @@ function autoPosition(t, dt) {
   if (t.posT > 0) return;
   t.posT = POS_EVERY;
   const s = bestSpot(t, towerStats(t).range);
-  if (s) moveTo(t, s);
+  if (s) moveTower(t, s);
 }

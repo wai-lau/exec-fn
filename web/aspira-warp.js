@@ -151,7 +151,7 @@ function warpMesh() {
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(v), gl.STATIC_DRAW);
   warp.n = v.length / 2;
 }
-// the grid's colour, the chart's own grid swatch (COL.grid, "rgb(r, g, b)") as 0..1
+// the grid's colour, the chart's own grid swatch (COL.grid, an rgb string) as 0..1
 const warpGridRgb = (key = "grid") => (String(COL[key] || COL.green).match(/[\d.]+/g) || [0, 255, 0]).slice(0, 3).map(n => n / 255);
 // this frame's bell, centred on the core's canvas spot
 function warpParams() {

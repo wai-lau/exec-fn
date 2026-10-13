@@ -428,7 +428,7 @@ function legalSpot(t, p) {
   const clear = G.towers.every(o => o === t || Math.hypot(x - o.x, y - o.y) >= gap - 0.5) && Math.hypot(x - CX, y - CY) >= coreKeep(Math.atan2(y - CY, x - CX)) - 0.5;
   return clear ? { x, y } : null;
 }
-function moveTo(t, p) { const s = legalSpot(t, p); if (s) { t.x = s.x; t.y = s.y; } return !!s; }
+function moveTower(t, p) { const s = legalSpot(t, p); if (s) { t.x = s.x; t.y = s.y; } return !!s; }
 
 // UI only (aspira-draw.js): every moved tower's SPAWN, a faint hex in its colour on
 // its slot, and the selected (or held) tower's LEASH, a dashed circle round it

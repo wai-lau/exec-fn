@@ -15,7 +15,7 @@ let fitK = 0, dragged = false, downAt = null, pinch = null;
 //   drag from the CORE onto a tower -> the Orbital Relay: it acts as three
 // ui.drag = { kind: "core" | "tower", t, from, at } while one is held (drawn by drawCoreFx)
 // DRAGGING A TOWER (owner, 2026-10-10): a press on a tower and a drag MOVES it - it follows the
-// finger, firing all the while, held to its leash (moveTo, aspira-towers.js); ui.drag = { kind:
+// finger, firing all the while, held to its leash (moveTower, aspira-towers.js); ui.drag = { kind:
 // "move", t, dx, dy } (the grab's offset, so the tower does not jump to the fingertip). A short
 // press is still a tap (its card). Not while placing or with the Relay armed - those taps pick.
 // a held finger always wobbles: the hold survives HOLD_SLOP css px of drift
@@ -94,9 +94,9 @@ cv.addEventListener("pointermove", ev => {
   const prev = ptrs.get(ev.pointerId), now = devXY(ev);
   ptrs.set(ev.pointerId, now);
   const mv = moves.get(ev.pointerId);
-  if (mv) { // this finger holds a tower: it follows the finger, held to its leash (moveTo), no pan
+  if (mv) { // this finger holds a tower: it follows the finger, held to its leash (moveTower), no pan
     if (!mv.dragged && Math.hypot(now.x - mv.down.x, now.y - mv.down.y) > DRAG_PX * canvasDpr()) mv.dragged = dragged = true;
-    if (mv.dragged && !towersFrozen()) { const w = toWorld(ev); moveTo(mv.t, { x: w.x + mv.dx, y: w.y + mv.dy }); relayFollow(mv.t); flingTrack(mv); } // the Relay follows the tower last dragged (aspira-core.js)
+    if (mv.dragged && !towersFrozen()) { const w = toWorld(ev); moveTower(mv.t, { x: w.x + mv.dx, y: w.y + mv.dy }); relayFollow(mv.t); flingTrack(mv); } // the Relay follows the tower last dragged (aspira-core.js)
     return;
   }
   if (moves.size) return; // the other finger holds a tower: this one does nothing

@@ -25,43 +25,55 @@ def openf(p):
 
 MON = {m: i for i, m in enumerate("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(), 1)}
 
+def _lines(pattern):
+    """Every line of every log matching `pattern` (rotations and .gz included), oldest file name first; unreadable ones skipped."""
+    for path in sorted(glob.glob(pattern)):
+        try: f=openf(path)
+        except OSError: continue
+        with f:
+            yield from f
+
 # ---------------------------------------------------------------- ssh (auth.log)
-def parse_ssh():
-    re_inv = re.compile(r"Invalid user (\S+) from " + IP)
-    re_au  = re.compile(r"authenticating user (\S+) " + IP)
-    re_fp  = re.compile(r"Failed password for (?:invalid user )?(\S+) from " + IP)
-    re_acc = re.compile(r"Accepted (?:publickey|password) for (\S+) from " + IP)
-    re_ts  = re.compile(r"^(\d{4})-(\d{2})-(\d{2})T(\d{2}):")
+RE_SSH_FAIL = [re.compile(r"Invalid user (\S+) from " + IP), re.compile(r"authenticating user (\S+) " + IP),
+               re.compile(r"Failed password for (?:invalid user )?(\S+) from " + IP)]
+RE_SSH_ACC = re.compile(r"Accepted (?:publickey|password) for (\S+) from " + IP)
+RE_SSH_TS = re.compile(r"^(\d{4})-(\d{2})-(\d{2})T(\d{2}):")
+
+def _ssh_fail(line):
+    """(user, ip) of a failed / invalid login line, else None."""
+    for r in RE_SSH_FAIL:
+        mm=r.search(line)
+        if mm: return mm.group(1), mm.group(2)
+    return None
+
+def _ssh_attempts():
     ip_ct=Counter(); user_ct=Counter(); per_day=Counter(); per_hour=Counter()
     acc=Counter(); total=0; seen=set()
-    for path in sorted(glob.glob("/var/log/auth.log*")):
-        try: f=openf(path)
-        except OSError: continue
-        with f:
-            for line in f:
-                m=re_ts.match(line); day=hour=None
-                if m: day=f"{m.group(1)}-{m.group(2)}-{m.group(3)}"; hour=int(m.group(4))
-                u=ip=None
-                for r in (re_inv,re_au,re_fp):
-                    mm=r.search(line)
-                    if mm: u,ip=mm.group(1),mm.group(2); break
-                if u and ip:
-                    total+=1; ip_ct[ip]+=1; user_ct[u[:24]]+=1; seen.add(ip)
-                    if day: per_day[day]+=1
-                    if hour is not None: per_hour[hour]+=1
-                    continue
-                ma=re_acc.search(line)
-                if ma: acc[ma.group(1)]+=1
-    # fail2ban
+    for line in _lines("/var/log/auth.log*"):
+        m=RE_SSH_TS.match(line); day=hour=None
+        if m: day=f"{m.group(1)}-{m.group(2)}-{m.group(3)}"; hour=int(m.group(4))
+        hit=_ssh_fail(line)
+        if hit:
+            u,ip=hit
+            total+=1; ip_ct[ip]+=1; user_ct[u[:24]]+=1; seen.add(ip)
+            if day: per_day[day]+=1
+            if hour is not None: per_hour[hour]+=1
+            continue
+        ma=RE_SSH_ACC.search(line)
+        if ma: acc[ma.group(1)]+=1
+    return ip_ct, user_ct, per_day, per_hour, acc, total, seen
+
+def _fail2ban():
     ban_day=Counter(); ban_ip=Counter(); bans=0
     re_ban=re.compile(r"^(\d{4})-(\d{2})-(\d{2}) .* \[sshd\] Ban "+IP)
-    for path in sorted(glob.glob("/var/log/fail2ban.log*")):
-        try: f=openf(path)
-        except OSError: continue
-        with f:
-            for line in f:
-                mb=re_ban.search(line)
-                if mb: bans+=1; ban_day[f"{mb.group(1)}-{mb.group(2)}-{mb.group(3)}"]+=1; ban_ip[mb.group(4)]+=1
+    for line in _lines("/var/log/fail2ban.log*"):
+        mb=re_ban.search(line)
+        if mb: bans+=1; ban_day[f"{mb.group(1)}-{mb.group(2)}-{mb.group(3)}"]+=1; ban_ip[mb.group(4)]+=1
+    return ban_day, ban_ip, bans
+
+def parse_ssh():
+    ip_ct, user_ct, per_day, per_hour, acc, total, seen = _ssh_attempts()
+    ban_day, ban_ip, bans = _fail2ban()
     days=sorted(set(per_day)|set(ban_day))
     return {"totals":{"attempts":total,"unique_ips":len(seen),"unique_users":len(user_ct),
             "bans":bans,"accepted":sum(acc.values()),
@@ -73,56 +85,68 @@ def parse_ssh():
         "per_hour":[[h,per_hour.get(h,0)] for h in range(24)]}, ip_ct
 
 # ---------------------------------------------------------------- web (nginx)
+RE_WEB_STRICT=re.compile(r'^(\S+) \S+ \S+ \[([^\]]+)\] "([A-Z]+) (\S+) (HTTP/[0-9.]+)" (\d{3}) (\S+) "([^"]*)" "([^"]*)"')
+RE_WEB_LOOSE=re.compile(r'^(\S+) \S+ \S+ \[([^\]]+)\] ".*?" (\d{3}) ')
+RE_BOT=re.compile(r"bot|spider|crawl|curl|wget|python|go-http|scan|nmap|masscan|zgrab|nikto|httpx|libwww|okhttp|semrush|ahrefs|censys|facebookexternal|bytespider",re.I)
+RE_BROWSER=re.compile(r"Mozilla.*(Chrome|Safari|Firefox|Edg|OPR|Gecko)",re.I)
+
+def _daypart(t):
+    try:
+        d,mon,rest=t.split("/"); yr=rest.split(":")[0]; hh=rest.split(":")[1]
+        return f"{yr}-{MON[mon]:02d}-{int(d):02d}",int(hh)
+    except Exception: return None,None
+
+def _ua_kind(ua):
+    if ua in("-",""): return "unknown"
+    if RE_BOT.search(ua): return "bot"
+    if RE_BROWSER.search(ua): return "human"
+    return "other"
+
+class _Web:
+    """The running tallies over every access-log line (parse_web)."""
+    def __init__(self):
+        self.per_day=Counter(); self.per_hour=Counter(); self.status_ct=Counter(); self.status_class=Counter()
+        self.paths=Counter(); self.p404=Counter(); self.ips=Counter(); self.methods=Counter(); self.uas=Counter()
+        self.httpver=Counter(); self.kind=Counter(); self.total=0; self.owner_hits=0; self.malformed=0; self.seen=set()
+
+    def strict(self, m):
+        ip,t,meth,url,ver,st,_by,_ref,ua=m.groups(); st=int(st)
+        p=url.split("?",1)[0][:60]; self.methods[meth]+=1; self.httpver[ver]+=1; self.paths[p]+=1
+        if st==404: self.p404[p]+=1
+        self.kind[_ua_kind(ua)]+=1
+        short=re.sub(r"\s+"," ",re.sub(r"\(.*?\)","",ua)).strip()[:40] or "-"; self.uas[short]+=1
+        return ip,t,st
+
+    def line(self, line):
+        m=RE_WEB_STRICT.match(line)
+        if m: ip,t,st=self.strict(m)
+        else:
+            m=RE_WEB_LOOSE.match(line)
+            self.malformed+=1
+            if not m: return
+            ip,t,st=m.group(1),m.group(2),int(m.group(3))
+        self.total+=1; self.seen.add(ip)
+        if OWNER and ip==OWNER: self.owner_hits+=1
+        self.ips[ip]+=1; self.status_ct[st]+=1
+        self.status_class["404" if st==404 else f"{st//100}xx"]+=1
+        day,hr=_daypart(t)
+        if day: self.per_day[day]+=1
+        if hr is not None: self.per_hour[hr]+=1
+
 def parse_web():
-    strict=re.compile(r'^(\S+) \S+ \S+ \[([^\]]+)\] "([A-Z]+) (\S+) (HTTP/[0-9.]+)" (\d{3}) (\S+) "([^"]*)" "([^"]*)"')
-    loose=re.compile(r'^(\S+) \S+ \S+ \[([^\]]+)\] ".*?" (\d{3}) ')
-    bot=re.compile(r"bot|spider|crawl|curl|wget|python|go-http|scan|nmap|masscan|zgrab|nikto|httpx|libwww|okhttp|semrush|ahrefs|censys|facebookexternal|bytespider",re.I)
-    brow=re.compile(r"Mozilla.*(Chrome|Safari|Firefox|Edg|OPR|Gecko)",re.I)
-    per_day=Counter(); per_hour=Counter(); status_ct=Counter(); status_class=Counter()
-    paths=Counter(); p404=Counter(); ips=Counter(); methods=Counter(); uas=Counter()
-    httpver=Counter(); kind=Counter(); total=0; owner_hits=0; malformed=0; seen=set()
-    def daypart(t):
-        try:
-            d,mon,rest=t.split("/"); yr=rest.split(":")[0]; hh=rest.split(":")[1]
-            return f"{yr}-{MON[mon]:02d}-{int(d):02d}",int(hh)
-        except Exception: return None,None
-    for path in sorted(glob.glob("/var/log/nginx/access.log*")):
-        try: f=openf(path)
-        except OSError: continue
-        with f:
-            for line in f:
-                m=strict.match(line)
-                if m:
-                    ip,t,meth,url,ver,st,_by,_ref,ua=m.groups(); st=int(st)
-                    p=url.split("?",1)[0][:60]; methods[meth]+=1; httpver[ver]+=1; paths[p]+=1
-                    if st==404: p404[p]+=1
-                    if ua in("-",""): kind["unknown"]+=1
-                    elif bot.search(ua): kind["bot"]+=1
-                    elif brow.search(ua): kind["human"]+=1
-                    else: kind["other"]+=1
-                    short=re.sub(r"\s+"," ",re.sub(r"\(.*?\)","",ua)).strip()[:40] or "-"; uas[short]+=1
-                else:
-                    m=loose.match(line)
-                    if not m: malformed+=1; continue
-                    ip,t,st=m.group(1),m.group(2),int(m.group(3)); malformed+=1
-                total+=1; seen.add(ip)
-                if OWNER and ip==OWNER: owner_hits+=1
-                ips[ip]+=1; status_ct[st]+=1
-                status_class["404" if st==404 else f"{st//100}xx"]+=1
-                day,hr=daypart(t)
-                if day: per_day[day]+=1
-                if hr is not None: per_hour[hr]+=1
-    days=sorted(per_day)
-    return {"totals":{"requests":total,"unique_ips":len(seen),"owner_hits":owner_hits,
-            "malformed":malformed,"day_first":days[0] if days else None,"day_last":days[-1] if days else None,
-            "pct_4xx":round(100*(status_class.get("4xx",0)+status_class.get("404",0))/max(1,total),1),
-            "pct_bot":round(100*kind.get("bot",0)/max(1,total),1)},
+    w=_Web()
+    for line in _lines("/var/log/nginx/access.log*"): w.line(line)
+    days=sorted(w.per_day); total=w.total
+    return {"totals":{"requests":total,"unique_ips":len(w.seen),"owner_hits":w.owner_hits,
+            "malformed":w.malformed,"day_first":days[0] if days else None,"day_last":days[-1] if days else None,
+            "pct_4xx":round(100*(w.status_class.get("4xx",0)+w.status_class.get("404",0))/max(1,total),1),
+            "pct_bot":round(100*w.kind.get("bot",0)/max(1,total),1)},
         "owner_ip":OWNER or None,
-        "per_day":[[d,per_day[d]] for d in days],"per_hour":[[h,per_hour.get(h,0)] for h in range(24)],
-        "status_class":sorted(status_class.items(),key=lambda x:-x[1]),"top_status":status_ct.most_common(8),
-        "top_paths":paths.most_common(15),"top_404":p404.most_common(15),"top_ips":ips.most_common(15),
-        "methods":methods.most_common(8),"kind":kind.most_common(),"top_uas":uas.most_common(12),
-        "httpver":httpver.most_common()}, ips
+        "per_day":[[d,w.per_day[d]] for d in days],"per_hour":[[h,w.per_hour.get(h,0)] for h in range(24)],
+        "status_class":sorted(w.status_class.items(),key=lambda x:-x[1]),"top_status":w.status_ct.most_common(8),
+        "top_paths":w.paths.most_common(15),"top_404":w.p404.most_common(15),"top_ips":w.ips.most_common(15),
+        "methods":w.methods.most_common(8),"kind":w.kind.most_common(),"top_uas":w.uas.most_common(12),
+        "httpver":w.httpver.most_common()}, w.ips
 
 # ---------------------------------------------------------------- geo (cached)
 def public(ip):
@@ -131,18 +155,17 @@ def public(ip):
         a=ipaddress.ip_address(ip); return a.is_global and not a.is_private
     except ValueError: return False
 
-def geolocate(ssh_ips, web_ips):
+def _volumes(ssh_ips, web_ips):
+    """[(ip, ssh, web, total)] for every PUBLIC ip, busiest first."""
     vol={}
     for ip,c in ssh_ips.items():
         if public(ip): vol.setdefault(ip,[0,0]); vol[ip][0]+=c
     for ip,c in web_ips.items():
         if public(ip): vol.setdefault(ip,[0,0]); vol[ip][1]+=c
-    rows=sorted(((ip,s,w,s+w) for ip,(s,w) in vol.items()), key=lambda r:-r[3])
-    top=rows[:TOPN]
-    all_total=sum(r[3] for r in rows); top_total=sum(r[3] for r in top)
-    try: cache=json.loads(GEO_CACHE.read_text())
-    except (OSError,ValueError): cache={}
-    need=[ip for ip,_,_,_ in top if ip not in cache]
+    return sorted(((ip,s,w,s+w) for ip,(s,w) in vol.items()), key=lambda r:-r[3])
+
+def _fill_cache(cache, need):
+    """Look `need` up on ip-api.com, 100 a batch, into `cache` (a failed batch is skipped)."""
     fields="status,country,countryCode,city,lat,lon,isp,as,query"
     for i in range(0,len(need),100):
         batch=need[i:i+100]
@@ -158,6 +181,14 @@ def geolocate(ssh_ips, web_ips):
         except Exception as e:
             print("geo batch err:",e)
         time.sleep(1.6)
+
+def geolocate(ssh_ips, web_ips):
+    rows=_volumes(ssh_ips, web_ips)
+    top=rows[:TOPN]
+    all_total=sum(r[3] for r in rows); top_total=sum(r[3] for r in top)
+    try: cache=json.loads(GEO_CACHE.read_text())
+    except (OSError,ValueError): cache={}
+    _fill_cache(cache, [ip for ip,_,_,_ in top if ip not in cache])
     _atomic(GEO_CACHE, json.dumps(cache))
     geo=[]; country=Counter(); cc_map={}; asn=Counter()
     for ip,s,w,t in top:

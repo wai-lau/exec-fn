@@ -2,7 +2,7 @@
 // velocity and direction depending on last drag, slowly dampen to still"). UI only (the simulator never drags).
 // While a finger drags a tower (aspira-camera.js) its velocity is tracked - world units a REAL second, smoothed over
 // the last moves; on release the tower keeps it as t.fling and coasts, the speed falling by e every FLING_TAU s, held
-// to its leash and clear of the others by moveTo (aspira-towers.js) - a wall it meets it bounces off. A new grab stops it.
+// to its leash and clear of the others by moveTower (aspira-towers.js) - a wall it meets it bounces off. A new grab stops it.
 const FLING_BOUNCE = 0.6; // the share of its speed a tower keeps off a wall
 const FLING_TAU = 0.35, FLING_SMOOTH = 0.35, FLING_MAX = 1400, FLING_STOP = 8, FLING_STALE_MS = 80;
 // a drag move: blend this move's velocity into the running estimate
@@ -27,12 +27,12 @@ function flingRelease(mv) {
 function stepFlings(dt) {
   if (towersFrozen()) return; // (aspira-camera.js)
   // a leash that SHRANK (a resize, a zoom, a tier) pulls its tower back inside: the dashed circle always holds it (owner)
-  for (const t of G.towers) { const c = CELLS[t.cell]; if (!t.fling && !towerHeld(t) && Math.hypot(t.x - c.x, t.y - c.y) > leashR(t) + 0.5) moveTo(t, t); }
+  for (const t of G.towers) { const c = CELLS[t.cell]; if (!t.fling && !towerHeld(t) && Math.hypot(t.x - c.x, t.y - c.y) > leashR(t) + 0.5) moveTower(t, t); }
   for (const t of G.towers) {
     const f = t.fling;
     if (!f) continue;
     const want = { x: t.x + f.vx * dt, y: t.y + f.vy * dt }, x0 = t.x, y0 = t.y;
-    if (!moveTo(t, want)) { t.fling = null; continue; }
+    if (!moveTower(t, want)) { t.fling = null; continue; }
     // stopped short: it BOUNCES (owner, 2026-10-11: "make the towers bounce off the movement limits") - off its leash, a
     // neighbour or the core, the velocity mirrored about that wall's normal and FLING_BOUNCE of it kept
     const got = Math.hypot(t.x - x0, t.y - y0), meant = Math.hypot(want.x - x0, want.y - y0);
@@ -46,7 +46,7 @@ function stepFlings(dt) {
 // toward it) - the velocity's part INTO the wall is mirrored, and the whole kept at FLING_BOUNCE
 function bounce(t, f) {
   const c = CELLS[t.cell], dl = Math.hypot(t.x - c.x, t.y - c.y);
-  let nx = 0, ny = 0;
+  let nx, ny;
   if (dl >= leashR(t) - 1) { nx = (t.x - c.x) / dl; ny = (t.y - c.y) / dl; } else {
     const walls = G.towers.filter(o => o !== t).map(o => ({ x: o.x, y: o.y, r: towerGap() })).concat([{ x: CX, y: CY, r: coreKeep(Math.atan2(t.y - CY, t.x - CX)) }]);
     let best = null, gap = Infinity;
