@@ -118,3 +118,11 @@ def test_hide_takes_initials_off_for_everyone_and_keeps_the_journal(tmp_path):
     for owner in (True, False):
         assert [r["initials"] for r in spire_board.visible(tmp_path, rows, owner)] == ["AAA"]
     assert len(spire_board._read_journal(tmp_path / spire_board.JOURNAL_NAME)) == 3  # never lost, only hidden
+
+
+def test_hide_leaves_later_games_under_the_same_initials(tmp_path):
+    spire_board.add(tmp_path, spire_board.clean_entry({"initials": "WAI", "lives": 10, "team": ["sol"]}) | {"ts": 1})
+    spire_board.hide(tmp_path, {"WAI"})
+    spire_board.add(tmp_path, spire_board.clean_entry({"initials": "WAI", "lives": 12, "team": ["sol"]}) | {"ts": 2})
+    rows = spire_board.visible(tmp_path, spire_board.load(tmp_path), True)
+    assert [(r["initials"], r["ts"]) for r in rows] == [("WAI", 2)]

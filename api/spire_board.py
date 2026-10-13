@@ -164,7 +164,8 @@ def visible(data_dir: Path, rows: list, owner: bool) -> list:
 
 
 def hide(data_dir: Path, initials: set) -> int:
-    """Take every game under these initials off the board for everyone - by NAME in HIDDEN, the journal untouched; returns how many."""
+    """Take every game SO FAR under these initials off the board for everyone - each by (ts, initials) in HIDDEN, so later games
+    under the same initials still show (owner, 2026-10-13); the journal untouched; returns how many."""
     rows = [r for r in load(data_dir) if r.get("initials") in initials and isinstance(r.get("ts"), int)]
     marks = sorted(_hidden(data_dir) | {(r["ts"], r["initials"]) for r in rows})
     _write_board(data_dir / HIDDEN, [list(m) for m in marks])
