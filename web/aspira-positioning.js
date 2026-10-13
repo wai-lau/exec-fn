@@ -106,6 +106,9 @@ try { autoMove = localStorage.getItem("spire.automove") === "1"; } catch (e) { /
 const HUMAN_V = 600; // a phone's width (500 units) in under a second
 const GLIDE_TURNS = [0, 0.5, -0.5, 1, -1, 1.4, -1.4], GLIDE_GIVE_UP = 2; // radians off the straight line, tried in order
 function autoGlide(t, dt) {
+  // two towers gliding at once can each step clear of where the other WAS and end up overlapping (stuck.mjs found one): a
+  // tower that cannot stay where it stands heads home to its slot first
+  if (!t.goal && !legalSpot(t, t)) { t.goal = { x: CELLS[t.cell].x, y: CELLS[t.cell].y }; }
   t.posT = (t.posT || 0) - dt;
   if (t.posT <= 0) { t.posT = POS_EVERY; const s = bestSpot(t, towerStats(t).range); if (s) t.goal = s; }
   if (!t.goal || (typeof towerHeld === "function" && towerHeld(t)) || t.fling) return;

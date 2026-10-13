@@ -27,6 +27,7 @@ caps it) and the single-threaded ones can run side by side.
 | `late.mjs [evals] [seeds] [out.jsonl]` | late game from wave START, every open slot maxed, every core power: ten parallel hill-climbs; the mono starts show where each kind walls |
 | `wavebal.mjs` / `typebal.mjs` / `bossbal.mjs` / `arcfit.mjs` | the fits (wave counts, type counts, boss HP, ARC tiers) - headers say how |
 | `buildsearch.mjs` | hill-climb the build plan that banks the most by wave 30 |
+| `stuck.mjs [toWave=60]` | STUCK TOWERS (2026-10-13, part of the battery): each trio to wave 60 with the gliding player - stalled glide steps, give-ups in a row, illegal spots and their longest run; prints STUCK and exits 1 when a tower stalls, gives up twice running or overlaps past 0.5 s |
 
 `ASPIRA_WEB=<dir>` pins a run to a snapshot of the game files (`cp web/aspira-*.js`
 somewhere first): every game re-reads them, so a balance commit landing mid-run

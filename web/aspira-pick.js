@@ -39,7 +39,9 @@ function pick3d(ev) {
     const solids = G.towers.map(t => ({ t, at: warpProject(t.x, t.y, 0).s, hit: () => inPrism(towerPts(t, PICK_GROW), towerH(t), x, y) }));
     solids.push({ core: true, at: warpProject(CX, CY, 0).s, hit: () => inPrism(hexPts(CX, CY, CORE_R), coreH3d(), x, y) || inPoly(hexPts(CX, CY, coreOuterR()).map(p => warpProject(p.x, p.y, 0)), x, y) });
     solids.sort((a, b) => b.at - a.at); // nearer the eye = drawn bigger
-    const s = solids.find(o => o.hit());
+    // a TOWER before the core whenever both are under the press (owner, 2026-10-13: "unable to click upgrade on phone when core
+    // is too tall" - a raised core stood over the towers behind it and took their taps)
+    const s = solids.find(o => !o.core && o.hit()) || solids.find(o => o.core && o.hit());
     return s ? (s.core ? { core: true } : { t: s.t }) : null;
   } finally { Object.assign(cam, c0); }
 }
