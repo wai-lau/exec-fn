@@ -41,9 +41,9 @@ __pycache__/
 *.pyo
 
 # graphify: structural knowledge graph (built with /graphify, AST-only).
-# Artifacts (graph.json/html, GRAPH_REPORT.md) are tracked so the graph
-# travels with the repo; only the extraction cache is ignored, via
-# graphify-out/.gitignore.
+# Generated + disposable: /graph serves it from the droplet's disk, the
+# nightly scripts/graphify-daily.sh rebuilds it. Never committed (2026-10-12).
+/graphify-out/
 *.Identifier
 .env
 .env.*

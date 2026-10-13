@@ -14,11 +14,11 @@ ADHD scaffolding for Wai. Claude runs planning pipeline.
 - *Templates/static* are live on next page load — `api/templates/` read per request via `_tmpl()`; `web/static/index.html` per request via `_index_pages()` (mtime-cached); `web/` served directly by FastAPI. No restart.
 - *Python* is live too — `./api` is volume-mounted to `/app` and uvicorn runs `--reload`, so editing any `api/*.py` auto-reloads the worker (1–2s). No `docker cp`, no rebuild. (If `--reload` misses a change: `docker compose restart api`.)
 
-**Local-claude deploy — push, then deterministic reset over SSH, never `git pull`/`git stash`** (the bind-mounted untracked dirs make pull/stash fragile; both have caused outages). `git stash` is blocked by a hook — clear a rebase blocker with `git checkout -- graphify-out/`. Why, and the `/nightfall` lazy-mount history: **ARCHITECTURE.md §1**. After `git push` from `~/src/exec-fn`:
+**Local-claude deploy — push, then deterministic reset over SSH, never `git pull`/`git stash`** (the bind-mounted untracked dirs make pull/stash fragile; both have caused outages). `git stash` is blocked by a hook. `graphify-out/` is gitignored (never commit it). Why, and the `/nightfall` lazy-mount history: **ARCHITECTURE.md §1**. After `git push` from `~/src/exec-fn`:
 ```bash
 ssh wai-root@wai-lau.net 'cd /exec-fn && git fetch origin && git reset --hard origin/master && sudo docker compose up -d --force-recreate api'
 ```
-**NO `sudo` on the git half** — only docker needs it (root-owned socket). `sudo git reset --hard` leaves root-owned sources that then need `sudo` to edit; the tree was chowned back to `wai-root` on 2026-09-12 — keep it that way. `reset --hard` discards the droplet's `graphify-out` drift (re-run `/graphify` or commit it first); untracked `nightfall-incident` survives; `--force-recreate` rebuilds the mount namespace. **ARCHITECTURE.md §1**.
+**NO `sudo` on the git half** — only docker needs it (root-owned socket). `sudo git reset --hard` leaves root-owned sources that then need `sudo` to edit; the tree was chowned back to `wai-root` on 2026-09-12 — keep it that way. Ignored `graphify-out` and untracked `nightfall-incident` survives; `--force-recreate` rebuilds the mount namespace. **ARCHITECTURE.md §1**.
 
 **Auto-deploy is the expected workflow** (local claude) — the owner wants code changes pushed to the live droplet via the SSH deploy above (confirmed after weighing the outage risk); deploy yourself, don't hand the command back to run manually.
 
@@ -387,7 +387,7 @@ Config baked into image at `/etc/cron.d/exec-fn`.
 | Schedule | Task |
 |----------|------|
 | 4:30 AM ET | `morning_cron.sh` → `POST /api/morning` (in-container) |
-| 5:00 AM ET | **HOST** cron `/etc/cron.d/exec-fn-graphify` → `scripts/graphify-daily.sh` (as `wai-root`): graphify rebuild, then the /graph layout bake. Commits + pushes its own `graphify-out` only, never stashes. **`GRAPHIFY_VIZ_NODE_LIMIT` must stay above the repo's node count** or `/graph` 404s behind an exit-0 nightly. **ARCHITECTURE.md §17d**. |
+| 5:00 AM ET | **HOST** cron `/etc/cron.d/exec-fn-graphify` → `scripts/graphify-daily.sh` (as `wai-root`): graphify rebuild, then the /graph layout bake. `graphify-out` is gitignored — nothing committed. **`GRAPHIFY_VIZ_NODE_LIMIT` must stay above the repo's node count** or `/graph` 404s behind an exit-0 nightly. **ARCHITECTURE.md §17d**. |
 | 5:20 AM ET | **HOST** cron `/etc/cron.d/exec-fn-ccprobe` → `scripts/cc-probe-daily.sh` (root): re-probes the sidecar agent's tool allowlist whenever the INSTALLED Agent SDK version changes; drift shouts nightly until fixed. **ARCHITECTURE.md §7**. |
 | 5:45 AM ET | **NOT CRON** — `tarot/openings_loop.py` probes the `/tarot` voice and tops up openings; its log `data/cron/…__tarotvoice.log` is the stamp. Only `FAIL (mode=homo)` is a real fault. **ARCHITECTURE.md §14e**. |
 | 5:10 AM ET | **HOST** cron `/etc/cron.d/exec-fn-security` → `scripts/security/refresh.py` (root; reads `/var/log`, writes `data/security.json` for `/security`). NOT baked into the image — installed on the droplet host so it can read host logs; `SECURITY_OWNER_IP` set in the cron file. flock-guarded; logs to `/var/log/exec-fn-security.log`. |

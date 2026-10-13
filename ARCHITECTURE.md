@@ -3143,15 +3143,7 @@ Host cron `/etc/cron.d/exec-fn-graphify` → `scripts/graphify-daily.sh`, as `wa
 
 It used to run on **every commit**, which was the wrong trigger for something this heavy on a 1967MB box: dozens of runs a day. A graph a few hours stale costs nothing; a 502 does. It now sits between the 04:30 morning pipeline and the 05:10 security refresh so the three never contend. `flock`-guarded, capped at 600MB (a full rebuild measures 4089 nodes in 25s at a 366MB peak), logging to `~/.cache/graphify-rebuild.log`.
 
-**It commits and pushes its own output** (2026-09-13). graphify-out is a generated artifact but a TRACKED one here — `/graph` serves it, and a rebuild that only ever exists on the droplet is one disk away from gone. Measured cost: **1.4 MiB of pack per night, ~0.5 GiB/year**.
-
-**The publish step is scoped so it cannot pick up anything else.** This working tree is production and routinely carries live edits, so it stages only `graphify-out`, **refuses outright if the index already holds anything else**, and skips when the graph did not change.
-
-cron has no ssh-agent, so the key is named explicitly (`GIT_SSH_COMMAND`) with `BatchMode=yes` — a passphrase prompt then errors instead of hanging the job until the next night skips on the lock.
-
-A rejected push (the remote moved) is retried ONCE through a fetch + rebase, and only when the tree has no other modified tracked files — **never a stash**, which has taken the site down twice through the bind mounts. A conflict inside `graphify-out` resolves to tonight's build (`--theirs` during a rebase is the commit being replayed); a conflict anywhere else aborts and leaves the commit unpushed for a human.
-
-**The lock is held on FD 9** rather than by `exec flock`, because an exec'd flock replaces the shell and there would be nothing left to run the publish step.
+**graphify-out is gitignored (2026-10-12)** — generated, served from the droplet's disk, regenerated in 25s. From 2026-09-13 the nightly committed and pushed it (1.4 MiB of pack a night, 214MB tracked); that publish step is gone. The failed-rebuild fallback that used `git checkout -- graph.html` now restores `graphify-out/.graph.html.prev`, copied just before each rebuild.
 
 **graphify REFUSES to emit `graph.html` past a node ceiling, and a skip is not a failure** (2026-09-22). The default is **5000**; the repo crossed it (4151 nodes on 2026-09-11 -> **5057** on 2026-09-22) and the rebuild logged one `Skipped graph.html: ... too large for HTML viz` line, then went on to report `Rebuilt: 5057 nodes` and **exit 0**. So the nightly looked healthy while `/graph` served `404 graph.html not found` for the whole day. The bake then made it worse rather than catching it: `scripts/graph-layout.py` drives `/graph?relayout=1`, got the 404, and sat on `wait_for_function` for the **full 600s timeout** before failing non-fatally — ten minutes of headless WebKit on a 1967MB box, for nothing. `GRAPHIFY_VIZ_NODE_LIMIT=8000` is exported in the script, and the ceiling moves with the repo: the node count is growth, not a regression. **The RLIMIT is the real guard** — if the viz ever gets genuinely too big it must die of `MemoryError` and log it, which is loud, rather than be skipped into a 404, which is silent. Re-measured after: 5062 nodes emitted / **2781 served**, 31s rebuild, 54s bake.
 
