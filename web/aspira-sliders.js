@@ -221,15 +221,16 @@ function inspectTower(el, t) {
     '<div id="asp-stats-box">' + cardStats(t, pv) + "</div>" +
     // TARGETING PRIORITY (owner, 2026-10-06): a SLIDER that snaps to its stops,
     // labelled under it (the labels are tappable too); was three buttons
-    '<div class="asp-prio"><b>Targeting priority:</b></div>' +
+    // NONE on FRZ (owner, 2026-10-12: "remove targetting priority slider for FRZ"): its chill takes everything in reach
+    (t.kind === "frz" ? "" : '<div class="asp-prio"><b>Targeting priority:</b></div>' +
     '<input type="range" class="asp-prio-slider" id="asp-prio" min="0" max="' + (MODES.length - 1) + '" step="1" value="' + Math.max(0, MODES.findIndex(m => m[0] === t.mode)) + '">' +
-    '<div class="asp-prio-labels">' + MODES.map(([m, label], i) => '<span data-i="' + i + '"' + (t.mode === m ? ' class="on"' : "") + ">" + label + "</span>").join("") + "</div>" +
+    '<div class="asp-prio-labels">' + MODES.map(([m, label], i) => '<span data-i="' + i + '"' + (t.mode === m ? ' class="on"' : "") + ">" + label + "</span>").join("") + "</div>") +
     "</div>" +
     // sell, small: the card's LAST row on a phone (owner, 2026-10-08), under the control half on a wide screen (aspira.css)
     '<div class="asp-row" id="asp-acts"></div>' +
     "</div>";
   const setMode = i => { t.mode = MODES[i][0]; refreshPanels(); };
-  $("asp-prio").oninput = ev => setMode(Number(ev.target.value));
+  if ($("asp-prio")) $("asp-prio").oninput = ev => setMode(Number(ev.target.value));
   el.querySelectorAll(".asp-prio-labels span").forEach(s => { s.onclick = () => setMode(Number(s.dataset.i)); });
   // a chart tower's upgrade button locks the pulled points in (aspira-sliders.js);
   // a path / form tower's opens the card chooser

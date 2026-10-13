@@ -27,7 +27,7 @@ function drawThreat() {
   for (const e of G.enemies) if (!e.dead) { const t = etaToCore(e); if (t <= AUTO_WAIT_S) near.push([t, e]); }
   if (!near.length && !threatBounces.length) return;
   near.sort((a, b) => a[0] - b[0]);
-  ctx.save(); ctx.strokeStyle = COL.pink;
+  ctx.save(); ctx.strokeStyle = COL.glow; /* Ember, the palette's red (owner, 2026-10-12: "use red for threat indicators ... not SOL pink") */
   drawThreatBounces();
   for (const [t, e] of near.slice(0, THREAT_N)) {
     // STRONGER and THICKER the nearer (owner, 2026-10-12: "increase intensity and thickness of threat rings as they approach"):

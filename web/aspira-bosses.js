@@ -245,7 +245,7 @@ function bossKilled(e) {
     grantPowers(e.n); // waves 20 / 40: a core power (aspira-core.js)
     if (CORE_PICKS.includes(e.n)) {
       const given = grantPick();
-      float(CX, CY - 80, given ? given.name + " online" : "choose a core power", "white", 28, 4, 1, 3); float(CX, CY - 48, "↓", "white", 28, 4, 1, 3);
+      if (given) flashPower(given.id); else float(CX, CY - 80, "choose a core power", "white", 28, 4, 1, 3); // no pointer at the core: the button flashes (owner, 2026-10-12)
     }
     CELLS.forEach((c, ci) => {
       if (c.unlock !== e.n || (G.opened ||= {})[ci]) return;

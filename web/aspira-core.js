@@ -54,7 +54,7 @@ function grantPowers(n) {
     if (w !== n || powerLvl(id)) continue;
     const c = coreState(); c.pw = { ...c.pw, [id]: CORE_TIERS }; // a fresh object: the simulator's stat cache keys on it
     const p = CORE_POWERS.find(q => q.id === id);
-    if (typeof float === "function") { float(CX, CY - 80, p.name + " online", "white", 28, 4, 1, 3); float(CX, CY - 48, "↓", "white", 28, 4, 1, 3); }
+    if (typeof flashPower === "function") flashPower(id); // its button flashes (owner, 2026-10-12: "don't point to the core anymore ... just flash the button quick")
   }
 }
 // (unused since 2026-10-11 - no picks) from bossKilled, the last boss of a CORE_PICKS wave down: one power to choose

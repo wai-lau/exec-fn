@@ -44,6 +44,9 @@ function relayArmTap(hit) {
   if (G.towers.includes(hit)) relay(hit);
   return true;
 }
+// a power's button FLASHES, quick, when it comes online (granted or off cooldown) - POWER_FLASH_MS of the .pop animation
+const POWER_FLASH_MS = 900, powerFlashAt = {};
+function flashPower(id) { powerFlashAt[id] = performance.now() + POWER_FLASH_MS; }
 function updatePowers() {
   const box = $("asp-powers"), c = G.core, owned = DIAL.filter(d => powerLvl(d.id));
   box.hidden = !owned.length;
@@ -57,7 +60,8 @@ function updatePowers() {
     b.classList.toggle("armed", d.id === "relay" && !!ui.relayArm);
     // a power coming off cooldown pops "<NAME> ONLINE" where the interest pops up, under the core (was the dial's)
     const was = (c.cdSeen ||= {})[d.id];
-    if (was > 0 && cd <= 0) float(CX, CY + CORE_R + LIFE_GAP * LIFE_RINGS + 16, d.label + " " + POWER_READY[d.id].toUpperCase(), d.color, READY_POP, 1.6, 1, 30);
+    if (was > 0 && cd <= 0) flashPower(d.id); // back online: its button flashes, quick (owner, 2026-10-12; was a pop-up under the core)
+    b.classList.toggle("pop", (powerFlashAt[d.id] || 0) > performance.now());
     c.cdSeen[d.id] = cd;
   }
 }

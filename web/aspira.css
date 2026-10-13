@@ -683,6 +683,7 @@
 
 /* auto-wait ON and a power ONLINE flash BRIGHTER and HARDER (owner, 2026-10-08; were asp-blink):
    faster, down to near nothing, and up to an over-bright glow in their own colour */
+#asp .asp-powers .asp-power.pop { animation: asp-flash 0.3s ease-in-out 3; } /* online: three quick flashes (aspira-powers.js flashPower) */
 @keyframes asp-flash {
   0%, 100% { opacity: 1; filter: brightness(1.4) drop-shadow(0 0 var(--blur-sm) currentcolor); } /* a touch softer (owner, 2026-10-08; were 1.6 / 0.15) */
   50% { opacity: 0.3; filter: none; }
