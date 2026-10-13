@@ -421,7 +421,7 @@ function stepEnemies(dt) {
       e.dead = true;
       const before = G.lives;
       G.lives -= ENEMIES[e.type].leak || 1;
-      sfx("leak"); shakeScreen(); livesLost(); // "X lives left" where the interest pop-up goes (aspira-waves.js)
+      sfx("leak"); shakeScreen(); livesLost(); threatBounce(e); // (threatBounce: its threat ring bounces out, aspira-ui.js) "X lives left" where the interest pop-up goes (aspira-waves.js)
       ring(e.x, e.y, 40, "pink", 0.17);
       // a BOSS that gets through ends the game outright (owner, 2026-10-02)
       if (ENEMIES[e.type].star) { G.lives = 0; G.breachBy = e.arcana; } // the end title names the boss (BOSS_BREACH)

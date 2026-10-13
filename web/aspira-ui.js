@@ -123,27 +123,6 @@ try { autoWait = localStorage.getItem("spire.autowait") !== "0"; } catch (e) { a
 // Worked out at most once a frame (it is asked several times).
 const AUTO_RELEASE = 1.25, AUTO_HOLD_MS = 1500;
 let awLevel = 0, awSince = 0, awAt = -1;
-// THE THREAT, SHOWN (owner, 2026-10-12: "when units get close, draw a faint red around the core under the enemies - the radius
-// the distance between the enemy and core - and a spoke from core to the nearest enemy, at the distances where auto-wait
-// engages (regardless if it is on or not)"): each enemy within AUTO_WAIT_S of the core (the soonest THREAT_N) rings the
-// core at its own distance with a spoke out to it, fainter far off and stronger as it closes
-const THREAT_A_MIN = 0.1, THREAT_A_MAX = 0.75, THREAT_W_MIN = 1, THREAT_W_MAX = 6; // world units wide
-const THREAT_N = 10; // up to the 10 soonest (owner, 2026-10-12: "nearest up to 10 enemies")
-function drawThreat() {
-  const near = [];
-  for (const e of G.enemies) if (!e.dead) { const t = etaToCore(e); if (t <= AUTO_WAIT_S) near.push([t, e]); }
-  if (!near.length) return;
-  near.sort((a, b) => a[0] - b[0]);
-  ctx.save(); ctx.strokeStyle = COL.pink;
-  for (const [t, e] of near.slice(0, THREAT_N)) {
-    // STRONGER and THICKER the nearer (owner, 2026-10-12: "increase intensity and thickness of threat rings as they approach"):
-    // squared, so a far one stays a whisper and one about to land is loud
-    const k = (1 - t / AUTO_WAIT_S) ** 2;
-    ctx.globalAlpha = Math.min(1, THREAT_A_MIN + (THREAT_A_MAX - THREAT_A_MIN) * k); ctx.lineWidth = THREAT_W_MIN + (THREAT_W_MAX - THREAT_W_MIN) * k;
-    ctx.beginPath(); ctx.arc(CX, CY, Math.hypot(e.x - CX, e.y - CY), 0, 6.283); ctx.moveTo(CX, CY); ctx.lineTo(e.x, e.y); ctx.stroke();
-  }
-  ctx.restore();
-}
 const autoWaiting = () => {
   if (!autoWait || ui.paused) { awLevel = 0; return 0; }
   const now = performance.now();
