@@ -138,7 +138,7 @@ function corrodeHit(e, amt, t) {
 // negative; however, triple the amount when the armor is not negative armor") -
 // as drops of DRIP_UNIT x the wave's armor reference; a drop lies DRIP_LIFE s, and the first other enemy within DRIP_R of it
 // takes it - its armor loses DRIP_TAKE x the drop, credited to the ACD. let: the sims sweep them
-let DRIP_TAKE = 2 /* countermx 2026-10-13: 0.5 / 1 / 2 - 2 brought the late armor column down most (ACD 6-13%) */, DRIP_UNIT = 0.1, DRIP_REAL = 3, DRIP_TIER_K = 0.6; // DRIP_TIER_K: x (1 + it x the dropping ACD's Corrosion tier) - countermx 2026-10-13: 0.6 brings Corrosion builds to 1-6% late armor (0: 6-12%)
+let DRIP_TAKE = 2 /* countermx 2026-10-13: 0.5 / 1 / 2 - 2 brought the late armor column down most (ACD 6-13%) */, DRIP_UNIT = 0.3 /* a third as many drops, each 3x - the same goo in all (owner, 2026-10-13: "reduce goo pellet count"; was 0.1) */, DRIP_REAL = 3, DRIP_TIER_K = 0.6; // DRIP_TIER_K: x (1 + it x the dropping ACD's Corrosion tier) - countermx 2026-10-13: 0.6 brings Corrosion builds to 1-6% late armor (0: 6-12%)
 const DRIP_LIFE = 8, DRIP_R = 14, DRIP_MAX = 300, DRIP_JIT = 8;
 // a drop is FLUNG back up the lane (owner, 2026-10-13: "give them some initial velocity in the direction of the lane (outwards),
 // give them a bit of angle jitter"): along the lane behind the enemy, +-DRIP_SPREAD rad, slowing from the start (by DRIP_TAU s)
@@ -182,7 +182,7 @@ function stepDrips(dt) {
     if (d.lane) dripRide(d, dt, keep); else { d.x += d.vx * dt; d.y += d.vy * dt; d.vx *= keep; d.vy *= keep; }
     let near = null, nd = d.pull * d.pull;
     for (const o of G.enemies) {
-      if (o.dead || o === d.src) continue;
+      if (o.dead || o === d.src) continue; // never its own enemy's (owner, 2026-10-13)
       const dd = (o.x - d.x) ** 2 + (o.y - d.y) ** 2, rr = DRIP_R + ENEMIES[o.type].size * (o.sizeMul || 1);
       if (dd <= rr * rr) { // picked up
         const take = DRIP_TAKE * d.v, by = G.towers.includes(d.by) ? d.by : null;
