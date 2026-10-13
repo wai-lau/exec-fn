@@ -43,8 +43,12 @@ function dmgNumber(e, label, size, color, src, grey = 0) {
 // rate", one a TICK_SHOW_S real s): at speed x a TICKING tower's tick (ACD, FRZ - `rate` a game second) spans 1 / (rate x) real
 // seconds; when that is longer than TICK_SHOW_S its number is cut into that many smaller ones, shown TICK_SHOW_S apart
 const tickQ = [], TICK_SPLIT_MAX = 8, TICK_SHOW_S = 0.5;
+// the FIRST tick a tower lands on an enemy shows whole, at once; only the ones after are split (owner, 2026-10-13: "start ticking
+// asap", "only sample after first tick")
 function dmgTick(e, amt, raw, color, t, grey, rate) {
-  const sp = typeof speedX === "function" ? Math.max(speedX(), 0.01) : 1, k = rate > 0 ? Math.min(TICK_SPLIT_MAX, Math.round(1 / (rate * sp * TICK_SHOW_S))) : 1;
+  const first = t && rate > 0 && !(e.ticked ||= new Set()).has(t.id);
+  if (first) e.ticked.add(t.id);
+  const sp = typeof speedX === "function" ? Math.max(speedX(), 0.01) : 1, k = rate > 0 && !first ? Math.min(TICK_SPLIT_MAX, Math.round(1 / (rate * sp * TICK_SHOW_S))) : 1;
   if (k <= 1) { dmgNumber(e, String(dmgUnits(amt)), raw, color, t, grey); return; }
   const now = performance.now();
   for (let i = 0; i < k; i++) tickQ.push({ e, label: String(dmgUnits(amt / k)), size: raw / k, color, t, grey, at: now + i * TICK_SHOW_S * 1000 });

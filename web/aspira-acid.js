@@ -27,7 +27,7 @@ function acdLines(t, st) {
   let lines = (t.lines || []).filter(l => !l.e.dead);
   if (st.allInRange) {
     const had = new Map(lines.map(l => [l.e, l]));
-    return G.enemies.filter(inRange).map(e => had.get(e) || { e, held: 0, tick: 0 });
+    return G.enemies.filter(inRange).map(e => had.get(e) || { e, held: 0, tick: 1 / st.rate }); // tick full: a new line BURNS at once (owner, 2026-10-13: "start ticking asap")
   }
   // a line whose enemy left range lives on for st.residue seconds (Residue)
   lines = lines.filter(l => {
@@ -39,7 +39,7 @@ function acdLines(t, st) {
   let live = lines.filter(l => inRange(l.e)).length;
   for (const e of pickTargets(t, st, st.targets + lines.length)) {
     if (live >= st.targets) break;
-    if (!lines.some(l => l.e === e)) { lines.push({ e, held: t.spare || 0, tick: 0, left: st.residue || 0 }); t.spare = 0; live++; }
+    if (!lines.some(l => l.e === e)) { lines.push({ e, held: t.spare || 0, tick: 1 / st.rate, left: st.residue || 0 }); t.spare = 0; live++; } // (burns at once)
   }
   return lines;
 }

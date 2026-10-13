@@ -99,7 +99,7 @@ function frzStep(t, dt) {
   const st = towerStats(t), srcs = frzSources(t, st);
   t.auraT = (t.auraT || 0) - dt;
   const tick = t.auraT <= 0;
-  if (tick) t.auraT += 1 / st.rate;
+  if (tick) t.auraT = Math.max(0, t.auraT) + 1 / st.rate; // (never a backlog: idle, the timer ran on below zero and an enemy walking in took a tick every step until it caught up)
   let ticked = false;
   for (const s of srcs) {
     const r2 = (st.range * s.k) ** 2;
@@ -117,7 +117,7 @@ function frzStep(t, dt) {
       if (e.shield > 0) { damage(e, st.dmg * s.k, t, false, false, FRZ_TICK_HIT); continue; } // a tick POPS a shield (owner, 2026-10-12: "shields should not absorb ticks")
       const hp = e.hp;
       damage(e, st.dmg * s.k * frzBite(e), t, true); // quiet, but armor still bites it (damage())
-      if (hp - e.hp > 0) dmgNumber(e, String(dmgUnits(hp - e.hp)), hp - e.hp, "white", t);
+      if (hp - e.hp > 0) dmgTick(e, hp - e.hp, hp - e.hp, "white", t, 0, st.rate); // (slow motion splits it - aspira-floats.js)
     }
   }
   if (ticked) sfx("frz"); // a tick that touched anything is HEARD (owner, 2026-10-07; was silent)
