@@ -162,8 +162,8 @@ function updateAutoWait() {
   const btn = $("asp-autowait"), html = (autoWait ? ICON_CHECKED : ICON_UNCHECKED) + "<span>auto-wait</span>"; // the box bigger than the words (owner)
   if (btn.dataset.html !== html) { btn.dataset.html = html; btn.innerHTML = html; btn.setAttribute("aria-checked", String(autoWait)); }
   btn.classList.toggle("on", autoWaiting()); // lit while it is holding the game at 1/2x
-  const used = G.autoMoveS || 0, mv = $("asp-automove"), mh = (autoMove ? ICON_CHECKED : ICON_UNCHECKED) + "<span>auto-move</span>" +
-    (used ? '<span class="asp-amt">' + (autoBarred() ? "no board" : Math.floor(used / 60) + ":" + String(Math.floor(used % 60)).padStart(2, "0")) + "</span>" : ""); // time used / barred, beside it (owner, 2026-10-13: "show next to check")
+  const mv = $("asp-automove"), mh = (autoMove ? ICON_CHECKED : ICON_UNCHECKED) + "<span>auto-move</span>" +
+    (autoBarred() ? '<span class="asp-amt">(DQ)</span>' : ""); // off the board: (DQ) beside it, no timer (owner, 2026-10-13)
   mv.hidden = !best.ascended; // ASCENDANTS only (owner, 2026-10-13: "non-ascendants do not get that checkbox")
   if (mv.dataset.html !== mh) { mv.dataset.html = mh; mv.innerHTML = mh; mv.setAttribute("aria-checked", String(autoMove)); }
 }

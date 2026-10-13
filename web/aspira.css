@@ -683,7 +683,7 @@
 #asp .asp-autowait button { flex: 0 0 auto; white-space: nowrap; display: inline-flex; align-items: center; gap: var(--space-1); padding: 0; border: none; background: none; font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.8); }
 
 #asp .asp-autowait button[hidden] { display: none; }
-#asp .asp-autowait .asp-amt { font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.45); margin-left: var(--space-1); } /* auto-move's time this game, or "no board" */ /* auto-move: Ascendants only (aspira-ui.js) */
+#asp .asp-autowait .asp-amt { font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.45); margin-left: var(--space-1); } /* (DQ): auto-move ran over a minute this game */ /* auto-move: Ascendants only (aspira-ui.js) */
 #asp .asp-autowait button.on { color: hsl(var(--green-hsl)); background: none; animation: asp-flash var(--asp-blink) ease-in-out infinite; } /* FLASHES while it holds the game slow (owner, 2026-10-08) */
 
 /* auto-wait ON and a power ONLINE flash BRIGHTER and HARDER (owner, 2026-10-08; were asp-blink):
