@@ -443,6 +443,8 @@ function drawLeash() {
     const c = CELLS[t.cell], col = COL[TOWERS[t.kind].color], held = towerHeld(t);
     ctx.strokeStyle = col;
     if (Math.hypot(t.x - c.x, t.y - c.y) > 1) { ctx.globalAlpha = 0.35; towerHex(c, TOWER_K); ctx.stroke(); }
+    // a TETHER from the hex it was built on to the tower while it is dragged (owner, 2026-10-12)
+    if (held && Math.hypot(t.x - c.x, t.y - c.y) > 1) { ctx.globalAlpha = 0.6; ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(t.x, t.y); ctx.stroke(); }
     const hint = t.leashHint > now ? Math.min(1, (t.leashHint - now) / LEASH_HINT_FADE_S) : 0;
     if (t.id !== ui.sel && !held && !hint) continue;
     ctx.globalAlpha = Math.max(held ? 0.8 : t.id === ui.sel ? 0.5 : 0, 0.8 * hint); ctx.setLineDash([8, 8]);
