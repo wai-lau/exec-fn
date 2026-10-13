@@ -135,7 +135,7 @@ function corrodeHit(e, amt, t) {
 // negative; however, triple the amount when the armor is not negative armor") -
 // as drops of DRIP_UNIT x the wave's armor reference; a drop lies DRIP_LIFE s, and the first other enemy within DRIP_R of it
 // takes it - its armor loses DRIP_TAKE x the drop, credited to the ACD. let: the sims sweep them
-let DRIP_TAKE = 0.5, DRIP_UNIT = 0.1, DRIP_REAL = 3;
+let DRIP_TAKE = 2 /* countermx 2026-10-13: 0.5 / 1 / 2 - 2 brought the late armor column down most (ACD 6-13%) */, DRIP_UNIT = 0.1, DRIP_REAL = 3, DRIP_TIER_K = 0; // DRIP_TIER_K: x (1 + it x the dropping ACD's Corrosion tier)
 const DRIP_LIFE = 8, DRIP_R = 14, DRIP_MAX = 300, DRIP_JIT = 8;
 // a drop is FLUNG back up the lane (owner, 2026-10-13: "give them some initial velocity in the direction of the lane (outwards),
 // give them a bit of angle jitter"): along the lane behind the enemy, +-DRIP_SPREAD rad, slowing from the start (by DRIP_TAU s)
@@ -160,9 +160,9 @@ function dripFlush(e) { if (e.drip > 0) dripDrop(e, e.drip, e.dripBy); e.drip = 
 function dripDrop(e, v, t) {
   if (G.drips.length >= DRIP_MAX) G.drips.shift();
   const a = Math.random() * 6.283, r = DRIP_JIT * Math.sqrt(Math.random()), on = pathAt(e.pi, e.s, e.ang);
-  const pull = ACD_DRIP_PULL[t && t.skills ? skillOf(t, "corrosion") : 1] || ACD_DRIP_PULL[1];
+  const tier = t && t.skills ? skillOf(t, "corrosion") : 1, pull = ACD_DRIP_PULL[tier] || ACD_DRIP_PULL[1];
   G.drips.push({ x: e.x, y: e.y, vx: 0, vy: 0, lane: { pi: e.pi, ang: e.ang, s: e.s, sv: DRIP_V * (1 - DRIP_V_JIT + 2 * DRIP_V_JIT * Math.random()), lat: 0, lv: DRIP_V * (Math.random() * 2 - 1) * DRIP_SPREAD,
-    ox: e.x - on.x + Math.cos(a) * r, oy: e.y - on.y + Math.sin(a) * r }, v, src: e, by: t, t: 0, pull, sz: 0.5 + Math.random(), ring: Math.random() < DRIP_HOLLOW }); // sz: its drawn size, mixed; ring: drawn HOLLOW (owner, 2026-10-13) // ox, oy: off the lane's line, as its enemy was
+    ox: e.x - on.x + Math.cos(a) * r, oy: e.y - on.y + Math.sin(a) * r }, v: v * (1 + DRIP_TIER_K * tier), src: e, by: t, t: 0, pull, sz: 0.5 + Math.random(), ring: Math.random() < DRIP_HOLLOW }); // sz: its drawn size, mixed; ring: drawn HOLLOW (owner, 2026-10-13) // ox, oy: off the lane's line, as its enemy was
 }
 // a drop riding its lane: back up it (s falling), its sideways drift along the lane's normal there, both slowing by keep
 function dripRide(d, dt, keep) {
