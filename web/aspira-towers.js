@@ -394,6 +394,20 @@ function moveTower(t, p) { const s = legalSpot(t, p); if (s) { t.x = s.x; t.y = 
 // placed or a tower's leash grows (owner, 2026-10-10: "to indicate that it can be moved")
 const LEASH_HINT_S = 4, LEASH_HINT_FADE_S = 1;
 const hintLeash = t => { t.leashHint = performance.now() / 1000 + LEASH_HINT_S; };
+// AN UPGRADE READY (owner, 2026-10-13: "when a tower's upgrade is available, show a plus, centered on the origin hexagon of the
+// tower, flashing slowly, bold, flash the hex too at the same speed"): affordable and not maxed; both pulse at UP_FLASH_HZ
+const UP_FLASH_HZ = 0.5, UP_PLUS_PX = 26;
+const upReady = t => t.lvl < maxLvl(t) && G.money >= upCost(t);
+const upPulse = now => 0.5 + 0.5 * Math.sin(now * UP_FLASH_HZ * 2 * Math.PI);
+function drawUpPlus() { // over the towers (render, aspira-draw.js), so a tower on its own slot does not hide it
+  const now = performance.now() / 1000;
+  for (const t of G.towers) {
+    if (!upReady(t)) continue;
+    const c = CELLS[t.cell];
+    ctx.globalAlpha = 0.25 + 0.75 * upPulse(now); text("+", c.x, c.y, UP_PLUS_PX, TOWERS[t.kind].color, true, true);
+  }
+  ctx.globalAlpha = 1;
+}
 function drawLeash() {
   ctx.save(); if (!phoneOn3d()) { phonePath(ctx, phoneBox()); ctx.clip(); } /* a leash past the phone's screen is no use: cut at it in 2D (owner, 2026-10-13) */
   ctx.lineWidth = 2;
@@ -401,7 +415,8 @@ function drawLeash() {
   for (const t of G.towers) {
     const c = CELLS[t.cell], col = COL[TOWERS[t.kind].color], held = towerHeld(t);
     ctx.strokeStyle = col;
-    if (Math.hypot(t.x - c.x, t.y - c.y) > 1) { ctx.globalAlpha = 0.35; towerHex(c, TOWER_K); ctx.stroke(); }
+    const up = upReady(t), pulse = up ? upPulse(now) : 0;
+    if (Math.hypot(t.x - c.x, t.y - c.y) > 1 || up) { ctx.globalAlpha = up ? 0.2 + 0.7 * pulse : 0.35; towerHex(c, TOWER_K); ctx.stroke(); } // an upgrade ready: the hex FLASHES with the plus (drawUpPlus)
     // a TETHER from the hex it was built on to the tower while it is dragged (owner, 2026-10-12)
     if (held && Math.hypot(t.x - c.x, t.y - c.y) > 1) { ctx.globalAlpha = 0.6; ctx.setLineDash([8, 8]); ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(t.x, t.y); ctx.stroke(); ctx.setLineDash([]); } // dashed like the leash ring
     const hint = t.leashHint > now ? Math.min(1, (t.leashHint - now) / LEASH_HINT_FADE_S) : 0;
