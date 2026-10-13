@@ -271,6 +271,9 @@ const bossPays = e => !(isA(e, "devil") && G.enemies.some(o => o !== e && !o.dea
 // (bossInv.full -> #asp.asp-boss).
 const BOSS_INV_T = 3;
 const bossInv = { phase: "off", t0: 0, x: 0, y: 0, full: false, r: 0 };
+// the game HOLDS while the sky turns over, both ways (owner, 2026-10-12: "maybe we should pause the game while inverting"):
+// BOSS_INV_T of real time with nothing moving, so the flip is watched, not fought through
+const skyTurning = () => (bossInv.phase === "in" && !bossInv.full) || bossInv.phase === "out";
 function bossSkyStep() {
   // the sky stays inverted while ANY boss-related enemy lives - the boss and its
   // brood (owner) - and only then collapses

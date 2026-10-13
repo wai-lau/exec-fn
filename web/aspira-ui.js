@@ -103,16 +103,19 @@ KINDS.forEach((k, i) => {
 });
 
 // AUTO-WAIT (owner): a checkbox under the pause button; while ticked, the game
-// drops to min(1x, the chosen speed) whenever an enemy is within AUTO_WAIT_S game-seconds of
+// drops to a share of the chosen speed (AUTO_WAIT_K) whenever an enemy is within AUTO_WAIT_S game-seconds of
 // reaching the core at its current speed (owner: time, not distance), and goes
 // back to the chosen speed once none is. Remembered in localStorage.
 const AUTO_WAIT_S = 6, AUTO_WAIT2_S = 2, AUTO_WAIT3_S = 1; // owner, 2026-10-11: "start at 6s, 1/2 at 2s and 1/4 at 1s" (was 8 / 3)
+// each stage a SHARE of the chosen speed, not a fixed one (owner, 2026-10-12: "make auto-wait slowness be a percentage of the
+// chosen speed"): half of it from 6s out, a quarter from 2s, an eighth from 1s (was 1x / 1/2x / 1/4x, capped by the speed)
+const AUTO_WAIT_K = [0.5, 0.25, 0.125];
 const etaToCore = e => { const v = effSpeed(e); return v > 0 ? (PATHS[e.pi].len - e.s) / v : Infinity; };
 let autoWait = true;
 // ON by default (owner); only an explicit "0" (unticked before) turns it off
 try { autoWait = localStorage.getItem("spire.autowait") !== "0"; } catch (e) { autoWait = true; }
-// THREE stages (owner, 2026-10-11): min(1x, the chosen speed) within AUTO_WAIT_S of the core, min(1/2x, it) within
-// AUTO_WAIT2_S, min(1/4x, it) within AUTO_WAIT3_S. Returns the speed key, or 0 when not waiting.
+// THREE stages (owner, 2026-10-11): AUTO_WAIT_K's shares of the chosen speed within AUTO_WAIT_S, AUTO_WAIT2_S and
+// AUTO_WAIT3_S of the core. Returns the speed key, or 0 when not waiting.
 // NO JITTER (owner): the nearest ETA jumps as enemies are slowed, die or swap,
 // so a stage is entered at its line but only LEFT past AUTO_RELEASE x it (6s in,
 // 7.5s out; 2s in, 2.5s out; 1s in, 1.25s out), and a slower speed holds at least AUTO_HOLD_MS of
@@ -148,7 +151,7 @@ const autoWaiting = () => {
   awAt = now;
   let eta = Infinity;
   for (const e of G.enemies) if (!e.dead) eta = Math.min(eta, etaToCore(e));
-  const stages = [[AUTO_WAIT3_S, Math.min(0.25, ui.speed)], [AUTO_WAIT2_S, Math.min(0.5, ui.speed)], [AUTO_WAIT_S, Math.min(1, ui.speed)]]; // deepest first
+  const stages = [[AUTO_WAIT3_S, AUTO_WAIT_K[2] * ui.speed], [AUTO_WAIT2_S, AUTO_WAIT_K[1] * ui.speed], [AUTO_WAIT_S, AUTO_WAIT_K[0] * ui.speed]]; // deepest first
   const hold = (lvl, line) => awLevel && awLevel <= lvl && eta <= line * AUTO_RELEASE; // already this slow or slower, still near
   const hit = stages.find(([line, lvl]) => eta <= line || hold(lvl, line));
   const want = hit ? hit[1] : 0;
@@ -468,7 +471,8 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   if (!ui.paused) {
-    let left = dt * BASE_SPEED * (freezing() ? 1 : speedX()); // auto-wait only ever SLOWS; a time freeze runs at 1x
+    // the game HOLDS while the boss sky turns over (aspira-bosses.js); the real-time bits below still run
+    let left = typeof skyTurning === "function" && skyTurning() ? 0 : dt * BASE_SPEED * (freezing() ? 1 : speedX()); // auto-wait only ever SLOWS; a time freeze runs at 1x
     while (left > 0) { const h = Math.min(0.02, left); step(h); stepFx(h); left -= h; }
     stepFloats(dt); // real time: unaffected by the game speed
     stepFlings(dt); // a let-go tower coasting (aspira-fling.js), real time too
