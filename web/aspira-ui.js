@@ -7,7 +7,7 @@
 // ...and back (owner, 2026-10-12: "make whatever is 1/2 speed the new 1x speed"): every button at half its 2-based rate
 const BASE_SPEED = 1;
 const SPEED_MULT = { 0.25: 0.25 * BASE_SPEED, 0.5: 0.5 * BASE_SPEED, 1: BASE_SPEED, 2: 2 * BASE_SPEED, 3: 3 * BASE_SPEED, 10: 10 * BASE_SPEED };
-const SPEEDS = [0.25, 0.5, 1, 2, 3, 10], speedId = v => "asp-sp-" + String(v).replace(".", "_");
+const SPEEDS = [1, 2, 3, 10] /* no 1/4x or 1/2x (owner, 2026-10-12) */, speedId = v => "asp-sp-" + String(v).replace(".", "_");
 const ui = { build: null, sel: null, hover: null, speed: 1, paused: false };
 const $ = id => document.getElementById(id);
 function setText(el, v) { v = String(v); if (el.textContent !== v) el.textContent = v; }
@@ -96,7 +96,7 @@ KINDS.forEach((k, i) => {
     '<span class="ab">' + b.ab + '</span><span class="c">' + b.cost + "</span>", () => selectBuild(k), "asp-tw-" + k);
   btn.title = b.name;
 });
-[["pause", "pause"], [0.25, "¼×"], [0.5, "½×"], [1, "1×"], [2, "2×"], [3, "3×"], [10, "10×"]].forEach(([v, label]) => {
+[["pause", "pause"], [1, "1×"], [2, "2×"], [3, "3×"], [10, "10×"]].forEach(([v, label]) => {
   button($("asp-speed"), "", label, () => {
     if (v === "pause") ui.paused = !ui.paused; else { ui.speed = v; ui.paused = false; }
   }, v === "pause" ? "asp-sp-pause" : speedId(v));

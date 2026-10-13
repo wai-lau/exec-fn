@@ -74,7 +74,8 @@ function updateWaveList() {
     const hp = enemyHp(w.type, n) * (boss ? (BOSS_HP[arcanaOf(n).id] || 1) * BOSS_LANE_HP : 1);
     return { n, w, boss, hp, alive: live.get(n), cur: n === G.wave || live.has(n) }; // highlighted: every wave still ALIVE, and the current one (owner)
   };
-  for (const n of [...new Set([...live.keys(), ...(G.wave > 0 ? [G.wave] : [])])].sort((a, b) => a - b)) {
+  // after a boss, until "challenge" is tapped, the beaten boss's row goes too (owner, 2026-10-12): only the button and what is coming
+  for (const n of [...new Set([...live.keys(), ...(G.wave > 0 && !afterBoss() ? [G.wave] : [])])].sort((a, b) => a - b)) {
     if (G.planLog && G.planLog[n]) rows.push(rowOf(n, G.planLog[n]));
   }
   let prev = G.lastType;
