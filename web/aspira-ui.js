@@ -66,10 +66,12 @@ function onTap(ev) {
   if (G.over) return;
   const p = toWorld(ev);
   ui.hover = p;
-  // a tower is tapped where it IS now (it may have been dragged off its slot); its empty slot still picks it
-  const ci = cellAt(p.x, p.y), pk = pickAt(ev), hit = (pk && pk.t) || (ci >= 0 && G.towers.find(t => t.cell === ci)); // the whole drawn tower or core (aspira-pick.js)
-  if (relayArmTap(hit)) { refreshPanels(); return; } // an armed Relay: this tower takes it, anything else disarms (aspira-powers.js)
-  if (hit) { ui.sel = hit.id; ui.build = null; }
+  // a tower's CARD opens from its home SLOT, not the tower (owner, 2026-10-13: "clicking the tower should no longer upgrade the
+  // tower, move that to clicking the original spot") - tapping the tower itself only takes an armed Relay
+  const ci = cellAt(p.x, p.y), pk = pickAt(ev), home = ci >= 0 && G.towers.find(t => t.cell === ci), tw = pk && pk.t; // (aspira-pick.js)
+  if (relayArmTap(tw || home)) { refreshPanels(); return; } // an armed Relay: this tower takes it, anything else disarms (aspira-powers.js)
+  if (home) { ui.sel = home.id; ui.build = null; }
+  else if (tw) return; // the tower itself: nothing
   else if (!ui.build && pk && pk.core) { ui.sel = "core"; } // the core's card (aspira-core.js)
   else if (ui.build) placeTower(p);
   else if (ci >= 0 && canPlace(ci)) { ui.sel = null; openBuildChooser(ci); } // a free slot: the tower cards (aspira-chooser.js)
