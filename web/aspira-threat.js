@@ -10,7 +10,7 @@ const THREAT_A_MIN = 0.1, THREAT_A_MAX = 0.75, THREAT_W = 3; // world units wide
 // THREAT_FADE s, and a WHITE core inside the ember that grows with the width, THREAT_CORE of it, as strong as k
 const THREAT_FROM = 4, THREAT_FADE = 0.4, THREAT_CORE = 0.4;
 const THREAT_SEG = 36, THREAT_FALL = 0.35; // the ring's arcs, and the angle (radians) over which it falls to 1/e
-const THREAT_N = 10, THREAT_RINGS = 3; // up to the 10 soonest (owner, 2026-10-12: "nearest up to 10 enemies")
+const THREAT_N = 3, THREAT_RINGS = 3; // spokes AND rings for the closest 3 only (owner, 2026-10-12; spokes were 10) // up to the 10 soonest (owner, 2026-10-12: "nearest up to 10 enemies")
 // ...and when one REACHES the core its ring BOUNCES back out (owner, 2026-10-12: "bounce that threat indicator back outwards at
 // current thickness and fade out opacity"): from where it touched, THREAT_BOUNCE_R further out over THREAT_BOUNCE_T s (real
 // time, eased out), its width kept, its alpha down to nothing
