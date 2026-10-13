@@ -59,7 +59,7 @@ const SWARM_X2_FROM = 11;
 const SWARM_MID_MUL = 2, SWARM_MID = [11, 60], SWARM_LATE_MUL = 1.5;
 const swarmMul = n => (n < SWARM_MID[0] ? 1 : n <= SWARM_MID[1] ? SWARM_MID_MUL : SWARM_LATE_MUL);
 let COUNT_SLOPE = 0.5, COUNT_CAP = Infinity; // a plain wave's base count: 10 + slope x n, uncapped (owner, 2026-10-11: the R10 battery, cap 28 left the late game easy)
-const WAVE_COUNT_MUL = { [UNLOCK.indexOf("shield") + 1]: 0.5 }; /* the FIRST shield wave at half (owner, 2026-10-12) */ // (wave 1 was DOUBLED from 2026-10-09; dropped 2026-10-12 - owner: "make sure that the first swarm wave is weaker than the second")
+const WAVE_COUNT_MUL = { [UNLOCK.indexOf("shield") + 1]: 0.5, 1: 0.75, 3: 0.67, 4: 0.75, 6: 0.67, 7: 0.75, 10: 0.5, 11: 0.5 }; /* waves 1-11 a lone L1 tower can clear (owner, 2026-10-12; scripts/aspira-sim/solo.mjs) */ /* the FIRST shield wave at half (owner, 2026-10-12) */ // (wave 1 was DOUBLED from 2026-10-09; dropped 2026-10-12 - owner: "make sure that the first swarm wave is weaker than the second")
 // FEWER LATE FAST (owner, 2026-10-11: "for waves that make lives go fix them"): fast cost 14 lives a wave past 80, every
 // other type under 2 - x FAST_LATE_MUL past FAST_LATE_FROM. waverep x3 with HP_END 1.06: 0.8 6.8 a wave, 0.65 2.6, 0.5 1.3
 const FAST_LATE_MUL = 0.65, FAST_LATE_FROM = 80;

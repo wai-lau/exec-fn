@@ -40,7 +40,7 @@ const ARCANA = [
 // team, Lovers 50 got to 47 of the core (target 168). Was star 3.4, empress 2,
 // strength 0.9, chariot 4, lovers 3.1, temperance 3, devil 0.75, justice 4.4,
 // judgement 1.7. Death not refitted (the run was stopped for memory): kept 1.6.
-const BOSS_HP = { star: 5.4, empress: 6.8, strength: 2.2, chariot: 3.4, lovers: 2.4, temperance: 1.22, devil: 0.76, justice: 6.4, judgement: 3.4, death: 3.2 }; // every one DOUBLED (owner, 2026-10-12: "double each bosses hp"; was 2.7 3.4 1.1 1.7 1.2 0.61 0.38 3.2 1.7 1.6)
+const BOSS_HP = { star: 32 /* (owner, 2026-10-12: "require 2 towers or an upgrade to beat the star", SOL and ACD may solo it; solo.mjs; was 5.4) */, empress: 6.8, strength: 2.2, chariot: 3.4, lovers: 2.4, temperance: 1.22, devil: 0.76, justice: 6.4, judgement: 3.4, death: 3.2 }; // every one DOUBLED (owner, 2026-10-12: "double each bosses hp"; was 2.7 3.4 1.1 1.7 1.2 0.61 0.38 3.2 1.7 1.6)
 // each boss's ARMOR (x the armored enemy's growth curve at its wave, like ENEMIES.armor) and SPEED
 // (x the boss base) - owner, 2026-10-08: the bosses ACD is too good against get armor and speed and
 // lose HP, so SOL (whose hits strip armor) and ACD (whose ramp wants a long-lived target) boss alike
@@ -108,7 +108,7 @@ const FLEET_GAP = 10, FLEET_LAYER = 3 * V_BACK; // clear space between bodies, w
 // scripts/aspira-sim/bossfleet.mjs against the regular waves before each boss, which overlap where a boss wave does not
 // FLEET_TO_BOSS of every escort's HP moves onto its boss (owner, 2026-10-11: "move some life from boss fleet to boss")
 const FLEET_TO_BOSS = 0.3;
-const FLEET_MUL = { star: 1, empress: 1, strength: 1, chariot: 1, lovers: 1, temperance: 1, devil: 1, justice: 0.75 /* Justice slowed (owner, 2026-10-12: "boss 80 nerf by slow" - it broke through in 5 of 36 games) */, judgement: 1, death: 1 };
+const FLEET_MUL = { star: 3 /* a pack of 3 waves following it (2026-10-12) */, empress: 1, strength: 1, chariot: 1, lovers: 1, temperance: 1, devil: 1, justice: 0.75 /* Justice slowed (owner, 2026-10-12: "boss 80 nerf by slow" - it broke through in 5 of 36 games) */, judgement: 1, death: 1 };
 // the slots ([lat, ahead of the boss]) for a boss's shield and armor escorts; R: the boss's own radius
 function fleetForm(e, R) {
   return {
@@ -136,6 +136,12 @@ function fleetForm(e, R) {
 // on one lane and the swarms in 12 different ones"); the Devil's six and the Lovers' two already come from their own lanes
 // the LINE escorts (fast, swarms) ride FLEET_TRACKS parallel tracks across the boss's own lane, 3-5, the boss in the middle
 // (owner, 2026-10-12: "the escorts should travel on parallel lanes to its own (some already do)" - shields and armor did)
+// a TIGHTER fleet packs its line escorts closer along their tracks (owner, 2026-10-12: "tighten the escorts" - the Star's spread
+// out at the boss's pace was picked off one by one by a lone single-shot tower): x the gap between bodies on a track
+const FLEET_TIGHT = { star: 0.2 };
+// ...and a PACK BEHIND: every line escort after the boss, none ahead (owner, 2026-10-12: "the star goes first, escort comes as
+// one pack after") - the lone single-shot tower is still on the star when the pack arrives
+const FLEET_BEHIND = { star: true };
 const FLEET_TRACK_W = 26, fleetTracks = n => 3 + Math.floor(fixedRand(n, 7) * 3);
 const fleetLanes = (e, n) => (isA(e, "judgement") ? { L: 12, off: 0.5 } : { L: 1, off: 0 }); // only the Judgement spreads its escorts (owner, 2026-10-12: "escorts don't spread, only judgement"; every fleet rode 3-5 lanes briefly)
 function bossFleet(e, n) {
@@ -161,8 +167,8 @@ function bossFleet(e, n) {
         } else {
           // on its TRACK across the lane, spaced so NOTHING OVERLAPS (owner, 2026-10-09): ahead, behind, ahead... of the boss's
           // spot, each clearing the one before it on its track by FLEET_GAP
-          const tk = i % T, side = Math.floor(i / T) % 2, tr = track[tk], lat = (tk - (T - 1) / 2) * FLEET_TRACK_W;
-          tr[side] += FLEET_GAP + r; const ahead = (side ? -1 : 1) * tr[side]; tr[side] += r;
+          const tk = i % T, side = FLEET_BEHIND[e.arcana] ? 1 : Math.floor(i / T) % 2, tr = track[tk], lat = (tk - (T - 1) / 2) * FLEET_TRACK_W;
+          tr[side] += FLEET_GAP * (FLEET_TIGHT[e.arcana] ?? 1) + r; const ahead = (side ? -1 : 1) * tr[side]; tr[side] += r;
           m.form = true; m.lat = lat; m.s = e.s + ahead; m.ahead = ahead; m.aheadC = 0;
           reach[0] = Math.max(reach[0], tr[0]); reach[1] = Math.max(reach[1], tr[1]);
         }
