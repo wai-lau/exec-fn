@@ -29,7 +29,9 @@ function ascBoard(entries, mine) {
   if (!entries.length) { board.textContent = "No one on the board yet."; return; }
   const table = document.createElement("table");
   table.className = "asp-asc-table";
-  for (const e of entries.slice(0, ASC_SHOW)) {
+  // EVERY entry, but only ASC_SHOW rows tall - the rest a scroll away (owner, 2026-10-12: "show only top 10 players, but allow
+  // the leaderboard to be scrollable"); your own row scrolled into view
+  for (const e of entries) {
     const tr = table.insertRow();
     tr.className = (ascWon(e) ? "asp-asc-gold" : "asp-asc-green") + (mine && e.ts === mine.ts && e.initials === mine.initials ? " asp-asc-mine" : "");
     tr.insertCell().textContent = e.initials;
@@ -38,6 +40,10 @@ function ascBoard(entries, mine) {
     tr.insertCell().textContent = ascDate(e.ts);
   }
   board.append(table);
+  const rows = table.rows;
+  board.style.maxHeight = rows.length > ASC_SHOW ? rows[ASC_SHOW].offsetTop - rows[0].offsetTop + "px" : "";
+  const me = table.querySelector(".asp-asc-mine");
+  if (me && rows.length > ASC_SHOW) board.scrollTop = Math.max(0, me.offsetTop - rows[0].offsetTop - board.clientHeight / 2);
 }
 async function ascLoad() {
   try { const r = await fetch(ASC_URL); if (r.ok) ascBoard((await r.json()).entries || []); } catch (_e) { ascBoard([]); }
