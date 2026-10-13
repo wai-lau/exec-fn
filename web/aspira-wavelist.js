@@ -103,9 +103,11 @@ function updateWaveList() {
   const curRows = rows.filter(r => r.cur).length;
   const eta = G.started && !bossUp() && !bossNext() ? ' <span class="asp-eta">' + Math.ceil(Math.max(0, G.nextIn)) + "s</span>" : "";
   const lab = $("asp-wavelabel"), chal = afterBoss(); // after a boss: the CHALLENGE button where the countdown was (aspira-waves.js)
-  lab.classList.toggle("asp-challenge", chal);
-  const labHtml = chal ? '<button class="asp-primary asp-challenge-btn" type="button">challenge ' + arcanaOf(G.wave + STAR_EVERY).name + "</button>" : curRows ? WAVE_HEAD.now : WAVE_HEAD.next + eta;
-  if (lab.dataset.h !== labHtml) { lab.dataset.h = labHtml; lab.innerHTML = labHtml; if (chal) lab.firstChild.onclick = challengeNext; } // only on a change: a button rebuilt 10x a second loses its tap
+  const labHtml = chal ? "" : curRows ? WAVE_HEAD.now : WAVE_HEAD.next + eta; // (the CHALLENGE button sits under the core - placeChallenge)
+  if (lab.dataset.h !== labHtml) { lab.dataset.h = labHtml; lab.innerHTML = labHtml; }
+  const btn = $("asp-challenge"), label = chal ? "challenge " + arcanaOf(G.wave + STAR_EVERY).name : "";
+  btn.hidden = !chal; btn.onclick ||= () => challengeNext();
+  if (btn.textContent !== label) btn.textContent = label;
   let note = "", i = 0;
   for (const { n, w, boss, hp, alive } of rows) {
     if (curRows && i++ === curRows) note += '<span class="asp-wavelabel asp-wavesub">' + WAVE_HEAD.next + eta + "</span>" + "<i hidden></i>".repeat(3);
@@ -129,4 +131,25 @@ function updateWaveList() {
   // columns' nth-child rules still count four cells a row
   if (curRows) note += '<i class="asp-curbox" style="grid-row:1 / ' + (curRows + 1) + '"></i>';
   if (note !== lastNote) { $("asp-wavenote").innerHTML = note; lastNote = note; } // innerHTML re-reads normalised, so compare the source
+}
+// the CHALLENGE button UNDER THE CORE, centred on it (owner, 2026-10-12: "move the challenge button under the core, centered
+// horizontally"): below the core's life rings, followed every frame (the camera moves), in 2D and 3D alike
+const CHALLENGE_BELOW = 16; // world units under the life rings / the lowest slot
+function placeChallenge() {
+  const btn = $("asp-challenge");
+  if (btn.hidden) return;
+  // under the core AND clear of the build slots round it (a slot under the button could not be tapped)
+  const wy = Math.max(CY + CORE_R + LIFE_GAP * LIFE_RINGS, ...CELLS.map(c => c.y + CELL_S * TOWER_K)) + CHALLENGE_BELOW, root = $("asp").getBoundingClientRect();
+  let x, y;
+  if (q3d() && typeof warp !== "undefined" && warp.ent && warp.p) {
+    const c0 = { k: cam.k, ox: cam.ox, oy: cam.oy }; // projected as warp3d does: under the texture camera (warpRes)
+    cam.k *= warpRes(); cam.ox *= warpRes(); cam.oy *= warpRes();
+    let P; try { P = warpProject(CX, wy, 0); } finally { Object.assign(cam, c0); }
+    const r = warp.ent.getBoundingClientRect();
+    x = r.left + P.x * r.width / warp.ent.width; y = r.top + P.y * r.height / warp.ent.height;
+  } else {
+    const r = cv.getBoundingClientRect(), k = r.width / cv.width;
+    x = r.left + (CX * cam.k + cam.ox) * k; y = r.top + (wy * cam.k + cam.oy) * k;
+  }
+  btn.style.left = (x - root.left) + "px"; btn.style.top = (y - root.top) + "px";
 }

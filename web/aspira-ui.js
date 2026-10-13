@@ -464,7 +464,7 @@ function frame(now) {
   if (!chooser.t) { if (q3d()) warp3d(); else render(); } // 3D lays the frame, drawn to fit the whole board, on the spire (aspira-warp.js)
   // the HUD's text and buttons 10x a second, not every frame (perf, 2026-10-05)
   if (!(now < hudAt)) { hudAt = now + 100; updateHud(); syncBlinks(); }
-  placePop(); tickFps(now);
+  placePop(); placeChallenge(); tickFps(now); // (placeChallenge: aspira-wavelist.js)
   // while a boss lives the board draws inverted (render, bossSkyStep); the HTML over it
   // flips too once the inversion fills the screen, so it stays readable
   $("asp").classList.toggle("asp-boss", bossInv.full);
