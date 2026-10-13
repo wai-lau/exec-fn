@@ -149,6 +149,7 @@ function coinHome(c) {
   }
   return best;
 }
+const CRED_POP_MAX = (DMG_PX_MIN + DMG_PX_SPAN) / 2; // a credit pop-up's biggest: HALF a damage number's (owner, 2026-10-13: "reduce max size of credit popups to half")
 function stepCoins(dt) {
   for (const c of coins) {
     c.t += dt;
@@ -164,7 +165,7 @@ function stepCoins(dt) {
       const gb = c.grp.b;
       G.maxGold = Math.max(G.maxGold || 1, gb);
       const rel = (gb / G.maxGold) ** DMG_SIZE_EXP;
-      float(h.x, h.y - h.r - 22 - lift, "+" + (gb < 10 ? +gb.toFixed(1) : Math.round(gb)) + "c", "orange", Math.round(DMG_PX_MIN + DMG_PX_SPAN * rel), 2.0); // credits read "Nc"
+      float(h.x, h.y - h.r - 22 - lift, "+" + (gb < 10 ? +gb.toFixed(1) : Math.round(gb)) + "c", "orange", Math.round(DMG_PX_MIN + (CRED_POP_MAX - DMG_PX_MIN) * rel), 2.0); // credits read "Nc"
       fx[fx.length - 1].shrink = true; // it holds, then shrinks + fades like a damage number (owner)
     } else { c.x += dx / d * step; c.y += dy / d * step; }
   }
