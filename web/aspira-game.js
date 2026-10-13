@@ -79,7 +79,7 @@ function spawnEnemy(type, n, pi, ang = 0) {
   const shield = type === "swarm" && late ? Math.round(SWARM_SHIELD * shieldsOf("shield", n).shield) : shieldsOf(type, n).shield; // fewer late shields, more HP (shieldsOf); late swarms carry a share of a shield unit's
   const armor = d.armor ? armorOf(type) : type === "fast" && late ? Math.floor(FAST_ARMOR * armorOf("armor")) : 0; // late fast a share of an armor unit's
   G.enemies.push({
-    armor, armor0: armor, shield, shieldMax: shield, wave: n, // armor0: as spawned (damageCredit) // the wave it CAME from (the end screen's leaks)
+    armor, armor0: armor, shield, shieldMax: shield, wave: n, aug: late && type === "swarm" ? "shield" : late && type === "fast" ? "armor" : null, /* aug: its late HYBRID trait - its outline wears that type's colour (owner, 2026-10-13) */ // armor0: as spawned (damageCredit) // the wave it CAME from (the end screen's leaks)
     // swarm members wander widely off the lane, each at its own speed (+-20%)
     // and its own wobble rate, so a clump churns as it moves
     jit: type === "swarm" ? 18 + Math.random() * 45 : 0, /* x1.5 wider (owner, 2026-10-12: "swarm units spread wider across lane"; was 12 + 30) */ ph: Math.random() * 6.283, // owner: tripled, halved twice, doubled 2026-10-08

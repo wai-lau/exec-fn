@@ -93,7 +93,7 @@ function drawEnemy(e, solid) {
   // Permafrost (a slow that never ends) draws the freeze outline thicker (owner)
   const perma = e.slowT === Infinity;
   if (!solid) {
-    ctx.strokeStyle = COL[d.color]; ctx.lineWidth = (e.armor ? 6.5 : 3) + (perma ? 3 : 0); ctx.stroke();
+    ctx.strokeStyle = COL[ENEMIES[e.aug || e.type].color]; ctx.lineWidth = (e.armor ? 6.5 : 3) + (perma ? 3 : 0); ctx.stroke(); // an augmented enemy's outline in its augment's colour (owner, 2026-10-13)
     const k = frostK(e); // the FROST outline as strong as the slow (owner, 2026-10-11: "slow correlated to opacity of frost indicator")
     if (k > 0) { const a = ctx.globalAlpha; ctx.strokeStyle = COL.cyan; ctx.globalAlpha = a * k; ctx.stroke(); ctx.globalAlpha = a; }
     const w = rimeK(e); // RIME whitens the outline: none at no rime, all white at full (owner, 2026-10-12)

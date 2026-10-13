@@ -101,7 +101,7 @@ function solidGeom(e) {
     const f = [slot[a], slot[b]].filter(x => x >= 0);
     if (f.length) edges.push({ v: Q[i], w: Q[j], n: f.length, f });
   }
-  return { faces, edges, spike, size, fa, col: COL[d.color], frz: SOLID_FROZEN_A * frostK(e), rime: rimeK(e), lw: (e.armor ? 2.2 : 1.2) * cam.k };
+  return { faces, edges, spike, size, fa, col: COL[d.color], ocol: COL[ENEMIES[e.aug || e.type].color], /* ocol: the OUTLINE's - an augmented enemy's in its augment's colour */ frz: SOLID_FROZEN_A * frostK(e), rime: rimeK(e), lw: (e.armor ? 2.2 : 1.2) * cam.k };
 }
 // the opacity the floor's slices give depth z (aspira-fog.js warpBands): 1 at the floor, down to the deepest slice's
 const belowFade = z => Math.max(1 - (WARP_FADE_BANDS - 0.5) / WARP_FADE_BANDS, Math.min(1, 1 + z / WARP_FADE_Z));
@@ -154,7 +154,7 @@ function warpFlatDie(e) {
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.beginPath();
   for (let i = 0; i < n; i++) { const a = (e.rot || 0) + i * 6.283 / n; if (i) ctx.lineTo(P.x + Math.cos(a) * r, P.y + Math.sin(a) * r); else ctx.moveTo(P.x + Math.cos(a) * r, P.y + Math.sin(a) * r); }
   ctx.closePath(); ctx.fillStyle = blendFill([[rgbOf(col), 0.35 * fa], [rgbOf(COL.cyan), 0.35 * fa * SOLID_FROZEN_A * frostK(e)]]); ctx.fill();
-  ctx.strokeStyle = blendFill([[rgbOf(col), 0.9 * fa], [rgbOf(COL.white), 0.9 * fa * rimeK(e)]]); ctx.lineWidth = 1.2 * cam.k; ctx.stroke();
+  ctx.strokeStyle = blendFill([[rgbOf(COL[ENEMIES[e.aug || e.type].color]), 0.9 * fa], [rgbOf(COL.white), 0.9 * fa * rimeK(e)]]); ctx.lineWidth = 1.2 * cam.k; ctx.stroke(); // (the augment's outline)
   return true;
 }
 // NO FOG ON ENEMIES (owner, 2026-10-12: "remove fog on enemies"): a die draws ONCE, whole and at full strength, in the pass
@@ -198,7 +198,7 @@ function warpSolidWhole(e) {
       ctx.beginPath(); let any = false;
       for (const E of g.edges) if (E.n === n && E.f.some(fi => drawn[fi])) { warpLine(E.v, E.w); any = true; }
       if (!any) continue;
-      const one = [[colR, sa], [cyR, sa * frz], [rgbOf(COL.white), sa * g.rime]]; // rime whitens the edges (rimeK)
+      const one = [[n === 1 ? rgbOf(g.ocol) : colR, sa], [cyR, sa * frz], [rgbOf(COL.white), sa * g.rime]]; // rime whitens the edges (rimeK); the outline (n 1) in ocol
       ctx.strokeStyle = blendFill(n === 1 ? one : one.concat(one)); ctx.stroke();
     }
   }
