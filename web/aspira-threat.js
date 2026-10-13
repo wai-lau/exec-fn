@@ -44,7 +44,7 @@ function drawThreat() {
     // squared, so a far one stays a whisper and one about to land is loud
     const k = (1 - t / THREAT_FROM) ** 2, fade = Math.min(1, (THREAT_FROM - t) / THREAT_FADE), w = (THREAT_W_MIN + (THREAT_W_MAX - THREAT_W_MIN) * k) * (t <= AUTO_WAIT2_S ? 2 : 1); // THICKER as it nears again (owner, 2026-10-12), doubled inside auto-wait's second stage
     const al = fade * (THREAT_A_MIN + (THREAT_A_MAX - THREAT_A_MIN) * k), core = fade * k;
-    ctx.beginPath(); ctx.moveTo(CX, CY); ctx.lineTo(e.x, e.y); threatStroke(al, w, core); // the spoke, full strength
+    // (no SPOKE - owner, 2026-10-12: "drop the threat indicator spokes")
     // the RING fades fast with the angle away from its enemy (owner, 2026-10-12: "ring opacity should fade quickly relative to
     // distance from enemy"): THREAT_SEG arcs, each exp(-angle / THREAT_FALL) as strong; the faint far side is skipped
     if (i >= THREAT_RINGS) return; // a RING for the closest THREAT_RINGS only (owner, 2026-10-12), spokes for all THREAT_N
