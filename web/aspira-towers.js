@@ -399,6 +399,9 @@ const hintLeash = t => { t.leashHint = performance.now() / 1000 + LEASH_HINT_S; 
 const UP_FLASH_HZ = 0.5, UP_PLUS_PX = 26;
 const upReady = t => t.lvl < maxLvl(t) && G.money >= upCost(t);
 const upPulse = now => 0.5 + 0.5 * Math.sin(now * UP_FLASH_HZ * 2 * Math.PI);
+// MORE OUTLINES THE HIGHER (owner, 2026-10-13: "they should have more outlines the higher level they are"): one hex per
+// UP_RING_LVLS levels (1 at L1-3 .. 6 at L16-18), each UP_RING_K of the hex further out
+const UP_RING_LVLS = 3, UP_RING_K = 0.14, upRings = t => Math.ceil(t.lvl / UP_RING_LVLS);
 function drawUpPlus() { // over the towers (render, aspira-draw.js), so a tower on its own slot does not hide it
   const now = performance.now() / 1000;
   for (const t of G.towers) {
@@ -417,6 +420,7 @@ function drawLeash() {
     ctx.strokeStyle = col;
     const up = upReady(t), pulse = up ? upPulse(now) : 0;
     if (Math.hypot(t.x - c.x, t.y - c.y) > 1 || up) { ctx.globalAlpha = up ? 0.2 + 0.7 * pulse : 0.35; towerHex(c, TOWER_K); ctx.stroke(); } // an upgrade ready: the hex FLASHES with the plus (drawUpPlus)
+    if (up) for (let i = 1; i < upRings(t); i++) { towerHex(c, TOWER_K * (1 + UP_RING_K * i)); ctx.stroke(); } // ...in more outlines the higher the tower
     // a TETHER from the hex it was built on to the tower while it is dragged (owner, 2026-10-12)
     if (held && Math.hypot(t.x - c.x, t.y - c.y) > 1) { ctx.globalAlpha = 0.6; ctx.setLineDash([8, 8]); ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(t.x, t.y); ctx.stroke(); ctx.setLineDash([]); } // dashed like the leash ring
     const hint = t.leashHint > now ? Math.min(1, (t.leashHint - now) / LEASH_HINT_FADE_S) : 0;
