@@ -3501,9 +3501,9 @@ matters**: `noodle-vote.js` runs `ndvInit()` as it loads, so everything it
 calls must already be loaded: `qc-holidays` → `noodle-toggle` →
 `noodle-seal` → `noodle-cal` → `noodle-cal-view` → `noodle-kdf` (+
 `noodle-kdf-worker`) → `noodle-esc` → `noodle-roster` → `noodle-crop` →
-`noodle-storage` → `noodle-identity` → `noodle-e2e` → `noodle-commit` → `noodle-vote` →
+`noodle-storage` → `noodle-identity` → `noodle-claim` → `noodle-e2e` → `noodle-commit` → `noodle-vote` →
 `noodle-ask` → `noodle-host` → `noodle-rekey` → `noodle-top` →
-`noodle-share`. `/noodle` (`noodle-admin.html`) loads only `noodle-esc` +
+`noodle-share`. `/noodle` (`noodle-admin.html`) loads only `noodle-claim` +
 `noodle-admin`.
 
 **Templates** (`api/templates/`): `noodle-shell.html` (shared shell —
@@ -3530,8 +3530,9 @@ before it becomes a path component. `GET /noodle/{slug}/results` 301s to
 the vote page — there is no separate results page (21f).
 
 Starting a poll is guest-tier: any guest behind Turnstile may create a
-draft. Owner-only: the poll LIST, creating one directly with a title
-(`POST /api/noodle-polls`), and deleting. The owner's OWN `/noodle` page
+draft. Owner-only, API-only (no page shows them since 2026-10-13): the
+poll list, creating one directly with a title (`POST /api/noodle-polls`),
+and deleting. The owner's OWN `/noodle` page
 doesn't use that titled endpoint either — `ndmCreate` calls the same
 `.../new` a guest would, so the owner's poll also starts as an untitled
 draft; the titled endpoint is direct-API/script only.
@@ -3693,8 +3694,7 @@ own this is NOT end-to-end -- a compromised RUNNING server sees each slug
 as it arrives -- which is why every poll started since 2026-10-09 is ALSO
 end-to-end (21m), sealed inside this layer. Only `store.py` changed for it
 -- everything above it still gets a dict.
-Changing either HKDF label orphans every poll, and `web/noodle-admin.js`
-`ndmIdOf` mirrors the file label (pinned by `tests/test_noodle_crypt.py`).
+Changing either HKDF label orphans every poll.
 Pre-encryption `<slug>.json` files are sealed on first touch
 (`store._migrate`) or all at once by `store.migrate_all()` (run on the
 droplet 2026-10-08: 8 polls).
@@ -3859,7 +3859,7 @@ every request, which would ship the passphrase to the server.
 | `noodle.lastpass.<name>` | fallback: that name's last passphrase on ANY poll, offered only where this poll has none yet, never overriding a hand-typed one |
 | `noodle.draft.<slug>.<name>` | unsaved calendar picks + a host's unsaved title/note |
 | `noodle.ask.<slug>.<name>` | the Ask textarea text (a Commit leaves it alone) |
-| `noodle.polls` | `{slug: {title, url, seen}}` for every poll this browser opened (`ndvRemember`) -- the ONLY list of links anywhere, since the server keeps none (21d); `/noodle` reads it. An end-to-end poll's `url` carries its `#k=` key (21m) |
+| ~~`noodle.polls`~~ | Gone 2026-10-13 with `/noodle`'s poll list (21i): it held every opened poll's link, `#k=` key included; `noodle-storage.js` now removes it on load |
 | `noodle.blankSeal.<slug>` | 32 random bytes made once per browser per poll, so the empty "you" seat wears the same placeholder seal every visit |
 
 A draft outranks the submitted vote on reopen (it's the newer of the two);
@@ -3902,20 +3902,17 @@ alone and the page says so.
 
 ### 21i. `/noodle` and link previews
 
-**Owner**: one `create poll` button (no title — routes through the same
-draft flow a guest uses; the draft starts `title` (a placeholder, was `untitled noodle`) until the host
-retitles by tapping the title) plus a table of polls. **The server lists
-file ids + mtimes only** (`GET /api/noodle-polls` -> `{polls:[{id,
-modified}]}`): it holds no links (21d). The page derives each remembered
-slug's id in the browser (`ndmIdOf`, WebCrypto HKDF) and puts a title +
-link on the ids it knows; the rest show as `sealed <id prefix>`. Delete
-confirms first; `DELETE /api/noodle-polls/{ref}` takes a slug or a file id
-and takes every vote with it. Polls a guest made that the owner never
-opened stay sealed to the owner too -- by design.
-
-**Guest**: no poll list (the list request 401s, the section stays hidden)
--- just the title and the create button, centred in the screen above the
-nav (`#noodle-admin:has(#nd-owner[hidden])`). There was an autoplaying demo
+**Everyone, owner included**: the title and one `create poll` button
+(no title -- the draft starts `title`, a placeholder, until the host
+retitles by tapping it), centred in the screen above the nav
+(`#noodle-admin`). **No poll list since 2026-10-13** (Wai: "no need for
+host noodle to show poll lists"): the owner's table of sealed ids, the
+browser-side id mapping (`ndmIdOf`) and the `noodle.polls` localStorage
+it read are gone -- the vote page now REMOVES any `noodle.polls` it finds,
+since it held every opened poll's link with its key. The owner API stays:
+`GET /api/noodle-polls` lists file ids + mtimes only (the server holds no
+links, 21d), `DELETE /api/noodle-polls/{ref}` takes a slug or a file id
+and every vote with it. There was an autoplaying demo
 video under the button until 2026-10-03; Wai dropped it ("just have the
 thing in the middle"), the last two copies are in `.archaeology/media/`.
 The title (`.nd-brand`) is big, glowing, set in **Courier New** —
@@ -4016,7 +4013,7 @@ spends it. The page attaches it whenever nothing is sealed on the poll yet
 the poll was written. The end-to-end drafts minted 2026-10-09..12 (bare
 HMAC over `e2e\0`+slug, no claim) are refused outright. Every place that hands a link on carries the key:
 `ndeLink()` (share box, the host's clipboard copy, the post-draft
-`replaceState`), and `noodle.polls` in localStorage. A link without the key
+`replaceState`). A link without the key
 shows a banner and locks; a key that opens nothing says so too.
 
 **Sealed** (AES-256-GCM, WebCrypto, `iv(12)||ct` base64; AAD =

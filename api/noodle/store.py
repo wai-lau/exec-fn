@@ -35,12 +35,10 @@ from noodle import config
 _LOCK = threading.RLock()
 _SLUG_RE = re.compile(r"[A-Za-z0-9_-]{%d}" % config.SLUG_LEN)
 _ID_RE = re.compile(r"[0-9a-f]{64}")
-# HKDF labels. web/noodle-admin.js derives the FILE id the same way (to put a
-# title from the owner's own browser beside a listed id) -- change both or
-# neither. Changing either orphans every stored poll.
+# HKDF labels. Changing either orphans every stored poll.
 _INFO_FILE = b"noodle poll file v1"
 _INFO_KEY = b"noodle poll key v1"
-_SALT = bytes(32)   # what HKDF uses for "no salt"; spelled out so the JS can match it
+_SALT = bytes(32)   # what HKDF uses for "no salt", spelled out
 _FORMAT = 1
 
 
@@ -216,8 +214,8 @@ def delete(slug: str) -> bool:
 
 def all_polls() -> list[dict]:
     """Every stored poll as {id, modified}, newest first -- all the server can
-    say without the links. Titles, voters and links stay sealed; the owner's
-    browser fills in the ones it has opened (web/noodle-admin.js)."""
+    say without the links (the owner API's list). Titles, voters and links
+    stay sealed."""
     migrate_all()
     out = []
     for p in polls_dir().glob("*.json"):

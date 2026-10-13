@@ -145,18 +145,7 @@ function ndvOfferPass() {
   NDV.autoPass = pass.value;
 }
 
-// Every poll this browser opens, as noodle.polls = {slug: {title, url, seen}}.
-// The server keeps no links (each one is its poll's encryption key,
-// api/noodle/store.py), so this is the ONLY list of links there is: the
-// owner's /noodle page reads it to put titles + links beside the bare ids the
-// server lists (web/noodle-admin.js). It never leaves the browser.
-function ndvRemember(poll, draft) {
-  try {
-    var all = JSON.parse(localStorage.getItem('noodle.polls') || '{}');
-    // an end-to-end poll's link keeps its key, or it would open nothing
-    all[poll.slug] = { title: poll.title || '', seen: Date.now(),
-      url: '/noodle/' + poll.slug + (draft ? '?t=' + encodeURIComponent(draft) : '') +
-        (NDV.keyStr ? '#k=' + NDV.keyStr : '') };
-    localStorage.setItem('noodle.polls', JSON.stringify(all));
-  } catch (e) { /* storage blocked: the poll is still open, just not listed */ }
-}
+// noodle.polls kept every opened poll's link -- its key included -- for the
+// owner's poll list on /noodle, which went 2026-10-13. Nothing reads it now,
+// so a browser that still holds one drops it.
+try { localStorage.removeItem('noodle.polls'); } catch (e) { /* storage blocked */ }

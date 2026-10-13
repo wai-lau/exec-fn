@@ -201,7 +201,6 @@ async function ndvLoadPoll() {
   // plain one's JSON is (noodle-e2e.js)
   if (NDV.e2e && NDV.poll.e2e) NDV.poll = await ndeView(NDV.poll);
   if (NDV.e2e) ndeShowTexts();
-  if (NDV.poll.slug) ndvRemember(NDV.poll, r.ok ? '' : NDV.draft);
   NDV.seals = await window.NoodleRoster.seals(NDV.poll.voters);
   if (!NDV.blankSeal) NDV.blankSeal = ndvBlankSeal();
   ndvEnsureCal();

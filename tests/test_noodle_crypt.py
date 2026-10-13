@@ -1,6 +1,5 @@
 """noodle polls are encrypted at rest, keyed by their link (noodle/store.py)."""
 import json
-import subprocess
 import sys
 from pathlib import Path
 
@@ -10,7 +9,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "api"))
 from noodle import config, store  # noqa: E402
 
 SLUG = "AbCdEfGhIjKlMnOpQrStUv"   # 22 chars, the generated shape
-WEB = Path(__file__).resolve().parent.parent / "web"
 
 
 @pytest.fixture(autouse=True)
@@ -82,17 +80,3 @@ def test_delete_by_id_and_by_slug():
     assert store.delete(SLUG) is True and not store.exists(SLUG)
     with pytest.raises(KeyError):
         store.delete_id("../" + "0" * 61)
-
-
-def test_browser_derives_the_same_id():
-    """web/noodle-admin.js maps a remembered slug to its file id with WebCrypto
-    HKDF; it must agree with store.poll_id byte for byte."""
-    src = (WEB / "noodle-admin.js").read_text()
-    start = src.index("async function ndmIdOf")
-    fn = src[start:src.index("\n}\n", start) + 2]
-    js = fn + f"ndmIdOf({json.dumps(SLUG)}).then(function (h) {{ console.log(h); }});"
-    try:
-        out = subprocess.run(["node", "-e", js], capture_output=True, text=True, timeout=20)
-    except FileNotFoundError:
-        pytest.skip("node not installed")
-    assert out.stdout.strip() == store.poll_id(SLUG), out.stderr

@@ -162,8 +162,8 @@ async def noodle_ask(slug: str, request: Request):
 
 @guest_router.get("/noodle", response_class=HTMLResponse)
 async def noodle_admin_page(request: Request):
-    """GUEST tier (behind Cloudflare Turnstile): any guest may start a poll. The list of polls on it is owner-only
-    (GET /api/noodle-polls, below) -- a guest's page simply never shows it."""
+    """GUEST tier (behind Cloudflare Turnstile): any guest may start a poll. The
+    page lists no polls; the owner API below does (ids only)."""
     return HTMLResponse(pages.admin_page(request), headers=_NO_STORE)
 
 

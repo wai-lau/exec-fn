@@ -1,18 +1,8 @@
-/* noodle: the /noodle page -- the owner's poll table, and for guests the
-   centred title + create button, nothing else (the demo video went
-   2026-10-03). */
+/* noodle: the /noodle page -- the centred title + create button, nothing
+   else (the demo video went 2026-10-03, the owner's poll table 2026-10-13). */
 
-/* ── owner list ─────────────────────────────────────────────────────────── */
-.nd-polls { width: 100%; margin: 0 0 var(--space-6); border-collapse: collapse; font-size: var(--fs-2xs); }
-.nd-create { display: flex; flex-direction: column; gap: var(--space-4); margin-bottom: var(--space-10); }
-.nd-polls th, .nd-polls td { padding: var(--space-3) var(--space-2); border-bottom: 2px solid hsl(var(--green-hsl) / 0.12); text-align: left; }
-.nd-polls th { color: hsl(var(--green-hsl) / 0.45); font-weight: var(--fw-normal); }
-.nd-polls td:last-child { text-align: right; }
-.nd-polls .nd-face-rm { margin: 0; }
-
-/* the public /noodle page (no poll list: a guest, or before it loads): the
-   title and the create button sit in the middle of the screen */
-#noodle-admin:has(#nd-owner[hidden]) {
+/* the title and the create button sit in the middle of the screen */
+#noodle-admin {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -20,7 +10,7 @@
   min-height: calc(100dvh - var(--nav-h, 0px));   /* the screen above the nav bar */
   margin-block: 0;
 }
-#noodle-admin:has(#nd-owner[hidden]) .nd-create { margin-bottom: 0; }
+.nd-create { display: flex; flex-direction: column; gap: var(--space-4); }
 
 /* the empty status line under the button would push it off centre */
 .nd-create #nd-msg:empty { display: none; }
