@@ -93,3 +93,18 @@ def test_a_lost_journal_line_survives_through_the_board(tmp_path):
 
 def test_load_survives_nothing_on_disk(tmp_path):
     assert spire_board.load(tmp_path) == []
+
+
+def test_owner_games_are_hidden_from_guests(tmp_path):
+    """Owner, 2026-10-12: "don't show results added by owner" - a flagged post or a marked old game; a guest WAI still shows."""
+    spire_board.add(tmp_path, win("WAI", 1))
+    spire_board.add(tmp_path, win("JUU", 2))
+    spire_board.add(tmp_path, {**win("WAI", 3), "owner": True})
+    spire_board.add(tmp_path, win("WAI", 4))  # a GUEST called WAI, posted after the marks
+    assert spire_board.mark_owner(tmp_path, {"JUU"}) == 3  # (run before the guest's game: marks 1, 3 and 4 here)
+    marks = json.loads((tmp_path / spire_board.OWNER_MARKS).read_text())
+    (tmp_path / spire_board.OWNER_MARKS).write_text(json.dumps([m for m in marks if m[0] != 4]))
+    rows = spire_board.load(tmp_path)
+    assert sorted(r["ts"] for r in spire_board.visible(tmp_path, rows, owner=False)) == [2, 4]
+    assert len(spire_board.visible(tmp_path, rows, owner=True)) == 4
+    assert len(spire_board.load(tmp_path)) == 4  # nothing removed from the store

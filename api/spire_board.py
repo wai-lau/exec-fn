@@ -30,9 +30,13 @@ from pathlib import Path
 
 FILE_NAME = "spire_ascendants.json"
 JOURNAL_NAME = "spire_ascendants.jsonl"
+# THE OWNER'S OWN GAMES are hidden from everyone else (owner, 2026-10-12: "don't show results added by owner"): a post from
+# the full session carries owner: true; games from before that flag are named in OWNER_MARKS ([ts, initials] pairs, set
+# once by `python spire_board.py mark-owner <keep...>`) - the journal stays append-only, nothing in it is rewritten
+OWNER_MARKS = "spire_ascendants_owner.json"
 SHOW_MAX = 500  # the most the GET returns (display only - the store keeps every entry)
 MAX_LIVES = 100000
-MIN_WAVE, WIN_WAVE, MAX_WAVE = 11, 100, 1000
+MIN_WAVE, WIN_WAVE, MAX_WAVE = 11, 120, 1000  # (a win is wave 120 since the 12-wave boss cycle, 2026-10-12)
 TOWER_KINDS = ("arc", "frz", "sol", "acd")
 _INITIALS = re.compile(r"[A-Z]{3}")
 _LOCK = threading.Lock()
@@ -132,6 +136,29 @@ def _seed_journal(data_dir: Path) -> None:
     _append(journal, list(reversed(rows)))
 
 
+def _owner_marks(data_dir: Path) -> set:
+    try:
+        return {(int(ts), str(ini)) for ts, ini in json.loads((data_dir / OWNER_MARKS).read_text())}
+    except (OSError, ValueError, TypeError):
+        return set()
+
+
+def visible(data_dir: Path, rows: list, owner: bool) -> list:
+    """`rows` as this caller may see them: everything for the owner, everyone else without the owner's own games."""
+    if owner:
+        return rows
+    marks = _owner_marks(data_dir)
+    return [r for r in rows if not r.get("owner") and (r.get("ts"), r.get("initials")) not in marks]
+
+
+def mark_owner(data_dir: Path, keep: set) -> int:
+    """Name every game on the board as the owner's, except those whose initials are in `keep`; returns how many."""
+    rows = [r for r in load(data_dir) if r.get("initials") not in keep and isinstance(r.get("ts"), int)]
+    marks = sorted(_owner_marks(data_dir) | {(r["ts"], r["initials"]) for r in rows})
+    _write_board(data_dir / OWNER_MARKS, [list(m) for m in marks])
+    return len(rows)
+
+
 def load(data_dir: Path) -> list:
     """The whole board, newest first. A missing / corrupt board is rebuilt from the journal."""
     rows = _read_board(data_dir / FILE_NAME)
@@ -162,3 +189,13 @@ def _merge(journal: list, board: list) -> list:
             seen.add(key)
             out.append(row)
     return sorted(out, key=lambda r: -int(r.get("ts", 0)) if isinstance(r.get("ts"), int) else 0)
+
+
+if __name__ == "__main__":  # docker compose exec api python spire_board.py mark-owner JUU SMD
+    import sys
+
+    if len(sys.argv) >= 2 and sys.argv[1] == "mark-owner":
+        n = mark_owner(Path(os.environ.get("DATA_DIR", "/app/data")), set(a.upper() for a in sys.argv[2:]))
+        print(f"marked {n} games as the owner's")
+    else:
+        print("usage: python spire_board.py mark-owner <initials to keep...>")

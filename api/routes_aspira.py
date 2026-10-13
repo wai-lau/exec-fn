@@ -18,6 +18,7 @@ The sound samples (Brood War) are served to the SAME guest tier from
 the gitignored api/data/aspira-sfx/, never in the public repo.
 See ARCHITECTURE.md §22.
 """
+import hmac
 import time
 from pathlib import Path
 
@@ -102,9 +103,14 @@ def _client_ip(request: Request) -> str:
     return request.headers.get("x-real-ip") or (xff.rsplit(",", 1)[-1].strip() if xff else "") or (request.client.host if request.client else "unknown")
 
 
+def _is_owner(request: Request) -> bool:
+    return hmac.compare_digest(request.cookies.get("session") or "", SESSION_TOKEN)
+
+
 @guest_protected.get("/api/spire/ascendants")
-async def spire_ascendants():
-    return {"entries": spire_board.ranked(spire_board.load(DATA_DIR))[: spire_board.SHOW_MAX]}
+async def spire_ascendants(request: Request):
+    rows = spire_board.visible(DATA_DIR, spire_board.load(DATA_DIR), _is_owner(request))  # the owner's own games: hidden from guests
+    return {"entries": spire_board.ranked(rows)[: spire_board.SHOW_MAX]}
 
 
 @guest_protected.post("/api/spire/ascendants")
@@ -118,7 +124,11 @@ async def spire_ascend(request: Request):
         raise HTTPException(status_code=400, detail="three letters, the lives left and the team")
     if not rate_exempt(request) and not _asc_rate_ok(_client_ip(request)):
         raise HTTPException(status_code=429, detail="too many ascensions - try again later")
-    return {"entries": spire_board.ranked(spire_board.add(DATA_DIR, entry))[: spire_board.SHOW_MAX], "entry": entry}
+    owner = _is_owner(request)
+    if owner:
+        entry["owner"] = True  # shown to the owner only (spire_board.visible)
+    rows = spire_board.visible(DATA_DIR, spire_board.add(DATA_DIR, entry), owner)
+    return {"entries": spire_board.ranked(rows)[: spire_board.SHOW_MAX], "entry": entry}
 
 
 # ---------- SLOW LOGS (spire_perflog.py): a session's frame and audio summary every 3 min of play ----------
