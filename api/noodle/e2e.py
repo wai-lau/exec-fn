@@ -10,9 +10,10 @@ What is sealed (AES-256-GCM in the browser, web/noodle-e2e.js):
   head          {title, note, halves, from, to}       -- the host's settings
   each voter    {name, slots}                          -- bound to their pub
 What the server still sees and checks: public keys, vote order, timestamps
-and signatures -- so it still enforces who may write what (only you change
-your vote; only the host changes the head or removes a guest; only your old
-key moves you to a new one) and replay. What it can no longer check, the
+and signatures -- so it still enforces who may write what (only the creator
+casts the first vote, so only they host; only you change your vote; only the
+host changes the head or removes a guest; only your old key moves you to a
+new one) and replay. What it can no longer check, the
 browser applies when it draws the poll (web/noodle-e2e.js ndeView): the
 host's offer, the crop, the split, one seat per name.
 
@@ -78,14 +79,29 @@ def _as_host(poll: dict, pub: str, ts: int) -> dict:
     return host
 
 
+def _claim(slug: str, poll: dict, body: dict, pub: str) -> None:
+    """A fresh poll's first vote must ALSO be signed by its creator's claim
+    key (drafts.py): bound into the draft token as a public key, its private
+    half derived from the poll key in the creator's browser and never sent.
+    So nobody who saw only what the server sees -- the slug, the token, the
+    claim's public half -- can cast that vote and take the host's seat. The
+    signature names the voter's key, so it cannot be lifted onto another."""
+    msg = sig.canonical_action(kind="e2e-claim", poll=slug, voter=pub)
+    if not sig.verify(poll["claim"], body.get("claim"), msg):
+        raise VoteError(403, "only the poll's creator can cast its first vote")
+    del poll["claim"]
+
+
 def vote(slug: str, body: dict, now: int | None = None) -> dict:
     """Store a voter's sealed {name, slots} under their key. The FIRST key to
-    vote on a fresh poll is its host (order 0)."""
+    vote on a fresh poll is its host (order 0) -- the creator's, by _claim."""
     now = now_ms() if now is None else now
     ct = _ct(body)
     pub, ts = _check(slug, body, {"kind": "e2e-vote", "ct": ct}, now)
     try:
         with store.edit(slug) as poll:
+            if poll.get("claim"):
+                _claim(slug, poll, body, pub)
             voters = poll["voters"]
             prev = voters.get(pub)
             if prev and ts <= prev["ts"]:

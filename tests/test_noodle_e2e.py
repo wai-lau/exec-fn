@@ -14,19 +14,30 @@ from noodle import config, drafts, e2e, pages, sig, store  # noqa: E402
 from noodle.votes import VoteError  # noqa: E402
 
 NOW = 1_790_000_000_000
+CREATOR = Ed25519PrivateKey.generate()   # the claim key the creator's /noodle page derives
+
+
+def b64u(k):
+    return base64.urlsafe_b64encode(k.public_key().public_bytes_raw()).decode().rstrip("=")
 
 
 @pytest.fixture
 def slug(monkeypatch, tmp_path):
     monkeypatch.setattr(config, "DATA_DIR", tmp_path)
     monkeypatch.setattr(drafts, "_secret", None)
-    d = drafts.new()
-    drafts.ensure(d["slug"], {"draft": drafts.token(d["slug"], e2e=True)})
+    d = drafts.new(b64u(CREATOR))
+    drafts.ensure(d["slug"], {"draft": d["token"]})
     return d["slug"]
 
 
 def pub(k):
     return base64.b64encode(k.public_key().public_bytes_raw()).decode()
+
+
+def claim(slug, k, by=CREATOR):
+    """The claim key's signature over voter k: what makes a first vote the creator's."""
+    msg = sig.canonical_action(kind="e2e-claim", poll=slug, voter=pub(k))
+    return base64.b64encode(by.sign(msg)).decode()
 
 
 def blob(n=40):
@@ -39,7 +50,9 @@ def signed(slug, k, ts, kind, **fields):
 
 
 def vote(slug, k, ts, ct=None):
-    return e2e.vote(slug, signed(slug, k, ts, "e2e-vote", ct=ct or blob()), now=ts)
+    # every vote carries the creator's claim: the server reads it only on the first
+    body = signed(slug, k, ts, "e2e-vote", ct=ct or blob())
+    return e2e.vote(slug, {**body, "claim": claim(slug, k)}, now=ts)
 
 
 def fails(fn, *a, **kw):
@@ -51,15 +64,15 @@ def fails(fn, *a, **kw):
 def test_a_fresh_draft_makes_an_end_to_end_poll_with_nothing_readable(slug):
     poll = store.load(slug)
     assert poll["e2e"] and poll["head"] is None and poll["voters"] == {}
-    assert "title" not in poll
+    assert "title" not in poll and poll["claim"] == b64u(CREATOR)
 
 
 def test_old_draft_tokens_still_make_plain_polls(monkeypatch, tmp_path):
     monkeypatch.setattr(config, "DATA_DIR", tmp_path)
     monkeypatch.setattr(drafts, "_secret", None)
     s = "AbCdEfGhIjKlMnOpQrStUv"
-    assert drafts.kind(s, drafts.token(s, e2e=False)) == "plain"
-    drafts.ensure(s, {"draft": drafts.token(s, e2e=False)})
+    assert drafts.kind(s, drafts.token(s)) == "plain"
+    drafts.ensure(s, {"draft": drafts.token(s)})
     assert not store.load(s).get("e2e") and store.load(s)["title"] == drafts.UNTITLED
 
 
@@ -67,8 +80,41 @@ def test_settings_never_create_an_end_to_end_poll(monkeypatch, tmp_path):
     monkeypatch.setattr(config, "DATA_DIR", tmp_path)
     monkeypatch.setattr(drafts, "_secret", None)
     s = "AbCdEfGhIjKlMnOpQrStUv"
-    drafts.ensure(s, {"draft": drafts.token(s, e2e=True)}, e2e_ok=False)
+    drafts.ensure(s, {"draft": drafts.token(s, b64u(CREATOR))}, e2e_ok=False)
     assert not store.exists(s)
+
+
+def test_only_the_creators_claim_casts_the_first_vote(slug):
+    h, x = Ed25519PrivateKey.generate(), Ed25519PrivateKey.generate()
+    first = signed(slug, h, NOW, "e2e-vote", ct=blob())
+    assert fails(e2e.vote, slug, first, now=NOW) == 403, "no claim"
+    assert fails(e2e.vote, slug, {**first, "claim": claim(slug, h, by=x)}, now=NOW) == 403, "someone else's claim key"
+    assert fails(e2e.vote, slug, {**first, "claim": claim(slug, x)}, now=NOW) == 403, "a claim for another voter"
+    assert fails(e2e.vote, slug, {**first, "claim": "x" * 88}, now=NOW) == 403
+    assert store.load(slug)["voters"] == {}, "a refused first vote stores nothing"
+    assert e2e.vote(slug, {**first, "claim": claim(slug, h)}, now=NOW)["order"] == 0
+    assert "claim" not in store.load(slug), "the claim is spent"
+    g = Ed25519PrivateKey.generate()
+    assert e2e.vote(slug, signed(slug, g, NOW + 1, "e2e-vote", ct=blob()), now=NOW + 1)["order"] == 1, \
+        "later voters need no claim"
+
+
+def test_the_slug_and_token_alone_never_take_the_host_seat(monkeypatch, tmp_path):
+    # everything the server (or its access log) sees: the slug, the draft
+    # token -- the claim's public half inside it -- and junk the observer seals
+    monkeypatch.setattr(config, "DATA_DIR", tmp_path)
+    monkeypatch.setattr(drafts, "_secret", None)
+    d = drafts.new(b64u(CREATOR))
+    s, tok = d["slug"], d["token"]
+    spy, host = Ed25519PrivateKey.generate(), Ed25519PrivateKey.generate()
+    early = {**signed(s, spy, NOW, "e2e-vote", ct=blob()), "draft": tok}
+    drafts.ensure(s, early)
+    assert fails(e2e.vote, s, early, now=NOW) == 403
+    e2e.vote(s, {**signed(s, host, NOW + 1, "e2e-vote", ct=blob()), "draft": tok, "claim": claim(s, host)}, now=NOW + 1)
+    e2e.head(s, signed(s, host, NOW + 2, "e2e-head", ct=blob()), now=NOW + 2)   # the creator hosts
+    late = signed(s, spy, NOW + 3, "e2e-vote", ct=blob())
+    assert e2e.vote(s, late, now=NOW + 3)["order"] == 1, "the spy can only queue behind"
+    assert fails(e2e.remove, s, signed(s, spy, NOW + 4, "e2e-remove", target=pub(host)), now=NOW + 4) == 403
 
 
 def test_first_voter_hosts_and_later_ones_queue(slug):
@@ -80,7 +126,7 @@ def test_first_voter_hosts_and_later_ones_queue(slug):
 
 def test_votes_are_signed_fresh_and_never_replayed(slug):
     k, x = Ed25519PrivateKey.generate(), Ed25519PrivateKey.generate()
-    body = signed(slug, k, NOW, "e2e-vote", ct=blob())
+    body = {**signed(slug, k, NOW, "e2e-vote", ct=blob()), "claim": claim(slug, k)}
     e2e.vote(slug, body, now=NOW)
     assert fails(e2e.vote, slug, body, now=NOW) == 409
     forged = dict(signed(slug, x, NOW + 1, "e2e-vote", ct=blob()), pub=pub(k))
@@ -162,7 +208,8 @@ def test_the_routes_send_an_end_to_end_poll_down_its_own_path(slug):
     c = TestClient(app)
     h, g = Ed25519PrivateKey.generate(), Ed25519PrivateKey.generate()
     now = __import__("noodle").votes.now_ms()
-    assert c.post(f"/api/noodle/{slug}/vote", json=signed(slug, h, now, "e2e-vote", ct=blob())).status_code == 200
+    first = {**signed(slug, h, now, "e2e-vote", ct=blob()), "claim": claim(slug, h)}
+    assert c.post(f"/api/noodle/{slug}/vote", json=first).status_code == 200
     assert c.post(f"/api/noodle/{slug}/vote", json=signed(slug, g, now + 1, "e2e-vote", ct=blob())).status_code == 200
     r = c.post(f"/api/noodle/{slug}/settings", json=signed(slug, h, now + 2, "e2e-head", ct=blob()))
     assert r.status_code == 200, r.text

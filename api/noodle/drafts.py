@@ -7,6 +7,12 @@ and only then is the poll written. So an abandoned "create" leaves no poll
 behind, and nobody can mint polls on a slug of their own choosing: without
 the owner's token for that exact slug the server does not create anything.
 
+An END-TO-END draft's token also binds the creator's CLAIM key (web/
+noodle-claim.js): its public half is in the token, and the poll's first vote
+must be signed by its private half, which only the creator's browser holds
+(e2e.py). The token alone -- which the server, its logs and anyone watching
+them all see -- therefore cannot take the host's seat.
+
 The secret is NOODLE_SECRET if set, else 32 random bytes kept in
 DATA_DIR/secret.key (0600), made on first use.
 """
@@ -19,7 +25,7 @@ import time
 from collections import defaultdict, deque
 from datetime import datetime
 
-from noodle import config, store
+from noodle import config, sig, store
 
 UNTITLED = "title"   # the placeholder the host types over (was "untitled noodle")
 _secret: bytes | None = None
@@ -42,38 +48,64 @@ def _key() -> bytes:
     return _secret
 
 
-# Two kinds of draft, told apart by the token: one minted since 2026-10-09
-# becomes an END-TO-END poll (e2e.py), one minted before stays plain, so a
-# draft link handed out before the change still makes the poll it promised.
-_E2E = b"e2e\0"
+# Two kinds of draft, told apart by the token. One minted since 2026-10-12 is
+# `<claim>.<mac>` and becomes an END-TO-END poll (e2e.py) whose first vote only
+# the claim key's holder can cast. One minted before 2026-10-09 is a bare mac
+# and stays plain, so a draft link handed out then still makes the poll it
+# promised. The end-to-end drafts minted in between (a bare mac over
+# b"e2e\0" + slug, no claim) are no longer accepted: whoever saw such a token
+# could take the host's seat.
+_CLAIMED = b"e2e-claim\0"
 
 
-def token(slug: str, e2e: bool = True) -> str:
-    msg = (_E2E if e2e else b"") + slug.encode()
+def _mac(msg: bytes) -> str:
     return hmac.new(_key(), msg, hashlib.sha256).hexdigest()[:32]
+
+
+def valid_claim(claim) -> bool:
+    """A claim is an Ed25519 public key, url-safe base64 as WebCrypto exports it."""
+    try:
+        return isinstance(claim, str) and len(claim) == 43 and len(sig.b64d(claim, 32)) == 32
+    except ValueError:
+        return False
+
+
+def token(slug: str, claim: str | None = None) -> str:
+    """An END-TO-END draft's token for this claim key, or with no claim the
+    PLAIN token of a draft handed out before 2026-10-09."""
+    if claim is None:
+        return _mac(slug.encode())
+    return f"{claim}.{_mac(_CLAIMED + slug.encode() + b'\0' + claim.encode())}"
 
 
 def kind(slug: str, tok) -> str | None:
     """'e2e' or 'plain' for this slug's own token, else None."""
-    if not isinstance(tok, str) or not store.valid_slug(slug):
+    if not isinstance(tok, str) or not tok.isascii() or not store.valid_slug(slug):
         return None
-    if hmac.compare_digest(tok, token(slug, e2e=True)):
-        return "e2e"
-    if hmac.compare_digest(tok, token(slug, e2e=False)):
-        return "plain"
-    return None
+    claim, dot, _ = tok.partition(".")
+    if dot:
+        return "e2e" if valid_claim(claim) and hmac.compare_digest(tok, token(slug, claim)) else None
+    return "plain" if hmac.compare_digest(tok, token(slug)) else None
+
+
+def claim_of(tok: str) -> str:
+    """The claim key an END-TO-END token carries (check kind() first)."""
+    return tok.partition(".")[0]
 
 
 def valid(slug: str, tok) -> bool:
     return kind(slug, tok) is not None
 
 
-def new() -> dict:
-    """A slug nobody holds yet, and its (end-to-end) token. Nothing is stored."""
+def new(claim: str) -> dict:
+    """A slug nobody holds yet, and its end-to-end token bound to `claim`.
+    Nothing is stored. ValueError for a claim that is not a public key."""
+    if not valid_claim(claim):
+        raise ValueError("claim must be a public key")
     while True:
         slug = secrets.token_urlsafe(config.SLUG_BYTES)
         if store.valid_slug(slug) and not store.exists(slug):
-            return {"slug": slug, "token": token(slug)}
+            return {"slug": slug, "token": token(slug, claim)}
 
 
 class TooFast(Exception):
@@ -84,9 +116,11 @@ _starts: dict[str, deque] = defaultdict(deque)
 _START_LOCK = threading.Lock()
 
 
-def new_for(ip: str, now: float | None = None) -> dict:
+def new_for(ip: str, claim: str, now: float | None = None) -> dict:
     """new(), at most NEW_RATE per NEW_WINDOW_S per client IP: the page that
     starts polls is public, and a draft is a poll anyone holding it may create."""
+    if not valid_claim(claim):   # refused before it costs the caller a start
+        raise ValueError("claim must be a public key")
     now = time.monotonic() if now is None else now
     with _START_LOCK:
         q = _starts[ip]
@@ -95,7 +129,7 @@ def new_for(ip: str, now: float | None = None) -> dict:
         if len(q) >= config.NEW_RATE:
             raise TooFast(f"too many new polls -- try again in {int(q[0] + config.NEW_WINDOW_S - now) + 1}s")
         q.append(now)
-    return new()
+    return new(claim)
 
 
 def ensure(slug: str, body: dict, e2e_ok: bool = True) -> None:
@@ -106,6 +140,10 @@ def ensure(slug: str, body: dict, e2e_ok: bool = True) -> None:
     (its first write is always the host's vote, never the settings)."""
     if store.exists(slug):
         return
-    k = kind(slug, body.get("draft"))
-    if k == "plain" or (k == "e2e" and e2e_ok):
-        store.create_at(slug, UNTITLED, datetime.now().isoformat(timespec="seconds"), e2e=k == "e2e")
+    tok = body.get("draft")
+    k = kind(slug, tok)
+    now = datetime.now().isoformat(timespec="seconds")
+    if k == "plain":
+        store.create_at(slug, UNTITLED, now)
+    elif k == "e2e" and e2e_ok:
+        store.create_at(slug, UNTITLED, now, e2e=True, claim=claim_of(tok))

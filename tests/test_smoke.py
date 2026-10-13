@@ -306,11 +306,15 @@ def test_noodle_drafts_need_their_token(client, guest_cookie):
     # starting a draft is behind Turnstile (the guest tier), stores nothing,
     # and gives a working page -- which, by its token, needs no gate itself
     assert client.post("/api/noodle-polls/new").status_code == 401
+    # a draft binds the creator's claim key (noodle/drafts.py): none, no draft
+    assert client.post("/api/noodle-polls/new", headers=guest_cookie).status_code == 400
+    claim = "A" * 43   # 32 bytes in url-safe base64: a public key's shape
     # the suite's rate-limit exemption (conftest RL_EXEMPT) keeps NEW_RATE from
     # failing this after a busy hour of commits; a 429 here means it broke
-    r = client.post("/api/noodle-polls/new", headers=guest_cookie)
+    r = client.post("/api/noodle-polls/new", headers=guest_cookie, json={"claim": claim})
     assert r.status_code == 200, f"draft start failed: {r.status_code} {r.text[:120]}"
     d = r.json()
+    assert f"?t={claim}." in d["url"]
     assert client.get(d["url"], headers=HTML_ACCEPT).status_code == 200
     assert client.get(f"/api/noodle/{d['slug']}").status_code == 404, "a draft stores nothing"
 

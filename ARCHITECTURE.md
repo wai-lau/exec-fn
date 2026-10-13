@@ -3670,8 +3670,8 @@ settings, signed by the key the server still recognises as theirs.
 **Drafts.** `POST /api/noodle-polls/new` (guest tier, `NEW_RATE`=20/
 `NEW_WINDOW_S`=3600 per IP) stores nothing: a fresh slug + an HMAC token
 (`drafts.token`, `NOODLE_SECRET` or a generated `DATA_DIR/secret.key`,
-0600), and the page opens at `/noodle/<slug>?t=<token>` with an empty poll
-standing in. The host's first commit carries the token as an unsigned
+0600) bound to the body's `{claim}` (400 without one -- 21m), and the page
+opens at `/noodle/<slug>?t=<token>#k=<key>` with an empty poll standing in. The host's first commit carries the token as an unsigned
 `draft` field; `drafts.ensure()` writes the poll (idempotent
 `store.create_at`) inside that request, then the page drops `?t=`. Without
 the exact token for that slug nothing is ever created, so an abandoned
@@ -3991,14 +3991,30 @@ dispatches every write by the STORED poll's `e2e` flag (`e2e.is_e2e`), and
 each e2e signature carries an `e2e-*` kind, so nothing signed for one path
 or action verifies as another.
 
-**The key** is 32 random bytes made by the creator's BROWSER on the draft
-page (`noodle-e2e.js ndeInit`) and written into the link's fragment
-(`/noodle/<slug>#k=<43 b64url>`) -- the part a browser never sends, so the
-server never holds it, not even in flight. The draft token says which kind
-a draft becomes (`drafts.kind`: HMAC over `e2e\0`+slug for new drafts, the
-old HMAC over slug for drafts handed out before -- those still make plain
-polls). The owner's titled `POST /api/noodle-polls` stays plain (the server
-is handed the title). Every place that hands a link on carries the key:
+**The key** is 32 random bytes made by the creator's BROWSER on `/noodle`
+(`noodle-claim.js noodleNewPollKey`), before the draft is even minted, and
+carried in the link's fragment (`/noodle/<slug>#k=<43 b64url>`) -- the part
+a browser never sends, so the server never holds it, not even in flight.
+The draft token says which kind a draft becomes (`drafts.kind`): new drafts
+are `<claim>.<mac>` (below); a bare HMAC over the slug is a draft handed
+out before 2026-10-09 and still makes a plain poll. The owner's titled
+`POST /api/noodle-polls` stays plain (the server is handed the title).
+
+**The creator's claim** (since 2026-10-12): the FIRST vote decides the host,
+and the draft token is seen by the server, its nginx access log, and
+anyone watching either -- so a token alone used to let an observer vote
+first and take the host's seat (and the host's head/remove powers with
+it). Now `/noodle` derives an Ed25519 **claim key** from the poll key
+(HKDF-SHA256, zero salt, info `noodle e2e claim v1`, seed -> PKCS#8) and
+sends only its public half to `/new`; the token is `<claim>.<HMAC over
+e2e-claim\0 + slug + \0 + claim>`, `store.create_at` keeps it as the
+poll's `claim`, and `e2e._claim` refuses (403) any vote on a poll still
+holding one unless it carries `claim` = the claim key's signature over
+`canonical_action(kind="e2e-claim", poll, voter=<pub>)`; the first good one
+spends it. The page attaches it whenever nothing is sealed on the poll yet
+(`ndeSendVote`), which also covers a draft whose first vote failed after
+the poll was written. The end-to-end drafts minted 2026-10-09..12 (bare
+HMAC over `e2e\0`+slug, no claim) are refused outright. Every place that hands a link on carries the key:
 `ndeLink()` (share box, the host's clipboard copy, the post-draft
 `replaceState`), and `noodle.polls` in localStorage. A link without the key
 shows a banner and locks; a key that opens nothing says so too.
@@ -4009,7 +4025,8 @@ another voter or pass one off as the settings): `head` = `{title, note,
 halves, from, to}`, sealed WHOLE each time (no server copy to merge into);
 each voter = `{name, slots}`, keyed by their pub. **The server still sees
 and enforces**, by key alone: public keys, vote order, timestamps; only you
-change your seat; the FIRST key to vote is the host (order 0, so the host's
+change your seat; the FIRST key to vote -- the creator's, by the claim --
+is the host (order 0, so the host's
 first Commit sends the VOTE before the head -- reversed from plain polls,
 where a split must convert stored votes first); only the host seals the
 head or removes a guest (`target` = pub); only your old key moves your seat
@@ -4032,14 +4049,20 @@ slug -- cannot test guessed names (or name + passphrase) against stored
 public keys.
 
 **Accepted limits**: Ask noodle still sends its text + the pickable dates
-through the server to Haiku (never stored); a link holder can post a seat
-whose sealed contents are junk (dropped when drawn) or claim a name first;
-a malicious server can still withhold or roll back records (it cannot
-forge or read them); no owner reset (above). Tests:
-`tests/test_noodle_e2e.py` (server), `test_noodle_e2e_view.py` (node),
-`test_noodle_browser_e2e.py` (WebKit, draft -> host -> guest -> rekey ->
-keyless link -> remove, asserting the server never serves a name, title or
-note).
+through the server to Haiku (never stored); anyone with the SLUG (no key
+needed) can post seats whose sealed contents are junk (dropped when drawn,
+no cap on how many), and a link holder can claim a name first; the claim
+key derives from the poll key, so anyone the creator hands the raw draft
+address to before their first Commit can host instead; a malicious server
+can still withhold or roll back records (it cannot forge or read them),
+and -- as with any web page -- a compromised server could serve JS that
+reads the fragment; no owner reset (above). Tests:
+`tests/test_noodle_e2e.py` (server, incl. the slug + token alone failing
+to take the host's seat), `test_noodle_drafts.py`,
+`test_noodle_e2e_view.py` (node), `test_noodle_browser_e2e.py` (WebKit,
+`/noodle` -> draft -> host -> guest -> rekey -> keyless link -> remove,
+asserting the token carries the claim Python derives from the key and the
+server never serves a name, title or note).
 
 ### Rate limits never fail the test suite
 

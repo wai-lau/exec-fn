@@ -1,8 +1,8 @@
 // noodle's END-TO-END layer (api/noodle/e2e.py). A poll started since
 // 2026-10-09 is sealed with a key that lives only in its link's FRAGMENT
 // (#k=...) -- the part of a URL a browser never sends -- so the server stores
-// ciphertext it cannot open. This file: the key (read from the link, or made
-// here for a fresh draft), sealing and opening with it (AES-256-GCM, bound to
+// ciphertext it cannot open. This file: the key (read from the link; /noodle
+// made it, noodle-claim.js), sealing and opening with it (AES-256-GCM, bound to
 // the poll, the object kind and the voter's key), and ndeView, which turns
 // what the server holds back into the poll the rest of the page already
 // draws -- applying the rules the server used to apply and now cannot read:
@@ -24,7 +24,6 @@ function ndeBin(bytes) {
 
 function ndeB64(bytes) { return btoa(ndeBin(bytes)); }
 function ndeFromB64(s) { return Uint8Array.from(atob(s), function (c) { return c.charCodeAt(0); }); }
-function ndeB64u(bytes) { return ndeB64(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
 function ndeFromB64u(s) {
   s = s.replace(/-/g, '+').replace(/_/g, '/');
   while (s.length % 4) s += '=';
@@ -43,15 +42,12 @@ function ndeScope() {
   return NDV.keyStr ? NDV.slug + '\u0000' + NDV.keyStr : NDV.slug;
 }
 
-// Called by ndvInit on an end-to-end page. A fresh DRAFT makes its key here,
-// in the creator's browser, and writes it into the address; a poll opened
+// Called by ndvInit on an end-to-end page. The key comes from the link -- a
+// fresh DRAFT's too: /noodle made it, before the poll existed, and bound the
+// claim key derived from it into the draft token (noodle-claim.js). A page
 // without one cannot be read at all. -> false when the page cannot go on.
 function ndeInit() {
   var m = NDE_KEY_RE.exec(location.hash), k = m ? m[1] : null;
-  if (!k && NDV.draft) {
-    k = ndeB64u(crypto.getRandomValues(new Uint8Array(32)));
-    history.replaceState(null, '', location.pathname + location.search + '#k=' + k);
-  }
   if (!k) {
     ndvBanner('this link is missing its key (the part after #). ask whoever sent it for the whole link.');
     ndv$('noodle').classList.add('nd-locked');
@@ -175,5 +171,13 @@ async function ndeSendVote(name, slots, ts) {
   var pub = NDV.kdf.pub();
   var ct = await ndeSeal('vote', pub, { name: window.noodleNormName(name), slots: slots });
   var sig = await NDV.kdf.sign(ndeCanon({ ct: ct, kind: 'e2e-vote', poll: NDV.slug, ts: ts }));
-  return ndvPost('/vote', { pub: pub, ts: ts, ct: ct, sig: sig });
+  var body = { pub: pub, ts: ts, ct: ct, sig: sig };
+  // nothing sealed on the poll yet (a draft, or a poll whose first vote
+  // failed): this is the first vote, and only the creator's claim key may
+  // sign it (noodle/e2e.py _claim)
+  if (!(NDV.poll && NDV.poll.sealed)) {
+    var claim = await window.noodleClaimKey(NDV.keyStr);
+    body.claim = await claim.sign(ndeCanon({ kind: 'e2e-claim', poll: NDV.slug, voter: pub }));
+  }
+  return ndvPost('/vote', body);
 }

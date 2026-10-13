@@ -172,18 +172,19 @@ def create(title: str, now_iso: str) -> dict:
                 return create_at(slug, title, now_iso)
 
 
-def create_at(slug: str, title: str, now_iso: str, e2e: bool = False) -> dict:
+def create_at(slug: str, title: str, now_iso: str, e2e: bool = False, claim: str | None = None) -> dict:
     """A new poll has a title and nothing else. It has no date range (the
     calendar is endless; the host's picks decide what is on offer), and it
     starts unsplit -- one slot a day -- until the host splits it. On a slug
     that is already a poll, that poll is returned untouched (two first
     commits racing each other create it once). An END-TO-END poll (e2e.py)
-    has no title here at all: its settings arrive sealed, as `head`."""
+    has no title here at all: its settings arrive sealed, as `head`; `claim`
+    is the public key whose holder alone may cast its first vote."""
     with _LOCK:
         if exists(slug):
             return load(slug)
         if e2e:
-            poll = {"slug": slug, "e2e": 1, "created_at": now_iso, "head": None, "voters": {}}
+            poll = {"slug": slug, "e2e": 1, "created_at": now_iso, "head": None, "voters": {}, "claim": claim}
         else:
             poll = {
                 "slug": slug, "title": title, "halves": False,

@@ -170,15 +170,20 @@ async def noodle_admin_page(request: Request):
 @guest_router.post("/api/noodle-polls/new")
 async def noodle_new(request: Request):
     """GUEST tier: a DRAFT poll -- a fresh slug and its token, NOTHING stored; the
-    host's first commit creates it (drafts.py). Rate-limited per IP, since
-    every draft is a poll someone may create."""
+    host's first commit creates it (drafts.py). Body {claim}: the public half
+    of the claim key the creator's page made (noodle-claim.js), bound into the
+    token. Rate-limited per IP, since every draft is a poll someone may create."""
+    claim = (await _json_body(request, config.BODY_MAX_CREATE)).get("claim")
     try:
         if _rate_exempt(request):
-            d = await asyncio.to_thread(drafts.new)
+            d = await asyncio.to_thread(drafts.new, claim)
         else:
-            d = await asyncio.to_thread(drafts.new_for, _client_ip(request))
+            d = await asyncio.to_thread(drafts.new_for, _client_ip(request), claim)
     except drafts.TooFast as e:
         return JSONResponse({"detail": str(e)}, status_code=429)
+    except ValueError:
+        # an open /noodle page from before the claim existed sends none
+        return JSONResponse({"detail": "this page is out of date -- reload it"}, status_code=400)
     return {"slug": d["slug"], "url": f"/noodle/{d['slug']}?t={d['token']}"}
 
 

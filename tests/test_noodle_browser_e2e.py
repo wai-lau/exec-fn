@@ -1,5 +1,6 @@
-"""noodle END-TO-END polls in the real engine (WebKit = iOS): a fresh draft
-makes its key in the browser, the host and a guest vote, the host retitles and
+"""noodle END-TO-END polls in the real engine (WebKit = iOS): /noodle makes a
+fresh draft's key in the browser (and the claim key that alone can cast its
+first vote), the host and a guest vote, the host retitles and
 removes, a guest changes passphrase -- and at every step the server holds
 nothing readable, while a link without the key opens nothing."""
 import pytest
@@ -26,16 +27,29 @@ def _join(page, link, name, pw):
     page.wait_for_function(UNLOCK, timeout=20000)
 
 
+def _claim_pub(key: str) -> str:
+    """The claim key noodle-claim.js derives from a poll key, derived here
+    independently: the public half the draft token must carry."""
+    import base64
+
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+    raw = base64.urlsafe_b64decode(key + "=" * (-len(key) % 4))
+    seed = HKDF(algorithm=hashes.SHA256(), length=32, salt=bytes(32), info=b"noodle e2e claim v1").derive(raw)
+    pub = Ed25519PrivateKey.from_private_bytes(seed).public_key().public_bytes_raw()
+    return base64.urlsafe_b64encode(pub).decode().rstrip("=")
+
+
 def test_an_end_to_end_poll_from_draft_to_rekey(browser, base_url):
+    import hashlib
+
     import httpx
-    from conftest import API_KEY
-    if not API_KEY:
-        pytest.skip("API_KEY not set")
+    from conftest import API_KEY, TURNSTILE_SECRET
+    if not API_KEY or not TURNSTILE_SECRET:
+        pytest.skip("API_KEY / TURNSTILE_SECRET not set")
     auth = {"Authorization": f"Bearer {API_KEY}"}
-    with httpx.Client(base_url=base_url, timeout=15.0) as c:
-        d = c.post("/api/noodle-polls/new", headers=auth).json()
-        slug = d["slug"]
-        assert c.get(f"/api/noodle/{slug}").status_code == 404, "a draft stores nothing"
+    slug = None
 
     def server_view():
         with httpx.Client(base_url=base_url, timeout=15.0) as c:
@@ -45,13 +59,20 @@ def test_an_end_to_end_poll_from_draft_to_rekey(browser, base_url):
         return api.json()
 
     ctx = browser.new_context(viewport={"width": 430, "height": 932})
+    ctx.add_cookies([{"name": "guest_session", "url": base_url,
+                      "value": hashlib.sha256(f"guest:{TURNSTILE_SECRET}".encode()).hexdigest()}])
     host = ctx.new_page()
     try:
-        # the DRAFT page makes the key, in the browser, into the address
-        host.goto(f"{base_url}{d['url']}")
-        host.wait_for_function("NDV.keyStr", timeout=10000)
-        key = host.evaluate("NDV.keyStr")
+        # /noodle makes the key, in the browser, into the draft's address; the
+        # server gets only the claim key's public half, bound into the token
+        host.goto(f"{base_url}/noodle")
+        host.click("#nd-create button")
+        host.wait_for_function("window.NDV && NDV.keyStr", timeout=10000)
+        key, slug, draft = host.evaluate("[NDV.keyStr, NDV.slug, NDV.draft]")
         assert host.url.endswith(f"#k={key}") and len(key) == 43
+        assert draft.startswith(_claim_pub(key) + "."), "the token binds the claim derived from the key"
+        with httpx.Client(base_url=base_url, timeout=15.0) as c:
+            assert c.get(f"/api/noodle/{slug}").status_code == 404, "a draft stores nothing"
         assert host.inner_text("#nd-title") == "title"
         host.click("#nd-title")
         host.keyboard.type(TITLE)
@@ -121,5 +142,6 @@ def test_an_end_to_end_poll_from_draft_to_rekey(browser, base_url):
         assert len(server_view()["voters"]) == 1
     finally:
         ctx.close()
-        with httpx.Client(base_url=base_url, timeout=15.0) as c:
-            c.delete(f"/api/noodle-polls/{slug}", headers=auth)
+        if slug:
+            with httpx.Client(base_url=base_url, timeout=15.0) as c:
+                c.delete(f"/api/noodle-polls/{slug}", headers=auth)
