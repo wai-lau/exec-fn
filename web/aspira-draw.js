@@ -2,7 +2,10 @@
 // fades are globalAlpha, never a colour with its own alpha.
 
 const cv = document.getElementById("asp-cv");
-let ctx = cv.getContext("2d"); // let: tower sprites and other offscreen draws borrow it
+// DESYNCHRONIZED canvases on ?desync=1 (perf, 2026-10-13): the low-latency path skips part of the compositor's queue - it can
+// tear, so it is opt-in to try on a given browser (the board and the 3D bell, aspira-warp.js)
+const DESYNC = typeof location !== "undefined" && /[?&]desync=1/.test(location.search);
+let ctx = cv.getContext("2d", DESYNC ? { desynchronized: true } : undefined); // let: tower sprites and other offscreen draws borrow it
 // The canvas fills the screen; the camera fits the 1000-unit chart into the
 // band between the header and the bottom build bar. cam is in device pixels.
 // THE ZOOM FITS THE PLAY BOX (owner, 2026-10-13: "the zoom should be adjusted so that either the top and bottom touch, or the

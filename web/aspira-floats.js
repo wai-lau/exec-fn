@@ -79,7 +79,12 @@ function shieldBreak(e) {
   burst(e.x, e.y, "cyan", Math.round(8 + 22 * k));
   if (e.shield <= 0) { ring(e.x, e.y, r * 7, "white", 0.45, true); burst(e.x, e.y, "white", 24); }
 }
+// SPARKS ON A BUDGET (perf, 2026-10-13: a late swarm wave kept ~2,300 alive - shield breaks and kills each throw 14-54 - and
+// they were most of a 3D frame's board picture): at most SPARK_MAX alive, a burst past it throws only what is left
+const SPARK_MAX = 300;
+let sparkN = 0; // alive now (stepFx recounts)
 function burst(x, y, color, n) {
+  n = Math.min(n, SPARK_MAX - sparkN); sparkN += Math.max(0, n);
   for (let i = 0; i < n; i++) {
     const a = Math.random() * 6.283, v = 40 + Math.random() * 120;
     fx.push({ k: "spark", x, y, vx: Math.cos(a) * v * 3, vy: Math.sin(a) * v * 3, color, t: 0, life: (0.4 + Math.random() * 0.3) / 3 });
@@ -99,6 +104,7 @@ function stepFx(dt) {
   }
   // beams run their full life and keep following their target, ghost or not
   fx = fx.filter(f => f.t < f.life);
+  sparkN = 0; for (const f of fx) if (f.k === "spark") sparkN++;
   if (bannerT > 0) bannerT -= dt;
 }
 

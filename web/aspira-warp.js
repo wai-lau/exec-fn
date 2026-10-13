@@ -119,7 +119,7 @@ function warpInit() {
   const c = document.createElement("canvas");
   c.id = "asp-gl"; c.setAttribute("aria-hidden", "true");
   cv.after(c);
-  const gl = c.getContext("webgl", { premultipliedAlpha: true, antialias: true });
+  const gl = c.getContext("webgl", { premultipliedAlpha: true, antialias: true, desynchronized: DESYNC }); // (DESYNC: aspira-draw.js)
   if (!gl) { c.remove(); return null; }
   const pr = gl.createProgram();
   gl.attachShader(pr, warpShader(gl, gl.VERTEX_SHADER, WARP_VS));
