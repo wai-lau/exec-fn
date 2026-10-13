@@ -30,7 +30,7 @@ const DESCRIBE = {
   // stat rows); Rime: the rings of rime; Moons: the moons
   frz(sk) {
     const tp = sk.temp || 0, rm = sk.rime || 0; // Sublimation turns them brittle; Permafrost's frost takes ARMOR - reducing, shattering, decimating (owner, 2026-10-12)
-    return "A chill that " + (tp >= 6 ? "shatters them brittle, and hurts" : tp >= 1 ? "makes them brittle, and hurts" : "hurts") + " more the colder they are." + // (owner, 2026-10-12: Sublimation "A chill that makes them brittle, and hurts more the colder they are")
+    return "A chill that " + (tp >= 6 ? "shatters, and hurts" : tp >= 1 ? "makes them brittle, and hurts" : "hurts") + " more the colder they are." + // (owner, 2026-10-12: Sublimation "A chill that makes them brittle, and hurts more the colder they are")
       (rm ? " It leaves behind a frost that seeps into their armor, never leaving." : "") /* Permafrost (owner, 2026-10-12) */ + FRZ_MOONS[sk.moons || 0] + "";
   },
   // "A ray of light, stopping at the first enemy struck; each beam weakens its target's armor for
