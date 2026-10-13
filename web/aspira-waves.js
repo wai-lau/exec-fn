@@ -16,6 +16,12 @@ const bossUp = () => G.enemies.some(e => !e.dead && (ENEMIES[e.type].star || e.b
 const waveClear = () => !G.enemies.some(e => !e.dead) && G.spawns.length === 0 && !G.fleetQ.length;
 // the NEXT wave is a boss's: it waits for a clear field, no timer (aspira-game.js step, the wave list)
 const bossNext = () => (G.wave + 1) % STAR_EVERY === 0;
+// AFTER A BOSS the next wave WAITS for the player (owner, 2026-10-12: "after each boss, don't warp in next wave immediately -
+// where the warping in... 4s is now, a button that says challenge the X where X is the next boss name; on click starts next
+// wave"): held until challengeNext(). Only on a real page - the simulator (no document.getElementById) plays straight on
+const afterBoss = () => typeof document.getElementById === "function" && G.started && !G.over && G.wave > 0 &&
+  G.wave % STAR_EVERY === 0 && G.wave < WIN_WAVE && G.challenged !== G.wave && !bossUp();
+function challengeNext() { if (!afterBoss()) return; G.challenged = G.wave; sendWave(); refreshPanels(); }
 // ONE enemy type per wave (owner, 2026-10-02, back from the 1-5 type mix):
 // a random unlocked type, never the same as the wave before. Types unlock in
 // order: swarm w1, shield w2, armor w3, fast w4 (fixed). makeWave returns the spawn

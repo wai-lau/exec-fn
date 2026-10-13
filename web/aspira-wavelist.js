@@ -101,7 +101,10 @@ function updateWaveList() {
   // None while a boss is up or next (a boss waits for a clear field)
   const curRows = rows.filter(r => r.cur).length;
   const eta = G.started && !bossUp() && !bossNext() ? ' <span class="asp-eta">' + Math.ceil(Math.max(0, G.nextIn)) + "s</span>" : "";
-  $("asp-wavelabel").innerHTML = curRows ? WAVE_HEAD.now : WAVE_HEAD.next + eta;
+  const lab = $("asp-wavelabel"), chal = afterBoss(); // after a boss: the CHALLENGE button where the countdown was (aspira-waves.js)
+  lab.classList.toggle("asp-challenge", chal);
+  const labHtml = chal ? '<button class="asp-primary asp-challenge-btn" type="button">challenge ' + arcanaOf(G.wave + STAR_EVERY).name + "</button>" : curRows ? WAVE_HEAD.now : WAVE_HEAD.next + eta;
+  if (lab.dataset.h !== labHtml) { lab.dataset.h = labHtml; lab.innerHTML = labHtml; if (chal) lab.firstChild.onclick = challengeNext; } // only on a change: a button rebuilt 10x a second loses its tap
   let note = "", i = 0;
   for (const { n, w, boss, hp, alive } of rows) {
     if (curRows && i++ === curRows) note += '<span class="asp-wavelabel asp-wavesub">' + WAVE_HEAD.next + eta + "</span>" + "<i hidden></i>".repeat(3);

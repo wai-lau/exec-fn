@@ -73,6 +73,8 @@
 
 /* the list's label (owner) */
 .asp-wavelabel { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: var(--tracking-wide); opacity: 0.6; }
+.asp-wavelabel.asp-challenge { opacity: 1; pointer-events: auto; } /* after a boss: "challenge <next boss>" starts the next wave (aspira-waves.js) */
+#asp .asp-challenge-btn { animation: asp-flash 2.4s ease-in-out infinite; }
 #asp .asp-wavenote > span.asp-wavesub { grid-column: 1 / -1; justify-content: flex-start; text-align: left; padding-top: var(--space-3); color: hsl(var(--green-hsl)); } /* "upcoming waves", under the live waves' box (aspira-wavelist.js) */
 
 .asp-wavenote {
