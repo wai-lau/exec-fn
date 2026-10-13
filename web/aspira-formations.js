@@ -48,7 +48,8 @@ let ARMOR_ONE_BLOCK = false;
 // HOW MANY LANES each type rides (owner, 2026-10-12: "swarm should always use 5-6 paths, fast 2-3, armor 1-3, shield
 // 3-5"; was 1-6 for all): the wave's pick in the range, else the nearest in it that splits the groups evenly, else the
 // pick with the odd groups dropped (laneCount rounds the count down to whole groups per lane)
-const LANE_SPLIT = { fast: [3, 4] /* 3-4 (owner, 2026-10-12; was 2-3) */ };
+const LANE_SPLIT = { fast: [3, 5] /* 3 or 5 (was 3-4, owner 2026-10-12; was 2-3) */ };
+const NO_LANES = 4; // NOTHING rides exactly four lanes (owner, 2026-10-13: "make nothing use 4 lanes exactly")
 // SWARM on 20 or 24 lanes, FOUR times its old 5-6 (owner, 2026-10-12: "double swarm lanes ... keep the number of enemies the
 // same"; doubled again 2026-10-13, "mostly a visual change, double the swarm lanes again, but keep the counts"): the count is
 // still rounded to the old lane-fulls (k / SWARM_K), then shared over the k lanes, some one more (sendWave)
@@ -61,8 +62,9 @@ function formSplit(type, count, n) {
   if (type === "shield") return SHIELD_LANES[Math.floor(fixedRand(n, 3) * SHIELD_LANES.length)]; // always (laneCount rounds up)
   const [lo, hi] = LANE_SPLIT[type] || [1, 6], unit = FORM_GROUP[type] || 1, groups = Math.max(1, Math.floor(count / unit));
   const want = lo + Math.floor(fixedRand(n, 3) * (hi - lo + 1));
-  for (let d = 0; d <= hi - lo; d++) for (const k of [want - d, want + d]) if (k >= lo && k <= hi && k <= groups && groups % k === 0) return k;
-  return Math.min(want, groups);
+  for (let d = 0; d <= hi - lo; d++) for (const k of [want - d, want + d]) if (k !== NO_LANES && k >= lo && k <= hi && k <= groups && groups % k === 0) return k;
+  const k = Math.min(want === NO_LANES ? NO_LANES - 1 : want, groups);
+  return k === NO_LANES ? NO_LANES - 1 : k;
 }
 // shields ROUND UP (owner, 2026-10-12: "round up units to hit 3-5 lanes"): each lane a count of whole 3- and 5-Vs
 const laneCount = (type, count, k) => {

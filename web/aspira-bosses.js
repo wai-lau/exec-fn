@@ -147,7 +147,7 @@ const FLEET_TIGHT = { star: 0.2 };
 // ...and a PACK BEHIND: every line escort after the boss, none ahead (owner, 2026-10-12: "the star goes first, escort comes as
 // one pack after") - the lone single-shot tower is still on the star when the pack arrives
 const FLEET_BEHIND = { star: true };
-const FLEET_TRACK_W = 26, fleetTracks = n => 3 + Math.floor(fixedRand(n, 7) * 3);
+const FLEET_TRACK_W = 26, fleetTracks = n => (fixedRand(n, 7) < 0.5 ? 3 : 5); // 3 or 5, never 4 (owner, 2026-10-13: "make nothing use 4 lanes exactly"; was 3-5)
 const fleetLanes = (e, n) => (isA(e, "judgement") ? { L: 12, off: 0.5 } : { L: 1, off: 0 }); // only the Judgement spreads its escorts (owner, 2026-10-12: "escorts don't spread, only judgement"; every fleet rode 3-5 lanes briefly)
 function bossFleet(e, n) {
   const kinds = FLEET[e.arcana];
