@@ -185,9 +185,6 @@ function upgradeButton(t) {
   const label = towerTitle(t) + (pts ? " " + roman(pts) : "") + (n ? ' <span class="asp-spend-cost' + (cost <= G.money ? " asp-cost-ok" : "") + '">(−' + cr(cost) + ")</span>" : ""); // affordable: just BOLD, its own colour (owner, 2026-10-09)
   const btn = button(box, "asp-primary asp-up-big" + (n && G.money >= cost ? " asp-confirm" : ""), label, () => lockIn(t), "asp-up"); // pulses while a pull waits to be locked in (owner)
   btn.classList.toggle("poor", n > 0 && G.money < cost); btn.disabled = !n || G.money < cost; // greyed until a slider moves; red, no tap, when the bank cannot cover it (owner)
-  // RINGED once per upgrade the bank covers (upAfford, aspira-towers.js - the home hex rings the same; owner, 2026-10-13)
-  const rings = upAfford(t);
-  btn.style.boxShadow = rings ? Array.from({ length: rings }, (_, i) => "0 0 0 " + (i * 3 + 1) + "px hsl(var(--bg-hsl)), 0 0 0 " + (i * 3 + 3) + "px currentColor").join(", ") : "";
   button(box, "asp-up-cancel", n ? "cancel" : "close", () => { if (basketPoints(t)) { basket.add = {}; refreshPanels(); } else closeCard(); }, "asp-up-cancel");
 }
 // buy every pulled point, in axis order, each at its own ladder step (upgradeTower pays one)

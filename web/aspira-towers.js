@@ -400,8 +400,8 @@ const UP_FLASH_HZ = 0.5, UP_PLUS_PX = 26;
 const upReady = t => t.lvl < maxLvl(t) && G.money >= upCost(t);
 const upPulse = now => 0.5 + 0.5 * Math.sin(now * UP_FLASH_HZ * 2 * Math.PI);
 // MORE OUTLINES, THE MORE YOU CAN BUY (owner, 2026-10-13: "more outlines ... levels of upgrades you can afford"): one hex per
-// upgrade the bank covers in a row (upAfford), up to UP_RING_MAX, each UP_RING_K of the hex further out - the card's upgrade
-// button rings the same (aspira-sliders.js)
+// upgrade the bank covers in a row (upAfford), up to UP_RING_MAX, each UP_RING_K of the hex further out
+// (on the map only - owner, 2026-10-13: "upgrade button on card should not have extra outlines")
 const UP_RING_MAX = 6, UP_RING_K = 0.14;
 function upAfford(t) {
   let m = G.money, n = 0;
