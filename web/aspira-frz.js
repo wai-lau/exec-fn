@@ -157,8 +157,10 @@ function drawFrzSkill(t, st) {
     const m = i ? MOON_FX : 1;
     gradDisc(s.x, s.y, st.range * s.k, col, FRZ_AURA_A * m); // fainter (owner, 2026-10-07; was 0.8)
     // Frost (owner): a FROSTED RIM, thicker the colder the aura (its slow)
-    ctx.strokeStyle = col; ctx.globalAlpha = FRZ_RIM_A * m; ctx.lineWidth = FRZ_RIM_W * st.aura * s.k;
-    ctx.beginPath(); ctx.arc(s.x, s.y, st.range * s.k, 0, 6.283); ctx.stroke();
+    // ...as TWO thin rings, not one thick one (owner, 2026-10-12): each a third of the old width, the outer on the edge
+    const rw = FRZ_RIM_W * st.aura * s.k;
+    ctx.strokeStyle = col; ctx.globalAlpha = FRZ_RIM_A * m; ctx.lineWidth = rw / 3;
+    ctx.beginPath(); ctx.arc(s.x, s.y, st.range * s.k, 0, 6.283); ctx.moveTo(s.x + st.range * s.k - rw, s.y); ctx.arc(s.x, s.y, Math.max(1, st.range * s.k - rw), 0, 6.283); ctx.stroke();
     // a MOON (every source after the tower; Moons III's are full strength, so
     // not "k < 1" - owner: they went missing) is a TRIANGLE pointing at the tower
     if (i) { ctx.fillStyle = col; ctx.globalAlpha = 0.95 * MOON_FX; poly(s.x, s.y, s.small ? MOON_TRI * 0.55 : MOON_TRI, 3, Math.atan2(t.y - s.y, t.x - s.x), false); ctx.fill(); }

@@ -59,3 +59,22 @@ function warpBands(draw, between) {
   warpBand = { lo: 0, hi: Infinity }; draw(true);
   warpBand = null;
 }
+// (3D layer helpers, moved from aspira-warp.js at its 500-line cap)
+// the overlay's context, its transforms and shadow blurs scaled by warp.entScale (set once on the context)
+function entCtx(c) {
+  const x = c.getContext("2d");
+  if (x.__ent) return x;
+  x.__ent = true;
+  const st = x.setTransform.bind(x), k = () => warp.entScale || 1;
+  x.setTransform = (a, b, c2, d, e, f) => (typeof a === "object" ? st(a) : st(a * k(), b * k(), c2 * k(), d * k(), e * k(), f * k()));
+  const P = CanvasRenderingContext2D.prototype, sb = Object.getOwnPropertyDescriptor(P, "shadowBlur");
+  if (sb && sb.set) Object.defineProperty(x, "shadowBlur", { configurable: true, get() { return sb.get.call(this) / k(); }, set(v) { sb.set.call(this, v * k()); } });
+  return x;
+}
+// a copy of a layer, its alpha the mask that keeps a sky flip to what is drawn on it (warpEntities)
+function skyMask(src) {
+  const m = warp.skyMaskCv ||= document.createElement("canvas");
+  if (m.width !== src.width || m.height !== src.height) { m.width = src.width; m.height = src.height; }
+  const x = m.getContext("2d"); x.clearRect(0, 0, m.width, m.height); x.drawImage(src, 0, 0);
+  return m;
+}

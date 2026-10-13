@@ -268,17 +268,6 @@ function skyOwn(o, fn) {
   if (skyPal()) { o.col = invertColor(col); try { ownColours(fn); } finally { o.col = col; } return; }
   withPalette(() => { inverted = false; o.col = invertColor(col); try { fn(); } finally { inverted = true; o.col = col; } });
 }
-// the overlay's context, its transforms and shadow blurs scaled by warp.entScale (set once on the context)
-function entCtx(c) {
-  const x = c.getContext("2d");
-  if (x.__ent) return x;
-  x.__ent = true;
-  const st = x.setTransform.bind(x), k = () => warp.entScale || 1;
-  x.setTransform = (a, b, c2, d, e, f) => (typeof a === "object" ? st(a) : st(a * k(), b * k(), c2 * k(), d * k(), e * k(), f * k()));
-  const P = CanvasRenderingContext2D.prototype, sb = Object.getOwnPropertyDescriptor(P, "shadowBlur");
-  if (sb && sb.set) Object.defineProperty(x, "shadowBlur", { configurable: true, get() { return sb.get.call(this) / k(); }, set(v) { sb.set.call(this, v * k()); } });
-  return x;
-}
 function warpEntities() {
   if (!warp.ent) {
     const c = document.createElement("canvas");
@@ -376,6 +365,9 @@ function warpEntities() {
     // the sky's DIFFERENCE over both layers, the overlay and the towers' own
     if (skyOn() && !skyPal()) for (const [x, cnv] of [[entCtx2d, c], [topCtx, top]]) {
       ctx = x;
+      // the TOWERS' layer is see-through between its shapes, and a difference turns see-through WHITE (owner, 2026-10-12: "boss
+      // inversion glitches the second layer"): its own pixels are kept aside and laid back as a MASK after the flip
+      const mask = cnv === top ? skyMask(top) : null;
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = "difference"; ctx.fillStyle = COL.white; ctx.beginPath();
       // the circle on the floor; a point of it BEHIND the camera (a big circle, spreading or collapsing) would make a
       // garbage polygon that flips the colours frame to frame (owner: "colors rapidly switch as the boss dies") - such a
@@ -383,7 +375,9 @@ function warpEntities() {
       const ring = bossInv.full ? null : Array.from({ length: 64 }, (_, i) => { const a = i * Math.PI / 32; return warpProject(bossInv.x + Math.cos(a) * bossInv.r, bossInv.y + Math.sin(a) * bossInv.r, 0); });
       if (!ring || ring.some(Q => !(Q.s > 0) || !isFinite(Q.x) || !isFinite(Q.y))) ctx.rect(0, 0, cnv.width, cnv.height);
       else ring.forEach((Q, i) => (i ? ctx.lineTo(Q.x, Q.y) : ctx.moveTo(Q.x, Q.y)));
-      ctx.fill(); ctx.globalCompositeOperation = "source-over";
+      ctx.fill();
+      if (mask) { ctx.globalCompositeOperation = "destination-in"; ctx.drawImage(mask, 0, 0); }
+      ctx.globalCompositeOperation = "source-over";
     }
   } finally { ctx = main; }
 }
