@@ -162,7 +162,8 @@ function updateAutoWait() {
   const btn = $("asp-autowait"), html = (autoWait ? ICON_CHECKED : ICON_UNCHECKED) + "<span>auto-wait</span>"; // the box bigger than the words (owner)
   if (btn.dataset.html !== html) { btn.dataset.html = html; btn.innerHTML = html; btn.setAttribute("aria-checked", String(autoWait)); }
   btn.classList.toggle("on", autoWaiting()); // lit while it is holding the game at 1/2x
-  const mv = $("asp-automove"), mh = (autoMove ? ICON_CHECKED : ICON_UNCHECKED) + "<span>auto-move</span>";
+  const used = G.autoMoveS || 0, mv = $("asp-automove"), mh = (autoMove ? ICON_CHECKED : ICON_UNCHECKED) + "<span>auto-move</span>" +
+    (used ? '<span class="asp-amt">' + (autoBarred() ? "no board" : Math.floor(used / 60) + ":" + String(Math.floor(used % 60)).padStart(2, "0")) + "</span>" : ""); // time used / barred, beside it (owner, 2026-10-13: "show next to check")
   mv.hidden = !best.ascended; // ASCENDANTS only (owner, 2026-10-13: "non-ascendants do not get that checkbox")
   if (mv.dataset.html !== mh) { mv.dataset.html = mh; mv.innerHTML = mh; mv.setAttribute("aria-checked", String(autoMove)); }
 }
@@ -462,6 +463,7 @@ function frame(now) {
     let left = typeof skyTurning === "function" && skyTurning() ? 0 : dt * BASE_SPEED * (freezing() ? 1 : speedX()); // auto-wait only ever SLOWS; a time freeze runs at 1x
     while (left > 0) { const h = Math.min(0.02, left); step(h); stepFx(h); left -= h; }
     stepFloats(dt); // real time: unaffected by the game speed
+    if (autoMove && best.ascended && G.started && !G.over) G.autoMoveS = (G.autoMoveS || 0) + dt; // auto-move's REAL seconds this game (autoBarred, aspira-ascend.js)
     stepFlings(dt); // a let-go tower coasting (aspira-fling.js), real time too
   }
   // while the upgrade cards are up the board is paused AND frozen: no redraw,
