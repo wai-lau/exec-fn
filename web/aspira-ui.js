@@ -196,11 +196,14 @@ function upgradeTower(t, choice = null, quiet = false) {
   const need = pendingChoice(t);
   if (need && choice == null) return;
   if (need === "skill" && skillOf(t, choice) >= axisCap(t, choice)) return; // full, or a second giga VI (aspira-giga.js)
+  // a CAPSTONE (tier VI) is two levels: the next two ladder steps, t.lvl + 2 (aspira-giga.js)
+  const steps = need === "skill" && typeof GIGA_TIER !== "undefined" && skillOf(t, choice) + 1 >= GIGA_TIER ? GIGA_LEVELS : 1;
+  const c = steps > 1 ? skillPointsCost(t, steps) : upCost(t);
+  if (G.money < c) return;
   if (need === "skill") t.skills = withSkill(t, choice); // one tier up the chosen axis
   if (need === "path") t.path = choice;
   if (need === "form") { t.form = choice; t.mode = UPGRADES[t.kind][t.path].finals[choice].mode || t.mode; } // a form may set targeting (Residue)
-  const c = upCost(t);
-  G.money -= c; t.spent += c; t.lvl++;
+  G.money -= c; t.spent += c; t.lvl += steps;
   if (quiet) return;
   sfxFor("up", t.kind);
   ring(t.x, t.y, 64, TOWERS[t.kind].color); refreshPanels();

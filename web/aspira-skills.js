@@ -17,7 +17,7 @@ const SKILL_POINTS = 16, SKILL_TIERS = 6;
 // ...and on, for the three points past the sixth (owner, 2026-10-07: "keep increasing
 // the prices"): the step grows by one more each time, a full chart 174.5 builds (6,980c)
 // (the six points past the ninth, 2026-10-07: each step grows by one more again - a full chart 695.5 builds, 27,820c)
-const SKILL_STEP_COST = [2.5, 4, 7, 11, 16, 22, 29, 37, 46, 56, 67, 79, 92, 106, 121, 137]; // the 16th: the giga point (2026-10-11)
+const SKILL_STEP_COST = [2.5, 4, 7, 11, 16, 22, 29, 37, 46, 56, 67, 79, 92, 106, 121, 137, 154]; // the 17th: a capstone takes TWO levels (aspira-giga.js) // the 16th: the giga point (2026-10-11)
 // Every axis is ONE EVOLVING SENTENCE (owner, 2026-10-07): `base` says what the
 // tower does with no point on the axis, and each tier's `desc` is that sentence
 // with as few words changed as will carry the gain, so the card's track changes
@@ -143,7 +143,7 @@ SKILL_TREES.acd = [
   ] },
 ];
 const hasSkills = t => !!SKILL_TREES[t.kind];
-const maxLvl = t => (hasSkills(t) ? 1 + SKILL_POINTS : MAX_LVL);
+const maxLvl = t => (hasSkills(t) ? 2 + SKILL_POINTS : MAX_LVL); // (+1: the capstone is two levels - aspira-giga.js)
 const skillOf = (t, id) => (t.skills && t.skills[id]) || 0;
 // the level the TOWER'S LOOK shows (its rings, max-level spokes): a chart
 // tower's 7 levels fold onto the 4 drawn ones

@@ -13,15 +13,15 @@
 const basket = { id: null, add: {} }; // the pulled points per axis of the selected tower
 function basketFor(t) { if (basket.id !== t.id) { basket.id = t.id; basket.add = {}; } return basket.add; }
 const basketPoints = t => Object.values(basketFor(t)).reduce((a, b) => a + b, 0);
-const basketCost = t => skillPointsCost(t, basketPoints(t));
-const previewTower = t => ({ ...t, lvl: t.lvl + basketPoints(t), skills: withSkills(t, basketFor(t)) });
+const basketCost = t => skillPointsCost(t, levelsFor(t, basketFor(t))); // (a capstone counts two levels - aspira-giga.js)
+const previewTower = t => ({ ...t, lvl: t.lvl + levelsFor(t, basketFor(t)), skills: withSkills(t, basketFor(t)) });
 // how many more points axis `id` may take: the tiers it has left, and how many
 // of those the bank covers on top of the other axes' pulls (points are priced
 // in order, whatever the axis)
 function axisRoom(t, id) {
   const add = basketFor(t), others = basketPoints(t) - (add[id] || 0), left = axisCap(t, id, add) - skillOf(t, id); // (one giga VI a tower)
   let afford = 0;
-  while (afford < left && skillPointsCost(t, others + afford + 1) <= G.money) afford++;
+  while (afford < left && skillPointsCost(t, levelsFor(t, { ...add, [id]: afford + 1 })) <= G.money) afford++;
   return { others, left, afford };
 }
 
@@ -181,7 +181,7 @@ function upgradeButton(t) {
   const box = $("asp-upbox");
   if (!box) return;
   box.innerHTML = "";
-  const n = basketPoints(t), cost = basketCost(t), pts = t.lvl - 1 + n;
+  const n = basketPoints(t), cost = basketCost(t), pts = t.lvl - 1 + levelsFor(t, basketFor(t));
   const label = towerTitle(t) + (pts ? " " + roman(pts) : "") + (n ? ' <span class="asp-spend-cost' + (cost <= G.money ? " asp-cost-ok" : "") + '">(−' + cr(cost) + ")</span>" : ""); // affordable: just BOLD, its own colour (owner, 2026-10-09)
   const btn = button(box, "asp-primary asp-up-big" + (n && G.money >= cost ? " asp-confirm" : ""), label, () => lockIn(t), "asp-up"); // pulses while a pull waits to be locked in (owner)
   btn.classList.toggle("poor", n > 0 && G.money < cost); btn.disabled = !n || G.money < cost; // greyed until a slider moves; red, no tap, when the bank cannot cover it (owner)

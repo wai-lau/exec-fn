@@ -101,17 +101,21 @@ export function makeGame(seed, patch = "") {
       },
       upgrade(t, choice) {
         if (t.lvl >= maxLvl(t)) return false;
-        const c = upCost(t); if (G.money < c) return false;
         const need = pendingChoice(t);
         // a chart tower: the named axis, else (a path / form index from an old
         // strategy) the lowest open axis, so builds spread evenly
+        let id = null;
         if (need === "skill") {
           const ids = SKILL_TREES[t.kind].map(a => a.id).filter(id => skillOf(t, id) < axisCap(t, id)); // (one giga VI a tower)
-          t.skills = withSkill(t, ids.includes(choice) ? choice : ids.sort((a, b) => skillOf(t, a) - skillOf(t, b))[0]);
+          id = ids.includes(choice) ? choice : ids.sort((a, b) => skillOf(t, a) - skillOf(t, b))[0];
         }
+        // a CAPSTONE (tier VI) is two levels at two steps' price, as in upgradeTower (aspira-ui.js)
+        const steps = id && skillOf(t, id) + 1 >= GIGA_TIER ? GIGA_LEVELS : 1, c = steps > 1 ? skillPointsCost(t, steps) : upCost(t);
+        if (G.money < c) return false;
+        if (id) t.skills = withSkill(t, id);
         if (need === "path") t.path = choice;
         else if (need === "form") { t.form = choice; t.mode = UPGRADES[t.kind][t.path].finals[choice].mode || t.mode; }
-        G.money -= c; t.spent += c; t.lvl++;
+        G.money -= c; t.spent += c; t.lvl += steps;
         return true;
       },
     };`, ctx);

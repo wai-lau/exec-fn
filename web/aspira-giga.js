@@ -9,6 +9,12 @@ function gigaHolder(t, id, add = {}) {
   return SKILL_TREES[t.kind].find(ax => ax.id !== id && skillOf(t, ax.id) + (add[ax.id] || 0) >= GIGA_TIER) || null;
 }
 const axisCap = (t, id, add = {}) => (gigaHolder(t, id, add) ? GIGA_TIER - 1 : GIGA_TIER);
+// a CAPSTONE is TWO levels (owner, 2026-10-12: "buying a capstone should cost the same as increasing the level by 2 (and also
+// increase tower level by 2)"): it pays the next two ladder steps and raises t.lvl by 2 (upgradeTower, aspira-ui.js)
+const GIGA_LEVELS = 2;
+// the levels `add` (axis -> points) buys: its points, plus one when it takes an axis to the capstone
+const levelsFor = (t, add) => Object.values(add).reduce((a, b) => a + b, 0) +
+  (SKILL_TREES[t.kind].some(ax => skillOf(t, ax.id) < GIGA_TIER && skillOf(t, ax.id) + (add[ax.id] || 0) >= GIGA_TIER) ? GIGA_LEVELS - 1 : 0);
 
 // ---------- the numbers: index 6 of every tier table (a leap, not a step) ----------
 const GIGA_NUM = [
