@@ -9,7 +9,8 @@ const FORM_FADE_R = 160;
 const V_N = 5, V_LAT = 24, V_BACK = 28;
 // ...and Vs of V_SMALL (owner, 2026-10-12: "for shield, allow groups for 3, not just 5"): a lane's shields fly as Vs of
 // 5 where the rest still splits into 3s and 5s, else 3 - so any count vFits fills whole Vs
-const V_SMALL = 3, vFits = x => x === 0 || x === 3 || x === 5 || x === 6 || x >= 8;
+// and LONE shields too (owner, 2026-10-12: "allow shield waves of 1 3 and 5"): any count fits now - 5s, then a 3, then 1s
+const V_SMALL = 3, vFits = () => true;
 // FAST: PAIRS side by side, FAST_PAIR apart, spinning about their midpoint (owner, 2026-10-11: "for fast, make them
 // come in pairs and spin also"); each pair FAST_PAIR behind the one before - a square ladder (owner: "side by side
 // distance equal to distance prev and next ... a little smaller"; was 30 across and ~114 between pairs)
@@ -24,7 +25,7 @@ const FORM_SPIN = { fast: 160 }; // (armor spun for an hour: owner, "remove armo
 // the slots for a group of m: [lat, ahead] each
 const FORMS = {
   fast: { group: () => 2, slots: m => (m === 2 ? [[-FAST_PAIR / 2, 0], [FAST_PAIR / 2, 0]] : [[0, 0]]) },
-  shield: { group: left => (left >= V_N && vFits(left - V_N) ? V_N : V_SMALL), slots: m => Array.from({ length: m }, (_, i) => {
+  shield: { group: left => (left >= V_N ? V_N : left >= V_SMALL ? V_SMALL : 1), slots: m => Array.from({ length: m }, (_, i) => {
     const d = Math.ceil(i / 2), side = i % 2 ? 1 : -1; // 0 the leader; 1, 2 the first pair; 3, 4 the next
     return [side * d * V_LAT, (Math.ceil((m - 1) / 2) - d) * V_BACK];
   }) },
@@ -38,7 +39,7 @@ const FORMS = {
 };
 // a wave's count is a whole number of these (waveCount): every V full (V_N, odd: 2n+1). Armor is NOT rounded (owner,
 // 2026-10-11: "having centered 1 or 2 armored in the back looks nice") - a short last row sits centred at the back
-const FORM_UNIT = { shield: V_N, fast: 2 }, FORM_GROUP = { shield: V_N, armor: ARMOR_W, fast: 2 };
+const FORM_UNIT = { fast: 2 }, FORM_GROUP = { shield: V_N, armor: ARMOR_W, fast: 2 };
 // how many lane copies a wave of `count` splits onto, at most `want`: shields only into whole Vs, armor into whole
 // lattice rows (the largest k <= want that divides its number of groups); everything else as asked
 // (2026-10-11: one armor block on one lane made armor free - all 36 sim games won, armor 0 lives - so armor splits

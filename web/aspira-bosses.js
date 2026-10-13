@@ -277,7 +277,10 @@ const skyTurning = () => (bossInv.phase === "in" && !bossInv.full) || bossInv.ph
 function bossSkyStep() {
   // the sky stays inverted while ANY boss-related enemy lives - the boss and its
   // brood (owner) - and only then collapses
-  const now = performance.now() / 1000, alive = G.enemies.some(e => (e.arcana || e.bossKin) && !e.dead);
+  // ...and from the moment the boss WAVE is sent, before anything spawns (owner, 2026-10-12: "finish inversion before spawning
+  // first units"): the game holds while it turns (skyTurning), so the boss's intro timer only starts once the sky is over
+  const now = performance.now() / 1000, pending = G.spawns.some(w => w.n % STAR_EVERY === 0 && w.idx < w.list.length);
+  const alive = pending || G.enemies.some(e => (e.arcana || e.bossKin) && !e.dead);
   if (alive && (bossInv.phase === "off" || bossInv.phase === "out")) {
     Object.assign(bossInv, { phase: "in", t0: now, x: CX, y: CY }); // spreads from the CORE (owner: was the boss)
   } else if (!alive && bossInv.phase === "in") {

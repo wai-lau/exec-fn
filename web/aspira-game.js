@@ -62,7 +62,7 @@ function shieldsOf(type, n) {
 // EARLY SHIELDS SOFTER (owner, 2026-10-12: "early game shield too hard" - rounded up to fill 3- and 5-Vs, wave 2 brings 9
 // not 5): x SHIELD_EARLY HP to wave 20, easing to full by wave 30
 // ...and EARLY ARMOR HARDER (owner, 2026-10-12: "armor feels too easy early"): x ARMOR_EARLY to wave 20, easing to x1 by 30
-const SHIELD_EARLY = 0.6, ARMOR_EARLY = 1.6, early = (k, n) => k + (1 - k) * Math.min(1, Math.max(0, (n - 20) / 10));
+const SHIELD_EARLY = 0.6, ARMOR_EARLY = 2 /* owner, 2026-10-12: "make early armor stronger" (was 1.6) */, early = (k, n) => k + (1 - k) * Math.min(1, Math.max(0, (n - 20) / 10));
 const SWARM_HP_X = 1.5; // a swarm wave's whole HP x1.5 (owner, 2026-10-12), spread by the jitter (spawnEnemy)
 const enemyHp = (type, n0, n = eqWave(n0)) => (9 * hpPow(n) + n * 2) * ENEMIES[type].hp * 2 * shieldsOf(type, n0).hpMul * (type === "shield" ? early(SHIELD_EARLY, n) : type === "armor" ? early(ARMOR_EARLY, n) : type === "swarm" ? SWARM_HP_X : 1); // x2: half as many enemies (owner); 9 / 2 (2026-10-08: all HP halved, was 18 / 4)
 function spawnEnemy(type, n, pi, ang = 0) {
