@@ -49,7 +49,7 @@ const CORNER_SLOTS = [], CORNER_IN = 171, TILE_R = CORNER_IN;
 // money curves were tuned on 10-wave cycles, so they read a wave as its 10-cycle EQUIVALENT (wave 12 = old 10, 120 = old 100)
 // - each boss as strong as before, two more waves before it
 // every NON-boss enemy x1.5 HP (owner, 2026-10-12: the 12-cycle battery won 36/36 losing ~3 lives a game - "yes" to x1.5)
-const PLAIN_HP_MUL = 1.5, PLAIN_HP_EASY = 10, PLAIN_HP_MID = 1.2;
+const PLAIN_HP_MUL = 1.5, PLAIN_HP_EASY = 12 /* the first boss cycle (owner, 2026-10-12; was 10) */, PLAIN_HP_MID = 1.2;
 // ...stepped in (owner, 2026-10-12: "just bring it down for the first 10 waves", then "1.2 at 11, then 1.5 after 20, because you
 // have powers"): x1 to wave 10, x1.2 until the first core power is granted (CORE_GRANTS, wave 24 since the 12-wave cycle), x1.5 after
 const plainHpMul = n => (n <= PLAIN_HP_EASY ? 1 : n <= (typeof CORE_GRANTS !== "undefined" ? CORE_GRANTS[0][0] : 24) ? PLAIN_HP_MID : PLAIN_HP_MUL);
