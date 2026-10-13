@@ -399,9 +399,16 @@ const hintLeash = t => { t.leashHint = performance.now() / 1000 + LEASH_HINT_S; 
 const UP_FLASH_HZ = 0.5, UP_PLUS_PX = 26;
 const upReady = t => t.lvl < maxLvl(t) && G.money >= upCost(t);
 const upPulse = now => 0.5 + 0.5 * Math.sin(now * UP_FLASH_HZ * 2 * Math.PI);
-// MORE OUTLINES THE HIGHER (owner, 2026-10-13: "they should have more outlines the higher level they are"): one hex per
-// UP_RING_LVLS levels (1 at L1-3 .. 6 at L16-18), each UP_RING_K of the hex further out
-const UP_RING_LVLS = 3, UP_RING_K = 0.14, upRings = t => Math.ceil(t.lvl / UP_RING_LVLS);
+// MORE OUTLINES, THE MORE YOU CAN BUY (owner, 2026-10-13: "more outlines ... levels of upgrades you can afford"): one hex per
+// upgrade the bank covers in a row (upAfford), up to UP_RING_MAX, each UP_RING_K of the hex further out - the card's upgrade
+// button rings the same (aspira-sliders.js)
+const UP_RING_MAX = 6, UP_RING_K = 0.14;
+function upAfford(t) {
+  let m = G.money, n = 0;
+  for (let l = t.lvl; l < maxLvl(t) && n < UP_RING_MAX; l++) { const c = upCost({ ...t, lvl: l }); if (c > m) break; m -= c; n++; }
+  return n;
+}
+const upRings = t => upAfford(t);
 // an UPWARD ARROW, h tall, centred on (x, y): filled in col with a dark outline (owner, 2026-10-13: "instead of + show upwards arrow")
 function upArrow(x, y, h, col) {
   const w = h * 0.62, sw = h * 0.24, hh = h * 0.5, top = y - h / 2;
