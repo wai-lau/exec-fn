@@ -418,7 +418,7 @@ Logs: `docker compose logs api` or `docker compose exec api tail -f /var/log/exe
 
 OS: Ubuntu 24.04 · IP: `168.144.13.51` · Domain: `wai-lau.net`
 
-- nginx: 80 → HTTPS; 443 → upstream `execfn_app` (127.0.0.1:8080), **listed twice** so a `--reload` swap retries instead of 502ing (no `non_idempotent`, no `http_503` retry). `client_max_body_size 25m`. Live config `/etc/nginx/sites-enabled/default`; backups in `/etc/nginx/backups/`, **never `sites-enabled/`**. **ARCHITECTURE.md §1d**.
+- nginx: 80 → HTTPS; 443 → upstream `execfn_app` (127.0.0.1:8080), **listed twice** so a `--reload` swap retries instead of 502ing (no `non_idempotent`, no `http_503` retry). `client_max_body_size 25m`. A 502/504 (the app restarting) gets `web/errors/loading.html`, served by nginx itself from `/exec-fn` (`error_page` + an `internal` alias); it reloads once the app answers. Live config `/etc/nginx/sites-enabled/default`; backups in `/etc/nginx/backups/`, **never `sites-enabled/`**. **ARCHITECTURE.md §1d**.
 - Certs: `/etc/letsencrypt/live/wai-lau.net/` (auto-renews)
 - SSH: key-only (password auth disabled), **direct root login disabled** (`PermitRootLogin no`); log in as `wai-root` (sudo NOPASSWD) — `ssh wai-root@wai-lau.net`. fail2ban active.
 - Container: `restart: unless-stopped`

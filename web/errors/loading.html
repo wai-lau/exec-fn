@@ -1,0 +1,49 @@
+<!doctype html>
+<!-- nginx serves this itself (error_page 502 504) while the app restarts - a deploy, a --reload swap. Self-contained on
+     purpose: the app that serves chrome.css is the thing that is down. Colours mirror chrome.css's palette tokens
+     (--bg-hsl, --green-hsl, --orange-hsl); it polls / and reloads the page the moment the app answers again. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>wai-lau.net · loading</title>
+<style>
+  :root { --bg: hsl(0 0% 0%); --green: hsl(135 100% 50%); --orange: hsl(33 100% 68%); }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--green); }
+  body {
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Iosevka Mayukai Monolite', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    font-size: 15px; letter-spacing: 0.04em;
+  }
+  main { padding: 0 16px; text-align: left; }
+  .t { font-size: 13px; text-transform: uppercase; letter-spacing: 0.3em; color: var(--orange); margin-bottom: 14px; }
+  .line::after { content: "\2588"; margin-left: 2px; animation: blink 1s steps(1) infinite; }
+  .bar { margin-top: 14px; width: 220px; max-width: 70vw; height: 2px; background: hsl(135 100% 50% / 0.15); overflow: hidden; }
+  .bar i { display: block; width: 30%; height: 100%; background: var(--green); animation: sweep 1.4s ease-in-out infinite; }
+  .note { margin-top: 14px; font-size: 12px; opacity: 0.55; }
+  body::after { /* the scanlines, faint */
+    content: ""; position: fixed; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(0deg, hsl(0 0% 0% / 0.25) 0 1px, transparent 1px 3px);
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  @keyframes sweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(340%); } }
+  @media (prefers-reduced-motion: reduce) { .line::after, .bar i { animation: none; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="t">wai-lau.net</div>
+  <div class="line">booting up</div>
+  <div class="bar"><i></i></div>
+  <div class="note">back in a few seconds - this page reloads itself</div>
+</main>
+<script>
+  (function poll() {
+    fetch("/", { method: "HEAD", cache: "no-store" })
+      .then(function (r) { if (r.status < 500) location.reload(); else setTimeout(poll, 2000); })
+      .catch(function () { setTimeout(poll, 2000); });
+  })();
+</script>
+</body>
+</html>
