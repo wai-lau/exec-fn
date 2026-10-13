@@ -66,7 +66,7 @@ async function ascSend(ev) {
 function showAscend() {
   const box = ascBox(), won = !!G.won;
   box.hidden = false;
-  box.innerHTML = ASC_TITLE + '<form id="asp-asc-form"><input id="asp-asc-in" maxlength="3" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="AAA" aria-label="your initials">' +
+  box.innerHTML = ASC_TITLE + '<form id="asp-asc-form"><input id="asp-asc-in" class="' + (won ? "asp-asc-gold" : "asp-asc-green") + '" maxlength="3" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="AAA" aria-label="your initials">' +
     '<button class="asp-primary" type="submit">' + (won ? "ascend" : "post") + '</button></form><p id="asp-asc-note">' +
     (won ? "Leave your initials among the Ascendants." : "Wave " + G.wave + " - leave your initials on the board.") + '</p><div id="asp-asc-board"></div>';
   const input = $("asp-asc-in");

@@ -5,18 +5,25 @@
 .asp-asc-title { font-size: var(--fs-sm); letter-spacing: var(--tracking-mega); text-transform: uppercase; color: hsl(var(--orange-hsl)); }
 #asp-asc-form { display: flex; gap: var(--space-2); }
 #asp-asc-form[hidden] { display: none; }
+/* three UNDERSCORES, gold for a win and green otherwise (owner, 2026-10-12: "the initials box should be gold or green
+   underscores, with AAA as hint"): each letter 1ch over its own 1ch line, ASC_GAP apart */
 #asp-asc-in {
-  width: 5ch;
-  padding: var(--space-1) var(--space-2);
+  --asc-gap: 0.6ch;
+  width: calc(3ch + 3 * var(--asc-gap));
+  padding: 0 0 var(--space-1) calc(var(--asc-gap) / 2);
   font: inherit;
   font-size: var(--fs-xl);
-  letter-spacing: var(--tracking-mega);
-  text-align: center;
+  letter-spacing: var(--asc-gap);
+  text-align: left;
   text-transform: uppercase;
-  color: hsl(var(--orange-hsl));
-  background: hsl(var(--bg-hsl) / 0.45);
-  border: var(--space-px) solid hsl(var(--orange-hsl));
+  color: currentcolor;
+  background: repeating-linear-gradient(90deg, currentcolor 0 1ch, transparent 1ch calc(1ch + var(--asc-gap))) calc(var(--asc-gap) / 2) 100% / calc(100% - var(--asc-gap)) var(--space-0-5) no-repeat;
+  border: none;
+  outline: none;
 }
+#asp-asc-in.asp-asc-gold { color: hsl(var(--orange-hsl)); }
+#asp-asc-in.asp-asc-green { color: hsl(var(--green-hsl)); }
+#asp-asc-in::placeholder { color: currentcolor; opacity: 0.35; }
 #asp-asc-note { font-size: var(--fs-sm); }
 #asp-asc-board { position: relative; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; pointer-events: auto; } /* ASC_SHOW rows tall, the rest scroll (aspira-ascend.js sets max-height) */
 .asp-asc-table { border-collapse: collapse; font-size: var(--fs-sm); background: hsl(var(--bg-hsl) / 0.45); }
