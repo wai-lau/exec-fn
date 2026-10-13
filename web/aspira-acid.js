@@ -20,6 +20,9 @@ const acdFrac = (l, st) => Math.log2(acdMulOf(l.held, st)) / Math.log2(st.cap); 
 function plagueRadius(l, st) {
   return st.plagueR * (st.bloom ? 1 + (st.bloom - 1) * acdFrac(l, st) : 1);
 }
+// a new line's FIRST tick lands ACD_FIRST_S in, not a whole tick (owner, 2026-10-13: "start ticking asap", then "make acd wait
+// 1/16 s instead of being instant")
+const ACD_FIRST_S = 1 / 16, acdFirstTick = st => Math.max(0, 1 / st.rate - ACD_FIRST_S);
 function acdLines(t, st) {
   const r2 = st.range ** 2, inRange = e => !e.dead && (e.x - t.x) ** 2 + (e.y - t.y) ** 2 <= r2;
   // Chain Reaction (st.carry): a line whose enemy DIED hands that share of its ramp to the next new line
@@ -27,7 +30,7 @@ function acdLines(t, st) {
   let lines = (t.lines || []).filter(l => !l.e.dead);
   if (st.allInRange) {
     const had = new Map(lines.map(l => [l.e, l]));
-    return G.enemies.filter(inRange).map(e => had.get(e) || { e, held: 0, tick: 1 / st.rate }); // tick full: a new line BURNS at once (owner, 2026-10-13: "start ticking asap")
+    return G.enemies.filter(inRange).map(e => had.get(e) || { e, held: 0, tick: acdFirstTick(st) }); // a new line BURNS ACD_FIRST_S in (acdFirstTick)
   }
   // a line whose enemy left range lives on for st.residue seconds (Residue)
   lines = lines.filter(l => {
@@ -39,7 +42,7 @@ function acdLines(t, st) {
   let live = lines.filter(l => inRange(l.e)).length;
   for (const e of pickTargets(t, st, st.targets + lines.length)) {
     if (live >= st.targets) break;
-    if (!lines.some(l => l.e === e)) { lines.push({ e, held: t.spare || 0, tick: 1 / st.rate, left: st.residue || 0 }); t.spare = 0; live++; } // (burns at once)
+    if (!lines.some(l => l.e === e)) { lines.push({ e, held: t.spare || 0, tick: acdFirstTick(st), left: st.residue || 0 }); t.spare = 0; live++; } // (ACD_FIRST_S in)
   }
   return lines;
 }
