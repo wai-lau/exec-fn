@@ -105,7 +105,7 @@ function updateWaveList() {
   const lab = $("asp-wavelabel"), chal = afterBoss(); // after a boss: the CHALLENGE button where the countdown was (aspira-waves.js)
   const labHtml = chal ? "" : curRows ? WAVE_HEAD.now : WAVE_HEAD.next + eta; // (the CHALLENGE button sits under the core - placeChallenge)
   if (lab.dataset.h !== labHtml) { lab.dataset.h = labHtml; lab.innerHTML = labHtml; }
-  const btn = $("asp-challenge"), label = chal ? "challenge " + arcanaOf(G.wave + STAR_EVERY).name : "";
+  const btn = $("asp-challenge"), label = chal ? "PROCEED" : ""; // (owner, 2026-10-12: was "challenge <next boss>")
   btn.hidden = !chal; btn.onclick ||= () => challengeNext();
   if (btn.textContent !== label) btn.textContent = label;
   let note = "", i = 0;
