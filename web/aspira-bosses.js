@@ -41,6 +41,9 @@ const ARCANA = [
 // strength 0.9, chariot 4, lovers 3.1, temperance 3, devil 0.75, justice 4.4,
 // judgement 1.7. Death not refitted (the run was stopped for memory): kept 1.6.
 // BOSSES CLOSER (owner, 2026-10-13: "make bosses challenging (10-20% closer)"): every boss but the Star x BOSS_HP_K. let: the sims sweep it
+// ...and the ones that STILL stopped far out more (owner, 2026-10-13: "make the far away bosses stronger"): waverep x3.5 brought
+// the Empress 271 -> 213 and Strength 273 -> 231; Death 346 -> 296 at x2.4, 169 at x3.5 (2 of 36 games lost), so x2.8
+const BOSS_FAR = { empress: 3.5, strength: 3.5, death: 2.8 };
 let BOSS_HP_K = 1.4; // waverep 2026-10-13: x1.4 brings bosses 24-108 in 16% (mean nearest 252 -> 211), x1.8 21%; still 36/36 won
 const BOSS_HP = { star: 32 /* (owner, 2026-10-12: "require 2 towers or an upgrade to beat the star", SOL and ACD may solo it; solo.mjs; was 5.4) */, empress: 6.8, strength: 2.2, chariot: 3.4, lovers: 2.4, temperance: 1.22, devil: 0.76, justice: 6.4, judgement: 3.4, death: 3.2 }; // every one DOUBLED (owner, 2026-10-12: "double each bosses hp"; was 2.7 3.4 1.1 1.7 1.2 0.61 0.38 3.2 1.7 1.6)
 // each boss's ARMOR (x the armored enemy's growth curve at its wave, like ENEMIES.armor) and SPEED
@@ -85,7 +88,7 @@ function bossSpawn(e, n) {
   e.baseSpd = e.spd; e.broodAt = 0.8; e.sprintT = CHARIOT_EVERY;
   e.shield = e.shieldMax = (BOSS_SHIELD[e.arcana] || 0) + Math.round(BOSS_SHIELD_K * shieldsOf("shield", n).shield); e.shieldBuf = 0;
   // HP per boss: BOSS_HP (fitted, see there; the Devil's is each of six)
-  e.max *= (BOSS_HP[e.arcana] || 1) * (e.arcana === "star" ? 1 : BOSS_HP_K); // (BOSS_HP_K: every boss but the Star)
+  e.max *= (BOSS_HP[e.arcana] || 1) * (e.arcana === "star" ? 1 : BOSS_HP_K) * (BOSS_FAR[e.arcana] || 1); // (BOSS_HP_K: every boss but the Star; BOSS_FAR: the ones that stayed far)
   // ...and by the DISTANCE its lane makes it travel (owner): a long lane keeps
   // it under fire longer, so it gets proportionally more HP (x0.5 .. x1.6, the
   // average lane x1)
