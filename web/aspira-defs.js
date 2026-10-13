@@ -381,7 +381,7 @@ function towerStats(t, noAura = false) {
   const s = {
     dmg: b.dmg * LVL_DMG[i], rate: b.rate, range: b.range * RANGE_BONUS * LVL_RANGE[i],
     targets: 1, critMul: 3, arcRange: 50, arcFall: 0.8,
-    slide: 1, speed: 1, // x the slide extent / slide speed (aspira-towers.js; a chart tier may raise them)
+    slide: 1, // x the slide extent (aspira-towers.js; a chart tier may raise it)
   };
   switch (t.kind) {
     // arc reach = the tower's own range (owner: tripled from half the old range),

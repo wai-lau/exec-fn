@@ -347,8 +347,7 @@ function usePower(code) {
 // stand-in player does: autoPosition, aspira-positioning.js). It stays inside its LEASH,
 // a circle round its own slot (its SPAWN), radius leashR - the slide travel it had on its
 // spoke (2026-10-03 .. 2026-10-09; slideLimits below), so it reaches as far out as it did.
-// Slide tiers grow it (SKILL_MOVE `slide`, aspira-skills.js); `speed` no longer does
-// anything - a tower is where the finger is.
+// Slide tiers grow it (SKILL_MOVE `slide`, aspira-skills.js); a tower is where the finger is.
 // the old spoke's reach per kind (owner, 2026-10-04 .. 06): FRZ and ACD roam, ARC and SOL anchor
 const TOWER_REACH = { frz: 400, acd: 350, arc: 350, sol: 180 }; // SOL: its travel halved (owner; was 250 - a slot sits ~110 out)
 const SLIDE_K_HALF = 0.5, SLIDE_MAX = 2;

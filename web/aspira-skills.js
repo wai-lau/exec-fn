@@ -153,26 +153,26 @@ const shownLvl = t => (!hasSkills(t) ? t.lvl : t.lvl >= maxLvl(t) ? MAX_LVL : 1 
 // causes any stat to go down - balance by playing around with ranges and movement
 // instead"; then: each tower through what is distinctive about IT, not generic
 // multipliers). A tier multiplies the tower's range / slide extent (SLIDE_MAX 2 = the
-// old extent) / slide speed by [range, slide, speed]; each tower buys them differently:
+// old extent) by [range, slide] (slide SPEED is gone - owner, 2026-10-12); each tower buys them differently:
 //   ARC  (a long-range ANCHOR, owner) Conductivity and Voltage = RANGE; Capacitance =
 //        SLIDE extent (owner: "static should increase movement range")
 //   FRZ  Temp = a wider aura (its range IS the aura); FRZ roams by kind (aspira-towers.js)
 //   SOL  (a long-range ANCHOR) Focus and Refraction = RANGE; Breach = SLIDE extent (owner)
 //   ACD  Spray = range (more lines need more targets in reach); Contagion = a roaming
-//        plague (the puddles follow the lane): slide and speed
-const NO_MOVE = [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]];
+//        plague (the puddles follow the lane): slide
+const NO_MOVE = [[1, 1], [1, 1], [1, 1], [1, 1], [1, 1], [1, 1]];
 const SKILL_MOVE = {
   // ARC's range tiers CUT (owner, 2026-10-11: "ranges way too high, late game players don't need to move towers"):
   // maxed it reached x4.3 - all of the plain lanes from a corner; now x1.25. SOL keeps its reach (owner, same day)
-  arc:    { conductivity: [[1, 1, 1], [1.02, 1, 1], [1.04, 1, 1], [1.07, 1, 1], [1.09, 1, 1], [1.12, 1, 1]], voltage: [[1, 1, 1], [1.02, 1, 1], [1.04, 1, 1], [1.07, 1, 1], [1.09, 1, 1], [1.12, 1, 1]], capacitance: [[1, 1, 1], [1, 1.3, 1], [1, 1.6, 1], [1, 2, 1], [1, 2.2, 1], [1, 2.4, 1]] },
-  frz: { temp: [[1, 1, 1], [1.1, 1, 1], [1.2, 1, 1], [1.3, 1, 1], [1.4, 1, 1], [1.5, 1, 1]] /* wider again (owner, 2026-10-11: FRZ's reach back now its leash is screen-capped; was 1.08 .. 1.2) */ /* a narrower aura per tier (owner, 2026-10-08; was 1.25 .. 2.2) */, rime: [[1, 1, 1], [1, 4 / 3, 1], [1, 5 / 3, 1], [1, 2, 1], [1, 2.2, 1], [1, 2.4, 1]], moons: NO_MOVE }, // Rime buys back FRZ's halved slide (owner)
-  sol: { focus: [[1, 1, 1], [1.2, 1, 1], [1.4, 1, 1], [1.7, 1, 1], [1.85, 1, 1], [2, 1, 1]], refraction: [[1, 1, 1], [1.1, 1, 1], [1.2, 1, 1], [1.35, 1, 1], [1.45, 1, 1], [1.55, 1, 1]], breach: [[1, 1, 1], [1, 1.3, 1], [1, 1.6, 1], [1, 2, 1], [1, 2.2, 1], [1, 2.4, 1]] },
-  acd:    { spray: [[1, 1, 1], [1.02, 1, 1], [1.04, 1, 1], [1.06, 1, 1], [1.12, 1, 1], [1.3, 1, 1]] /* V: RANGE instead of a hotter carry (owner, 2026-10-12; was 1.15) */ /* Spray's lever now that each jet stays a full strike (owner, 2026-10-08; was 1.2 .. 2.3) */, contagion: [[1, 1, 1], [1, 1.15, 1.15], [1, 1.3, 1.3], [1, 1.5, 1.5], [1, 1.65, 1.65], [1, 1.8, 1.8]], corrosion: NO_MOVE },
+  arc:    { conductivity: [[1, 1], [1.02, 1], [1.04, 1], [1.07, 1], [1.09, 1], [1.12, 1]], voltage: [[1, 1], [1.02, 1], [1.04, 1], [1.07, 1], [1.09, 1], [1.12, 1]], capacitance: [[1, 1], [1, 1.3], [1, 1.6], [1, 2], [1, 2.2], [1, 2.4]] },
+  frz: { temp: [[1, 1], [1.1, 1], [1.2, 1], [1.3, 1], [1.4, 1], [1.5, 1]] /* wider again (owner, 2026-10-11: FRZ's reach back now its leash is screen-capped; was 1.08 .. 1.2) */ /* a narrower aura per tier (owner, 2026-10-08; was 1.25 .. 2.2) */, rime: [[1, 1], [1, 4 / 3, 1], [1, 5 / 3, 1], [1, 2], [1, 2.2], [1, 2.4]], moons: NO_MOVE }, // Rime buys back FRZ's halved slide (owner)
+  sol: { focus: [[1, 1], [1.2, 1], [1.4, 1], [1.7, 1], [1.85, 1], [2, 1]], refraction: [[1, 1], [1.1, 1], [1.2, 1], [1.35, 1], [1.45, 1], [1.55, 1]], breach: [[1, 1], [1, 1.3], [1, 1.6], [1, 2], [1, 2.2], [1, 2.4]] },
+  acd:    { spray: [[1, 1], [1.02, 1], [1.04, 1], [1.06, 1], [1.12, 1], [1.3, 1]] /* V: RANGE instead of a hotter carry (owner, 2026-10-12; was 1.15) */ /* Spray's lever now that each jet stays a full strike (owner, 2026-10-08; was 1.2 .. 2.3) */, contagion: [[1, 1], [1, 1.15], [1, 1.3], [1, 1.5], [1, 1.65], [1, 1.8]], corrosion: NO_MOVE },
 };
 function skillMove(t, s) {
   for (const [ax, tiers] of Object.entries(SKILL_MOVE[t.kind])) {
     const m = tiers[skillOf(t, ax)];
-    s.range *= m[0]; s.slide *= m[1]; s.speed *= m[2];
+    s.range *= m[0]; s.slide *= m[1];
   }
 }
 

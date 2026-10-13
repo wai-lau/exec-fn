@@ -32,12 +32,12 @@ const GIGA_NUM = [
   [ACD_CONTAGION, { every: 1, life: 40, r: 150 }], [ACD_PUDDLE_HEAT, 0.2],
 ];
 for (const [table, v] of GIGA_NUM) if (table.length === GIGA_TIER) table.push(v);
-// the reach a giga tier buys ([range, slide, speed], SKILL_MOVE): ARC stays near today's cut (owner, 2026-10-11)
+// the reach a giga tier buys ([range, slide], SKILL_MOVE): ARC stays near today's cut (owner, 2026-10-11)
 const GIGA_MOVE = {
-  arc: { conductivity: [1.15, 1, 1], voltage: [1.15, 1, 1], capacitance: [1, 3, 1] },
-  frz: { temp: [1.7, 1, 1], rime: [1, 3, 1], moons: [1, 1, 1] },
-  sol: { focus: [2.3, 1, 1], refraction: [1.7, 1, 1], breach: [1, 3, 1] },
-  acd: { corrosion: [1, 1, 1], spray: [1.5, 1, 1] /* VI: range, not a hotter carry (owner, 2026-10-12; was 1.25) */, contagion: [1, 2.1, 2.1] },
+  arc: { conductivity: [1.15, 1], voltage: [1.15, 1], capacitance: [1, 3] },
+  frz: { temp: [1.7, 1], rime: [1, 3], moons: [1, 1] },
+  sol: { focus: [2.3, 1], refraction: [1.7, 1], breach: [1, 3] },
+  acd: { corrosion: [1, 1], spray: [1.5, 1] /* VI: range, not a hotter carry (owner, 2026-10-12; was 1.25) */, contagion: [1, 2.1] },
 };
 for (const [kind, axes] of Object.entries(GIGA_MOVE)) {
   for (const [id, m] of Object.entries(axes)) {
