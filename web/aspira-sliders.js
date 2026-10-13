@@ -237,9 +237,11 @@ function inspectTower(el, t) {
     maxed ? "max level" : "upgrade → L" + (t.lvl + 1) + " · " + cr(upCost(t)), () => openChooser(t), "asp-up").disabled = maxed;
   // SELL sits left of upgrade (owner, 2026-10-13; was the card's last row) and takes TWO taps (owner):
   // the first arms it for SELL_ARM_MS, the second sells
-  const label = "sell · " + cr(sellValue(t)), sell = button($("asp-acts"), "asp-sell", label, () => {
+  // SHORT labels in a FIXED-width button (owner, 2026-10-13: "make the button sizes fixed ... reduce text quantity"; the armed
+  // "tap again to sell" grew it over the upgrade button)
+  const label = "sell " + cr(sellValue(t)), sell = button($("asp-acts"), "asp-sell", label, () => {
     if (!sell.classList.contains("armed")) {
-      sell.classList.add("armed"); sell.innerHTML = "tap again to sell · " + cr(sellValue(t));
+      sell.classList.add("armed"); sell.innerHTML = "sure? " + cr(sellValue(t));
       setTimeout(() => { if (sell.isConnected) { sell.classList.remove("armed"); sell.innerHTML = label; } }, SELL_ARM_MS);
       return;
     }

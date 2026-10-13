@@ -747,9 +747,9 @@
 #asp-acts { display: flex; }
 
 /* SMALL buttons and a small targeting slider (owner, 2026-10-07): the triangle is the card's focus */
-#asp #asp-upbox button.asp-up-big { flex: 0 1 auto; width: auto; min-width: calc(var(--space-10) * 5); white-space: nowrap; padding-block: var(--space-1-5); font-size: var(--fs-md); }
-#asp #asp-upbox button.asp-up-cancel { flex: 0 0 auto; padding-block: var(--space-1-5); padding-inline: var(--space-3); font-size: var(--fs-sm); background: hsl(var(--bg-hsl)); }
-#asp #asp-acts button { flex: 0 0 auto; padding: var(--space-1) var(--space-4); font-size: var(--fs-2xs); }
+#asp #asp-upbox button.asp-up-big { flex: 0 0 auto; width: calc(var(--space-10) * 5); overflow: hidden; text-overflow: ellipsis; /* FIXED (owner, 2026-10-13) */ white-space: nowrap; padding-block: var(--space-1-5); font-size: var(--fs-md); }
+#asp #asp-upbox button.asp-up-cancel { flex: 0 0 auto; width: calc(var(--space-10) * 2.5); /* fixed: "cancel" and "close" the same */ padding-block: var(--space-1-5); padding-inline: var(--space-3); font-size: var(--fs-sm); background: hsl(var(--bg-hsl)); }
+#asp #asp-acts button { flex: 0 0 auto; width: calc(var(--space-10) * 4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: var(--space-1) var(--space-2); font-size: var(--fs-2xs); } /* FIXED width (owner, 2026-10-13: armed sell grew over upgrade) */
 
 /* the targeting slider SMALLER than the triangle's sliders (owner), its caption kept, small */
 .asp-tower .asp-prio-slider { height: var(--space-5); }

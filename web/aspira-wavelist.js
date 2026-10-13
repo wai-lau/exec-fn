@@ -26,7 +26,7 @@ function enemyIcon(type, px, gap, dy, x, y, dim) {
 // (owner), TESS_STEP of an icon so diagonal neighbours just clear each other;
 // icons shrink only as far as the row's height and width force, down to
 // SWARM_MIN px, and columns squeeze (overlap) past that.
-const TESS_STEP = 0.72;
+const TESS_STEP = 0.72, WAVE_PACK_MAX = 5;
 function waveBand(type, count, px, span, alive) {
   // alive (a live wave): that many icons solid, the rest faded to WAVE_DEAD_A (owner)
   const H = WAVE_ROW_H, fade = k => alive != null && k >= alive;
@@ -35,19 +35,20 @@ function waveBand(type, count, px, span, alive) {
   if (type !== "swarm" && count * (px + 2) - 2 <= span) return place(Array.from({ length: count }, (_, k) => [k * (px + 2), (H - px) / 2]), px);
   // rows R: R-1 vertical steps of the same size as the column step
   const lattice = R => {
-    const cols = R === 2 ? count : Math.ceil(count * 2 / 3);
+    const cols = R === 2 ? count : Math.ceil(count * 2 / R); // two columns hold R icons: the even rows, then the odd
     let b = Math.min(px, (H - 1) / ((R - 1) * TESS_STEP + 1)); // fits the height
     const fitW = cols > 1 ? span / ((cols - 1) * TESS_STEP + 1) : b;
     const fits = fitW >= b;
     b = Math.max(SWARM_MIN, Math.min(b, fitW));
     const st = cols > 1 ? Math.min(b * TESS_STEP, (span - b) / (cols - 1)) : 0, top = (H - (R - 1) * st - b) / 2, pts = [];
     if (R === 2) for (let k = 0; k < count; k++) pts.push([k * st, top + (k % 2) * st]);
-    else { let left = count; for (let c = 0; left > 0; c++) for (const r of c % 2 ? [1] : [0, 2]) { if (left-- <= 0) break; pts.push([c * st, top + r * st]); } }
+    else { let left = count; for (let c = 0; left > 0; c++) for (let r = c % 2; r < R; r += 2) { if (left-- <= 0) break; pts.push([c * st, top + r * st]); } }
     return { fits, html: place(pts, b), b };
   };
-  const two = lattice(2);
-  if (two.fits) return two.html; // 2 rows whenever they fit the width; 3 only past that
-  return lattice(3).html;
+  // 2 rows whenever they fit the width, then 3, 4, up to WAVE_PACK_MAX (owner, 2026-10-13: "allow swarm to pack into up to 5 rows
+  // instead of just 3"); past that the last one, squeezed
+  for (let R = 2; R < WAVE_PACK_MAX; R++) { const l = lattice(R); if (l.fits) return l.html; }
+  return lattice(WAVE_PACK_MAX).html;
 }
 
 // wave n -> how many of its enemies are still alive or yet to spawn (only waves with any)
