@@ -41,11 +41,11 @@ const SKILL_TREES = {
       { name: "Storm", desc: "Four arcs chain once and fork into three on hit." },
     ] },
     { id: "voltage", name: "Voltage", base: "Each jump carries half the hit.", tiers: [
-      { name: "Spark", desc: "Harder hits; each jump carries most of the hit. Arcs pierce armor." },
-      { name: "Fry", desc: "Harder hits; each jump carries nearly all of the hit. Arcs pierce armor." },
-      { name: "Vaporize", desc: "Hardest hits; each jump carries all of the hit. Arcs pierce armor." },
-      { name: "Arc Flash", desc: "Each jump carries more than the hit. Arcs pierce armor." },
-      { name: "Plasma", desc: "Each jump carries far more than the hit. Arcs pierce armor." },
+      { name: "Spark", desc: "Harder hits; each jump carries most of the hit." },
+      { name: "Fry", desc: "Harder hits; each jump carries nearly all of the hit." },
+      { name: "Vaporize", desc: "Hardest hits; each jump carries all of the hit." },
+      { name: "Arc Flash", desc: "Each jump carries more than the hit." },
+      { name: "Plasma", desc: "Each jump carries far more than the hit." },
     ] },
     { id: "capacitance", name: "Capacitance", base: "", tiers: [
       { name: "Static", desc: "Hits leave a charge, which bursts around the target when it is hit by anything, slowing what they hit." },
@@ -121,7 +121,7 @@ SKILL_TREES.sol = [
 // the next); Pour = 2 / 3 / 5 lines at once; Seep = more, longer, bigger puddles.
 SKILL_TREES.acd = [
   { id: "corrosion", name: "Corrosion", base: "Acid that builds while a jet holds its enemy.", tiers: [
-    { name: "Etch", desc: "Acid eats armor, even below nothing: every tower hits the eaten harder." },
+    { name: "Etch", desc: "Acid eats armor, even below nothing: every tower hits the eaten harder. Eaten armor drops a corrosive goo." },
     { name: "Corrode", desc: "Acid eats armor faster, even below nothing." },
     { name: "Dissolve", desc: "Acid eats armor faster still, even below nothing." },
     { name: "Erode", desc: "Acid devours armor, far below nothing." },
@@ -152,8 +152,7 @@ const shownLvl = t => (!hasSkills(t) ? t.lvl : t.lvl >= maxLvl(t) ? MAX_LVL : 1 
 // REACH BY TIER (owner, 2026-10-06: ranges and movement were HALVED, and "no upgrade
 // causes any stat to go down - balance by playing around with ranges and movement
 // instead"; then: each tower through what is distinctive about IT, not generic
-// multipliers). A tier multiplies the tower's range / slide extent (SLIDE_MAX 2 = the
-// old extent) by [range, slide] (slide SPEED is gone - owner, 2026-10-12); each tower buys them differently:
+// multipliers). A tier multiplies the tower's range / leash (SLIDE_MAX 3, aspira-towers.js) by [range, slide] (slide SPEED is gone - owner, 2026-10-12); each tower buys them differently:
 //   ARC  (a long-range ANCHOR, owner) Conductivity and Voltage = RANGE; Capacitance =
 //        SLIDE extent (owner: "static should increase movement range")
 //   FRZ  Temp = a wider aura (its range IS the aura); FRZ roams by kind (aspira-towers.js)
@@ -185,7 +184,7 @@ function skillMove(t, s) {
 // is what each JUMP keeps of the hit before it (ARC_FALL 0.5 at 0; III = every jump
 // at full damage), on top of its damage step; the `pierce` flag it sets is only
 // the white core drawn in its arcs (aspira-draw.js), never a rule
-const ARC_VOLTAGE_DMG = [1, 3.31, 6.8, 11.96, 18.67, 27.17] /* x (1 + 0.6 tier) (2026-10-11, roles: TEAM countermx 81-89 - Voltage leaks 4% of armor, Conductivity 10, Capacitance 12; was 2.068 3.093 4.272 5.492 6.793) */, ARC_VOLTAGE_FALL = [0.5, 0.65, 0.8, 1, 1.1, 1.25]; // IV / V (2026-10-07): a jump carries MORE than the hit before it // its RANGE is in SKILL_MOVE
+const ARC_VOLTAGE_DMG = [1, 3.64, 8.16, 15.55, 26.14, 40.76] /* x (1 + 0.1 tier) for the armor pierce it lost (owner, 2026-10-13: "arc voltage should just increase damage instead of pierce"; was 3.31 6.8 11.96 18.67 27.17) */ /* x (1 + 0.6 tier) (2026-10-11, roles: TEAM countermx 81-89 - Voltage leaks 4% of armor, Conductivity 10, Capacitance 12; was 2.068 3.093 4.272 5.492 6.793) */, ARC_VOLTAGE_FALL = [0.5, 0.65, 0.8, 1, 1.1, 1.25]; // IV / V (2026-10-07): a jump carries MORE than the hit before it // its RANGE is in SKILL_MOVE
 // Conductivity's shape by tier (owner): strikes (separate first targets),
 // jumps, and forks per jump - 3, 7, 13, then two separate 13-hit attacks -
 // and r, how much further each JUMP reaches (owner; Voltage owns the tower's range)
@@ -213,13 +212,12 @@ const ARC_FALL = 0.5, ARC_SHRINK = 0.7;
 const ARC_JUMP_BASE = 234, ARC_VOLTAGE_JUMP = [1, 1.15, 1.3, 1.45, 1.6, 1.75];
 // VOLTAGE PIERCES ARMOR (owner, 2026-10-11: "make upgrade choices matter" - Voltage was ARC's dead axis, worst on every
 // type): its arcs ignore this share of armor - Voltage is ARC's armor answer, Conductivity the shields, Capacitance the fast
-const ARC_VOLTAGE_PIERCE = [0, 0.15, 0.3, 0.45, 0.6, 0.75];
 function arcSkillStats(t, s, b) {
   const c = skillOf(t, "conductivity"), v = skillOf(t, "voltage"), z = skillOf(t, "capacitance");
   s.dmg = b.dmg * ARC_VOLTAGE_DMG[v] * ARC_CONDUCTIVITY[c].d; s.range = b.range * RANGE_BONUS;
   const sh = ARC_CONDUCTIVITY[c]; // Conductivity: strikes, jumps AND forks
   s.arcRange = ARC_JUMP_BASE * ARC_VOLTAGE_JUMP[v] * sh.r; s.targets = sh.s; s.layers = sh.j; s.branch = sh.f; s.revisit = sh.v || 0;
-  s.arcFall = ARC_VOLTAGE_FALL[v]; s.arcShrink = ARC_SHRINK; s.charge = ARC_CAPACITANCE[z]; s.statSlow = ARC_STAT_SLOW[z]; s.armorPierce = ARC_VOLTAGE_PIERCE[v]; s.skill = true;
+  s.arcFall = ARC_VOLTAGE_FALL[v]; s.arcShrink = ARC_SHRINK; s.charge = ARC_CAPACITANCE[z]; s.statSlow = ARC_STAT_SLOW[z]; s.skill = true;
 }
 // what the upgrade cards offer: the next tier of each axis not yet full
 function skillOptions(t) {
@@ -437,3 +435,21 @@ function drawCone(f, k) {
   ctx.arc(f.x, f.y, f.len, f.a - f.half, f.a + f.half); ctx.closePath(); ctx.fill();
 }
 // ACD's chart numbers, stats and puddles live in aspira-acid.js
+// BREACH SHRAPNEL (owner, 2026-10-12: "when breached enemy dies, it should fire shrapnel around based on total armor breached"):
+// a breached enemy's death - by any tower - bursts into up to SHRAP_N pieces at enemies within SHRAP_R, EACH a hit of SHRAP_MUL x
+// the armor it had LOST (healthy armor0 minus its armor now - owner: "a multiple of the armour diff between healthy and current"),
+// so each pops a shield charge and armor blunts it as ever; credited to the SOL that breached it. Breach had stopped paying past
+// armor (its strip was overkill); this spends the overkill on whatever is near
+const SHRAP_MUL = 1, SHRAP_N = 8, SHRAP_R = 90;
+function breachShrapnel(e) {
+  const t = e.breachBy && G.towers.includes(e.breachBy) ? e.breachBy : null;
+  const near = G.enemies.filter(o => !o.dead && o !== e && Math.hypot(o.x - e.x, o.y - e.y) <= SHRAP_R)
+    .sort((a, b) => Math.hypot(a.x - e.x, a.y - e.y) - Math.hypot(b.x - e.x, b.y - e.y)).slice(0, SHRAP_N);
+  const each = SHRAP_MUL * Math.max(0, (e.armor0 || 0) - (e.armor || 0));
+  if (!near.length || !each) return;
+  if (typeof burst === "function") burst(e.x, e.y, TOWERS.sol.color, 6 + near.length);
+  for (const o of near) {
+    beam(e, o, TOWERS.sol.color, RAY_BEAM_LIFE, 1, 0, true, false);
+    damage(o, each, t, false, false, null);
+  }
+}

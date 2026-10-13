@@ -682,6 +682,7 @@
 /* a plain checkbox + label, no button box (owner: "not on a card"), lit text while it holds the game slow */
 #asp .asp-autowait button { flex: 0 0 auto; white-space: nowrap; display: inline-flex; align-items: center; gap: var(--space-1); padding: 0; border: none; background: none; font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.8); }
 
+#asp .asp-autowait button[hidden] { display: none; } /* auto-move: Ascendants only (aspira-ui.js) */
 #asp .asp-autowait button.on { color: hsl(var(--green-hsl)); background: none; animation: asp-flash var(--asp-blink) ease-in-out infinite; } /* FLASHES while it holds the game slow (owner, 2026-10-08) */
 
 /* auto-wait ON and a power ONLINE flash BRIGHTER and HARDER (owner, 2026-10-08; were asp-blink):
@@ -732,7 +733,7 @@
    bar's close gives way to the card's own cancel / close */
 
 /* stacked: the description, the sliders + chart + confirm, then the info (owner; the tower's name and points are on the upgrade button) */
-.asp-tower-grid { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "desc" "ctl" "info" "acts"; gap: var(--space-2); }
+.asp-tower-grid { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "desc" "ctl" "info"; gap: var(--space-2); }
 #asp-desc-box { grid-area: desc; }
 .asp-tower-title { grid-area: title; }
 .asp-tower-ctl { grid-area: ctl; }
@@ -741,8 +742,9 @@
 
 /* the BUTTON GROUP at the foot of the control half, CENTRED (owner): upgrade + cancel,
    and sell under them, smaller */
-#asp-upbox { display: flex; justify-content: center; gap: var(--space-2); margin-top: auto; padding-top: var(--space-7); margin-bottom: var(--space-7); } /* breathing room under AND above upgrade + cancel (owner, 2026-10-08) */
-#asp-acts { grid-area: acts; display: flex; justify-content: center; } /* the card's last row on a phone (owner, 2026-10-08) */
+#asp-upline { display: flex; justify-content: center; align-items: center; gap: var(--space-2); margin-top: auto; padding-top: var(--space-7); margin-bottom: var(--space-7); } /* breathing room under AND above the buttons (owner, 2026-10-08); sell left of upgrade (owner, 2026-10-13) */
+#asp-upbox { display: flex; justify-content: center; gap: var(--space-2); }
+#asp-acts { display: flex; }
 
 /* SMALL buttons and a small targeting slider (owner, 2026-10-07): the triangle is the card's focus */
 #asp #asp-upbox button.asp-up-big { flex: 0 1 auto; width: auto; min-width: calc(var(--space-10) * 5); white-space: nowrap; padding-block: var(--space-1-5); font-size: var(--fs-md); }
@@ -767,7 +769,7 @@
 
 @media (orientation: landscape) and (width >= 700px) {
   .asp-pop.asp-tower { display: flex; flex-direction: column; width: 760px; } /* as tall as its content (no forced height: it left empty bands - owner) */
-  .asp-tower-grid { flex: 1; grid-template: "desc info" auto "ctl info" 1fr "acts info" auto / minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-3) var(--space-6); } /* the description heads the LEFT half, over the sliders (owner); the info runs down the right */
+  .asp-tower-grid { flex: 1; grid-template: "desc info" auto "ctl info" 1fr / minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-3) var(--space-6); } /* the description heads the LEFT half, over the sliders (owner); the info runs down the right */
 
   /* the sliders and the chart at the TOP of the control half, the chart the full width of its column; the buttons at its foot */
 }

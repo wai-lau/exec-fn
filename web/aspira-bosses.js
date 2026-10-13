@@ -292,7 +292,7 @@ function bossSkyStep() {
   } else if (!alive && bossInv.phase === "in") {
     Object.assign(bossInv, { phase: "out", t0: now, x: CX, y: CY }); // collapses onto the CORE too (owner)
   }
-  if (bossInv.phase === "out" && now - bossInv.t0 >= BOSS_INV_T) bossInv.phase = "off";
+  if (bossInv.phase === "out" && now - bossInv.t0 >= BOSS_INV_T) { bossInv.phase = "off"; bossInv.offAt = now; } // offAt: the Challenge button waits on it (CHALLENGE_DELAY)
   if (bossInv.phase === "off") { bossInv.full = false; bossInv.r = 0; return; }
   // the circle must reach the canvas corner furthest from its centre
   const corners = [[0, 0], [cv.width, 0], [0, cv.height], [cv.width, cv.height]].map(([px, py]) => ({ x: (px - cam.ox) / cam.k, y: (py - cam.oy) / cam.k }));

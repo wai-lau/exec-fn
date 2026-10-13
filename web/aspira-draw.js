@@ -5,15 +5,11 @@ const cv = document.getElementById("asp-cv");
 let ctx = cv.getContext("2d"); // let: tower sprites and other offscreen draws borrow it
 // The canvas fills the screen; the camera fits the 1000-unit chart into the
 // band between the header and the bottom build bar. cam is in device pixels.
-// THE ZOOM IS FIXED (owner, 2026-10-11: "keep the zoom fixed, furthest possible where tap and dragging on mobile is
-// still easy"): FIXED_ZOOM (aspira-defs.js) CSS px per world unit on every screen - a tower's pick zone (towerPick, CELL_S x sqrt 2 =
-// 45 units) is then a 45 px target across, about the smallest a thumb hits reliably (44 pt). It was the band's fit x
-// DEFAULT_ZOOM on a wide screen and PHONE_HALF units either side of the core on a phone (0.61 on an iPhone).
-// (FIXED_ZOOM itself lives in aspira-defs.js: the towers' leash cap reads it, in the simulator too)
-// CORE_TOP: world units from the BOTTOM OF THE STATS ROW down to the core
-// (owner, 2026-10-06, from a phone screenshot: was 400 from the top of the
-// canvas, which on an iPhone sits under the status bar, so the core rode high)
-const CORE_TOP = 416; // (owner, 2026-10-06; was 520 - the core keeps its spot on screen)
+// THE ZOOM FITS THE PLAY BOX (owner, 2026-10-13: "the zoom should be adjusted so that either the top and bottom touch, or the
+// sides", "center the rectangle on the remaining axis"): every screen shows the same box (phoneBox, aspira-positioning.js),
+// as big as its band allows. (Fixed at 0.72 CSS px a unit 2026-10-11..13 - PHONE_ZOOM, still the box's measure)
+// THE CORE: centred across, VIEW_UP_K x as far from the box's TOP as from its sides (owner, 2026-10-13: "keep the core distance
+// from top the same as core distance from side", then "1.5 side distance, to top")
 const cam = { k: 1, ox: 0, oy: 0, fit: 1 };
 // the canvas draws at most RES_CAP device pixels per CSS pixel (owner: "need
 // more perf"): a phone at 3x drew 3.4 million pixels a frame; 2x is 2.25x fewer
@@ -23,20 +19,12 @@ const canvasDpr = () => Math.min(window.devicePixelRatio || 1, q3d() ? RES_CAP_3
 function resize() {
   const r = cv.getBoundingClientRect(), dpr = canvasDpr();
   cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
-  // the chart fits between the header (title, stats, controls) and the
-  // bottom build bar
-  // the controls row, not the whole header: the ten-wave list hangs below it
-  // over the board and must not shrink the fit (it zoomed the game out)
-  const head = document.querySelector(".asp-head").getBoundingClientRect(); // the stats row (the speed controls moved to the bottom)
-  const foot = document.querySelector(".asp-bottom").getBoundingClientRect();
-  const x0 = 0, y0 = head.bottom - r.top, x1 = r.width, y1 = foot.top - r.top;
-  const k = FIXED_ZOOM;
+  // the play box fits the WHOLE window (owner, 2026-10-13: "zoom should fit window!"; it fitted the band between the header
+  // and the bottom bar, which left a gap above and below), centred on the other axis
+  const bw = 2 * VIEW_SIDE, bh = VIEW_UP + VIEW_DOWN, k = Math.min(r.width / bw, r.height / bh);
   cam.fit = k * dpr; cam.k = k * dpr;
-  cam.ox = (x0 + (x1 - x0 - W * k) / 2) * dpr;
-  // the CORE sits CORE_TOP world units below the stats row (owner) - never
-  // LOWER than the middle
-  const coreY = Math.min(r.height / 2, y0 + CORE_TOP * k);
-  cam.oy = (coreY - CY * k) * dpr;
+  cam.ox = (r.width / 2 - CX * k) * dpr;
+  cam.oy = (r.height / 2 - (bh / 2 - VIEW_UP) * k - CY * k) * dpr;
 }
 // Re-fit ONLY when the canvas itself changes size (window resize). Nothing in
 // the overlays — the placing note, a send-wave label rewrapping — may move the
@@ -466,9 +454,9 @@ function drawScene([sx, sy], clipR) {
   drawTethers(); drawAcd(); drawAims(); drawFx("shots"); // on the board in 3D too (owner: "beams and tower effects can appear on the plane")
   drawCoreFx(); if (q3d() && G.core) { drawTimeStop(G.core); drawRelayHalos(false); } // the core's struts and beams, under the towers (aspira-core.js); 3D: Temporal Drive's field ON the floor
   // in 3D the towers, the core and the enemies are drawn FLAT over the bell instead (warpEntities, aspira-warp.js)
-  drawLeash(); // the movement indicator turns over with the sky too (owner, 2026-10-11)
+  drawLeash(); drawPhoneFrame(); /* (aspira-camera.js) */ // the movement indicator turns over with the sky too (owner, 2026-10-11)
   skyKeep(() => { if (!q3d()) for (const t of G.towers) drawTower(t); drawRelayArm(); }); // towers keep their colours on a boss sky (owner); an armed Relay rings them (aspira-powers.js)
-  drawSlotFlash(); drawCoins(); if (typeof drawThreat === "function") drawThreat(); // (drawThreat: the nearest danger's ring and spoke, aspira-ui.js) a corner slot that just opened (aspira-waves.js); the credits flying home (aspira-floats.js)
+  drawSlotFlash(); drawDrips(); drawCoins(); if (typeof drawThreat === "function") drawThreat(); // (drawThreat: the nearest danger's ring and spoke, aspira-ui.js) a corner slot that just opened (aspira-waves.js); the credits flying home (aspira-floats.js)
   if (!q3d()) {
     if (ui.build && ui.hover) drawPlacement();
     drawCore();

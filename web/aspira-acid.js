@@ -67,7 +67,7 @@ function acdTick(t, st, l, every) {
     const dd = shotDamage(t, st, o, d);
     damage(o, dd, t, false, false, st); onHit(o, t, st, dd); o.burnT = 0.4; // burning: no longer Fresh (st: its shieldPop)
     if (st.burnSlow && !o.dead) applySlow(o, st.burnSlow, 0.5, t.id); // Residue: the burn slows
-    if (st.corrode && !o.dead) corrodeHit(o, dd * st.corrode, st, t); // Corrosion: st.corrode of the tick's damage, past zero on purpose; corrodeT: dotted ring
+    if (st.corrode && !o.dead) corrodeHit(o, dd * st.corrode, t); // Corrosion: st.corrode of the tick's damage, past zero on purpose; corrodeT: dotted ring
   };
   const R = st.plagueR ? plagueRadius(l, st) : 0, center = l.e;
   burn(center);
@@ -101,20 +101,17 @@ function stepAcd(t, dt) {
 // dropped st.corrode, so the axis no longer touched armor. Each tick strips ACD_CORRODE of its damage, past zero -
 // negative armor is a flat bonus on every hit from every tower, bosses too. The weakest of 1x / 3x / 10x tried
 // (scripts/aspira-sim/trios.mjs): ARC+FRZ+ACD 90 -> won (Judgement, Death), ARC+SOL+ACD 96 -> won (Capacitance first)
-// the strip's FLOOR, in multiples of the wave's armored-enemy armor (2026-10-12, trio sim: unbounded, a
-// pile of negative armor was ACD's whole edge - with the strip off its trios leaked 50-100%, with it 0-5%,
-// while ARC+FRZ+SOL leaked 55%): Corrosion still eats below nothing, but only so far
-let ACD_BOSS_FLOOR = 16; // a BOSS's floor x this: a long fight is where Corrosion's pile matters (2026-10-12: with the plain floor ARC+FRZ+ACD lost Justice at 80 in every game; x4 still 80, x8 died at 90, x16 won 6/6)
-let ACD_CORRODE_FLOOR = [0, 0.25, 0.5, 0.75, 1, 1.25]; // swept x0.25 / x0.5 / x1 at HP x1.5: x0.5 brings ACD trios to 14-45% leaked at 81-89 (ARC+FRZ+SOL 45-55%)
-const acdArmorRef = new Map(), armorRefOf = n => acdArmorRef.get(n) ?? acdArmorRef.set(n, ENEMIES.armor.armor * ENEMY_HP_MUL * Math.pow(hpPow(eqWave(n)) + eqWave(n) * 4 / 18, ARMOR_EXP)).get(n);
+// NO FLOOR (owner, 2026-10-13: "just get rid of this floor"): Corrosion eats below zero without limit, from the jets only - not
+// the pools (owner, 2026-10-13). (A floor of 0.25-1.25x the wave's armor, x16 on bosses, held it 2026-10-12)
+const acdArmorRef = new Map(), armorRefOf = n => acdArmorRef.get(n) ?? acdArmorRef.set(n, ENEMIES.armor.armor * ENEMY_HP_MUL * armorGrow(n)).get(n);
 // DAMAGE CREDIT (owner, 2026-10-12: "damage caused by debuff from another tower should attribute damage source to
 // the debuffing tower"): of a hit's tally (`got`), what BRITTLE added goes to the FRZ that made it brittle (e.brittleBy),
 // what LOWER ARMOR added (stripped by Breach / Corrosion - e.strip, by tower id - and frost, e.frostBy) to those towers
 // by their shares, and the rest to the hitter. hit(a, A): the hit `a` through armor A, as damage() takes it
 function stripBy(e, t, amt) { if (t && amt > 0) (e.strip ||= {})[t.id] = (e.strip[t.id] || 0) + amt; }
-function damageCredit(e, t, pre, amt, frost, pierce, got) {
-  const A0 = e.armor0 || 0, hit = (a, A) => { A = Math.trunc(A); return A > 0 && pierce < 1 ? Math.max(a * 0.1, a - A * (1 - pierce)) : A < 0 ? a - A : a; };
-  const base = hit(pre, A0), brit = Math.max(0, hit(amt, A0) - base), full = hit(amt, (e.armor || 0) - frost), arm = Math.max(0, full - base - brit);
+function damageCredit(e, t, pre, amt, frost, got) {
+  const A0 = e.armor0 || 0, hit = (a, A) => { A = Math.trunc(A); return A > 0 ? Math.max(a * 0.1, a - A) : A < 0 ? a - A : a; };
+  const base = hit(pre, A0), brit = Math.max(0, hit(amt, A0) - base), full = hit(amt, Math.max((e.armor || 0) - frost, e.arcana ? -armorRefOf(e.wave || 1) : -Infinity)), arm = Math.max(0, full - base - brit);
   const k = full > 0 ? got / full : 0, give = (id, v) => { const o = id != null && G.towers.find(x => x.id === id); if (o && v > 0) { o.dealt = (o.dealt || 0) + v; return v; } return 0; };
   let mine = got;
   if (brit) mine -= give(e.brittleBy, brit * k);
@@ -126,10 +123,89 @@ function damageCredit(e, t, pre, amt, frost, pierce, got) {
   }
   t.dealt = (t.dealt || 0) + mine;
 }
-function corrodeHit(e, amt, st, t) {
-  const floor = -st.corrodeFloor * armorRefOf(e.wave || 1) * (e.arcana ? ACD_BOSS_FLOOR : 1), a = e.armor || 0;
-  if (a > floor) { e.armor = Math.max(floor, a - amt); stripBy(e, t, a - e.armor); } // never raises armor already below (ARC's Melt)
+function corrodeHit(e, amt, t) {
+  const a = e.armor || 0, pos = Math.max(0, Math.min(amt, a)); // the part eaten off REAL armor, above zero
+  e.armor = a - amt; stripBy(e, t, amt);
   e.corrodeT = 0.4;
+  dripAcc(e, DRIP_REAL * pos + (amt - pos), t); // any eaten armor drips, below zero too - real armor DRIP_REAL x (owner, 2026-10-13)
+}
+// THE DRIP (owner, 2026-10-13: "when armor is removed, it should drip down (green coin like dots without shimmer), this is
+// collected by nearby enemies, and they lose X% of the collected drip"): the armor Corrosion eats off ANY enemy, below zero too,
+// falls - and what it eats off real armor (above zero) counts DRIP_REAL times ("goo should fly out for any eaten armor, even
+// negative; however, triple the amount when the armor is not negative armor") -
+// as drops of DRIP_UNIT x the wave's armor reference; a drop lies DRIP_LIFE s, and the first other enemy within DRIP_R of it
+// takes it - its armor loses DRIP_TAKE x the drop, credited to the ACD. let: the sims sweep them
+let DRIP_TAKE = 0.5, DRIP_UNIT = 0.1, DRIP_REAL = 3;
+const DRIP_LIFE = 8, DRIP_R = 14, DRIP_MAX = 300, DRIP_JIT = 8;
+// a drop is FLUNG back up the lane (owner, 2026-10-13: "give them some initial velocity in the direction of the lane (outwards),
+// give them a bit of angle jitter"): along the lane behind the enemy, +-DRIP_SPREAD rad, slowing from the start (by DRIP_TAU s)
+// and coming to rest DRIP_STOP units out ("it should slow down right away, but stop at 200 units"): launched at DRIP_STOP / DRIP_TAU
+// ...ALONG the lane, not straight off it (owner, 2026-10-13: "too much angle jitter on corrosion goo, make it mostly go backwards
+// down the lane"; was a straight flight, +-0.45 rad): a drop rides its enemy's lane back up it, drifting sideways by at most
+// DRIP_SPREAD of its run
+const DRIP_SPREAD = 0.1, DRIP_TAU = 0.6, DRIP_STOP = 200, DRIP_V = DRIP_STOP / DRIP_TAU;
+const DRIP_V_JIT = 0.6; // launch speed x(1 +- this), so a drop rests 80-320 units back (owner, 2026-10-13: "add significant speed jitter to goo launch")
+// ...and it SEEKS (owner, 2026-10-13: "acid blobs need to gravitate towards other units at 50 units, this should improve as
+// corrosion levels up"): a drop homes on the nearest other enemy within its Corrosion tier's ACD_DRIP_PULL, at DRIP_HOME_V
+const ACD_DRIP_PULL = [0, 50, 65, 80, 100, 120]; /* (VI: GIGA_NUM, aspira-giga.js) */
+const DRIP_HOME_V = 260;
+function dripAcc(e, amt, t) {
+  e.drip = (e.drip || 0) + amt; e.dripBy = t;
+  const unit = DRIP_UNIT * armorRefOf(e.wave || 1);
+  while (e.drip >= unit) { e.drip -= unit; dripDrop(e, unit, t); }
+}
+// ...and what is left over when the enemy DIES falls too, a smaller drop (owner, 2026-10-13: "sometimes it seems like corrosion
+// does damage without launching any goo" - a quick kill never filled a whole drop). kill(), aspira-game.js
+function dripFlush(e) { if (e.drip > 0) dripDrop(e, e.drip, e.dripBy); e.drip = 0; }
+function dripDrop(e, v, t) {
+  if (G.drips.length >= DRIP_MAX) G.drips.shift();
+  const a = Math.random() * 6.283, r = DRIP_JIT * Math.sqrt(Math.random()), on = pathAt(e.pi, e.s, e.ang);
+  const pull = ACD_DRIP_PULL[t && t.skills ? skillOf(t, "corrosion") : 1] || ACD_DRIP_PULL[1];
+  G.drips.push({ x: e.x, y: e.y, vx: 0, vy: 0, lane: { pi: e.pi, ang: e.ang, s: e.s, sv: DRIP_V * (1 - DRIP_V_JIT + 2 * DRIP_V_JIT * Math.random()), lat: 0, lv: DRIP_V * (Math.random() * 2 - 1) * DRIP_SPREAD,
+    ox: e.x - on.x + Math.cos(a) * r, oy: e.y - on.y + Math.sin(a) * r }, v, src: e, by: t, t: 0, pull, sz: 0.5 + Math.random(), ring: Math.random() < DRIP_HOLLOW }); // sz: its drawn size, mixed; ring: drawn HOLLOW (owner, 2026-10-13) // ox, oy: off the lane's line, as its enemy was
+}
+// a drop riding its lane: back up it (s falling), its sideways drift along the lane's normal there, both slowing by keep
+function dripRide(d, dt, keep) {
+  const L = d.lane;
+  L.s = Math.max(0, L.s - L.sv * dt); L.lat += L.lv * dt; L.sv *= keep; L.lv *= keep;
+  const p = pathAt(L.pi, L.s, L.ang), q = pathAt(L.pi, L.s + 4, L.ang), tl = Math.hypot(q.x - p.x, q.y - p.y) || 1;
+  d.x = p.x + L.ox - (q.y - p.y) / tl * L.lat; d.y = p.y + L.oy + (q.x - p.x) / tl * L.lat;
+}
+function stepDrips(dt) {
+  if (!G.drips.length) return;
+  const keep = Math.exp(-dt / DRIP_TAU);
+  for (const d of G.drips) {
+    d.t += dt;
+    if (d.lane) dripRide(d, dt, keep); else { d.x += d.vx * dt; d.y += d.vy * dt; d.vx *= keep; d.vy *= keep; }
+    let near = null, nd = d.pull * d.pull;
+    for (const o of G.enemies) {
+      if (o.dead || o === d.src) continue;
+      const dd = (o.x - d.x) ** 2 + (o.y - d.y) ** 2, rr = DRIP_R + ENEMIES[o.type].size * (o.sizeMul || 1);
+      if (dd <= rr * rr) { // picked up
+        const take = DRIP_TAKE * d.v, by = G.towers.includes(d.by) ? d.by : null;
+        o.armor = (o.armor || 0) - take; stripBy(o, by, take); o.corrodeT = 0.4;
+        damage(o, take, by); // and it BURNS as much as it strips (owner, 2026-10-13: "goo should also deal damage equal to the amount of armor it strips")
+        d.done = true; near = null; break;
+      }
+      if (dd < nd) { nd = dd; near = o; }
+    }
+    if (near) { const l = Math.sqrt(nd) || 1; d.lane = null; d.vx = (near.x - d.x) / l * DRIP_HOME_V; d.vy = (near.y - d.y) / l * DRIP_HOME_V; } // homing: off the lane
+  }
+  G.drips = G.drips.filter(d => !d.done && d.t < DRIP_LIFE);
+}
+// a drop: a chatsubo dot like a coin, no twinkle - BIG and bright with a dark rim so it reads on the lanes (owner, 2026-10-13:
+// "make the corrosion drops much more visible"; was a faint 1.8 dot), each its own size, x0.5-1.5 ("the goo should visually have
+// mixed sizes"), fading over its last second
+const DRIP_DOT_R = 3.6, DRIP_HOLLOW = 0.35; // HOLLOW: the share drawn as a ring ("some hollow")
+function drawDrips() {
+  if (!G.drips || !G.drips.length) return;
+  ctx.fillStyle = COL.chatsubo; ctx.strokeStyle = COL.bg; ctx.lineWidth = 1.2;
+  for (const d of G.drips) {
+    ctx.globalAlpha = Math.min(1, DRIP_LIFE - d.t);
+    ctx.beginPath(); ctx.arc(d.x, d.y, DRIP_DOT_R * (d.sz || 1), 0, 6.283);
+    if (d.ring) { ctx.strokeStyle = COL.chatsubo; ctx.lineWidth = 1.6; ctx.stroke(); ctx.strokeStyle = COL.bg; ctx.lineWidth = 1.2; } else { ctx.fill(); ctx.stroke(); }
+  }
+  ctx.globalAlpha = 1;
 }
 const ACD_CORRODE = [0, 0.1, 0.2, 0.3, 0.45, 0.6]; // x2 (2026-10-12: Corrosion is the strip alone now; was .06 .. .3) // x6 (2026-10-11, roles: Corrosion meant as ACD's ARMOR answer - still behind spread in TEAM countermx; was .01 .. .05)
 // ROLES REWORK (owner, 2026-10-12: "what is acd weak to now? seems op"): a bare ACD is a tank killer, weak to the FAST
@@ -162,7 +238,7 @@ function acdSkillStats(t, s, b) {
   // every ACD hands 40% of a dead line's ramp on (early-game balance 2026-10-06;
   // fast waves reset it); from Corrosion I, Etch, ALL of it
   const f = skillOf(t, "spray"); // Flow (id kept: saves)
-  s.carry = ACD_FLOW_CARRY[f]; s.burnSlow = ACD_FLOW_SLOW[f]; s.corrode = ACD_CORRODE[c]; s.corrodeFloor = ACD_CORRODE_FLOOR[c]; s.targets = ACD_LINES[f]; s.contagion = ACD_CONTAGION[skillOf(t, "contagion")];
+  s.carry = ACD_FLOW_CARRY[f]; s.burnSlow = ACD_FLOW_SLOW[f]; s.corrode = ACD_CORRODE[c]; s.targets = ACD_LINES[f]; s.contagion = ACD_CONTAGION[skillOf(t, "contagion")];
   s.shieldPop = ACD_SHIELD_POP; // acid EATS shields: every tick pops ACD_SHIELD_POP (the shield answer, counter matrix)
   s.contagionHeat = ACD_PUDDLE_HEAT[skillOf(t, "contagion")]; s.sprayMul = ACD_SPRAY_MUL[skillOf(t, "spray")]; s.skill = true;
 }
@@ -192,7 +268,6 @@ function stepPuddles(t, st, dt) {
         const hp0 = e.hp;
         damage(e, p.dps * every, t, false, false, hit); e.burnT = 0.4;
         if (hit && hp0 > e.hp) (t.poolAcc ||= new Map()).set(e, (t.poolAcc.get(e) || 0) + hp0 - Math.max(0, e.hp)); // a real hit: it pops one shield charge
-        if (st.corrode && !e.dead) corrodeHit(e, p.dps * every * st.corrode, st, t); // Corrosion strips in the pools too (owner, 2026-10-12)
       }
     }
   }

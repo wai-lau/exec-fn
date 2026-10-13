@@ -21,19 +21,17 @@ const N_PATHS = 12, R0 = 760, R1 = CORE_R, RIM_R = 482, GLOW_PATH_R = 330;
 // Only SIX slots (owner, 2026-10-02): the ring of hexes around the core - THREE since 2026-10-09 (SLOT_ANGLES below).
 // SNUG (owner, 2026-10-09: "move build slots inward" - "snug, still tiny gap"): the six slots sit SLOT_R from the core,
 // a tower's flat side ~4 units clear of the core's outermost shield ring (a level ring at level 2, ~48 at its corners,
-// breathing) - the lattice pitch solved for it (was 2: 110.85 out). TRAVEL_R0 keeps every tower's slide travel as it was
-// (aspira-towers.js slideLimits): only where a slot sits, and the inner stop, moved
+// breathing) - the lattice pitch solved for it (was 2: 110.85 out)
 // SIX again (owner, 2026-10-10: "go back to 6 towers"), each now a SPAWN a tower is dragged out from (aspira-drag.js)
 const SLOT_ANGLES = [-120, -60, 0, 60, 120, 180];
 // THREE SLOTS IN PLAY (owner, 2026-10-11: "remove 3 slots entirely (except for testing)"): every ring slot is still
 // built, but only these are OPEN (cellOpen) - so they alone draw, take a tower, and count. let: the simulator's bigger
 // test teams (teambal.mjs, swap.mjs, arcdiag.mjs) open all six
 let OPEN_SLOTS = [-120, 0, 120];
-// THE ZOOM IS FIXED (owner, 2026-10-11): CSS px per world unit on every screen (resize, aspira-draw.js). PHONE_MIN_W: the
-// narrowest phone we fit (CSS px) - with the core centred across it, a tower can be dragged out to MOVE_MAX_R (leashR,
-// aspira-towers.js; owner: "make sure all movement limits are within the screen zoom on mobile")
-const FIXED_ZOOM = 0.72 /* owner, 2026-10-11: "increase zoom a bit", "zoom in" (was 0.5, then 0.6) */, PHONE_MIN_W = 360;
-const CELL_S = 32, SLOT_R = 78 /* out from 65.5 to fit the bigger core and towers (2026-10-11) */, CELL_PITCH = SLOT_R / (Math.sqrt(3) * CELL_S), TRAVEL_R0 = Math.sqrt(3) * CELL_S * 2;
+// PHONE_ZOOM: CSS px per world unit on a phone (owner, 2026-10-11: "increase zoom a bit", "zoom in" - was 0.5, then 0.6) - the
+// scale the play box is measured at (PHONES, aspira-positioning.js); every screen now zooms to fit that box (resize, aspira-draw.js)
+const PHONE_ZOOM = 0.72;
+const CELL_S = 32, SLOT_R = 78 /* out from 65.5 to fit the bigger core and towers (2026-10-11) */, CELL_PITCH = SLOT_R / (Math.sqrt(3) * CELL_S);
 // the corner slots: [angle (deg, screen: -90 = up), wave it opens]. Their
 // INNER LIMIT is CORNER_IN from the core (owner: with every tower at max level
 // slid fully in, a gap still shows between all of them): 171 leaves the same
@@ -53,6 +51,26 @@ const PLAIN_HP_MUL = 1.5, PLAIN_HP_EASY = 12 /* the first boss cycle (owner, 202
 // ...stepped in (owner, 2026-10-12: "just bring it down for the first 10 waves", then "1.2 at 11, then 1.5 after 20, because you
 // have powers"): x1 to wave 10, x1.2 until the first core power is granted (CORE_GRANTS, wave 24 since the 12-wave cycle), x1.5 after
 const plainHpMul = n => (n <= PLAIN_HP_EASY ? 1 : n <= (typeof CORE_GRANTS !== "undefined" ? CORE_GRANTS[0][0] : 24) ? PLAIN_HP_MID : PLAIN_HP_MUL);
+// LATE TRAITS (owner, 2026-10-12: the battery's counter matrix went flat - late swarm, fast and armor leaked ~0% for any build -
+// "1.3x specific traits to the waves"): from LATE_FROM each type is MORE ITSELF - swarms bring LATE_TRAIT x the bodies, fast
+// runs LATE_TRAIT x faster, armor carries LATE_TRAIT x the armor. Shields untouched (they already sorted builds). let: the sims sweep it
+// ...each its OWN factor, growing slowly after (owner, 2026-10-12: "late traits grow slowly after 49", "they don't need to all
+// share the same factor"): [x at LATE_FROM, + a wave]. Armor flattest in the battery (no build leaked >4% after 97), so it ramps hardest;
+// fast gentlest (speed is the strongest trait). let: the sims sweep it
+let LATE_TRAIT = { swarm: [1.3, 0.006], fast: [1.15, 0.004] }; /* armor: ARMOR_HP_FROM below */
+const LATE_FROM = 49, lateK = (n, type) => { const f = LATE_TRAIT[type]; return f && n >= LATE_FROM ? f[0] + f[1] * (n - LATE_FROM) : 1; };
+// ARMOR SCALES WITH HP (owner, 2026-10-13: "make armor scale with hp" - a flat bite off a hit of thousands meant nothing late):
+// the ARMOR_EXP curve to ARMOR_HP_FROM, then x as much as the HP curve grew since. let: the sims sweep it
+// ...at a LOWER rate past the knee (owner, 2026-10-13: "lower armour knee rate"): HP's growth to ARMOR_HP_EXP, and every ordinary
+// enemy SPEEDS UP SPEED_RAMP a wave past the knee to make up for it ("add a small speed ramp to compensate"). let: the sims sweep all three
+let ARMOR_HP_FROM = 49, ARMOR_HP_EXP = 0.9 /* countermx sweep 2026-10-13: 0.45-0.6 left late armor flat (0-6%), 0.9 sorts it - SOL 0-6%, the rest 7-21% */, SPEED_RAMP = 0.002;
+const armorGrow = n => { const g = m => hpPow(m) + m * 4 / 18, e = eqWave(n), k = eqWave(ARMOR_HP_FROM); return Math.pow(g(Math.min(e, k)), ARMOR_EXP) * (e > k ? Math.pow(g(e) / g(k), ARMOR_HP_EXP) : 1); };
+const speedRamp = n => 1 + SPEED_RAMP * Math.max(0, n - ARMOR_HP_FROM);
+// LATE HYBRIDS (owner, 2026-10-13): after HYBRID_FROM swarms carry SWARM_SHIELD of a shield unit's charges, fast FAST_ARMOR of an
+// armor unit's armor ("maybe just 1/10 shields", "give fast armour") - first the other way round, but any armor on a swarm made ARC
+// (the swarm counter: many small hits) its worst tower, 10-18% leaked at even 3%. let: the sims sweep them
+let HYBRID_FROM = 97, SWARM_SHIELD = 0.1, FAST_ARMOR = 0.1; // countermx 2026-10-13: fast armor 0.25 made every build leak fast 20-36%; 0.1 keeps SOL and FRZ Rime the late fast answer (0-4%)
+const SIZE_LOG = 0.25; // an enemy's size x (1 + SIZE_LOG log10 of its HP over wave 1's) - spawnEnemy
 const WAVE_K = 10 / 12, eqWave = n => n * WAVE_K;
 const BUILD_R = RIM_R - 6;
 // the graticule spokes and the star field start out here (no longer tied to
@@ -438,4 +456,4 @@ const upCost = t => Math.round(TOWERS[t.kind].cost * (hasSkills(t) ? SKILL_STEP_
 const DEFAULT_MODE = { arc: "close", frz: "fresh", sol: "biggest", acd: "biggest" };
 // each new tower costs 1.5x the last (owner, 2026-10-04; was 2x): 40, 60, 90, 135, 203, 304
 const towerCost = k => Math.round(TOWERS[k].cost * Math.pow(1.5, G.towers.length));
-const sellValue = t => Math.floor(t.spent * 0.7);
+const sellValue = t => Math.floor(t.spent * 0.95); // 95% back (owner, 2026-10-13; was 70%)

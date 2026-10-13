@@ -2,7 +2,7 @@
 // aspira-draw.js (which fits `cam` to the window in resize) and before
 // aspira-ui.js (whose onTap this calls).
 //
-// THE VIEW IS FIXED (owner, 2026-10-11): no zoom (FIXED_ZOOM, aspira-defs.js) and no pan
+// THE VIEW IS FIXED (owner, 2026-10-11): no zoom (it fits the play box - resize, aspira-draw.js) and no pan
 // ("don't allow camera pan either") - a drag on open board does nothing; a drag on a tower moves it. A press that moves less than DRAG_PX is a TAP and goes
 // to onTap (select / place); the core is kept on screen. Double-click /
 // double-tap recentres.
@@ -153,4 +153,36 @@ function contrastCursor() {
   const line = (c, w) => `<path d="M12 2v8M12 14v8M2 12h8M14 12h8" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24">${line(COL.bg, 4)}${line(COL.white, 1.6)}</svg>`;
   cv.style.cursor = `url("data:image/svg+xml,${encodeURIComponent(svg)}") 12 12, crosshair`;
+}
+
+// the phone's screen box and the cap it sets live in aspira-positioning.js (the simulator loads that one); here its drawing
+const phonePath = (c, b) => { c.beginPath(); c.roundRect(b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0, b.r); };
+// ONLY NEAR ITS EDGE (owner, 2026-10-13: "only show mobile outline when tower is near edge (like 20 units)"): shown while any tower
+// stands within PHONE_NEAR world units of the furthest it may go (legalSpot's edge), easing in and out over PHONE_FADE s (real)
+const PHONE_NEAR = 20, PHONE_FADE = 0.25;
+let phoneShow = 0, phoneAt = 0;
+function phoneFrameAlpha() {
+  const now = performance.now() / 1000, dt = Math.min(0.1, now - (phoneAt || now)), e = CELL_S * TOWER_K + MOVE_EDGE + PHONE_NEAR;
+  phoneAt = now;
+  const near = G.towers.some(t => !phoneInside(t.x, t.y, e));
+  phoneShow = Math.max(0, Math.min(1, phoneShow + (near ? 1 : -1) * dt / PHONE_FADE));
+  return PHONE_ALPHA * phoneShow;
+}
+function drawPhoneFrame() { // 2D, on the board (render); 3D draws it on the view instead (drawPhoneFrame3d)
+  if (phoneOn3d()) return;
+  const a = phoneFrameAlpha();
+  if (!a) return;
+  ctx.save();
+  ctx.globalAlpha = a; ctx.strokeStyle = COL.white; ctx.lineWidth = 1.5;
+  phonePath(ctx, phoneBox()); ctx.stroke();
+  ctx.restore();
+}
+function drawPhoneFrame3d() { // in warpEntities, under the texture camera, before the boss sky's flip: over the view, square to the screen
+  const a = phoneFrameAlpha();
+  if (!a) return;
+  const g = warp.ent.getContext("2d");
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0);
+  g.globalAlpha = a; g.strokeStyle = COL.white; g.lineWidth = 1.5 * canvasDpr() * warpRes();
+  phonePath(g, phoneRect3d()); g.stroke();
+  g.restore();
 }

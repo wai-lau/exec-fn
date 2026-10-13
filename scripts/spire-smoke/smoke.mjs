@@ -164,7 +164,7 @@ check("a flung tower coasts on after release, then stops", () => {
 check("a flung tower bounces off its leash", () => {
   run(`G = newGame(); G.money = 1e6; ui.build = "arc"; placeTower(CELLS[CELLS.findIndex((c, i) => cellOpen(i))]); ui.build = null;`);
   run(`{ const t = G.towers[0], c = CELLS[t.cell], dx = c.x - CX, dy = c.y - CY, d = Math.hypot(dx, dy);
-         t.fling = { vx: dx / d * 900, vy: dy / d * 900 }; globalThis.__out = { x: dx / d, y: dy / d }; }`); // straight OUT, at the rim fast
+         t.fling = { vx: dx / d * 3000, vy: dy / d * 3000 }; globalThis.__out = { x: dx / d, y: dy / d }; }`); // straight OUT, at the rim fast
   let flipped = false;
   for (let i = 0; i < 120 && run("!!G.towers[0].fling"); i++) { frames(env, 1); if (run("G.towers[0].fling && G.towers[0].fling.vx * __out.x + G.towers[0].fling.vy * __out.y < 0")) flipped = true; }
   return flipped ? "" : "never bounced back off the leash";

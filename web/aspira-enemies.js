@@ -64,13 +64,15 @@ const FROST_FULL = 0.6;
 const rimeK = e => frostShare(e); // (aspira-frz.js)
 const frostK = e => (e.slowT > 0 ? Math.min(1, Math.max(0, (e.slowF || 0) / FROST_FULL)) : 0);
 // solid: the 3D view draws the body itself as a real die (warpSolid, aspira-solids.js) - here only its tracer, shields and marks
+// an enemy SHRINKS with its HP, to SHRINK_MIN of its size at none - a boss to SHRINK_MIN_BOSS (owner, 2026-10-13: "enemies should
+// have a min size of 5%, bosses min size of 10%"; were 45% and 0%). solidSize (aspira-solids.js) too
+const SHRINK_MIN = 0.05, SHRINK_MIN_BOSS = 0.1;
+const hpShrink = (e, f) => { const m = e.arcana ? SHRINK_MIN_BOSS : SHRINK_MIN; return m + (1 - m) * f; };
 function drawEnemy(e, solid) {
-  // damage shows as both size and opacity: full HP = full size, solid;
-  // near death = 45% size, faint
+  // damage shows as both size and opacity: full HP = full size, solid; near death small (hpShrink), faint
   // a ghost (dead enemy) is INVISIBLE: it only carries the beams that follow it
   if (e.dead) return;
-  // a boss shrinks all the way with its HP, to nothing at 0% (owner); others keep 45%
-  const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max), size = d.size * (e.arcana ? f : 0.45 + 0.55 * f) * (e.sizeMul || 1);
+  const d = ENEMIES[e.type], f = Math.max(0, e.hp / e.max), size = d.size * hpShrink(e, f) * (e.sizeMul || 1);
   if (TRAIL[e.type] && !lowQ && !(solid && farFx(e))) { // low quality: no tracers; 3D: none in the far ring
     drawStarTrail(e, size);
     // the body is see-through, so blank its shape first: the tracer must not

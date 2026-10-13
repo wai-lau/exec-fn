@@ -19,7 +19,7 @@ const levelsFor = (t, add) => Object.values(add).reduce((a, b) => a + b, 0) +
 // ---------- the numbers: index 6 of every tier table (a leap, not a step) ----------
 const GIGA_NUM = [
   // ARC: Conductivity six arcs chaining twice; Voltage each jump carries twice the hit; Capacitance eight charges
-  [ARC_VOLTAGE_DMG, 43.7], [ARC_VOLTAGE_FALL, 1.6], [ARC_VOLTAGE_JUMP, 2], [ARC_VOLTAGE_PIERCE, 0.9], [ARC_STAT_SLOW, 0.55],
+  [ARC_VOLTAGE_DMG, 69.9], [ARC_VOLTAGE_FALL, 1.6], [ARC_VOLTAGE_JUMP, 2], [ARC_STAT_SLOW, 0.55],
   [ARC_CONDUCTIVITY, { s: 4 /* was 6 - the ARC nerf, 2026-10-11 */, j: 3, f: 3, r: 2.4, d: 1, v: 4 }], [ARC_CAPACITANCE, { n: 8, frac: 0.2 /* was 0.15, kept above V when V went to 0.14 (2026-10-12) */ }],
   // FRZ: Temp a far deeper chill; Rime the fastest, deepest rings; Moons FOUR moons, each with four small moons
   [FRZ_TEMP_SLOW, 0.55], [FRZ_TEMP_TICK, 0.2], [FRZ_BRITTLE, 2], [FRZ_RIME, 0.3], [FRZ_RIME_PERIOD, 0.7], [FRZ_RIME_CRACK, 1.2], [FRZ_MOON_CRACK, 0.12],
@@ -28,7 +28,7 @@ const GIGA_NUM = [
   [SOL_BEAMS, 8], [SOL_FOCUS_DMG, 1.3], [SOL_SHIELD_POP, 8], [SOL_REFRACTION, Infinity], [SOL_REFRACTION_DMG, 4],
   [SOL_CONE_BY, 60], [SOL_HOP, 1], [SOL_CRITMUL, 12], [SOL_BREACH_ARMOR, 1500], [SOL_REFRACT_POP, 4], [SOL_BREACH_CRIT, 0],
   // ACD: Corrosion the strongest acid; Flow eleven jets landing far hotter, slowing hard; Contagion MASSIVE, long pools
-  [ACD_CORROSION_DMG, 1], [ACD_CORRODE, 0.9], [ACD_CORRODE_FLOOR, 2], [ACD_LINES, 11], [ACD_FLOW_CARRY, 0.9], [ACD_FLOW_SLOW, 0.2], [ACD_SPRAY_MUL, 1],
+  [ACD_CORROSION_DMG, 1], [ACD_CORRODE, 0.9], [ACD_DRIP_PULL, 150], [ACD_LINES, 11], [ACD_FLOW_CARRY, 0.9], [ACD_FLOW_SLOW, 0.2], [ACD_SPRAY_MUL, 1],
   [ACD_CONTAGION, { every: 1, life: 40, r: 150 }], [ACD_PUDDLE_HEAT, 0.2],
 ];
 for (const [table, v] of GIGA_NUM) if (table.length === GIGA_TIER) table.push(v);
@@ -49,7 +49,7 @@ for (const [kind, axes] of Object.entries(GIGA_MOVE)) {
 // ---------- the words: each axis's tier VI, and the composers' (aspira-desc.js) index 6 ----------
 const GIGA_TIERS = {
   conductivity: { name: "Hyperstorm", desc: "Six arcs chain twice and fork into three on hit." },
-  voltage: { name: "Gigavolt", desc: "Each jump carries twice the hit. Arcs pierce armor." },
+  voltage: { name: "Gigavolt", desc: "Each jump carries twice the hit." },
   capacitance: { name: "Superstorm", desc: "Hits leave eight charges, which burst around the target when it is hit by anything, slowing what they hit." },
   temp: { name: "Zero Point", desc: "A deep chill slows all it holds, and shatters the light ones brittle." },
   rime: { name: "Ice Age", desc: "Rings of frost roll out fast, leaving behind a frost that layers and never thaws; full frost spreads to the nearest enemy." },

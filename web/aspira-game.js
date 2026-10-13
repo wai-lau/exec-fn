@@ -12,7 +12,7 @@ function newGame() {
   // loads after this file, so the very first call finds no pushCells yet)
   if (typeof pushCells === "function") pushCells(0); if (typeof bossInv === "object") Object.assign(bossInv, { phase: "off", full: false, r: 0 }); // (no boss sky carried over)
   return {
-    money: START_MONEY, lives: 18, score: 0, wave: 0, interest: 0.03, // 18 = two full shield rings (owner)
+    money: START_MONEY, drips: [], lives: 18, score: 0, wave: 0, interest: 0.03, // 18 = two full shield rings (owner)
     towers: [], enemies: [], spawns: [], fleetQ: [], chains: [], nextIn: 0, started: false, over: false,
     power: { SCR: 0, RNG: 0, MNY: 0, DAM: 0 }, charge: 0,
     nextLifeAt: 50000, id: 1,
@@ -75,21 +75,21 @@ function spawnEnemy(type, n, pi, ang = 0) {
   // armor/shields, late waves were pure dps and ARC spam won. Armor grows with
   // the curve to ARMOR_EXP (0.4; was the square root), shields with its 0.4 power - normalised so
   // shields still start at exactly their base (8) on their first wave (3).
-  const grow = hpPow(eqWave(n)) + eqWave(n) * 4 / 18, grow3 = Math.pow(HP_GROWTH, 2) + 3 * 4 / 18;
-  const { shield } = shieldsOf(type, n); // fewer late shields, more HP (shieldsOf)
-  const armor = d.armor ? Math.floor(d.armor * ENEMY_HP_MUL * Math.pow(grow, ARMOR_EXP)) : 0; // x ENEMY_HP_MUL like the HP (2026-10-11: left out of the HP cut, armor ate 4.4x more of each hit)
+  const late = n >= HYBRID_FROM, armorOf = t => Math.floor(ENEMIES[t].armor * ENEMY_HP_MUL * armorGrow(n)); // (armorGrow, HYBRID_FROM: aspira-defs.js) // x ENEMY_HP_MUL like the HP (2026-10-11: left out of the HP cut, armor ate 4.4x more of each hit)
+  const shield = type === "swarm" && late ? Math.round(SWARM_SHIELD * shieldsOf("shield", n).shield) : shieldsOf(type, n).shield; // fewer late shields, more HP (shieldsOf); late swarms carry a share of a shield unit's
+  const armor = d.armor ? armorOf(type) : type === "fast" && late ? Math.floor(FAST_ARMOR * armorOf("armor")) : 0; // late fast a share of an armor unit's
   G.enemies.push({
     armor, armor0: armor, shield, shieldMax: shield, wave: n, // armor0: as spawned (damageCredit) // the wave it CAME from (the end screen's leaks)
     // swarm members wander widely off the lane, each at its own speed (+-20%)
     // and its own wobble rate, so a clump churns as it moves
     jit: type === "swarm" ? 18 + Math.random() * 45 : 0, /* x1.5 wider (owner, 2026-10-12: "swarm units spread wider across lane"; was 12 + 30) */ ph: Math.random() * 6.283, // owner: tripled, halved twice, doubled 2026-10-08
-    spd: type === "swarm" ? 0.8 + Math.random() * 0.4 : 1, phr: 0.6 + Math.random(),
+    spd: (type === "swarm" ? 0.8 + Math.random() * 0.4 : type === "fast" ? lateK(n, "fast") : 1) * speedRamp(n), /* (aspira-defs.js) */ phr: 0.6 + Math.random(),
     id: G.id++, type, n, hp, max: hp, pi, ang, s: s0, x: p0.x, y: p0.y, rot: Math.random() * 6,
     // fractional, so a cheap swarmer really pays its share (owner: halved
     // swarm bounty must hold; money is shown rounded down)
     bounty: bountyBase(eqWave(n)) * d.bounty, // (aspira-waves.js) slowF: 0, slowT: 0, stunT: 0, markT: 0, markMul: 1,
   });
-  if (type === "swarm") G.enemies[G.enemies.length - 1].sizeMul = jit; // as big as its HP share, 50-300% (owner, 2026-10-12; briefly 30-150%)
+  G.enemies[G.enemies.length - 1].sizeMul = (1 + SIZE_LOG * Math.log10(enemyHp(type, n) / enemyHp(type, 1))) * (type === "swarm" ? jit : 1); // GROWS WITH LOG HP (owner, 2026-10-13: "initial unit size should scale logarithmically with unit hp"): x1 on wave 1, about x2 by 119; a swarmer x its HP share too, 50-300% (owner, 2026-10-12)
   if (type === "bonus") bossSpawn(G.enemies[G.enemies.length - 1], n); // which boss (aspira-bosses.js)
 }
 
@@ -128,8 +128,7 @@ function pickTargets(t, st, count) {
 
 // quiet: no flash or number (poison ticks, splash), so they do not spam
 // crit: draw this hit's number PINK instead of a separate CRIT label (owner)
-// st (optional): the hitting tower's stats, for pierce - st.ignoreShield and
-// st.armorPierce (the share of armor ignored; ARC's Ion path, owner)
+// st (optional): the hitting tower's stats - st.ignoreShield, st.shieldPop
 const BLEED_CRIT_MUL = 2;
 function damage(e, amt, t, quiet = false, crit = false, st = null) {
   if (e.dead) return;
@@ -155,21 +154,20 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
   // armor takes a flat bite out of every hit (never below 10% of it)
   const raw = amt;
   // (SOL ignored armor until 2026-10-07; owner: "SOL should no longer ignore armor" - its damage rose x1.3 to match, solarmor.mjs)
-  const pierce = (st && st.armorPierce) || 0;
   // (FROST CRACKED ARMOR here while slowed until 2026-10-11 - brittle x FRZ_CRACK; Moons now crack it for good, aspira-frz.js)
   // FRZ's FROST (Permafrost) takes a FLAT share of the wave's armor reference (armorRefOf, aspira-acid.js), as much as the
   // frost it holds - STACKING with Corrosion, below zero like it (owner, 2026-10-12: "let rime reduce armor"; Brittle did it
   // for an hour, "brittle should stack with corrosion (both should allow negative)")
   const frost = e.frostArmor ? frostShare(e) * e.frostArmor * armorRefOf(e.wave || 1) : 0;
-  const arm = Math.trunc((e.armor || 0) - frost); // whole armor, rounded toward zero (Breach/Corrosion strip it in fractions)
-  if (arm > 0 && pierce < 1) // EVERY hit, quiet ones too - FRZ ticks, splash, damage over time, Nova (owner, 2026-10-12; quiet hits skipped armor until then)
-    amt = Math.max(amt * 0.1, amt - arm * (1 - pierce));
+  const arm = Math.trunc(Math.max((e.armor || 0) - frost, e.arcana ? -armorRefOf(e.wave || 1) : -Infinity)); // whole armor, rounded toward zero (Breach/Corrosion strip it in fractions); a BOSS no lower than minus its wave's armor (owner, 2026-10-13)
+  if (arm > 0) // EVERY hit, quiet ones too - FRZ ticks, splash, damage over time, Nova (owner, 2026-10-12; quiet hits skipped armor until then)
+    amt = Math.max(amt * 0.1, amt - arm);
   // NEGATIVE armor (ACD's Corrosion, owner) is a flat bonus on every hit - quiet ones too (owner, 2026-10-12: "allow
   // negative armor to apply to everything also"; FRZ ticks, splash, damage over time and Nova skipped it until then)
   else if (arm < 0) amt -= arm;
   const blunted = amt < raw;
   // per-tower tally: damage counts only up to the HP the enemy had left
-  if (t) damageCredit(e, t, pre, amt, frost, pierce, Math.min(amt, Math.max(0, e.hp))); // the debuffers' shares to THEM (aspira-acid.js)
+  if (t) damageCredit(e, t, pre, amt, frost, Math.min(amt, Math.max(0, e.hp))); // the debuffers' shares to THEM (aspira-acid.js)
   amt = bossHitCap(e, amt); // Justice / Death cap a single hit (aspira-bosses.js)
   amt = Math.max(1, Math.floor(amt)); // a hit is a WHOLE number, rounded down - but one that lands always takes 1 (owner, 2026-10-08)
   e.hp -= amt;
@@ -182,7 +180,7 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
     // armor-blunted hits read GREYER the more armor took off them (owner, 2026-10-09: "greyness of damage popups should be
     // correlated to the percentage of damage mitigated by armor" - was all-or-nothing grey), white to the graticule's Silver
     // sized by the hit BEFORE armor (owner): a big hit blunted to little still reads big, in grey
-    dmgNumber(e, String(dmgUnits(amt)), raw, crit ? "orange" : "white", t, crit || !blunted ? 0 : 1 - amt / raw);
+    dmgTick(e, amt, raw, crit ? "orange" : "white", t, crit || !blunted ? 0 : 1 - amt / raw, t && (t.kind === "acd" || t.kind === "frz") && st ? st.rate : 0); // (aspira-floats.js)
   }
   if (e.hp <= 0) kill(e, t);
 }
@@ -294,7 +292,7 @@ function shotDamage(t, st, e, base) {
 
 function kill(e, t) {
   if (bossRise(e)) return; // Judgement / Death rise once (aspira-bosses.js)
-  e.dead = true;
+  e.dead = true; if (e.breached && typeof breachShrapnel === "function") breachShrapnel(e); if (e.drip > 0) dripFlush(e); // a breached enemy bursts (aspira-skills.js); its last goo falls (aspira-acid.js)
   if (t) t.kills = (t.kills || 0) + 1;
   const mul = (e.markT > 0 ? e.markMul : 1) * (G.power.MNY > 0 ? 2 : 1) * (e.slowT > 0 && e.siphon ? e.siphon : 1);
   const b = e.bounty * mul;
@@ -437,7 +435,7 @@ function step(dt) {
   if (G.over || !G.started) return;
   G.clock = (G.clock || 0) + dt; // game time (aspira-positioning.js paces its predictions on it)
   for (const k in G.power) if (G.power[k] > 0) G.power[k] = Math.max(0, G.power[k] - dt);
-  stepCoins(dt); // the credits flying home bank on arrival (aspira-floats.js) - game time, so the simulator banks them too
+  stepCoins(dt); stepDrips(dt); /* Corrosion's drops (aspira-acid.js) */ // the credits flying home bank on arrival (aspira-floats.js) - game time, so the simulator banks them too
   stepCore(dt); // the core's powers: cooldowns, Temporal's ring, Fortifications' copy firing (aspira-core.js)
   // the next wave goes when its timer runs out, or the moment the field
   // clears (owner): nothing alive, nothing still queued to spawn
@@ -459,7 +457,7 @@ function step(dt) {
   stepChains(dt);
   for (const t of G.towers) {
     t.spin = (t.spin || 0) + dt; // game-time clock for anything that orbits (FRZ's moons)
-    if (AUTO_POS) autoPosition(t, dt); // only the simulator's player: a real tower moves when it is dragged (aspira-positioning.js)
+    if (AUTO_POS) autoPosition(t, dt); else if (autoMove && best.ascended && !towersFrozen()) autoGlide(t, dt); // the simulator's player jumps; a real tower moves when dragged, or AUTO-MOVE glides it (aspira-positioning.js)
     if (t.kind === "frz" && hasSkills(t)) { frzStep(t, dt); continue; } // the chart FRZ: an aura, every step (aspira-skills.js)
     if (t.kind === "sol") { stepSol(t, dt); continue; }
     if (t.kind === "acd") { stepAcd(t, dt); continue; }

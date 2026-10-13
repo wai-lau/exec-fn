@@ -38,6 +38,23 @@ function dmgNumber(e, label, size, color, src, grey = 0) {
   f.v = size; dmgLive.push(f);
 }
 
+// SLOW-MOTION TICKS (owner, 2026-10-13: "when game speed is slow, the damage on tick logic should speed up so that the numbers
+// come out at about the same rate" - display only, so shields and armor take each tick as ever - "keep that display damage
+// rate", one a TICK_SHOW_S real s): at speed x a TICKING tower's tick (ACD, FRZ - `rate` a game second) spans 1 / (rate x) real
+// seconds; when that is longer than TICK_SHOW_S its number is cut into that many smaller ones, shown TICK_SHOW_S apart
+const tickQ = [], TICK_SPLIT_MAX = 8, TICK_SHOW_S = 0.5;
+function dmgTick(e, amt, raw, color, t, grey, rate) {
+  const sp = typeof speedX === "function" ? Math.max(speedX(), 0.01) : 1, k = rate > 0 ? Math.min(TICK_SPLIT_MAX, Math.round(1 / (rate * sp * TICK_SHOW_S))) : 1;
+  if (k <= 1) { dmgNumber(e, String(dmgUnits(amt)), raw, color, t, grey); return; }
+  const now = performance.now();
+  for (let i = 0; i < k; i++) tickQ.push({ e, label: String(dmgUnits(amt / k)), size: raw / k, color, t, grey, at: now + i * TICK_SHOW_S * 1000 });
+}
+function drainTicks() {
+  if (!tickQ.length) return;
+  const now = performance.now();
+  for (let i = 0; i < tickQ.length;) { const q = tickQ[i]; if (q.at > now) { i++; continue; } dmgNumber(q.e, q.label, q.size, q.color, q.t, q.grey); tickQ.splice(i, 1); }
+}
+
 // vy: upward drift (units/s); long-lived floats drift slowly so they stay on screen
 // every pop-up has the black outline + dark glow (owner); `under` marks the
 // damage numbers, which draw beneath everything but the background
@@ -86,6 +103,7 @@ function stepFx(dt) {
 }
 
 function stepFloats(dt) {
+  drainTicks(); // the slow-motion tick numbers due by now
   for (const f of fx) if (f.k === "text") { f.t += dt; f.x += (f.vx || 0) * dt; f.y -= f.vy * dt; }
   fx = fx.filter(f => f.k !== "text" || f.t < f.life);
   dmgLive = dmgLive.filter(f => f.t < f.life);

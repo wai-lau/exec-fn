@@ -135,9 +135,15 @@ function updateWaveList() {
 // the CHALLENGE button UNDER THE CORE, centred on it (owner, 2026-10-12: "move the challenge button under the core, centered
 // horizontally"): below the core's life rings, followed every frame (the camera moves), in 2D and 3D alike
 const CHALLENGE_BELOW = 16; // world units under the life rings / the lowest slot
+// it shows CHALLENGE_DELAY s after the sky has turned back (owner, 2026-10-13: "challenge the X should only appear 2 seconds after
+// the inversion effect finishes"; bossInv.offAt, aspira-bosses.js)
+const CHALLENGE_DELAY = 2;
 function placeChallenge() {
   const btn = $("asp-challenge");
   if (btn.hidden) return;
+  const ready = bossInv.phase === "off" && performance.now() / 1000 - (bossInv.offAt || 0) >= CHALLENGE_DELAY;
+  btn.style.visibility = ready ? "" : "hidden";
+  if (!ready) return;
   // under the core AND clear of the build slots round it (a slot under the button could not be tapped)
   const wy = Math.max(CY + CORE_R + LIFE_GAP * LIFE_RINGS, ...CELLS.map(c => c.y + CELL_S * TOWER_K)) + CHALLENGE_BELOW, root = $("asp").getBoundingClientRect();
   let x, y;

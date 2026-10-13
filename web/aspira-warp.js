@@ -187,11 +187,9 @@ const warpScreen = () => { const s = warpScreenFull(); return { w: Math.round(s.
 // one 3D frame (aspira-ui.js frame), the camera scaled to the smaller canvases
 function warp3d() {
   const c0 = { k: cam.k, ox: cam.ox, oy: cam.oy };
-  // the leash cap under the VIEW's camera, held for the frame: drawn under the texture camera it came out another size
-  // than the drag's, so on a wide desktop a tower sat outside its own dashed circle (owner, 2026-10-12)
-  if (warp.p) { moveMaxR3d(); moveMax3d.lock = true; }
   cam.k *= warpRes(); cam.ox *= warpRes(); cam.oy *= warpRes();
-  try { warpRender(); warpDraw(); } finally { Object.assign(cam, c0); moveMax3d.lock = false; }
+  warp.inFrame = true; // (viewCam, aspira-camera.js)
+  try { warpRender(); warpDraw(); } finally { Object.assign(cam, c0); warp.inFrame = false; }
 }
 // a 2D-canvas pixel (full resolution) back to the canvas spot under it, through the bell; null off it
 function unwarpFull(x, y) {
@@ -367,6 +365,7 @@ function warpEntities() {
   try {
     ctx.drawImage(warp.cv, 0, 0); // (the full sky: already turned over, in GL - warpFlip)
     if (skyPal()) withPalette(all); else all();
+    if (skyPal()) withPalette(drawPhoneFrame3d); else drawPhoneFrame3d(); /* the phone's screen, turned over with the sky (owner, 2026-10-13; aspira-camera.js) */
     // the sky's DIFFERENCE over the overlay (the towers' layer draws its own flip, above)
     if (skyOn() && !skyPal()) for (const [x, cnv] of [[entCtx2d, c]]) {
       ctx = x;

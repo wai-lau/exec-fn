@@ -42,12 +42,14 @@ function stepFlings(dt) {
     if (Math.hypot(f.vx, f.vy) < FLING_STOP) t.fling = null;
   }
 }
-// the wall t just met: its leash's rim (normal outward from the slot), else the nearest neighbour or the core (normal
+// the wall t just met: the phone screen's edge, its leash's rim (normal outward from the slot), else the nearest neighbour or the core (normal
 // toward it) - the velocity's part INTO the wall is mirrored, and the whole kept at FLING_BOUNCE
 function bounce(t, f) {
   const c = CELLS[t.cell], dl = Math.hypot(t.x - c.x, t.y - c.y);
-  let nx, ny;
-  if (dl >= leashR(t) - 1) { nx = (t.x - c.x) / dl; ny = (t.y - c.y) / dl; } else {
+  // the phone's screen is a wall too (aspira-camera.js, legalSpot): its normal found by probing a step each way
+  const e = CELL_S * TOWER_K + MOVE_EDGE, off = (dx, dy) => !phoneInside(t.x + dx, t.y + dy, e), P = 3;
+  let nx = off(P, 0) ? 1 : off(-P, 0) ? -1 : 0, ny = off(0, P) ? 1 : off(0, -P) ? -1 : 0;
+  if (nx || ny) { const n = Math.hypot(nx, ny); nx /= n; ny /= n; } else if (dl >= leashR(t) - 1) { nx = (t.x - c.x) / dl; ny = (t.y - c.y) / dl; } else {
     const walls = G.towers.filter(o => o !== t).map(o => ({ x: o.x, y: o.y, r: towerGap() })).concat([{ x: CX, y: CY, r: coreKeep(Math.atan2(t.y - CY, t.x - CX)) }]);
     let best = null, gap = Infinity;
     for (const w of walls) { const d = Math.hypot(t.x - w.x, t.y - w.y) - w.r; if (d < gap) { gap = d; best = w; } }

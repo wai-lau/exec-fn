@@ -270,6 +270,7 @@ function bleed(e, st, t) {
   const per = st.bleedArmor;
   e.armor = (e.armor || 0) - per * k; stripBy(e, t, per * k); // permanent, and on past zero (owner); its share of the damage it adds is SOL's (damageCredit)
   e.bleedCrit = Math.min(BLEED_CRIT_CAP, (e.bleedCrit || 0) + st.bleedCrit * k); e.breachN = (e.breachN || 0) + k; // stacks, for the spokes
+  e.breached = (e.breached || 0) + per * k; e.breachBy = t; // its SHRAPNEL when it dies (breachShrapnel, aspira-skills.js)
 }
 function rayHit(t, st, e, base, from) {
   const crit = Math.random() < ((st.crit || 0) + (e.bleedCrit || 0)) * (st.critScale || 1);
@@ -348,61 +349,14 @@ function usePower(code) {
 // a circle round its own slot (its SPAWN), radius leashR - the slide travel it had on its
 // spoke (2026-10-03 .. 2026-10-09; slideLimits below), so it reaches as far out as it did.
 // Slide tiers grow it (SKILL_MOVE `slide`, aspira-skills.js); a tower is where the finger is.
-// the old spoke's reach per kind (owner, 2026-10-04 .. 06): FRZ and ACD roam, ARC and SOL anchor
-const TOWER_REACH = { frz: 400, acd: 350, arc: 350, sol: 180 }; // SOL: its travel halved (owner; was 250 - a slot sits ~110 out)
-const SLIDE_K_HALF = 0.5, SLIDE_MAX = 2;
-// FRZ's slide HALVED (owner, 2026-10-06; Rime tiers buy it back, III = the old extent)
-const SLIDE_KIND = { acd: 1, frz: 0.5, arc: SLIDE_K_HALF, sol: SLIDE_K_HALF };
-// towers may slide 50% further IN toward the core (owner, 2026-10-06; were 0.89 / 0.945)
-const TOWER_IN_KIND = { acd: 0.835, frz: 0.9175 }; // the rest: TOWER_IN (FRZ halved too)
-const TOWER_IN = 0.9175;
-// a slot's own inner limit (the corner slots carry one, CORNER_IN) else TOWER_IN of its distance
-const innerR = (c, r0, slide = 1, kind = null) => c.minR ?? r0 * (1 - (1 - (TOWER_IN_KIND[kind] ?? TOWER_IN)) * Math.min(slide, SLIDE_MAX));
-// how far out a kind slid from a slot r0 from the core (slide = the tier's multiplier)
-const slideOut = (kind, r0, slide = 1) => Math.max(0, TOWER_REACH[kind] - r0) * SLIDE_KIND[kind] * Math.min(slide, SLIDE_MAX);
-// THE TRAVEL (owner, 2026-10-07): MOVE_SPAN (75%) of what innerR / slideOut give, worked from
-// TRAVEL_R0 (the ring's old radius) so it did not change when the slots moved in snug
-const MOVE_SPAN = 3.375 /* x1.5 again (owner, 2026-10-12, with ranges -25%: "increase all tower movement ranges by 50% (as long as under cap)"; was 2.25) */ /* x1.5 (owner, 2026-10-12: "increase movement range (unless capped by screen) of all towers by 50%"; was 1.5); owner, 2026-10-11: "increase movement range of all towers by 2x" (was 0.75); the later cut to 1 REVERTED ("revert all the mvmt range reductions, only keep the screen limit") - the screen cap (leashR) is the only limit now */, NEAR_R = SLOT_R, CORNER_NEAR = 100;
-function slideLimits(c, kind, sl = 1) {
-  const r0 = Math.hypot(c.x - CX, c.y - CY) || 1, rt = c.unlock ? r0 : TRAVEL_R0;
-  const span = (slideOut(kind, rt, sl) + rt - innerR(c, rt, sl, kind)) * MOVE_SPAN;
-  const min = (c.unlock ? CORNER_NEAR : NEAR_R) - r0;
-  return { r0, min, max: min + span };
-}
-// the leash's radius: the old travel, end to end - CAPPED so the whole leash (a tower's hex at its far edge, and a margin)
-// stays on the narrowest phone's screen at the fixed zoom: slot + leash <= MOVE_MAX_R from the core (owner, 2026-10-11)
+// THE LEASH BY KIND (owner, 2026-10-13: "do an audit of the tower movements now that the cap makes more sense" - "ok fix"): the
+// phone's screen caps where a tower may stand (phoneInside, aspira-positioning.js), so each leash is its own length, sized so
+// its slide tiers have room - about a third of the phone at base, all of it by the capstone. MOVE_BASE x the tier's slide
+// (SKILL_MOVE), up to SLIDE_MAX. (Was the old spoke's travel x MOVE_SPAN 3.375: ARC 434, FRZ 519, ACD 869 - most of the
+// phone before a tier, so the slide tiers bought nothing - and SLIDE_MAX 2 voided every tier past x2; SOL halved to 74 that day)
+const MOVE_BASE = { arc: 200, frz: 240, acd: 280, sol: 74 }, SLIDE_MAX = 3;
 const MOVE_EDGE = 12; // world units kept clear of the screen's edge
-const moveMaxR2d = () => PHONE_MIN_W / 2 / FIXED_ZOOM - CELL_S * TOWER_K - MOVE_EDGE;
-// 3D (owner: "both modes"): the largest radius whose every point, PROJECTED, stays inside the 2D cap's on-screen box -
-// found by bisection once per camera, under the 3D frame's own camera (cam x WARP_RES, as warp3d draws it - projecting
-// with the plain camera read the view as x1.46 magnified and gave a cap a third too small); about the 2D cap, the view
-// matching 2D across at the core and foreshortened up and down
-let moveMax3d = { key: "", r: 0 };
-function moveMaxR3d() {
-  if (moveMax3d.lock) return moveMax3d.r; // inside a 3D frame cam is the TEXTURE's camera: keep the view's cap (warp3d)
-  const key = [cam.k, cam.ox, cam.oy, WARP.tilt, WARP.fov].join();
-  if (moveMax3d.key === key) return moveMax3d.r;
-  const c0 = { k: cam.k, ox: cam.ox, oy: cam.oy };
-  cam.k *= warpRes(); cam.ox *= warpRes(); cam.oy *= warpRes();
-  let lo = 0;
-  try {
-    const lim = moveMaxR2d(), k = cam.k, c = warpProject(CX, CY, 0);
-    const fits = R => { for (let i = 0; i < 16; i++) { const a = i * Math.PI / 8, p = warpProject(CX + R * Math.cos(a), CY + R * Math.sin(a), 0);
-      if (!(p.s > 0) || Math.abs(p.x - c.x) / k > lim || Math.abs(p.y - c.y) / k > lim * 1.5) return false; } return true; };
-    let hi = lim * 1.5;
-    for (let i = 0; i < 20; i++) { const mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid; }
-  } finally { Object.assign(cam, c0); }
-  moveMax3d = { key, r: lo };
-  return lo;
-}
-const moveMaxR = () => (typeof q3d === "function" && q3d() && typeof warp !== "undefined" && warp.p ? moveMaxR3d() : moveMaxR2d());
-// ...CAPPED, never scaled (owner, 2026-10-11: "don't scale all the ranges, just cap out the maximum range so that towers
-// don't fly off screen (both modes)"): a leash is its own length up to the cap; in 3D the core's view keeps the 2D scale
-// across the screen at the core (moveMaxR3d)
-const leashR = t => {
-  const c = CELLS[t.cell], { min, max } = slideLimits(c, t.kind, towerStats(t, true).slide);
-  return Math.max(0, Math.min(max - min, moveMaxR() - Math.hypot(c.x - CX, c.y - CY)));
-};
+const leashR = t => MOVE_BASE[t.kind] * Math.min(towerStats(t, true).slide, SLIDE_MAX);
 const slideSpan = t => Math.round(leashR(t)); // the card's Leash row
 const towerAt = p => G.towers.find(t => Math.hypot(p.x - t.x, p.y - t.y) <= CELL_S);
 // two towers' centres stay TOWER_GAP apart (a hex each plus a sliver), and the core
@@ -415,7 +369,7 @@ const coreKeep = a => { const s = Math.PI / 3, f = ((a % s) + s) % s; return cor
 // the legal spot nearest p for t: inside its leash, off the core, clear of the
 // other towers - or null when no nudge finds one (it then stays where it is)
 function legalSpot(t, p) {
-  const c = CELLS[t.cell], L = leashR(t), gap = towerGap();
+  const c = CELLS[t.cell], L = leashR(t), gap = towerGap(), edge = CELL_S * TOWER_K + MOVE_EDGE;
   let x = p.x, y = p.y;
   const away = (ox, oy, min) => { const d = Math.hypot(x - ox, y - oy) || 1e-6; if (d < min) { x = ox + (x - ox) * min / d; y = oy + (y - oy) * min / d; } };
   for (let i = 0; i < 4; i++) {
@@ -423,6 +377,11 @@ function legalSpot(t, p) {
     away(CX, CY, coreKeep(Math.atan2(y - CY, x - CX)));
     const d = Math.hypot(x - c.x, y - c.y);
     if (d > L) { x = c.x + (x - c.x) * L / d; y = c.y + (y - c.y) * L / d; }
+    if (!phoneInside(x, y, edge)) { // the phone's screen (aspira-camera.js): back toward the slot until it is on it
+      let lo = 0, hi = 1;
+      for (let j = 0; j < 14; j++) { const m = (lo + hi) / 2; if (phoneInside(c.x + (x - c.x) * m, c.y + (y - c.y) * m, edge)) lo = m; else hi = m; }
+      x = c.x + (x - c.x) * lo; y = c.y + (y - c.y) * lo;
+    }
   }
   const clear = G.towers.every(o => o === t || Math.hypot(x - o.x, y - o.y) >= gap - 0.5) && Math.hypot(x - CX, y - CY) >= coreKeep(Math.atan2(y - CY, x - CX)) - 0.5;
   return clear ? { x, y } : null;
@@ -436,6 +395,7 @@ function moveTower(t, p) { const s = legalSpot(t, p); if (s) { t.x = s.x; t.y = 
 const LEASH_HINT_S = 4, LEASH_HINT_FADE_S = 1;
 const hintLeash = t => { t.leashHint = performance.now() / 1000 + LEASH_HINT_S; };
 function drawLeash() {
+  ctx.save(); if (!phoneOn3d()) { phonePath(ctx, phoneBox()); ctx.clip(); } /* a leash past the phone's screen is no use: cut at it in 2D (owner, 2026-10-13) */
   ctx.lineWidth = 2;
   const now = performance.now() / 1000;
   for (const t of G.towers) {
@@ -451,7 +411,7 @@ function drawLeash() {
     ctx.beginPath(); ctx.arc(c.x, c.y, leashR(t), 0, 6.283); ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
     if (!held) leashArrows(t, c, now, ctx.globalAlpha); // not while it is being dragged (owner, 2026-10-11)
   }
-  ctx.globalAlpha = 1;
+  ctx.globalAlpha = 1; ctx.restore();
 }
 // ARROWS POINTING AWAY from the tower (owner, 2026-10-11: "movement indicator should have arrows pointing away from
 // tower"): LEASH_ARROWS chevrons, each gliding out along its own spoke from the tower's edge to the leash ring every

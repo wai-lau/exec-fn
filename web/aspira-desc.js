@@ -22,7 +22,7 @@ const DESCRIBE = {
   // three / twin; Voltage: most of .. all of (its harder hit is a stat row); Capacitance: the charge sentence (owner's words)
   arc(sk) {
     const c = sk.conductivity || 0, v = sk.voltage || 0, z = sk.capacitance || 0;
-    let s = [c >= 6 ? "six" : c >= 5 ? "four" : c >= 4 ? "three" : c >= 3 ? "twin" : "", "arcs", c >= 6 ? "chain twice and" : c >= 1 ? "chain once and" : "", "fork", c >= 2 ? "in three" : "", c >= 3 ? "on hit, re-striking " + ARC_RETURN[c] + "; each jump carries" : "on hit; each jump carries", ARC_KEEP[v], v ? "the hit and pierces armor." : "the hit."].filter(Boolean).join(" ");
+    let s = [c >= 6 ? "six" : c >= 5 ? "four" : c >= 4 ? "three" : c >= 3 ? "twin" : "", "arcs", c >= 6 ? "chain twice and" : c >= 1 ? "chain once and" : "", "fork", c >= 2 ? "in three" : "", c >= 3 ? "on hit, re-striking " + ARC_RETURN[c] + "; each jump carries" : "on hit; each jump carries", ARC_KEEP[v], "the hit."].filter(Boolean).join(" ");
     if (z) s += " Hits leave " + ARC_CHARGES[ARC_CAPACITANCE[z].n] + (ARC_CAPACITANCE[z].n > 1 ? " that burst" : " that bursts") + " on a later hit, slowing all near.";
     return cap(s);
   },
@@ -38,13 +38,13 @@ const DESCRIBE = {
   // full strike; Refraction: refracting on to more; Breach: armor *greatly*, and pierces it so every tower crits it more
   sol(sk) {
     const f = sk.focus || 0, r = sk.refraction || 0, b = sk.breach || 0;
-    return SOL_RAYS[f] + " of light" + (f ? ", each a full strike" : "") + ", " + SOL_REFRACT[r] + (b >= 6 ? "; each beam evaporates armor." : "; each beam weakens armor" + (b ? " greatly" : "") + " for good.") + "";
+    return SOL_RAYS[f] + " of light" + (f ? ", each a full strike" : "") + ", " + SOL_REFRACT[r] + (b >= 6 ? "; each beam evaporates armor." : "; each beam weakens armor" + (b ? " greatly" : "") + " for good.") + " A breached enemy bursts into shrapnel as it dies." /* (breachShrapnel, aspira-skills.js) */;
   },
   // ACD roles rework (owner, 2026-10-12): Flow = more jets that slow and carry their acid on;
   // Corrosion = stronger acid that eats armor; Contagion = the always-on pools grow, massive at VI
   acd(sk) {
     const c = sk.contagion || 0, f = sk.spray || 0, k = sk.corrosion || 0; // pools from the start (owner, 2026-10-12)
-    return ACD_JETS[f] + (f ? " slowing" : "") + " jets of " + "acid" + (k >= 6 ? " that dissolves armor" : k ? " that corrodes armor" : "") + ", dripping " + (c >= 6 ? "massive" : c >= 3 ? "huge" : c ? "larger" : "large") + " pools; each kill leaves one more. " + (f ? "A jet keeps its flow on its next enemy." : "A jet starts cold on each new enemy.");
+    return ACD_JETS[f] + (f ? " slowing" : "") + " jets of " + "acid" + (k >= 6 ? " that dissolves armor" : k ? " that corrodes armor" : "") + ", dripping " + (c >= 6 ? "massive" : c >= 3 ? "huge" : c ? "larger" : "large") + " pools; each kill leaves one more. " + (k ? "Eaten armor drops a corrosive goo. " : "") /* the drip (aspira-acid.js) */ + (f ? "A jet keeps its flow on its next enemy." : "A jet starts cold on each new enemy.");
   },
 };
 // the description for a chart (`skills`): the composer, else the axes' sentences run together

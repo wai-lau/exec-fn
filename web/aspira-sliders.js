@@ -214,7 +214,7 @@ function inspectTower(el, t) {
     (chart ? "" : '<div class="name asp-tower-title">' + towerTitle(t) + " · L" + t.lvl + " of " + maxLvl(t) + "</div>") +
     '<div class="asp-tower-ctl">' +
     (chart ? sliderChart(t) : "") + // the sliders and the chart (owner, 2026-10-07)
-    '<div class="asp-row" id="asp-upbox"></div>' + // confirm + cancel (aspira-sliders.js upgradeButton)
+    '<div id="asp-upline"><div class="asp-row" id="asp-acts"></div><div class="asp-row" id="asp-upbox"></div></div>' + // sell LEFT of upgrade (owner, 2026-10-13), then confirm + cancel (upgradeButton)
     '</div><div class="asp-tower-info">' +
     // two columns (owner): what every tower has | what only this type has; kills and
     // damage dealt share ONE row, and stats the tower has not got yet ("—") are left out
@@ -226,8 +226,6 @@ function inspectTower(el, t) {
     '<input type="range" class="asp-prio-slider" id="asp-prio" min="0" max="' + (MODES.length - 1) + '" step="1" value="' + Math.max(0, MODES.findIndex(m => m[0] === t.mode)) + '">' +
     '<div class="asp-prio-labels">' + MODES.map(([m, label], i) => '<span data-i="' + i + '"' + (t.mode === m ? ' class="on"' : "") + ">" + label + "</span>").join("") + "</div>") +
     "</div>" +
-    // sell, small: the card's LAST row on a phone (owner, 2026-10-08), under the control half on a wide screen (aspira.css)
-    '<div class="asp-row" id="asp-acts"></div>' +
     "</div>";
   const setMode = i => { t.mode = MODES[i][0]; refreshPanels(); };
   if ($("asp-prio")) $("asp-prio").oninput = ev => setMode(Number(ev.target.value));
@@ -237,7 +235,7 @@ function inspectTower(el, t) {
   if (chart) { bindSliders(t, el); upgradeButton(t); }
   else button($("asp-upbox"), "asp-primary asp-up-big",
     maxed ? "max level" : "upgrade → L" + (t.lvl + 1) + " · " + cr(upCost(t)), () => openChooser(t), "asp-up").disabled = maxed;
-  // SELL sits last, away from the often-tapped rows, and takes TWO taps (owner):
+  // SELL sits left of upgrade (owner, 2026-10-13; was the card's last row) and takes TWO taps (owner):
   // the first arms it for SELL_ARM_MS, the second sells
   const label = "sell · " + cr(sellValue(t)), sell = button($("asp-acts"), "asp-sell", label, () => {
     if (!sell.classList.contains("armed")) {

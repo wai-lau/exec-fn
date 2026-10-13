@@ -147,6 +147,7 @@ const autoWaiting = () => {
     try { localStorage.setItem("spire.autowait", autoWait ? "1" : "0"); } catch (e) { /* not remembered */ }
   }, "asp-autowait");
   btn.setAttribute("role", "checkbox");
+  button(row, "asp-check", "", () => { autoMove = !autoMove; try { localStorage.setItem("spire.automove", autoMove ? "1" : "0"); } catch (e) { /* not remembered */ } }, "asp-automove").setAttribute("role", "checkbox"); // AUTO-MOVE (autoGlide, aspira-positioning.js)
   qualityBox(row); // the visual quality toggle beside it (aspira-quality.js)
 })();
 // the checkbox as an SVG, not a font glyph (owner: the glyph sat off-centre
@@ -160,6 +161,9 @@ function updateAutoWait() {
   const btn = $("asp-autowait"), html = (autoWait ? ICON_CHECKED : ICON_UNCHECKED) + "<span>auto-wait</span>"; // the box bigger than the words (owner)
   if (btn.dataset.html !== html) { btn.dataset.html = html; btn.innerHTML = html; btn.setAttribute("aria-checked", String(autoWait)); }
   btn.classList.toggle("on", autoWaiting()); // lit while it is holding the game at 1/2x
+  const mv = $("asp-automove"), mh = (autoMove ? ICON_CHECKED : ICON_UNCHECKED) + "<span>auto-move</span>";
+  mv.hidden = !best.ascended; // ASCENDANTS only (owner, 2026-10-13: "non-ascendants do not get that checkbox")
+  if (mv.dataset.html !== mh) { mv.dataset.html = mh; mv.innerHTML = mh; mv.setAttribute("aria-checked", String(autoMove)); }
 }
 
 // the sound toggle is an ICON (owner: was "sound on"/"sound off"): a speaker

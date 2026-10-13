@@ -71,7 +71,7 @@ function waveCount(type, n0) {
   // HALF the bodies at TWICE the health (owner, 2026-10-02)
   // x WAVE_COUNT_MUL[n]: waves 1-30 tuned so each comes about as close to the
   // core against one L1 tower of each kind (owner; scripts/aspira-sim/wavebal.mjs)
-  const c = (type === "swarm" ? base * 6 : base) / 2 * (WAVE_COUNT_MUL[n0] ?? 1) * (TYPE_COUNT_MUL[type] ?? 1) * (type === "swarm" ? swarmMul(n) * (n >= SWARM_X2_FROM ? 2 : 1) : 1) * (type === "fast" && n > FAST_LATE_FROM ? FAST_LATE_MUL : 1); // swarms 6x (owner: doubled from 3x)
+  const c = (type === "swarm" ? base * 6 : base) / 2 * (WAVE_COUNT_MUL[n0] ?? 1) * (TYPE_COUNT_MUL[type] ?? 1) * (type === "swarm" ? swarmMul(n) * (n >= SWARM_X2_FROM ? 2 : 1) * lateK(n0, "swarm") : 1) * (type === "fast" && n > FAST_LATE_FROM ? FAST_LATE_MUL : 1); // swarms 6x (owner: doubled from 3x)
   // SYMMETRICAL FORMATIONS (owner, 2026-10-11: "2n+1 for fast, 3n for armor"): whole Vs and full lattice rows
   const unit = FORM_UNIT[type] || 1;
   return Math.max(unit, Math.round(c / unit) * unit);
@@ -214,8 +214,17 @@ function drawCredits(part) {
   const n = Math.floor(fxOn ? G.money - creditsFx.gain : G.money).toLocaleString("en-US");
   // a little "CRED" UNDER it (owner, 2026-10-06; was a "c", first after it on the same line)
   if (part !== "pop") {
-    text(n, CX, CY - 5, CRED_PX, "bg", "white"); // BLACK with a white halo (owner)
-    text("CRED", CX, CY + 13, CRED_SUB_PX, "bg", "white");
+    // while a leak's ring BOUNCES out (threatBounces, aspira-threat.js) the core shows the LIVES left, in pink (owner, 2026-10-13)
+    const hurt = typeof threatBounces !== "undefined" && threatBounces.length > 0;
+    if (hurt) { // the number alone, as large as fits inside the core's hexagon ("font as large as would fit in the hexagon")
+      const L = String(G.lives), inR = CORE_R * Math.cos(Math.PI / 6); // the hex's inner radius
+      ctx.font = "100px " + CANVAS_FONT;
+      const px = Math.floor(Math.min(1.45 * inR, 1.8 * inR * 100 / ctx.measureText(L).width));
+      ctx.font = "bold " + px + "px " + CANVAS_FONT; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.strokeStyle = COL.bg; ctx.lineWidth = px * 0.14; ctx.lineJoin = "round"; ctx.strokeText(L, CX, CY); // a crisp OUTLINE, no shadow (owner, 2026-10-13)
+      ctx.fillStyle = COL.pink; ctx.fillText(L, CX, CY);
+    }
+    else { text(n, CX, CY - 5, CRED_PX, "bg", "white"); text("CRED", CX, CY + 13, CRED_SUB_PX, "bg", "white"); } // BLACK with a white halo (owner)
   }
   if (part === "count" || G.enemies.some(e => e.arcana && !e.dead)) return; // a boss's name takes this spot (drawBossBar)
   const livesOn = livesFx && performance.now() / 1000 - livesFx.t0 < CREDITS_FX_T && (!fxOn || livesFx.t0 >= creditsFx.t0);

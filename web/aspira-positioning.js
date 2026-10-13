@@ -1,5 +1,5 @@
 // /aspira - the SIMULATOR'S PLAYER dragging towers (2026-10-10): in a real game the
-// player drags them (aspira-camera.js) and they never move themselves; the balance
+// player drags them (aspira-camera.js) - or ticks AUTO-MOVE (autoGlide, below); the balance
 // simulator turns AUTO_POS on, and each tower then jumps, every POS_EVERY s, to the spot
 // in its leash that MAXIMISES ANTICIPATED HITS (it was the towers' own spoke-slider from
 // 2026-10-04 to 2026-10-09). Loaded after aspira-towers.js (the simulator too).
@@ -98,11 +98,67 @@ function bestSpot(t, range) {
   // stay put unless the new spot is clearly better
   return score(spots[0]) * POS_SWITCH >= bestScore ? null : best;
 }
-// the simulator's player, every step (aspira-game.js)
+// AUTO-MOVE (owner, 2026-10-13: "add an auto-move checkbox that uses the simulator movement, but limit the movement speed to
+// something a human can process, i.e. avoid teleporting"): the simulator's choice of spot (bestSpot, every POS_EVERY s of
+// game time), but the tower GLIDES there at up to HUMAN_V world units a REAL second, so the eye can follow it. The checkbox: aspira-ui.js
+let autoMove = false;
+try { autoMove = localStorage.getItem("spire.automove") === "1"; } catch (e) { /* not remembered */ }
+const HUMAN_V = 600; // a phone's width (500 units) in under a second
+function autoGlide(t, dt) {
+  t.posT = (t.posT || 0) - dt;
+  if (t.posT <= 0) { t.posT = POS_EVERY; const s = bestSpot(t, towerStats(t).range); if (s) t.goal = s; }
+  if (!t.goal || (typeof towerHeld === "function" && towerHeld(t)) || t.fling) return;
+  const real = dt / Math.max(0.01, typeof speedX === "function" ? speedX() : 1), dx = t.goal.x - t.x, dy = t.goal.y - t.y, d = Math.hypot(dx, dy), step = HUMAN_V * real;
+  if (d <= step) { moveTower(t, t.goal); t.goal = null; return; }
+  if (!moveTower(t, { x: t.x + dx / d * step, y: t.y + dy / d * step })) t.goal = null; // blocked: think again next time
+}
+// the simulator's player, every step (aspira-game.js) - GLIDING like auto-move when POS_GLIDE (owner, 2026-10-13: "limit the
+// tower movements to the current auto-move settings"; it jumped). let: the simulator sets it
+let POS_GLIDE = true;
 function autoPosition(t, dt) {
+  if (POS_GLIDE) { autoGlide(t, dt); return; }
   t.posT = (t.posT || 0) - dt;
   if (t.posT > 0) return;
   t.posT = POS_EVERY;
   const s = bestSpot(t, towerStats(t).range);
   if (s) moveTower(t, s);
+}
+
+// THE PLAY BOX (owner, 2026-10-13: "draw a faint outline of the mobile screen with rounded corners on the map"): the view EVERY
+// standard phone shares ("standardize the limit so that it works the same way on all standardish phones") - the tightest of
+// PHONES at PHONE_ZOOM, each with the core VIEW_UP_K x as far from the top as from the sides: VIEW_SIDE either side of the core, VIEW_UP
+// above, VIEW_DOWN below (world units). EVERY screen zooms so the box fits it ("the zoom should be adjusted so that either the
+// top and bottom touch, or the sides"), centred on the other axis (resize, aspira-draw.js); and it is the towers' MOVEMENT
+// CAP ("the cap should be that the movement is within this range"): legalSpot (aspira-towers.js)
+// PHONES: [w, h] CSS px of the page in the browser (bars taken off), small Android to iPhone 15 Pro Max
+const PHONES = [[360, 640], [375, 667], [390, 664], [393, 659], [412, 732], [430, 740]];
+// the core sits VIEW_UP_K x its side distance from the top (owner, 2026-10-13: "1.5 side distance, to top"; was 1)
+const VIEW_UP_K = 1.5;
+const VIEW_SIDE = Math.min(...PHONES.map(([w]) => w / 2)) / PHONE_ZOOM, VIEW_UP = VIEW_SIDE * VIEW_UP_K;
+const VIEW_DOWN = Math.min(...PHONES.map(([w, h]) => h - VIEW_UP_K * w / 2)) / PHONE_ZOOM;
+const PHONE_CORNER = 40 / PHONE_ZOOM, PHONE_ALPHA = 0.35 /* "less faint" (owner, 2026-10-13; was 0.15) */;
+function phoneBox() { // 2D: world units
+  return { x0: CX - VIEW_SIDE, y0: CY - VIEW_UP, x1: CX + VIEW_SIDE, y1: CY + VIEW_DOWN, r: PHONE_CORNER };
+}
+// in 3D it is a SCREEN rectangle (owner, 2026-10-13: "it should be rectangular not trapezoidal"), not a box on the floor: the
+// same rectangle on screen as 2D's (it fits the window), in the 3D view's pixels (under the texture camera);
+// a spot is on the phone when it PROJECTS inside
+const phoneOn3d = () => typeof q3d === "function" && q3d() && typeof warp !== "undefined" && !!warp.p;
+function viewCam(fn) { // the 3D maths runs under the texture camera (warp3d sets warp.inFrame); outside a frame scale to it
+  if (warp.inFrame) return fn();
+  const c0 = { k: cam.k, ox: cam.ox, oy: cam.oy };
+  cam.k *= warpRes(); cam.ox *= warpRes(); cam.oy *= warpRes();
+  try { return fn(); } finally { Object.assign(cam, c0); }
+}
+function phoneRect3d() { // 3D: the view's pixels (call under viewCam) - the SAME screen rectangle as 2D's, so it fits the window too
+  const k = cam.k;
+  return { x0: cam.ox + (CX - VIEW_SIDE) * k, y0: cam.oy + (CY - VIEW_UP) * k, x1: cam.ox + (CX + VIEW_SIDE) * k, y1: cam.oy + (CY + VIEW_DOWN) * k, r: PHONE_CORNER * k };
+}
+// is (x, y) on the phone, `inset` world units clear of its edge?
+function phoneInside(x, y, inset = 0) {
+  if (!phoneOn3d()) { const b = phoneBox(); return x >= b.x0 + inset && x <= b.x1 - inset && y >= b.y0 + inset && y <= b.y1 - inset; }
+  return viewCam(() => {
+    const b = phoneRect3d(), p = warpProject(x, y, 0), e = inset * cam.k;
+    return p.s > 0 && p.x >= b.x0 + e && p.x <= b.x1 - e && p.y >= b.y0 + e && p.y <= b.y1 - e;
+  });
 }
