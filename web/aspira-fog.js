@@ -71,10 +71,3 @@ function entCtx(c) {
   if (sb && sb.set) Object.defineProperty(x, "shadowBlur", { configurable: true, get() { return sb.get.call(this) / k(); }, set(v) { sb.set.call(this, v * k()); } });
   return x;
 }
-// a copy of a layer, its alpha the mask that keeps a sky flip to what is drawn on it (warpEntities)
-function skyMask(src) {
-  const m = warp.skyMaskCv ||= document.createElement("canvas");
-  if (m.width !== src.width || m.height !== src.height) { m.width = src.width; m.height = src.height; }
-  const x = m.getContext("2d"); x.clearRect(0, 0, m.width, m.height); x.drawImage(src, 0, 0);
-  return m;
-}

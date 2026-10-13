@@ -348,7 +348,12 @@ function warpEntities() {
     // and with NO perspective (owner: "no perspective effects on that"): at its spot, the board's plain scale
     // - except the DAMAGE numbers, smaller the farther off (owner: "have them smaller if further away"): the perspective's
     // size there, never its skew
-    ctx = topCtx; warpBands(above => drawSolids(above)); // the towers and the core, on their own full-density layer (above)
+    // the towers and the core, on their own full-density layer (above). No sky FLIP over it (owner, 2026-10-12: "boss inversion
+    // still makes towers look weird for a sec" - a difference over a see-through layer whitens every soft edge and glow): while
+    // the sky spreads, each is drawn straight in its flipped colours instead - a tower its own, the rest the inverted palette
+    const spreading = skyOn() && !skyPal();
+    const drawTop = tops => { for (const o of solids) if (spreading && inSky(o) && !o.own) withPalette(() => drawSolid(o, tops)); else if (spreading) drawSolid(o, tops); else if (o.own && inSky(o)) skyOwn(o, () => drawSolid(o, tops)); else drawSolid(o, tops); };
+    ctx = topCtx; warpBands(above => drawTop(above));
     const pop = (x, y, fn, far) => { const P = warpProject(x, y), k = cam.k * (far ? P.s : 1); ctx.setTransform(k, 0, 0, k, P.x - x * k, P.y - y * k); ctx.save(); fn(); ctx.restore(); };
     drawFx("dmg", (x, y, fn) => pop(x, y, fn, true)); drawFx("text", pop);
     if (bannerT > 0) pop(CX, 70, () => { ctx.globalAlpha = Math.min(1, bannerT); text(bannerText, CX, 70, 30, bannerCol, true); ctx.globalAlpha = 1; });
@@ -362,12 +367,9 @@ function warpEntities() {
   try {
     ctx.drawImage(warp.cv, 0, 0); // (the full sky: already turned over, in GL - warpFlip)
     if (skyPal()) withPalette(all); else all();
-    // the sky's DIFFERENCE over both layers, the overlay and the towers' own
-    if (skyOn() && !skyPal()) for (const [x, cnv] of [[entCtx2d, c], [topCtx, top]]) {
+    // the sky's DIFFERENCE over the overlay (the towers' layer draws its own flip, above)
+    if (skyOn() && !skyPal()) for (const [x, cnv] of [[entCtx2d, c]]) {
       ctx = x;
-      // the TOWERS' layer is see-through between its shapes, and a difference turns see-through WHITE (owner, 2026-10-12: "boss
-      // inversion glitches the second layer"): its own pixels are kept aside and laid back as a MASK after the flip
-      const mask = cnv === top ? skyMask(top) : null;
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = "difference"; ctx.fillStyle = COL.white; ctx.beginPath();
       // the circle on the floor; a point of it BEHIND the camera (a big circle, spreading or collapsing) would make a
       // garbage polygon that flips the colours frame to frame (owner: "colors rapidly switch as the boss dies") - such a
@@ -376,7 +378,6 @@ function warpEntities() {
       if (!ring || ring.some(Q => !(Q.s > 0) || !isFinite(Q.x) || !isFinite(Q.y))) ctx.rect(0, 0, cnv.width, cnv.height);
       else ring.forEach((Q, i) => (i ? ctx.lineTo(Q.x, Q.y) : ctx.moveTo(Q.x, Q.y)));
       ctx.fill();
-      if (mask) { ctx.globalCompositeOperation = "destination-in"; ctx.drawImage(mask, 0, 0); }
       ctx.globalCompositeOperation = "source-over";
     }
   } finally { ctx = main; }
