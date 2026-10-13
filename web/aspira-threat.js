@@ -18,7 +18,7 @@ function drawThreatBounces() {
   for (let i = threatBounces.length - 1; i >= 0; i--) {
     const b = threatBounces[i], p = (now - b.at) / THREAT_BOUNCE_T;
     if (p >= 1) { threatBounces.splice(i, 1); continue; }
-    ctx.globalAlpha = THREAT_A_MAX * (1 - p); ctx.lineWidth = THREAT_W_MAX;
+    ctx.globalAlpha = THREAT_A_MAX * (1 - p); ctx.lineWidth = THREAT_W_MAX * 2; /* as wide as it was on contact (doubled inside AUTO_WAIT2_S) */
     ctx.beginPath(); ctx.arc(CX, CY, b.r + THREAT_BOUNCE_R * (1 - (1 - p) ** 3), 0, 6.283); ctx.stroke();
   }
 }
@@ -33,7 +33,7 @@ function drawThreat() {
     // STRONGER and THICKER the nearer (owner, 2026-10-12: "increase intensity and thickness of threat rings as they approach"):
     // squared, so a far one stays a whisper and one about to land is loud
     const k = (1 - t / AUTO_WAIT_S) ** 2;
-    ctx.globalAlpha = Math.min(1, THREAT_A_MIN + (THREAT_A_MAX - THREAT_A_MIN) * k); ctx.lineWidth = THREAT_W_MIN + (THREAT_W_MAX - THREAT_W_MIN) * k;
+    ctx.globalAlpha = Math.min(1, THREAT_A_MIN + (THREAT_A_MAX - THREAT_A_MIN) * k); ctx.lineWidth = (THREAT_W_MIN + (THREAT_W_MAX - THREAT_W_MIN) * k) * (t <= AUTO_WAIT2_S ? 2 : 1); /* DOUBLE inside auto-wait's second stage (owner, 2026-10-12) */
     ctx.beginPath(); ctx.arc(CX, CY, Math.hypot(e.x - CX, e.y - CY), 0, 6.283); ctx.moveTo(CX, CY); ctx.lineTo(e.x, e.y); ctx.stroke();
   }
   ctx.restore();
