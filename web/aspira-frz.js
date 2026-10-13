@@ -148,7 +148,7 @@ function frzStep(t, dt) {
 // UI: the aura discs, the moons and the Rime rings (aspira-effects.js drawTethers)
 const MOON_TRI = 11; // a moon's triangle, corner to centre
 const FRZ_AURA_A = 0.4, FRZ_RIM_A = 0.25; // the aura's disc and rim, toned down (owner, 2026-10-07; were 0.8 / 0.45)
-const MOON_FX = 0.45; // a moon's look against the tower's own (drawFrzSkill, drawTowerRange's orbit)
+const MOON_FX = 0.6; /* slightly more visible (owner, 2026-10-13: "increase FRZ moon and satellite aura visibility slightly"; was 0.45) */ // a moon's look against the tower's own (drawFrzSkill, drawTowerRange's orbit)
 function drawFrzSkill(t, st) {
   const col = COL[TOWERS.frz.color];
   frzSources(t, st).forEach((s, i) => {
