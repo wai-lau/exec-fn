@@ -220,9 +220,10 @@ function drawCredits(part) {
       const L = String(G.lives), inR = CORE_R * Math.cos(Math.PI / 6); // the hex's inner radius
       ctx.font = "100px " + CANVAS_FONT;
       const px = Math.floor(Math.min(1.45 * inR, 1.8 * inR * 100 / ctx.measureText(L).width));
-      ctx.font = "bold " + px + "px " + CANVAS_FONT; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.strokeStyle = COL.bg; ctx.lineWidth = px * 0.14; ctx.lineJoin = "round"; ctx.strokeText(L, CX, CY); // a crisp OUTLINE, no shadow (owner, 2026-10-13)
-      ctx.fillStyle = COL.pink; ctx.fillText(L, CX, CY);
+      ctx.font = "bold " + px + "px " + CANVAS_FONT; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+      const m = ctx.measureText(L), y = CY + ((m.actualBoundingBoxAscent || px * 0.7) - (m.actualBoundingBoxDescent || 0)) / 2; // the DIGITS' ink centred (owner, 2026-10-13: "vertically centered"; "middle" sat it high)
+      ctx.strokeStyle = COL.bg; ctx.lineWidth = px * 0.14; ctx.lineJoin = "round"; ctx.strokeText(L, CX, y); // a crisp OUTLINE, no shadow (owner, 2026-10-13)
+      ctx.fillStyle = COL.pink; ctx.fillText(L, CX, y);
     }
     else { text(n, CX, CY - 5, CRED_PX, "bg", "white"); text("CRED", CX, CY + 13, CRED_SUB_PX, "bg", "white"); } // BLACK with a white halo (owner)
   }
