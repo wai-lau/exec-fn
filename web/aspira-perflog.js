@@ -7,7 +7,7 @@
 const PERF_SEND_S = 180, PERF_BUCKETS = [16.7, 33, 50, 100, Infinity];
 const perfSid = Math.random().toString(36).slice(2, 10);
 let perf = null;
-const perfReset = () => { perf = { secs: 0, frames: 0, sum: 0, buckets: PERF_BUCKETS.map(() => 0), worst: [], maxEnemies: 0, sfxCalls: 0, sfxPlayed: 0, simMs: 0, drawMs: 0, warpMs: 0, glMs: 0, entMs: 0, speed: 0 }; };
+const perfReset = () => { perf = { secs: 0, frames: 0, sum: 0, buckets: PERF_BUCKETS.map(() => 0), worst: [], maxEnemies: 0, sfxCalls: 0, sfxPlayed: 0, simMs: 0, drawMs: 0, warpMs: 0, glMs: 0, entMs: 0, speed: 0, picMs: 0, fxMs: 0, bindMs: 0, fxN: 0, fxMax: 0, upBoard: 0, upDyn: 0 }; };
 perfReset();
 // the sound calls counted on their way through (sfx is a global function: every caller looks it up by name)
 if (typeof sfx === "function") { const sfx0 = sfx; sfx = function (...a) { perf.sfxCalls++; const r = sfx0.apply(this, a); if (r) perf.sfxPlayed++; return r; }; }
@@ -18,6 +18,12 @@ perfWrap("step", "simMs"); perfWrap("render", "drawMs"); perfWrap("warp3d", "war
 // ...and INSIDE the 3D pass (perf, 2026-10-13: an iPhone spent 19.6 of its 23.5 ms there with the picture itself 0.5): the GL draw with
 // the picture's upload (warpDraw, which INCLUDES the next) and the flat towers / dice / enemies layer (warpEntities)
 perfWrap("warpDraw", "glMs"); perfWrap("warpEntities", "entMs");
+// ...and inside THAT (2026-10-14: the new build still spent ~20 ms of an iPhone's frame in warpDraw): the board picture drawn
+// (warpRender), the effects batch (fxGlRender - its shapes counted), the two layers sent up (warpLayersBind - how often each).
+// A GPU that cannot keep up makes the call that waits on it slow, so these say WHERE, not only how long
+perfWrap("warpRender", "picMs"); perfWrap("warpLayersBind", "bindMs");
+if (typeof fxGlRender === "function") { const f0 = fxGlRender; fxGlRender = function (...a) { const n = typeof fxGl !== "undefined" ? fxGl.n : 0; perf.fxN += n; perf.fxMax = Math.max(perf.fxMax, n); const t0 = performance.now(); try { return f0.apply(this, a); } finally { perf.fxMs += performance.now() - t0; } }; }
+if (typeof warpLayersBind === "function") { const b0 = warpLayersBind; warpLayersBind = function (...a) { if (typeof warp !== "undefined") { if (warp.statNew) perf.upBoard++; if (warp.dynUp) perf.upDyn++; } return b0.apply(this, a); }; }
 function perfTick(dt) {
   if (!(dt > 0) || dt > 1 || ui.paused || document.hidden) return; // a stall or a tab switch is not a frame
   const ms = dt * 1000;
@@ -37,12 +43,17 @@ function perfGpu() {
   } catch (e) { perfGpuName = "?"; }
   return perfGpuName;
 }
+// the 3D pass's parts a frame (ms), the effects batch's shapes (mean, most), and the share of frames that sent each layer up
+function perfSplit() {
+  const n = Math.max(1, perf.frames), r = v => +(v / n).toFixed(1);
+  return { picMs: r(perf.picMs), fxMs: r(perf.fxMs), bindMs: r(perf.bindMs), fxN: Math.round(perf.fxN / n), fxMax: perf.fxMax, upBoard: +(perf.upBoard / n).toFixed(2), upDyn: +(perf.upDyn / n).toFixed(2), tex: typeof cv !== "undefined" ? cv.width : null, fxTex: typeof fxGl !== "undefined" && fxGl.S ? fxGl.S : null };
+}
 function perfSend() {
   const ver = document.querySelector(".asp-ver span");
   const body = {
     sid: perfSid, v: ver ? ver.textContent : "?", secs: Math.round(perf.secs), frames: perf.frames, avgMs: +(perf.sum / Math.max(1, perf.frames)).toFixed(1),
     buckets: Object.fromEntries(PERF_BUCKETS.map((b, i) => ["<" + b, perf.buckets[i]])), worst: perf.worst, maxEnemies: perf.maxEnemies,
-    perFrame: { simMs: +(perf.simMs / Math.max(1, perf.frames)).toFixed(1), drawMs: +(perf.drawMs / Math.max(1, perf.frames)).toFixed(1), warpMs: +(perf.warpMs / Math.max(1, perf.frames)).toFixed(1), glMs: +(perf.glMs / Math.max(1, perf.frames)).toFixed(1), entMs: +(perf.entMs / Math.max(1, perf.frames)).toFixed(1), speed: +(perf.speed / Math.max(1, perf.frames)).toFixed(2) }, // (3D: drawMs is inside warpMs)
+    gpuSplit: perfSplit(), perFrame: { simMs: +(perf.simMs / Math.max(1, perf.frames)).toFixed(1), drawMs: +(perf.drawMs / Math.max(1, perf.frames)).toFixed(1), warpMs: +(perf.warpMs / Math.max(1, perf.frames)).toFixed(1), glMs: +(perf.glMs / Math.max(1, perf.frames)).toFixed(1), entMs: +(perf.entMs / Math.max(1, perf.frames)).toFixed(1), speed: +(perf.speed / Math.max(1, perf.frames)).toFixed(2) }, // (3D: drawMs is inside warpMs)
     detailR: typeof detailFarR !== "undefined" ? Math.round(detailFarR) : null, texCap: typeof warpTexCap !== "undefined" ? Math.round(warpTexCap) : null, warpRes: typeof WARP_RES !== "undefined" ? +WARP_RES.toFixed(2) : null, // 3D's full-detail radius at send time
     quality: qMode, autoQ: typeof autoQ !== "undefined" ? Math.round(autoQ.ema) : null, qpick: (() => { try { return localStorage.getItem("spire.qpick"); } catch (e) { return "?"; } })(), stepped: typeof autoQSteps !== "undefined" ? autoQSteps : null, wave: G.wave, brave: !!navigator.brave,
     screen: [innerWidth, innerHeight, devicePixelRatio], canvas: [cv.width, cv.height],
