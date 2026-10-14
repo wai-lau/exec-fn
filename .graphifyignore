@@ -8,3 +8,12 @@
 *.bundle.js
 *-bundle.js
 *.bundle.css
+
+# Trees graph_scrub._GRAPH_DROP_PREFIXES cuts at serve time anyway -- skip them
+# at extraction so they never count against GRAPHIFY_VIZ_NODE_LIMIT. api/data/
+# is RUNTIME data (gitignored, not source): its spire-perflog alone grew to 6,644
+# nodes and pushed the build to 14,666 > 8,000, so graph.html was skipped
+# (2026-10-14). Keep this list and _GRAPH_DROP_PREFIXES in step.
+api/data/
+api/tarot/book/
+nightfall-incident/nightfall-src/
