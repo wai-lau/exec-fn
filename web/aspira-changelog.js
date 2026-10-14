@@ -65,7 +65,9 @@ function openChangelog() {
     card = document.createElement("div");
     card.id = "asp-log"; card.className = "asp-deck asp-log";
     const group = (name, items) => (items && items.length ? "<h4>" + name + "</h4><ul>" + items.map(i => "<li>" + i + "</li>").join("") + "</ul>" : "");
-    card.innerHTML = '<h2>changes</h2><div class="asp-log-list">' + CHANGELOG.map(d => "<h3>" + d.v + " · " + d.day + "</h3>" + group("Balance", d.b) + group("Perf/UI", d.u)).join("") + "</div>";
+    // the Balance / Perf/UI headings only where a version has more than one line (owner, 2026-10-14), and only over a group that has one
+    const day = d => { const all = [...(d.b || []), ...(d.u || [])]; return "<h3>" + d.v + " · " + d.day + "</h3>" + (all.length > 1 ? group("Balance", d.b) + group("Perf/UI", d.u) : "<ul>" + all.map(i => "<li>" + i + "</li>").join("") + "</ul>"); };
+    card.innerHTML = '<h2>changes</h2><div class="asp-log-list">' + CHANGELOG.map(day).join("") + "</div>";
     button(card, "asp-primary", "close", closeChangelog);
     document.querySelector(".asp-board").appendChild(card);
   }
