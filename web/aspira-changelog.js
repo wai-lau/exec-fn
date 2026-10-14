@@ -9,7 +9,7 @@ const CHANGELOG = [ // each day's lines in two groups: b = Balance, u = Perf/UI
     "Interest is 2% (was 3%).",
     "The +6 lives for every 100,000 score now arrive when the wave's boss falls.",
     "Acid Contagion: an enemy killed in a pool leaves a pool of its own.",
-    "Orbital Relay lasts 11.25 s (was 22.5).",
+    "Orbital Relay lasts 11.25 s (was 22.5), and stays on the tower you give it (dragging another no longer moves it).",
     "Temporal Drive ends once no enemies are left, and can't be used on an empty board.",
   ], u: [
     "Autosave: after a crash or a reload, resume from the start of the wave you were on.",

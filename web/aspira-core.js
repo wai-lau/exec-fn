@@ -24,7 +24,7 @@ const CORE_GRANTS = [[2 * STAR_EVERY, "temporal"], [4 * STAR_EVERY, "relay"]]; /
 const CORE_UNLOCK = CORE_GRANTS[0][0], CORE_TIERS = 3, CORE_PICKS = [] /* (the picks are gone; corePicks() stays 0) */, CORE_POINTS = CORE_TIERS * CORE_GRANTS.length;
 const CORE_POWERS = [
   { id: "relay", name: "Orbital Relay", /* planetary defence names (owner, 2026-10-06; was Fortifications) */ how: "drag the core onto a tower",
-    desc: "For a while, a tower acts as three: every bolt, ray, burn line and moon, three times over. It moves to the last tower you drag." },
+    desc: "For a while, a tower acts as three: every bolt, ray, burn line and moon, three times over." },
   { id: "temporal", name: "Temporal Drive", /* (owner; was Temporal Manipulation) */ how: "press and hold the core",
     desc: "Every enemy stops dead at once, and stays stopped while rings pulse out from the core." },
 ];
@@ -81,14 +81,8 @@ function relay(t) {
   return true;
 }
 const relayed = t => t.relayUntil > (G.clock || 0);
-// THE RELAY RIDES THE LAST TOWER YOU DRAG (owner, 2026-10-11): while it runs, dragging another tower hands it what is
-// left of the boost (aspira-camera.js calls this as a drag moves a tower)
-function relayFollow(t) {
-  const h = G.towers.find(o => o !== t && relayed(o));
-  if (!h) return;
-  t.relayUntil = h.relayUntil; h.relayUntil = 0;
-  ring(t.x, t.y, 64, "white");
-}
+// (the Relay rode the last tower dragged 2026-10-11 .. 10-14 - relayFollow; owner, 2026-10-14: "change orbital relay to empower a
+// single tower without switching on drag": it stays on the tower it was given)
 // a wave sent ticks every power's cooldown by one (sendWave, aspira-waves.js)
 function tickPowerCooldowns() { const c = G.core; if (c) for (const k in c.cd) c.cd[k] = Math.max(0, c.cd[k] - 1); }
 const relayMul = t => (relayed(t) ? RELAY_MUL : 1);

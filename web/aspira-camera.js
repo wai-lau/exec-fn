@@ -96,7 +96,7 @@ cv.addEventListener("pointermove", ev => {
   const mv = moves.get(ev.pointerId);
   if (mv) { // this finger holds a tower: it follows the finger, held to its leash (moveTower), no pan
     if (!mv.dragged && Math.hypot(now.x - mv.down.x, now.y - mv.down.y) > DRAG_PX * canvasDpr()) mv.dragged = dragged = true;
-    if (mv.dragged && !towersFrozen()) { const w = toWorld(ev); moveTower(mv.t, { x: w.x + mv.dx, y: w.y + mv.dy }); relayFollow(mv.t); flingTrack(mv); } // the Relay follows the tower last dragged (aspira-core.js)
+    if (mv.dragged && !towersFrozen()) { const w = toWorld(ev); moveTower(mv.t, { x: w.x + mv.dx, y: w.y + mv.dy }); flingTrack(mv); }
     return;
   }
   if (moves.size) return; // the other finger holds a tower: this one does nothing
