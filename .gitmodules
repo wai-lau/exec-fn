@@ -1,0 +1,5 @@
+[submodule "nightfall-incident"]
+	path = nightfall-incident
+	url = git@github.com:wai-lau/nightfall.git
+	branch = master
+	ignore = dirty

@@ -18,9 +18,9 @@ ADHD scaffolding for Wai. Claude runs planning pipeline.
 
 **Local-claude deploy — push, then deterministic reset over SSH, never `git pull`/`git stash`** (the bind-mounted untracked dirs make pull/stash fragile; both have caused outages). `git stash` is blocked by a hook. `graphify-out/` is gitignored (never commit it). Why, and the `/nightfall` lazy-mount history: **ARCHITECTURE.md §1**. After `git push` from `~/src/exec-fn`:
 ```bash
-ssh wai-root@wai-lau.net 'cd /exec-fn && git fetch origin && git reset --hard origin/master && sudo docker compose up -d --force-recreate api'
+ssh wai-root@wai-lau.net 'cd /exec-fn && git fetch origin && git reset --hard origin/master && git submodule update --init && sudo docker compose up -d --force-recreate api'
 ```
-**NO `sudo` on the git half** — only docker needs it (root-owned socket). `sudo git reset --hard` leaves root-owned sources that then need `sudo` to edit; the tree was chowned back to `wai-root` on 2026-09-12 — keep it that way. Ignored `graphify-out` and untracked `nightfall-incident` survives; `--force-recreate` rebuilds the mount namespace. **ARCHITECTURE.md §1**.
+**NO `sudo` on the git half** — only docker needs it (root-owned socket). `sudo git reset --hard` leaves root-owned sources that then need `sudo` to edit; the tree was chowned back to `wai-root` on 2026-09-12 — keep it that way. Ignored `graphify-out` survives; `nightfall-incident` is a SUBMODULE (since 2026-10-14) — `submodule update --init` checks out the commit the parent records; `--force-recreate` rebuilds the mount namespace. **ARCHITECTURE.md §1**.
 
 **Auto-deploy is the expected workflow** (local claude) — the owner wants code changes pushed to the live droplet via the SSH deploy above (confirmed after weighing the outage risk); deploy yourself, don't hand the command back to run manually.
 

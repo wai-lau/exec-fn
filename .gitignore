@@ -4,7 +4,6 @@ package-lock.json
 !.claude/settings.json
 !.claude/hooks/
 !.claude/plans/
-nightfall-incident/
 api/data/
 api/debug/
 # emet-graph.json was Wai's private personal knowledge graph (data). The file +

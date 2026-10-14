@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # PreToolUse(Bash) guard: deny a tree-mutating `git stash` in this repo.
 #
-# Why: /exec-fn has bind-mounted untracked/nested dirs (./nightfall-incident ->
-# /app/nightfall, ./graphify-out). `git stash [push|save|-u|...]` removes+restores
+# Why: /exec-fn has bind-mounted nested dirs (./nightfall-incident -> /app/nightfall,
+# a submodule since 2026-10-14; ./graphify-out; ./apps). `git stash [push|save|-u|...]` removes+restores
 # those from the working tree, which STALES the Docker bind mount -> the worker
 # crashes on its next --reload (or 502s on a request that reads the mount). Both
 # `stash -u` and plain `stash` have taken the site down. The safe way to clear a
@@ -43,7 +43,7 @@ case "$rest" in
   list*|show*) exit 0 ;;
 esac
 
-reason="git stash is blocked in /exec-fn. It removes+restores the bind-mounted untracked dirs (nightfall-incident -> /app/nightfall, graphify-out), staling the Docker mount, which crashes the worker on the next --reload (502 across every route). To integrate when 'git push' is rejected, clear the rebase blocker by discarding the regenerated graphify-out artifacts instead: 'git checkout -- graphify-out/' then 'git pull --rebase && git push'. If the worker is already crashed, recover with 'docker compose up -d --force-recreate api'. (git stash list / git stash show are allowed.)"
+reason="git stash is blocked in /exec-fn. It removes+restores files under the bind-mounted dirs (nightfall-incident -> /app/nightfall, graphify-out, apps/), staling the Docker mount, which crashes the worker on the next --reload (502 across every route). To integrate when 'git push' is rejected, clear the rebase blocker by discarding the regenerated graphify-out artifacts instead: 'git checkout -- graphify-out/' then 'git pull --rebase && git push'. If the worker is already crashed, recover with 'docker compose up -d --force-recreate api'. (git stash list / git stash show are allowed.)"
 
 if command -v jq >/dev/null 2>&1; then
   jq -n --arg r "$reason" \

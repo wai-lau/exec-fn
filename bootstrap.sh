@@ -133,7 +133,10 @@ systemctl start docker nginx fail2ban
 
 # ── repo ──────────────────────────────────────────────────────────────────────
 if [ ! -d ${REPO_DIR} ]; then
-    git clone https://github.com/wai-lau/exec-fn ${REPO_DIR}
+    # Submodules (nightfall-incident, apps/*) are registered with ssh URLs; a
+    # fresh box has no GitHub key, so read them over https for this clone only.
+    git -c url."https://github.com/".insteadOf=git@github.com: \
+        clone --recurse-submodules https://github.com/wai-lau/exec-fn ${REPO_DIR}
 else
     # Deterministic update (matches the deploy pattern in CLAUDE.md): a plain
     # `git pull` can hit a merge conflict on a droplet with local drift and
@@ -141,6 +144,8 @@ else
     # conflicts, keeping a partial-failure re-run idempotent.
     git -C ${REPO_DIR} fetch origin
     git -C ${REPO_DIR} reset --hard origin/master
+    git -C ${REPO_DIR} -c url."https://github.com/".insteadOf=git@github.com: \
+        submodule update --init
 fi
 
 # ── .env check ────────────────────────────────────────────────────────────────
