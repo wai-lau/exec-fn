@@ -93,13 +93,10 @@ def _poll_or_404(slug: str) -> dict:
 # ── public: anyone holding the link ─────────────────────────────────────────
 @router.get("/noodle/{slug}", response_class=HTMLResponse)
 async def noodle_vote_page(slug: str, t: str | None = None):
-    # a DRAFT: no poll yet, but the owner's token for this slug (drafts.py),
-    # which also says whether it will be end-to-end
-    kind = None if store.exists(slug) else drafts.kind(slug, t)
-    if kind:
-        draft = {"slug": slug, "title": drafts.UNTITLED}
-        if kind == "e2e":
-            draft["e2e"] = 1
+    # a DRAFT: no poll yet, but its own token for this slug (drafts.py) --
+    # every draft becomes an end-to-end poll
+    if not store.exists(slug) and drafts.kind(slug, t) == "e2e":
+        draft = {"slug": slug, "title": drafts.UNTITLED, "e2e": 1}
         return HTMLResponse(pages.vote_page(draft, draft=t), headers=_PRIVATE_PAGE)
     return HTMLResponse(pages.vote_page(_poll_or_404(slug)), headers=_PRIVATE_PAGE)
 

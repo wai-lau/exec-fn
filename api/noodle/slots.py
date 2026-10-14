@@ -13,6 +13,16 @@ _CODES = set(config.BLOCK_CODES.values()) | {config.DAY_CODE}
 
 
 _NAME_OK = re.compile(r"[a-z0-9 ]+")
+_DAY = re.compile(r"\d{4}-\d{2}-\d{2}")
+
+
+def _day(s) -> date:
+    """A YYYY-MM-DD date, and only that: date.fromisoformat also takes
+    '20261013' and '2026-W42-1', which would be stored as sent and then never
+    compare equal to any slot (security audit 2026-10-14)."""
+    if not isinstance(s, str) or not _DAY.fullmatch(s):
+        raise ValueError(f"bad date {s!r}")
+    return date.fromisoformat(s)
 
 
 def normalize_name(raw: str) -> str:
@@ -45,7 +55,7 @@ def parse_window(start, end, max_days: int | None = None) -> tuple[date, date]:
     limit on the poll."""
     if not start or not end:
         raise ValueError("a range needs both ends")
-    s, e = date.fromisoformat(start), date.fromisoformat(end)
+    s, e = _day(start), _day(end)
     if e < s:
         raise ValueError("range ends before it starts")
     if max_days and (e - s).days + 1 > max_days:
@@ -64,7 +74,7 @@ def parse_slot(slot: str) -> tuple[date, str]:
     code = slot[11]
     if code not in _CODES:
         raise ValueError(f"bad block in {slot!r}")
-    return date.fromisoformat(slot[:10]), code
+    return _day(slot[:10]), code
 
 
 def clean_slots(slots, halves: bool = True, today: date | None = None) -> list[str]:

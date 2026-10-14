@@ -20,10 +20,8 @@ from noodle.votes import VoteError, check_action, now_ms
 def rekey(slug: str, body: dict, now: int | None = None) -> dict:
     now = now_ms() if now is None else now
     newpub, newname = body.get("newpub"), body.get("newname")
-    try:
-        sig.b64d(newpub, 32)
-    except (TypeError, ValueError):
-        raise VoteError(400, "newpub must be a public key") from None
+    if not sig.valid_pub(newpub):
+        raise VoteError(400, "newpub must be a public key")
     try:
         newkey = slots.normalize_name(newname)
     except ValueError as e:

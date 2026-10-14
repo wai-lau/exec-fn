@@ -4033,9 +4033,10 @@ or action verifies as another.
 (`noodle-claim.js noodleNewPollKey`), before the draft is even minted, and
 carried in the link's fragment (`/noodle/<slug>#k=<43 b64url>`) -- the part
 a browser never sends, so the server never holds it, not even in flight.
-The draft token says which kind a draft becomes (`drafts.kind`): new drafts
-are `<claim>.<mac>` (below); a bare HMAC over the slug is a draft handed
-out before 2026-10-09 and still makes a plain poll. The owner's titled
+Every draft token is `<claim>.<mac>` (`drafts.kind`, below): the bare HMAC
+over the slug (plain drafts handed out before 2026-10-09) was RETIRED
+2026-10-14 -- the access log keeps those tokens, and committing one first
+made you host. Polls already made from either old kind are unaffected. The owner's titled
 `POST /api/noodle-polls` stays plain (the server is handed the title).
 
 **The creator's claim** (since 2026-10-12): the FIRST vote decides the host,
@@ -4052,7 +4053,11 @@ holding one unless it carries `claim` = the claim key's signature over
 spends it. The page attaches it whenever nothing is sealed on the poll yet
 (`ndeSendVote`), which also covers a draft whose first vote failed after
 the poll was written. The end-to-end drafts minted 2026-10-09..12 (bare
-HMAC over `e2e\0`+slug, no claim) are refused outright. Every place that hands a link on carries the key:
+HMAC over `e2e\0`+slug, no claim) are refused outright, and an end-to-end
+poll stored with NO claim and NO voters (the same window's shape, if any was
+created and abandoned) refuses its first vote (403) -- the slug alone would
+otherwise seat a stranger as host. None existed when this landed (an empty
+unclaimed poll seals to exactly 235 bytes; no stored file was). Every place that hands a link on carries the key:
 `ndeLink()` (share box, the host's clipboard copy, the post-draft
 `replaceState`). A link without the key
 shows a banner and locks; a key that opens nothing says so too.
@@ -4082,6 +4087,19 @@ key. Title/note/`document.title` are filled in after opening
 (`ndeShowTexts`); the server's HTML and link preview say only "noodle".
 
 **Content-Security-Policy on the vote page** (2026-10-14): `script-src 'self'` (no inline script, no eval), `frame-ancestors 'none'`, `connect-src`/`worker-src`/`img-src`/`font-src 'self'`, `object-src 'none'`, `base-uri 'none'`; styles may be inline (seal inks are `style="--seal-hsl:…"` strings). The page holds the poll key and, once typed, the voter's key, so any future XSS should find nothing to run. `/noodle` carries the site nav (an inline script), so it gets `frame-ancestors 'none'` only. **Testing it**: Playwright's `wait_for_function` compiles its string predicate in the page on every poll, which the policy refuses (WebKit's `bypass_csp` covers only the first evaluation) -- so `tests/conftest.py`'s browser wrapper strips the CSP header off page documents for the general suites, and `tests/test_noodle_browser_csp.py` keeps it (`bypass_csp=False`), polls from Python, and walks a plain vote plus an e2e create -> commit with zero violations.
+
+**Hardening from the 2026-10-14 audit** (`tests/test_noodle_hardening.py`):
+a key that LEFT a poll -- moved to a new passphrase, or removed by the host --
+is tombstoned in `poll["gone"]` with the ts it left at (`e2e._bury`; entries
+older than the skew window are dropped), so a body it signed before then,
+replayed within the window, gets 409; a genuinely newer vote may still rejoin.
+`sig.valid_pub` refuses Ed25519 keys of small order (identity + 7 torsion
+points: with A = identity, R = identity and S = 0 verify for ANY message, and
+OpenSSL checks nothing) -- `verify` and both rekey paths use it; the check is
+pure integer math (decode, double thrice, compare with the identity). Signed
+text is encoded `surrogatepass`, so a lone surrogate is a failed signature,
+not a 500. Plain orders are `max+1` (len() repeated one after a removal);
+dates in crops and slots are `YYYY-MM-DD` only (`slots._day`).
 
 **KDF salt** on an e2e poll is `SHA-256(slug + NUL + key + NUL + name)`
 (`ndeScope()` passed as NoodleKdf's slug), so the server -- which knows the

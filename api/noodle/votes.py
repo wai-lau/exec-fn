@@ -121,7 +121,8 @@ def submit(slug: str, body: dict, now: int | None = None) -> dict:
             # showing first-typed casing made "Wai" and "wai" look like two people
             "name": key,
             "pub": pub, "slots": picked, "ts": ts,
-            "order": prev["order"] if prev else len(voters),
+            # max+1, never len(): after a removal len() repeats a live order
+            "order": prev["order"] if prev else max((v["order"] for v in voters.values()), default=-1) + 1,
         }
         voters[key] = rec
         if not host or host[0] == key:

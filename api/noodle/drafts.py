@@ -48,13 +48,13 @@ def _key() -> bytes:
     return _secret
 
 
-# Two kinds of draft, told apart by the token. One minted since 2026-10-12 is
-# `<claim>.<mac>` and becomes an END-TO-END poll (e2e.py) whose first vote only
-# the claim key's holder can cast. One minted before 2026-10-09 is a bare mac
-# and stays plain, so a draft link handed out then still makes the poll it
-# promised. The end-to-end drafts minted in between (a bare mac over
-# b"e2e\0" + slug, no claim) are no longer accepted: whoever saw such a token
-# could take the host's seat.
+# One kind of draft is accepted: `<claim>.<mac>`, minted since 2026-10-12, which
+# becomes an END-TO-END poll (e2e.py) whose first vote only the claim key's
+# holder can cast. Both older kinds are refused -- the bare mac over the slug
+# (plain drafts, before 2026-10-09; retired 2026-10-14) and the bare mac over
+# b"e2e\0" + slug (2026-10-09..12): whoever had seen such a token (the access
+# log keeps them) could commit it first and take the host's seat. Polls already
+# made from either are unaffected -- only an uncommitted draft link stops.
 _CLAIMED = b"e2e-claim\0"
 
 
@@ -71,21 +71,24 @@ def valid_claim(claim) -> bool:
 
 
 def token(slug: str, claim: str | None = None) -> str:
-    """An END-TO-END draft's token for this claim key, or with no claim the
-    PLAIN token of a draft handed out before 2026-10-09."""
+    """An END-TO-END draft's token for this claim key. With no claim: the
+    retired PLAIN token (kept so tests can show it is refused)."""
     if claim is None:
         return _mac(slug.encode())
     return f"{claim}.{_mac(_CLAIMED + slug.encode() + b'\0' + claim.encode())}"
 
 
 def kind(slug: str, tok) -> str | None:
-    """'e2e' or 'plain' for this slug's own token, else None."""
+    """'e2e' for this slug's own token, else None."""
     if not isinstance(tok, str) or not tok.isascii() or not store.valid_slug(slug):
         return None
     claim, dot, _ = tok.partition(".")
     if dot:
         return "e2e" if valid_claim(claim) and hmac.compare_digest(tok, token(slug, claim)) else None
-    return "plain" if hmac.compare_digest(tok, token(slug)) else None
+    # a bare mac is a PLAIN draft handed out before 2026-10-09: retired
+    # 2026-10-14 -- whoever had seen one (the access log keeps them) could
+    # commit it first and host. Polls already made from one are unaffected.
+    return None
 
 
 def claim_of(tok: str) -> str:
@@ -137,19 +140,15 @@ def new_for(ip: str, claim: str, now: float | None = None) -> dict:
 
 
 def ensure(slug: str, body: dict, e2e_ok: bool = True) -> bool:
-    """Before a commit: write the poll if it is still a draft and the body
-    carries its token -- end-to-end or plain, as the token says. A poll that
-    exists is left alone; one without a valid token stays missing (and the
-    commit 404s). e2e_ok=False: this request cannot create an end-to-end poll
-    (its first write is always the host's vote, never the settings).
-    -> whether THIS call created it."""
+    """Before a commit: write the (end-to-end) poll if it is still a draft and
+    the body carries its token. A poll that exists is left alone; one without a
+    valid token stays missing (and the commit 404s). e2e_ok=False: this request
+    cannot create it (its first write is always the host's vote, never the
+    settings). -> whether THIS call created it."""
     if store.exists(slug):
         return False
     tok = body.get("draft")
-    k = kind(slug, tok)
-    now = datetime.now().isoformat(timespec="seconds")
-    if k == "plain":
-        return store.try_create(slug, UNTITLED, now)
-    if k == "e2e" and e2e_ok:
+    if e2e_ok and kind(slug, tok) == "e2e":
+        now = datetime.now().isoformat(timespec="seconds")
         return store.try_create(slug, UNTITLED, now, e2e=True, claim=claim_of(tok))
     return False

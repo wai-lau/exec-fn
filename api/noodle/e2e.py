@@ -92,6 +92,16 @@ def _claim(slug: str, poll: dict, body: dict, pub: str) -> None:
     del poll["claim"]
 
 
+def _bury(poll: dict, pub: str, ts: int, now: int) -> None:
+    """Remember that `pub` left this poll (moved to a new key, or removed) as
+    of `ts`: a body it signed before then, replayed inside the skew window,
+    must not seat it again. Entries older than the window can never match a
+    fresh-enough request, so they are dropped as new ones arrive."""
+    gone = {k: t for k, t in poll.get("gone", {}).items() if t >= now - config.TS_SKEW_MS}
+    gone[pub] = ts
+    poll["gone"] = gone
+
+
 def vote(slug: str, body: dict, now: int | None = None) -> dict:
     """Store a voter's sealed {name, slots} under their key. The FIRST key to
     vote on a fresh poll is its host (order 0) -- the creator's, by _claim."""
@@ -100,12 +110,19 @@ def vote(slug: str, body: dict, now: int | None = None) -> dict:
     pub, ts = _check(slug, body, {"kind": "e2e-vote", "ct": ct}, now)
     try:
         with store.edit(slug) as poll:
+            voters = poll["voters"]
             if poll.get("claim"):
                 _claim(slug, poll, body, pub)
-            voters = poll["voters"]
+            elif not voters:
+                # an end-to-end poll made 2026-10-09..12 (before the claim) that
+                # nobody ever voted on: its first vote would make whoever sent
+                # it the host, and the slug alone is enough to send one
+                raise VoteError(403, "this poll was never started -- make a new one")
             prev = voters.get(pub)
             if prev and ts <= prev["ts"]:
                 raise VoteError(409, "stale or replayed submission")
+            if pub in poll.get("gone", {}) and ts <= poll["gone"][pub]:
+                raise VoteError(409, "that key has left this poll")
             if not prev and len(voters) >= config.MAX_VOTERS:
                 raise VoteError(409, "this poll is full")
             order = prev["order"] if prev else max((v["order"] for v in voters.values()), default=-1) + 1
@@ -143,7 +160,7 @@ def remove(slug: str, body: dict, now: int | None = None) -> dict:
                 raise VoteError(400, "the host cannot remove themselves")
             if target not in poll["voters"]:
                 raise VoteError(404, "no such voter")
-            del poll["voters"][target]
+            _bury(poll, target, poll["voters"].pop(target)["ts"], now)
     except KeyError:
         raise VoteError(404, "no such poll") from None
     return {"removed": target}
@@ -155,10 +172,8 @@ def rekey(slug: str, body: dict, now: int | None = None) -> dict:
     is kept."""
     now = now_ms() if now is None else now
     newpub, ct = body.get("newpub"), _ct(body)
-    try:
-        sig.b64d(newpub, 32)
-    except (TypeError, ValueError):
-        raise VoteError(400, "newpub must be a public key") from None
+    if not sig.valid_pub(newpub):
+        raise VoteError(400, "newpub must be a public key")
     pub, ts = _check(slug, body, {"kind": "e2e-rekey", "newpub": newpub, "ct": ct}, now)
     try:
         with store.edit(slug) as poll:
@@ -172,6 +187,8 @@ def rekey(slug: str, body: dict, now: int | None = None) -> dict:
                 raise VoteError(409, "that name and passphrase are already on this poll")
             del voters[pub]
             voters[newpub] = {"pub": newpub, "ts": ts, "order": rec["order"], "ct": ct}
+            if newpub != pub:
+                _bury(poll, pub, ts, now)
     except KeyError:
         raise VoteError(404, "no such poll") from None
     return {"pub": newpub}

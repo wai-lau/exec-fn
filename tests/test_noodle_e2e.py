@@ -67,13 +67,14 @@ def test_a_fresh_draft_makes_an_end_to_end_poll_with_nothing_readable(slug):
     assert "title" not in poll and poll["claim"] == b64u(CREATOR)
 
 
-def test_old_draft_tokens_still_make_plain_polls(monkeypatch, tmp_path):
+def test_old_plain_draft_tokens_are_retired(monkeypatch, tmp_path):
+    # a bare mac over the slug (drafts handed out before 2026-10-09): whoever
+    # had seen one could commit it first and host -- refused since 2026-10-14
     monkeypatch.setattr(config, "DATA_DIR", tmp_path)
     monkeypatch.setattr(drafts, "_secret", None)
     s = "AbCdEfGhIjKlMnOpQrStUv"
-    assert drafts.kind(s, drafts.token(s)) == "plain"
-    drafts.ensure(s, {"draft": drafts.token(s)})
-    assert not store.load(s).get("e2e") and store.load(s)["title"] == drafts.UNTITLED
+    assert drafts.kind(s, drafts.token(s)) is None
+    assert drafts.ensure(s, {"draft": drafts.token(s)}) is False and not store.exists(s)
 
 
 def test_settings_never_create_an_end_to_end_poll(monkeypatch, tmp_path):
