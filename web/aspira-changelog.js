@@ -34,6 +34,7 @@ const CHANGELOG = [ // each day's lines in two groups: b = Balance, u = Perf/UI.
     "3D: shapes below the floor fade out.",
     "Quality slider matches the width of the stats row.",
     "Version number opens this card.",
+    "TOP PLAYERS shows the owner's games from Oct 14 on.",
   ] },
   { v: "4.2", day: "Oct 13", b: [
     "Bosses: x1.4 HP; the Empress and Strength x3.5, Death x2.8.",

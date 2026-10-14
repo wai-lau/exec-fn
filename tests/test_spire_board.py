@@ -126,3 +126,11 @@ def test_hide_leaves_later_games_under_the_same_initials(tmp_path):
     spire_board.add(tmp_path, spire_board.clean_entry({"initials": "WAI", "lives": 12, "team": ["sol"]}) | {"ts": 2})
     rows = spire_board.visible(tmp_path, spire_board.load(tmp_path), True)
     assert [(r["initials"], r["ts"]) for r in rows] == [("WAI", 2)]
+
+
+def test_owner_games_from_oct_14_show_to_guests(tmp_path):
+    """Owner, 2026-10-14: "show owner on leaderboard, but only the ones starting from today" - a flagged post from that day on shows."""
+    rows = [{**win("WAI", 3), "owner": True, "ts": spire_board.OWNER_SHOWN_FROM - 1},
+            {**win("WAI", 5), "owner": True, "ts": spire_board.OWNER_SHOWN_FROM}]
+    assert [r["ts"] for r in spire_board.visible(tmp_path, rows, owner=False)] == [spire_board.OWNER_SHOWN_FROM]
+    assert len(spire_board.visible(tmp_path, rows, owner=True)) == 2

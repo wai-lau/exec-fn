@@ -153,14 +153,21 @@ def _hidden(data_dir: Path) -> set:
         return set()
 
 
+# ...UNTIL 2026-10-14 (owner: "show owner on leaderboard, but only the ones starting from today"): the owner's games from
+# midnight ET that day on show to everyone; the older ones (OWNER_MARKS and the flagged posts before it) stay hidden
+OWNER_SHOWN_FROM = 1791950400  # 2026-10-14 00:00 America/New_York
+
+
 def visible(data_dir: Path, rows: list, owner: bool) -> list:
-    """`rows` as this caller may see them: never a HIDDEN game; everything else for the owner, everyone else without the owner's own games."""
+    """`rows` as this caller may see them: never a HIDDEN game; everything else for the owner; everyone else without the
+    owner's own games from before OWNER_SHOWN_FROM."""
     gone = _hidden(data_dir)
     rows = [r for r in rows if (r.get("ts"), r.get("initials")) not in gone]
     if owner:
         return rows
     marks = _owner_marks(data_dir)
-    return [r for r in rows if not r.get("owner") and (r.get("ts"), r.get("initials")) not in marks]
+    recent = lambda r: int(r.get("ts") or 0) >= OWNER_SHOWN_FROM  # noqa: E731
+    return [r for r in rows if recent(r) or (not r.get("owner") and (r.get("ts"), r.get("initials")) not in marks)]
 
 
 def hide(data_dir: Path, initials: set) -> int:
