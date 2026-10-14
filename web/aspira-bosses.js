@@ -376,3 +376,28 @@ function skyKeep(fn) {
   ctx.save(); circle(); ctx.rect(CX - 4000, CY - 4000, 8000, 8000); ctx.clip("evenodd"); fn(); ctx.restore();
   ctx.save(); circle(); ctx.clip(); flipped(); ctx.restore();
 }
+// THE BOSS LANE TURNED TO THE SCREEN (owner, 2026-10-14: "for bosses that have elliptical curves, can you rotate them so that they
+// stay on screen for as long as possible"): the boss pair is elliptical, so where its long axis points decides how much of the
+// ride is seen. Of BOSS_TURNS turns of the whole set (its k split copies with it), the one with the most lane on the screen
+// (phoneInside: 2D or 3D) - ties to the wave's usual turn. The simulator (no screen) keeps laneTurn.
+const BOSS_TURNS = 24;
+function bossTurn(n, k) {
+  const base = laneTurn(n), pi = laneMap(n).bonus, pts = PATHS[pi] && PATHS[pi].pts;
+  if ((typeof AUTO_POS !== "undefined" && AUTO_POS) || typeof phoneInside !== "function" || !pts) return base;
+  const seen = turn => {
+    let len = 0;
+    for (let j = 0; j < k; j++) {
+      const a = turn + (j / k) * Math.PI * 2;
+      let prev = null;
+      for (let i = 0; i < pts.length; i += 6) {
+        const p = rotAbout(pts[i], a), on = phoneInside(p.x, p.y);
+        if (on && prev) len += Math.hypot(p.x - prev.x, p.y - prev.y);
+        prev = on ? p : null;
+      }
+    }
+    return len;
+  };
+  let best = base, bestLen = seen(base) + 1e-6; // (the usual turn wins a tie)
+  for (let i = 0; i < BOSS_TURNS; i++) { const t = base + i / BOSS_TURNS * Math.PI * 2, l = seen(t); if (l > bestLen) { best = t; bestLen = l; } }
+  return best % (Math.PI * 2);
+}

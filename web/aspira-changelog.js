@@ -13,6 +13,9 @@ const CHANGELOG = [ // each day's lines in two groups: b = Balance, u = Perf/UI
     "Temporal Drive ends once no enemies are left, and can't be used on an empty board.",
   ], u: [
     "Autosave: after a crash or a reload, resume from the start of the wave you were on.",
+    "Boss lanes turn to keep the boss on screen as long as they can.",
+    "The threat ring round the core runs into the two triangles beside the enemy.",
+    "The pause button flashes while the game is paused.",
     "3D runs much faster, most of all on phones.",
     "Acid's late effects are calmer: piled-up pools no longer flood the board green, Spray V shows its jets, Contagion's pools are dashed rings.",
     "When an enemy gets close, a ring round the core shows its distance again.",
