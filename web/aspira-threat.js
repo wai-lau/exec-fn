@@ -40,12 +40,14 @@ function threatTri(x, y, a, s) { // a triangle at (x, y) pointing along angle a,
   ctx.lineTo(x - c * s / 2 - n * s * 0.45, y - n * s / 2 + c * s * 0.45); ctx.lineTo(x - c * s / 2 + n * s * 0.45, y - n * s / 2 - c * s * 0.45); ctx.closePath();
 }
 // ...and with that circle the RING round the core comes back (owner, 2026-10-14: "bring back threat indicator circles when the
-// circle shows, do not cross circle around the enemy", "I want the circle, not just an arc"): a WHOLE ring, just inside the
-// enemy's circle - touching it on the core's side, never through it
-function threatCoreRing(e, R, al, w, core) {
-  const d = Math.hypot(e.x - CX, e.y - CY) - R - w;
-  if (d <= 0) return; // the circle is on the core already
-  ctx.beginPath(); ctx.arc(CX, CY, d, 0, 6.283); threatStroke(al, w, core);
+// circle shows, do not cross circle around the enemy", then "the ends of the arc should connect with the triangles pointing at
+// the enemy"): the ring through the two triangles' outer edges, all the way round the core the long way, ending at each -
+// never through the enemy's circle. (ex, ey): one of its ends; the other is its mirror across the enemy's line
+function threatCoreRing(e, ex, ey, al, w, core) {
+  const rho = Math.hypot(ex - CX, ey - CY), te = Math.atan2(e.y - CY, e.x - CX);
+  let g = Math.abs(Math.atan2(ey - CY, ex - CX) - te); if (g > Math.PI) g = 2 * Math.PI - g; // the half gap, round the core
+  if (!(rho > 0) || g >= Math.PI) return;
+  ctx.beginPath(); ctx.arc(CX, CY, rho, te + g, te - g + 2 * Math.PI); threatStroke(al, w, core);
 }
 function drawThreat() {
   const near = [];
@@ -59,8 +61,8 @@ function drawThreat() {
     const k = (1 - t / THREAT_FROM) ** 2, fade = Math.min(1, (THREAT_FROM - t) / THREAT_FADE);
     const al = fade * (THREAT_A_MIN + (THREAT_A_MAX - THREAT_A_MIN) * k), core = fade * k, w = 1.2 + 1.8 * k;
     const R = ENEMIES[e.type].size * (e.sizeMul || 1) + THREAT_GAP;
-    if (t <= AUTO_WAIT3_S) { ctx.beginPath(); ctx.arc(e.x, e.y, R, 0, 6.283); threatStroke(al, w, core); threatCoreRing(e, R, al, w, core); } // the circle only when TOO close: auto-wait's LAST stage, 1 s out ("much later than the triangles", owner 2026-10-13; was its second, 2 s)
     const a = Math.atan2(CY - e.y, CX - e.x) + Math.PI / 2, s = THREAT_TRI[0] + (THREAT_TRI[1] - THREAT_TRI[0]) * k, d = R + s / 2 + 3;
+    if (t <= AUTO_WAIT3_S) { ctx.beginPath(); ctx.arc(e.x, e.y, R, 0, 6.283); threatStroke(al, w, core); threatCoreRing(e, e.x + Math.cos(a) * (d + s / 2), e.y + Math.sin(a) * (d + s / 2), al, w, core); } // the circle only when TOO close: auto-wait's LAST stage, 1 s out ("much later than the triangles", owner 2026-10-13; was its second, 2 s)
     for (const side of [1, -1]) {
       threatTri(e.x + Math.cos(a) * d * side, e.y + Math.sin(a) * d * side, a + (side > 0 ? Math.PI : 0), s);
       ctx.fillStyle = COL.glow; ctx.globalAlpha = Math.min(1, al * 1.3); ctx.fill();

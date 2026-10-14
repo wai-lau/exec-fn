@@ -26,7 +26,13 @@ function glCtx(real, toWorld) { // toWorld: the real canvas's pixels -> world un
   g.arc = (x, y, r, a0, a1, ccw) => {
     op("arc", [x, y, r, a0, a1, ccw]);
     const full = Math.abs(a1 - a0) >= GLCTX_TAU - 1e-3, uni = Math.abs(g.m[1]) < 1e-9 && Math.abs(g.m[2]) < 1e-9 && Math.abs(g.m[0] - g.m[3]) < 1e-9;
-    if (!full || !uni) { odd = true; return; }
+    if (!uni) { odd = true; return; }
+    if (!full) { // a PART arc (the threat ring): short straight pieces on from the current point, as the canvas would join it
+      const span = ccw ? -(((a0 - a1) % GLCTX_TAU + GLCTX_TAU) % GLCTX_TAU) : ((a1 - a0) % GLCTX_TAU + GLCTX_TAU) % GLCTX_TAU, n = Math.max(8, Math.min(160, Math.round(Math.abs(span) * r * sc() / 3)));
+      if (!cur || cur.circle) { cur = { pts: [] }; parts.push(cur); }
+      for (let i = 0; i <= n; i++) { const t = a0 + span * i / n; cur.pts.push(T(x + r * Math.cos(t), y + r * Math.sin(t))); }
+      return;
+    }
     if (cur && cur.pts.length === 1 && !cur.circle) parts.pop(); // a moveTo just before a whole circle (its start): no line
     const [cx, cy] = T(x, y);
     cur = { circle: [cx, cy, r * sc()] }; parts.push(cur);
