@@ -27,7 +27,12 @@ def _apps():
 
 
 def _names(d: Path, pattern: str) -> set[str]:
-    return {p.name for p in d.glob(pattern)} if d.is_dir() else set()
+    """Served FILE paths relative to the dir (fonts/x.woff2): two repos may both
+    have a fonts/ or vendor/ dir; only the same file path would clash."""
+    if not d.is_dir():
+        return set()
+    return {p.relative_to(d).as_posix() for p in d.rglob(pattern)
+            if p.is_file() and "__pycache__" not in p.parts}
 
 
 def _modules(d: Path) -> set[str]:
