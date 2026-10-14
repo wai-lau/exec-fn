@@ -25,7 +25,12 @@
   cursor: pointer;
 }
 .nd-ask-go:disabled { border-color: hsl(var(--gray-hsl) / 0.45); color: hsl(var(--gray-hsl) / 0.45); cursor: default; }
-.nd-ask .nd-status, .nd-ask .nd-ask-note { margin: 0; }
+.nd-ask .nd-status { margin: 0; }
+
+/* right under the Ask box: what is sealed and what is not. The first line is
+   true only of an end-to-end poll (a plain one, made before 2026-10-09, is not) */
+.nd-ask .nd-ask-note { margin: 0; text-align: center; }
+#noodle:not([data-e2e="1"]) .nd-e2e-only { display: none; }
 .nd-card textarea { resize: none; line-height: var(--lh-snug); }
 
 /* the Ask box's text is small (feedback 2026-10-03): the box is a few lines
