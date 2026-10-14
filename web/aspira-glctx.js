@@ -31,7 +31,14 @@ function glCtx(real, toWorld) { // toWorld: the real canvas's pixels -> world un
     const [cx, cy] = T(x, y);
     cur = { circle: [cx, cy, r * sc()] }; parts.push(cur);
   };
-  for (const name of ["rect", "ellipse", "quadraticCurveTo", "bezierCurveTo", "arcTo", "roundRect"]) g[name] = (...a) => { op(name, a); odd = true; };
+  for (const name of ["rect", "quadraticCurveTo", "bezierCurveTo", "arcTo", "roundRect"]) g[name] = (...a) => { op(name, a); odd = true; };
+  g.ellipse = (x, y, rx, ry, rot, a0, a1, ccw) => { // a whole one: a closed line of short straight pieces (the moons' orbit)
+    op("ellipse", [x, y, rx, ry, rot, a0, a1, ccw]);
+    if (Math.abs(a1 - a0) < GLCTX_TAU - 1e-3) { odd = true; return; }
+    const n = Math.max(48, Math.min(160, Math.round(Math.max(rx, ry) * sc() / 3))), c = Math.cos(rot), sn = Math.sin(rot); // a piece every ~3 px
+    cur = { pts: [], closed: true }; parts.push(cur);
+    for (let i = 0; i < n; i++) { const t = i / n * GLCTX_TAU, ex = rx * Math.cos(t), ey = ry * Math.sin(t); cur.pts.push(T(x + ex * c - ey * sn, y + ex * sn + ey * c)); }
+  };
   const replay = () => { // the path onto the real context, each op under its own transform
     const m0 = real.getTransform();
     real.beginPath();
@@ -41,35 +48,13 @@ function glCtx(real, toWorld) { // toWorld: the real canvas's pixels -> world un
   const plain = s => typeof s === "string";
   g.fill = (...a) => {
     const st = real.fillStyle, grad = st && st.__disc;
-    if (odd || a.length || real.globalCompositeOperation !== "source-over" || real.shadowBlur > 0 || real.filter !== "none" || parts.some(p => !p.circle) || (!plain(st) && !grad)) { replay(); real.fill(...a); return; }
-    for (const p of parts) {
-      const [x, y] = g.w2(p.circle[0], p.circle[1]), r = p.circle[2] / g.w2.k;
-      if (grad) fxGlPush(x, y, x, y, r, 0, grad.col, real.globalAlpha, grad.col, 0, 3); // the gradDisc: clear at the centre to its colour at the rim
-      else fxGlPush(x, y, x, y, r, 0, st, real.globalAlpha, st, 0);
-    }
+    if (odd || a.length || real.globalCompositeOperation !== "source-over" || real.shadowBlur > 0 || real.filter !== "none" || (!plain(st) && !grad) || !glcFill(g, parts, st, grad)) { replay(); real.fill(...a); }
   };
   g.stroke = (...a) => {
-    const st = real.strokeStyle, lw = real.lineWidth * sc() / g.w2.k;
-    const dash = g.dash ? real.getLineDash() : null, dk = sc() / g.w2.k;
-    if (odd || a.length || (dash && dash.length !== 2) || real.globalCompositeOperation !== "source-over" || real.shadowBlur > 0 || real.filter !== "none" || !plain(st) ||
+    const st = real.strokeStyle, dash = g.dash ? real.getLineDash() : null, glow = real.shadowBlur > 0 && real.shadowColor === st; // a glow in its own colour: soft rings under it (glcGlow)
+    if (odd || a.length || (dash && dash.length !== 2) || real.globalCompositeOperation !== "source-over" || (real.shadowBlur > 0 && (!glow || parts.some(p => !p.circle))) || real.filter !== "none" || !plain(st) ||
       (real.lineJoin !== "round" && parts.some(p => !p.circle && p.pts.length + (p.closed ? 1 : 0) > 2))) { replay(); real.stroke(...a); return; } // (a mitred corner: the canvas)
-    const butt = real.lineCap === "butt";
-    for (const p of parts) {
-      const dOn = dash ? dash[0] * dk : 0, dOff = dash ? dash[1] * dk : 0, dAt = dash ? real.lineDashOffset * dk : 0; // (a dash: on, off, its offset - world units)
-      if (p.circle) { const [x, y] = g.w2(p.circle[0], p.circle[1]); fxGlPush(x, y, x, y, p.circle[2] / g.w2.k, lw, st, 0, st, real.globalAlpha, 0, 0, 0, 0, 0, dOn, dOff, dAt); continue; }
-      const closed = p.closed && p.pts.length > 2, P = (closed ? [...p.pts, p.pts[0]] : p.pts).map(q => g.w2(q[0], q[1])), n = P.length - 1;
-      const dir = i => { const dx = P[i + 1][0] - P[i][0], dy = P[i + 1][1] - P[i][1], l = Math.hypot(dx, dy) || 1; return [dx / l, dy / l]; };
-      const D = Array.from({ length: n }, (_, i) => dir(i));
-      // each segment cut at its joints (the bisector of its direction and its neighbour's): seen-through lines never overlap
-      const joint = (u, w) => { const x = u[0] + w[0], y = u[1] + w[1], l = Math.hypot(x, y); return l > 1e-6 ? [x / l, y / l] : [0, 0]; };
-      let along = 0; // the dash carries on round the corners
-      for (let i = 0; i < n; i++) {
-        const prev = i > 0 ? D[i - 1] : closed ? D[n - 1] : null, next = i < n - 1 ? D[i + 1] : closed ? D[0] : null;
-        const [b0x, b0y] = prev ? joint(prev, D[i]) : [0, 0], [b1x, b1y] = next ? joint(D[i], next) : [0, 0];
-        fxGlPush(P[i][0], P[i][1], P[i + 1][0], P[i + 1][1], lw / 2, 0, st, real.globalAlpha, st, 0, butt && !prev && !next ? 2 : 0, b0x, b0y, b1x, b1y, dOn, dOff, dAt + along);
-        along += Math.hypot(P[i + 1][0] - P[i][0], P[i + 1][1] - P[i][1]);
-      }
-    }
+    glcStroke(g, parts, st, dash, sc(), glow);
   };
   g.setLineDash = d => { g.dash = !!(d && d.length); real.setLineDash(d); };
   g.getLineDash = () => real.getLineDash();
@@ -94,4 +79,59 @@ function glCtx(real, toWorld) { // toWorld: the real canvas's pixels -> world un
   g.clip = (...a) => { replay(); real.clip(...a); };
   for (const name of ["measureText", "createLinearGradient", "createPattern", "isPointInPath", "getImageData", "createImageData", "createConicGradient"]) g[name] = (...a) => real[name](...a);
   return g;
+}
+// the batch's fills: whole circles (a plain colour or the gradDisc) and REGULAR POLYGONS (FRZ's moons, poly() - the canvas
+// fallback sent the whole moving layer up every frame on a phone, 2026-10-14); false: something else, the canvas draws it
+function glcFill(g, parts, st, grad) {
+  const shapes = parts.map(p => p.circle ? null : glcRegular(p, g.w2) || glcTri(p, g.w2));
+  if (parts.some((p, i) => !p.circle && !shapes[i]) || (grad && shapes.some(Boolean))) return false;
+  const A = g.real.globalAlpha;
+  parts.forEach((p, i) => {
+    if (shapes[i] && shapes[i].tri) { const [[ax, ay], [bx, by], [cx, cy]] = shapes[i].tri; fxGlPush(ax, ay, bx, by, 1, 0, st, A, st, 0, 6, cx, cy); return; } // (shape 6: the third corner in the joint slot)
+    if (shapes[i]) { const q = shapes[i]; fxGlPush(q.x, q.y, q.x + Math.cos(q.rot) * q.n, q.y + Math.sin(q.rot) * q.n, q.r, 0, st, A, st, 0, 5); return; } // (shape 5: p1 - p0 its direction, its length the sides)
+    const [x, y] = g.w2(p.circle[0], p.circle[1]), r = p.circle[2] / g.w2.k;
+    if (grad) fxGlPush(x, y, x, y, r, 0, grad.col, A, grad.col, 0, 3); // the gradDisc: clear at the centre to its colour at the rim
+    else fxGlPush(x, y, x, y, r, 0, st, A, st, 0);
+  });
+  return true;
+}
+// any THREE corners (a fill closes its path): {tri} in world units - the threat marks (aspira-threat.js)
+function glcTri(p, w2) { return p.pts.length === 3 ? { tri: p.pts.map(q => w2(q[0], q[1])) } : null; }
+// a closed path of 3-12 corners all as far from their middle and as far apart round it: {x, y, r, rot, n} in world units
+function glcRegular(p, w2) {
+  const n = p.pts.length;
+  if (!p.closed || n < 3 || n > 12) return null;
+  const P = p.pts.map(q => w2(q[0], q[1])), x = P.reduce((s, q) => s + q[0], 0) / n, y = P.reduce((s, q) => s + q[1], 0) / n;
+  const r = Math.hypot(P[0][0] - x, P[0][1] - y), rot = Math.atan2(P[0][1] - y, P[0][0] - x);
+  if (!(r > 0)) return null;
+  for (let i = 0; i < n; i++) {
+    const a = rot + i * GLCTX_TAU / n;
+    if (Math.hypot(P[i][0] - (x + r * Math.cos(a)), P[i][1] - (y + r * Math.sin(a))) > r * 0.01 + 0.01) return null;
+  }
+  return { x, y, r, rot, n };
+}
+// the batch's strokes: whole circles (with a glow, soft rings under it) and polylines cut at their joints
+function glcStroke(g, parts, st, dash, scale, glow) {
+  const real = g.real, lw = real.lineWidth * scale / g.w2.k, A = real.globalAlpha, dk = scale / g.w2.k, butt = real.lineCap === "butt";
+  const dOn = dash ? dash[0] * dk : 0, dOff = dash ? dash[1] * dk : 0, dAt0 = dash ? real.lineDashOffset * dk : 0; // (a dash: on, off, its offset - world units)
+  for (const p of parts) {
+    if (p.circle) {
+      const [x, y] = g.w2(p.circle[0], p.circle[1]), r = p.circle[2] / g.w2.k;
+      if (glow) { const b = real.shadowBlur / g.w2.k; fxGlPush(x, y, x, y, r, lw + b, st, 0, st, A * 0.18); fxGlPush(x, y, x, y, r, lw + b * 0.45, st, 0, st, A * 0.3); } // a canvas glow, as two soft rings
+      fxGlPush(x, y, x, y, r, lw, st, 0, st, A, 0, 0, 0, 0, 0, dOn, dOff, dAt0);
+      continue;
+    }
+    const closed = p.closed && p.pts.length > 2, P = (closed ? [...p.pts, p.pts[0]] : p.pts).map(q => g.w2(q[0], q[1])), n = P.length - 1;
+    const dir = i => { const dx = P[i + 1][0] - P[i][0], dy = P[i + 1][1] - P[i][1], l = Math.hypot(dx, dy) || 1; return [dx / l, dy / l]; };
+    const D = Array.from({ length: n }, (_, i) => dir(i));
+    // each segment cut at its joints (the bisector of its direction and its neighbour's): seen-through lines never overlap
+    const joint = (u, w) => { const x = u[0] + w[0], y = u[1] + w[1], l = Math.hypot(x, y); return l > 1e-6 ? [x / l, y / l] : [0, 0]; };
+    let along = 0; // the dash carries on round the corners
+    for (let i = 0; i < n; i++) {
+      const prev = i > 0 ? D[i - 1] : closed ? D[n - 1] : null, next = i < n - 1 ? D[i + 1] : closed ? D[0] : null;
+      const [b0x, b0y] = prev ? joint(prev, D[i]) : [0, 0], [b1x, b1y] = next ? joint(D[i], next) : [0, 0];
+      fxGlPush(P[i][0], P[i][1], P[i + 1][0], P[i + 1][1], lw / 2, 0, st, A, st, 0, butt && !prev && !next ? 2 : 0, b0x, b0y, b1x, b1y, dOn, dOff, dAt0 + along);
+      along += Math.hypot(P[i + 1][0] - P[i][0], P[i + 1][1] - P[i][1]);
+    }
+  }
 }

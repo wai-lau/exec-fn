@@ -47,8 +47,10 @@ void main() {
   loc = vec2(corner.x * (hl + ext), corner.y * ext); v = vec4(r, h, rws.z, hl);
   cb = vec4(dot(clipB.xy, u), dot(clipB.xy, nrm), dot(clipB.zw, u), dot(clipB.zw, nrm)); /* the joint planes, in the segment's own frame */
   dsh = dashA * tcam.z;
-  if (rws.z > 3.5) { u = normalize(d); nrm = vec2(-u.y, u.x); loc = corner * (r + 1.5); v.w = len / tcam.z; } /* 4, a cone: round its tip, p1 - p0 its direction, its length the half angle */
-  vec2 mid = rws.z > 3.5 ? a : (a + b) * 0.5;
+  if (rws.z > 3.5) { u = normalize(d); nrm = vec2(-u.y, u.x); loc = corner * (r + (rws.z > 4.5 ? h : 0.0) + 1.5); v.w = len / tcam.z; } /* 4, a cone: round its tip, p1 - p0 its direction, its length the half angle; 5, a regular polygon: p1 - p0 its first corner's direction, its length the sides */
+  vec2 C = tcam.xy + clipB.xy * tcam.z, cen = (a + b + C) / 3.0; /* 6, a triangle: p0, p1 and clipB.xy its corners, sent on (from its middle, px) in cb and dsh */
+  if (rws.z > 5.5) { u = vec2(1.0, 0.0); nrm = vec2(0.0, 1.0); loc = corner * (max(length(a - cen), max(length(b - cen), length(C - cen))) + h + 1.5); cb = vec4(a - cen, b - cen); dsh = vec3(C - cen, 0.0); }
+  vec2 mid = rws.z > 5.5 ? cen : rws.z > 3.5 ? a : (a + b) * 0.5;
   fc = vec4(fillC.rgb * fillC.a, fillC.a); sc = vec4(strokeC.rgb * strokeC.a, strokeC.a);
   vec2 p = mid + u * loc.x + nrm * loc.y;
   gl_Position = vec4(p.x / S.x * 2.0 - 1.0, p.y / S.y * 2.0 - 1.0, 0.0, 1.0);
@@ -61,16 +63,25 @@ precision mediump float;
 #endif
 varying vec2 loc; varying vec4 v, fc, sc, cb; varying vec3 dsh;
 void main() {
-  if ((dot(cb.xy, cb.xy) > 0.0 && dot(loc + vec2(v.w, 0.0), cb.xy) < 0.0) || (dot(cb.zw, cb.zw) > 0.0 && dot(loc - vec2(v.w, 0.0), cb.zw) > 0.0)) discard;
   float sh = floor(v.z + 0.5);
+  if (sh < 5.5 && ((dot(cb.xy, cb.xy) > 0.0 && dot(loc + vec2(v.w, 0.0), cb.xy) < 0.0) || (dot(cb.zw, cb.zw) > 0.0 && dot(loc - vec2(v.w, 0.0), cb.zw) > 0.0))) discard;
   float d = sh == 1.0 ? max(abs(loc.x), abs(loc.y)) : sh == 2.0 ? max(abs(loc.x) - v.w + v.x, abs(loc.y)) : length(vec2(max(abs(loc.x) - v.w, 0.0), loc.y)); /* square, butt segment, round */
   float r = max(v.x, 0.5), h = max(v.y, 0.5); /* under a pixel: drawn a pixel wide at its coverage, as a canvas does */
   float fa = (1.0 - smoothstep(r - 0.5, r + 0.5, d)) * min(1.0, v.x * 2.0), g = 1.0; /* g: a gradient's share of the colour */
   float sa = v.y > 0.0 ? (1.0 - smoothstep(h - 0.5, h + 0.5, abs(d - v.x))) * min(1.0, v.y * 2.0) : 0.0;
   if (sh == 3.0) g = clamp(d / max(v.x, 0.001), 0.0, 1.0); /* the gradient disc: clear at the centre to its colour at the rim */
   if (sh == 4.0) { float dd = length(loc), ang = abs(atan(loc.y, loc.x)); fa = (1.0 - smoothstep(v.x - 0.5, v.x + 0.5, dd)) * (1.0 - smoothstep(-0.5, 0.5, (ang - v.w) * dd)); g = clamp(1.0 - dd / max(2.0 * v.y, 0.001), 0.0, 1.0); sa = 0.0; } /* the cone: its colour at the tip to clear at 2h */
+  if (sh == 5.0) { float an = 3.14159265 / v.w, bn = mod(atan(loc.y, loc.x), 2.0 * an) - an, pd = length(loc) * cos(bn), R = v.x * cos(an); /* pd: the distance across to the nearest side's line */
+    fa = (1.0 - smoothstep(R - 0.5, R + 0.5, pd)) * min(1.0, v.x * 2.0); sa = v.y > 0.0 ? (1.0 - smoothstep(h - 0.5, h + 0.5, abs(pd - R))) * min(1.0, v.y * 2.0) : 0.0; }
+  if (sh == 6.0) { /* the triangle: its signed distance (inside negative) */
+    vec2 A = cb.xy, B = cb.zw, Q = dsh.xy, e0 = B - A, e1 = Q - B, e2 = A - Q, w0 = loc - A, w1 = loc - B, w2 = loc - Q;
+    vec2 q0 = w0 - e0 * clamp(dot(w0, e0) / dot(e0, e0), 0.0, 1.0), q1 = w1 - e1 * clamp(dot(w1, e1) / dot(e1, e1), 0.0, 1.0), q2 = w2 - e2 * clamp(dot(w2, e2) / dot(e2, e2), 0.0, 1.0);
+    float k = sign(e0.x * e2.y - e0.y * e2.x);
+    vec2 m = min(min(vec2(dot(q0, q0), k * (w0.x * e0.y - w0.y * e0.x)), vec2(dot(q1, q1), k * (w1.x * e1.y - w1.y * e1.x))), vec2(dot(q2, q2), k * (w2.x * e2.y - w2.y * e2.x)));
+    float td = -sqrt(m.x) * sign(m.y);
+    fa = 1.0 - smoothstep(-0.5, 0.5, td); sa = v.y > 0.0 ? (1.0 - smoothstep(h - 0.5, h + 0.5, abs(td))) * min(1.0, v.y * 2.0) : 0.0; }
   /* a canvas gradient to "transparent" (black at alpha 0) runs through the dark between: colour x g x g, alpha x g */
-  if (dsh.x > 0.0) { /* a dash: along the circle from its east point, or the segment from p0 (px) */
+  if (sh < 5.5 && dsh.x > 0.0) { /* a dash: along the circle from its east point, or the segment from p0 (px) */
     float at = v.w > 0.0 ? loc.x + v.w : mod(atan(loc.y, loc.x), 6.2831853) * v.x, ph = mod(at + dsh.z, dsh.x + dsh.y);
     float m = min(ph, dsh.x - ph); sa *= smoothstep(-0.5, 0.5, m); fa *= smoothstep(-0.5, 0.5, m); }
   vec4 s = sc * sa, f = vec4(fc.rgb * g * g, fc.a * g) * fa;
