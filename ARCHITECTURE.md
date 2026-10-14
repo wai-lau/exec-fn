@@ -2401,6 +2401,8 @@ Every check is **trigger-gated on what a commit actually stages**, so the suite 
 
 Plus a non-blocking reminder to update `CLAUDE.md`/`ARCHITECTURE.md` when source changes.
 
+**Shared lint plumbing (2026-10-14).** `scripts/lintkit.py` is what the lints share: file discovery through `api/app_paths.py` (`web_dirs()`, `template_dirs()` — the SAME lists the static mount, `pages._tmpl` and `/api/ui/usage` use, so a lint scans exactly what is served, apps included), comment stripping, baseline JSON I/O and the `--update` entry point. `scripts/pre-commit` resolves `PYTEST` and reads the staged list (`$STAGED`) ONCE; every gate filters that.
+
 ### 13a. The palette lint (`scripts/lint-colors.py`)
 
 **The allowed `(color, alpha)` pairs are DERIVED from usage**, by the same extraction `/api/ui/usage` feeds to `/UI`, and frozen in `scripts/palette-baseline.json`. It rejects:

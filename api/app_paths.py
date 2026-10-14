@@ -55,3 +55,14 @@ def web_dirs() -> list[Path]:
     container = Path("/app/static")
     parent = container if container.is_dir() else _HERE.parent / "web"
     return [parent, *app_subdirs("web")]
+
+
+def template_dirs() -> list[Path]:
+    """The parent's api/templates (/app/templates in the container -- the same
+    path, since ./api is /app), then each app's api/templates."""
+    return [_HERE / "templates", *app_subdirs("api/templates")]
+
+
+def py_dirs() -> list[Path]:
+    """Every dir whose top-level modules are importable: api/, then apps/*/api."""
+    return [_HERE, *app_subdirs("api")]

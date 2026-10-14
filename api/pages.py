@@ -365,13 +365,10 @@ _tmpl_cache: dict[Path, tuple[float, str]] = {}
 def _tmpl_path(name: str) -> Path:
     """The parent's templates first, then each app submodule's
     (apps/*/api/templates) -- the same parent-wins order as the static mount."""
-    path = _TMPL / name
-    if path.exists():
-        return path
-    for d in app_paths.app_subdirs("api/templates"):
+    for d in (_TMPL, *app_paths.template_dirs()[1:]):
         if (d / name).exists():
             return d / name
-    return path   # missing everywhere: let stat() raise on the parent path
+    return _TMPL / name   # missing everywhere: let stat() raise on the parent path
 
 
 def _tmpl(name: str) -> str:
