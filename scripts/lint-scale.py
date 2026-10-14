@@ -31,12 +31,11 @@ are a separate, minor surface already constrained by the no-inline-CSS rule.
 Run:    python3 scripts/lint-scale.py            (exit 1 on any violation)
 Update: python3 scripts/lint-scale.py --update   (re-freeze shadow/z baseline)
 """
-import json
 import re
-import sys
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+import lintkit
+from lintkit import ROOT, read_json, rel, write_json
+
 SCALE_BASELINE = ROOT / "scripts/scale-baseline.json"
 
 # Freeze-governed props: no token family to snap to, so the current set of raw
@@ -153,7 +152,7 @@ def _clean_text(path):
         else seg
         for seg in PROTECTED.split(path.read_text())
     )
-    return re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
+    return lintkit.strip_comments(text, html=False)
 
 
 def _norm_decl(value):
@@ -173,7 +172,7 @@ def _fully_tokenized(norm):
 def _baselined_values():
     """{prop: set(normalized value)} for the freeze-governed props, current."""
     out = {p: set() for p in BASELINED}
-    for path in sorted(ROOT.glob("web/*.css")) + sorted(ROOT.glob("apps/*/web/*.css")):
+    for path in lintkit.css_files():
         for m in DECL.finditer(_clean_text(path)):
             prop = m.group(1).strip().lower()
             if prop in BASELINED:
@@ -184,19 +183,17 @@ def _baselined_values():
 def update():
     base = _baselined_values()
     payload = {k: sorted(v) for k, v in sorted(base.items())}
-    SCALE_BASELINE.write_text(json.dumps(payload, indent=2) + "\n")
+    write_json(SCALE_BASELINE, payload)
     n = sum(len(v) for v in base.values())
-    print(f"wrote {SCALE_BASELINE.relative_to(ROOT)}: {n} frozen box-shadow/z-index values")
+    print(f"wrote {rel(SCALE_BASELINE)}: {n} frozen box-shadow/z-index values")
     return 0
 
 
 def check():
-    allowed = {}
-    if SCALE_BASELINE.exists():
-        allowed = {k: set(v) for k, v in json.loads(SCALE_BASELINE.read_text()).items()}
+    allowed = {k: set(v) for k, v in read_json(SCALE_BASELINE, {}).items()}
 
     errors = []
-    for path in sorted(ROOT.glob("web/*.css")) + sorted(ROOT.glob("apps/*/web/*.css")):
+    for path in lintkit.css_files():
         for m in DECL.finditer(_clean_text(path)):
             prop = m.group(1).strip().lower()
             if prop in BASELINED:
@@ -224,11 +221,5 @@ def check():
     return 0
 
 
-def main(argv):
-    if "--update" in argv:
-        return update()
-    return check()
-
-
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    raise SystemExit(lintkit.main(check, update))

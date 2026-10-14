@@ -33,12 +33,11 @@ entered the palette.
 Run:     python3 scripts/lint-colors.py            (exit 1 on any violation)
 Update:  python3 scripts/lint-colors.py --update   (rewrite the baseline)
 """
-import json
 import re
-import sys
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+import lintkit
+from lintkit import ROOT, read_json, rel, write_json
+
 BASELINE = ROOT / "scripts/palette-baseline.json"
 RAW_BASELINE = ROOT / "scripts/raw-color-baseline.json"
 CHROME = "web/chrome.css"
@@ -116,13 +115,11 @@ _STRIP_FUNCS = re.compile(
 
 
 def _scan_paths():
-    # apps/*/ mirror the parent layout (apps/README.md), so each glob runs at
-    # the root AND inside every app submodule: one palette, one baseline.
-    paths = []
-    for g in ("api/templates/*.html", "web/*.html", "web/*.css", "web/*.js"):
-        paths += sorted(ROOT.glob(g)) + sorted(ROOT.glob("apps/*/" + g))
+    # Served templates + web files of the parent AND every app submodule
+    # (lintkit, via api/app_paths.py): one palette, one baseline.
+    paths = lintkit.template_files() + lintkit.web_files("html", "css", "js")
     paths.append(ROOT / "api/main.py")
-    return [p for p in paths if "/vendor/" not in p.as_posix() and p.exists()]
+    return [p for p in paths if p.exists()]
 
 
 def _akey(a):
@@ -130,12 +127,10 @@ def _akey(a):
 
 
 def _strip_comments(text):
-    """Drop block + HTML comments so example/placeholder tokens in prose (e.g.
-    chrome.css's `hsl(var(--X-hsl) / α)`) aren't counted as real usage. The one
-    deliberate divergence from /api/color/usage, which scans raw; harmless since
-    /color only renders tokens actually defined in chrome.css :root anyway."""
-    text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
-    return re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
+    """Block + HTML comments dropped, so example/placeholder tokens in prose
+    (e.g. chrome.css's `hsl(var(--X-hsl) / α)`) aren't counted as real usage.
+    The one deliberate divergence from /api/ui/usage, which scans raw."""
+    return lintkit.strip_comments(text)
 
 
 def usage():
@@ -185,12 +180,12 @@ def named_color_errors():
     """CSS named colour in a colour property -- web/*.css declarations + template
     inline style="" attrs. There are none in the tree, so any hit is new."""
     errors = []
-    for p in sorted(ROOT.glob("web/*.css")) + sorted(ROOT.glob("apps/*/web/*.css")):
+    for p in lintkit.css_files():
         for m in _DECL.finditer(_strip_comments(p.read_text())):
             if m.group(1).strip().lower() in COLOR_PROPS and (w := _named_in(m.group(2))):
                 errors.append(f"{p.name}: {m.group(1).strip()}: named colour '{w}' "
                               f"-- use a palette token hsl(var(--X-hsl) / α).")
-    for p in sorted(ROOT.glob("api/templates/*.html")) + sorted(ROOT.glob("apps/*/api/templates/*.html")):
+    for p in lintkit.template_files():
         for sm in _STYLE_ATTR.finditer(p.read_text()):
             for m in _DECL.finditer(sm.group(1)):
                 if m.group(1).strip().lower() in COLOR_PROPS and (w := _named_in(m.group(2))):
@@ -200,19 +195,18 @@ def named_color_errors():
 
 
 def _load_baseline():
-    data = json.loads(BASELINE.read_text())
-    return {k: set(v) for k, v in data.items()}
+    return {k: set(v) for k, v in read_json(BASELINE).items()}
 
 
 def update():
     cur = usage()
     payload = {k: sorted(v, key=float) for k, v in sorted(cur.items())}
-    BASELINE.write_text(json.dumps(payload, indent=2) + "\n")
+    write_json(BASELINE, payload)
     raw = sorted(raw_colors())
-    RAW_BASELINE.write_text(json.dumps({"raw_colors": raw}, indent=2) + "\n")
+    write_json(RAW_BASELINE, {"raw_colors": raw})
     pairs = sum(len(v) for v in cur.values())
-    print(f"wrote {BASELINE.relative_to(ROOT)}: {len(cur)} colors, {pairs} (color, alpha) pairs")
-    print(f"wrote {RAW_BASELINE.relative_to(ROOT)}: {len(raw)} grandfathered raw colour literals")
+    print(f"wrote {rel(BASELINE)}: {len(cur)} colors, {pairs} (color, alpha) pairs")
+    print(f"wrote {rel(RAW_BASELINE)}: {len(raw)} grandfathered raw colour literals")
     return 0
 
 
@@ -246,9 +240,7 @@ def _token_errors(baseline, defined, cur):
 
 def _raw_color_errors():
     """Guard 5: the current raw-colour literals are frozen; reject any new one."""
-    allowed = set()
-    if RAW_BASELINE.exists():
-        allowed = set(json.loads(RAW_BASELINE.read_text()).get("raw_colors", []))
+    allowed = set(read_json(RAW_BASELINE, {}).get("raw_colors", []))
     return [
         f"raw colour literal '{lit}' -- use a palette token hsl(var(--X-hsl) / α). "
         f"If deliberate, re-run with --update."
@@ -258,7 +250,7 @@ def _raw_color_errors():
 
 def check():
     if not BASELINE.exists():
-        print(f"no baseline at {BASELINE.relative_to(ROOT)} -- run: "
+        print(f"no baseline at {rel(BASELINE)} -- run: "
               f"python3 scripts/lint-colors.py --update")
         return 1
     errors = _token_errors(_load_baseline(), _defined_tokens(), usage())
@@ -273,11 +265,5 @@ def check():
     return 0
 
 
-def main(argv):
-    if "--update" in argv:
-        return update()
-    return check()
-
-
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    raise SystemExit(lintkit.main(check, update))
