@@ -75,4 +75,5 @@ function warpLayersBind(gl, u) {
   gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, typeof fxGl !== "undefined" && fxGl.tex ? fxGl.tex : warp.dynTex); // the hits (aspira-fxgl.js)
   gl.activeTexture(gl.TEXTURE0);
   gl.uniform1i(u("tex"), 0); gl.uniform1i(u("dyn"), 1); gl.uniform1i(u("fxt"), 2);
+  hullUniforms(gl, u, warp.cv.height); // the towers' outlines: no beam under one (aspira-fog.js)
 }

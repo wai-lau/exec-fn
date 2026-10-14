@@ -71,3 +71,41 @@ function entCtx(c) {
   if (sb && sb.set) Object.defineProperty(x, "shadowBlur", { configurable: true, get() { return sb.get.call(this) / k(); }, set(v) { sb.set.call(this, v * k()); } });
   return x;
 }
+// BEAMS GONE UNDER A TOWER (owner, 2026-10-14: "make all beams 100% transparent when covered by a tower" - "yes do that bigger
+// change"): each tower prism's outline ON SCREEN (the hull of its top and bottom hexagons, last frame's - warpEntities) goes to
+// the bell's shader, which clears the effects layer (fxt: every beam, jet, hit and ring) inside it, a pixel soft at the edge.
+// HULL_TOWERS outlines of up to HULL_PTS corners, each closed (its first corner again) and padded by repeating it
+const HULL_TOWERS = 3, HULL_PTS = 12;
+const HULL_GLSL = `
+uniform vec2 hullP[${HULL_TOWERS * (HULL_PTS + 1)}]; uniform float hullOn[${HULL_TOWERS}];
+float hullCover(vec2 p) {
+  float cov = 0.0;
+  for (int t = 0; t < ${HULL_TOWERS}; t++) {
+    if (hullOn[t] < 0.5) continue;
+    float m = 1e6;
+    for (int i = 0; i < ${HULL_PTS}; i++) {
+      vec2 a = hullP[t * ${HULL_PTS + 1} + i], b = hullP[t * ${HULL_PTS + 1} + i + 1], e = b - a; float l = length(e);
+      if (l > 0.01) m = min(m, (e.x * (p.y - a.y) - e.y * (p.x - a.x)) / l); /* + inside: the outline runs counter-clockwise */
+    }
+    cov = max(cov, smoothstep(-0.5, 0.5, m));
+  }
+  return cov;
+}`;
+// the outline of points [{x, y}] (screen px, y down) as the shader wants it: y up (H - y), counter-clockwise (Andrew's chain)
+function hullOf(pts, H) {
+  const P = pts.map(p => [p.x, H - p.y]).sort((a, b) => a[0] - b[0] || a[1] - b[1]), cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo = [], hi = [];
+  for (const p of P) { while (lo.length > 1 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
+  for (const p of P.slice().reverse()) { while (hi.length > 1 && cr(hi[hi.length - 2], hi[hi.length - 1], p) <= 0) hi.pop(); hi.push(p); }
+  return lo.slice(0, -1).concat(hi.slice(0, -1)).slice(0, HULL_PTS);
+}
+// the uniforms: this frame's outlines (warp.hulls: one point list a tower), closed and padded
+function hullUniforms(gl, u, H) {
+  const P = new Float32Array(HULL_TOWERS * (HULL_PTS + 1) * 2), on = new Float32Array(HULL_TOWERS);
+  (warp.hulls || []).slice(0, HULL_TOWERS).forEach((pts, t) => {
+    const h = hullOf(pts, H); if (h.length < 3) return;
+    on[t] = 1;
+    for (let i = 0; i <= HULL_PTS; i++) P.set(i < h.length ? h[i] : h[0], (t * (HULL_PTS + 1) + i) * 2); // (past its last corner: back at the first - closed, then zero-length edges)
+  });
+  gl.uniform2fv(u("hullP"), P); gl.uniform1fv(u("hullOn"), on);
+}

@@ -58,6 +58,7 @@ uniform sampler2D tex, dyn, fxt; /* dyn: the moving layer, premultiplied, over t
 uniform float towers, onBoard, op, neck, bgA, invR; uniform vec3 bgCol, shape; // shape: the funnel's head rim, foot (world units), power // op: the whole bell SEMI-TRANSPARENT, nothing occluded (owner)
 varying vec2 uv; varying float sh, rr, th;
 float line(float d, float wd) { return 1.0 - smoothstep(wd * 0.5, wd * 1.5, d); }
+${HULL_GLSL}
 void main() {
   vec2 inUv = step(vec2(0.0), uv) * step(uv, vec2(1.0));
   float board = inUv.x * inUv.y * (1.0 - smoothstep(edge.x, edge.y, rr));
@@ -74,7 +75,7 @@ void main() {
   // up to the core (the spokes fade where they crowd it), half as strong over the head
   float gk = max(ring, spoke * smoothstep(20.0, 60.0, rr)) * grid.w * (0.5 + 0.5 * smoothstep(towers, towers + 30.0, rr)) * (1.0 - smoothstep(grid.z * 0.7, grid.z, rr));
   gk *= 1.0 - board * (1.0 - onBoard); // faint over the board itself: the lanes stay readable
-  vec4 dv = texture2D(dyn, uv), fv = texture2D(fxt, uv); vec3 raw = (texture2D(tex, uv).rgb * (1.0 - dv.a) + dv.rgb) * (1.0 - fv.a) + fv.rgb;
+  vec4 dv = texture2D(dyn, uv), fv = texture2D(fxt, uv) * (1.0 - hullCover(gl_FragCoord.xy)); vec3 raw = (texture2D(tex, uv).rgb * (1.0 - dv.a) + dv.rgb) * (1.0 - fv.a) + fv.rgb;
   // a BOSS SKY inverts the board (white ground, dark ink): back to the plain palette here, or its white reads as ink
   // and the bell turns into a grey slab (owner, 2026-10-09)
   // only INSIDE the sky's circle round the core (invR, world units; the 2D view inverts exactly there): a guess by colour
@@ -344,6 +345,7 @@ function warpEntities() {
     const spreading = skyOn() && !skyPal();
     const drawTop = tops => { for (const o of solids) if (spreading && inSky(o) && !o.own) withPalette(() => drawSolid(o, tops)); else if (spreading) drawSolid(o, tops); else if (o.own && inSky(o)) skyOwn(o, () => drawSolid(o, tops)); else drawSolid(o, tops); };
     ctx = topCtx; warpBands(above => drawTop(above));
+    warp.hulls = solids.filter(o => o.own && o.geo).map(o => [...o.geo.B, ...o.geo.T]); // the towers' outlines on screen: next frame's bell clears the beams under them (hullUniforms, aspira-fog.js)
     const pop = (x, y, fn, far) => { const P = warpProject(x, y), k = cam.k * (far ? P.s : 1); ctx.setTransform(k, 0, 0, k, P.x - x * k, P.y - y * k); ctx.save(); fn(); ctx.restore(); };
     drawFx("dmg", (x, y, fn) => pop(x, y, fn, true)); drawFx("text", pop);
     if (bannerT > 0) pop(CX, 70, () => { ctx.globalAlpha = Math.min(1, bannerT); text(bannerText, CX, 70, 30, bannerCol, true); ctx.globalAlpha = 1; });

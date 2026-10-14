@@ -25,7 +25,7 @@ const CHANGELOG = [ // each day's lines in two groups: b = Balance, u = Perf/UI.
     "Powers won from a boss flash when the next wave starts, for 4 s.",
     "Pause button flashes while paused.",
     "Numbers and text: outline only, no glow.",
-    "3D: beams stop at the edge of a tower's hexagon.",
+    "3D: beams are hidden where a tower covers them.",
     "3D: movement range rings evenly dashed all round.",
     "Upgrade button always shows the cost.",
     "Boss text and power buttons no longer block dragging.",
