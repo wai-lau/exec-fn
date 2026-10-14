@@ -187,6 +187,7 @@ function drawCoins() {
   for (const c of coins) {
     const [r, ring, fill] = COIN_LOOK[c.face];
     ctx.globalAlpha = COIN_ALPHA + COIN_TWINKLE * Math.sin(now * COIN_TWINKLE_HZ * 6.283 + c.ph);
+    if (typeof fxGl !== "undefined" && fxGl.on) { fxGlCoin(c.x, c.y, r, ring, fill, ctx.globalAlpha); continue; } // 3D: on the GPU with the hits (aspira-fxgl.js)
     ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, 6.283);
     ctx.fillStyle = COL[fill]; ctx.fill();
     if (ring !== fill) { ctx.strokeStyle = COL[ring]; ctx.stroke(); }

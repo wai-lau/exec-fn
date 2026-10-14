@@ -51,7 +51,7 @@ function poly(x, y, r, n, rot, star) {
 // outline: true = the background colour, or a palette key (the credits' white halo)
 const TEXT_BLUR_MIN = 30, TEXT_BLUR_MAX = 8, TEXT_STROKE_MAX = 5;
 function text(str, x, y, size, color, outline = false, bold = false) {
-  ctx.font = (bold ? "bold " : "") + size + "px " + CANVAS_FONT;
+  if (typeof textSprite === "function" && textSprite(str, x, y, size, color, outline, bold)) return; ctx.font = (bold ? "bold " : "") + size + "px " + CANVAS_FONT;
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
   if (outline && !(lowQ && size < TEXT_BLUR_MIN)) { // low quality: small text unoutlined
     ctx.save();
@@ -306,12 +306,14 @@ const TWIN_GAP = 3.5; // Charge's parallel beams sit 2 x this apart
 // "text" = every other floating text, on top.
 // at / map (3D, warpEntities): each effect drawn flat at its spot; a beam STRAIGHT between its projected ends (owner: "make beams 3d and ignore the curvature")
 function drawFx(pass, at = (x, y, fn) => fn(), map = null) {
+  const glFx = pass === "shots" && typeof fxGlTake === "function" && fxGlTake(); // 3D: hits, sparks, flashes and rings go to the GPU in one batch (aspira-fxgl.js)
   for (const f of fx) {
     const kind = f.k !== "text" ? "shots" : f.under ? "dmg" : "text";
     if (kind !== pass || f.t >= f.life || (lowQ && (kind === "dmg" || LOW_SKIP_FX[f.k]))) continue; // a retired damage number (dmgNumber) is not drawn; low quality skips the decoration
     // full strength for the first half of the effect's life, then fade out
     const k = 1 - f.t / f.life;
     ctx.globalAlpha = Math.min(1, k * 2);
+    if (glFx && fxGlFx(f, k, ctx.globalAlpha)) continue;
     const one = () => {
     if (f.k === "beam") {
       ctx.globalAlpha = Math.min(1, ctx.globalAlpha * (f.alpha ?? 1) * BEAM_BRIGHT); // ARC: an arc as opaque as its damage share; x BEAM_BRIGHT (owner)

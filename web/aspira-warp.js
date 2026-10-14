@@ -54,7 +54,7 @@ void main() {
 }`;
 const WARP_FS = `
 precision mediump float;
-uniform sampler2D tex, dyn; /* dyn: the moving layer, premultiplied, over the board (aspira-warplayers.js) */ uniform vec2 edge; uniform vec3 gridCol; uniform vec4 grid; // grid: ring, spoke angle, far, alpha
+uniform sampler2D tex, dyn, fxt; /* dyn: the moving layer, premultiplied, over the board (aspira-warplayers.js); fxt: the hits over both (aspira-fxgl.js) */ uniform vec2 edge; uniform vec3 gridCol; uniform vec4 grid; // grid: ring, spoke angle, far, alpha
 uniform float towers, onBoard, op, neck, bgA, invR; uniform vec3 bgCol, shape; // shape: the funnel's head rim, foot (world units), power // op: the whole bell SEMI-TRANSPARENT, nothing occluded (owner)
 varying vec2 uv; varying float sh, rr, th;
 float line(float d, float wd) { return 1.0 - smoothstep(wd * 0.5, wd * 1.5, d); }
@@ -74,7 +74,7 @@ void main() {
   // up to the core (the spokes fade where they crowd it), half as strong over the head
   float gk = max(ring, spoke * smoothstep(20.0, 60.0, rr)) * grid.w * (0.5 + 0.5 * smoothstep(towers, towers + 30.0, rr)) * (1.0 - smoothstep(grid.z * 0.7, grid.z, rr));
   gk *= 1.0 - board * (1.0 - onBoard); // faint over the board itself: the lanes stay readable
-  vec4 dv = texture2D(dyn, uv); vec3 raw = texture2D(tex, uv).rgb * (1.0 - dv.a) + dv.rgb;
+  vec4 dv = texture2D(dyn, uv), fv = texture2D(fxt, uv); vec3 raw = (texture2D(tex, uv).rgb * (1.0 - dv.a) + dv.rgb) * (1.0 - fv.a) + fv.rgb;
   // a BOSS SKY inverts the board (white ground, dark ink): back to the plain palette here, or its white reads as ink
   // and the bell turns into a grey slab (owner, 2026-10-09)
   // only INSIDE the sky's circle round the core (invR, world units; the 2D view inverts exactly there): a guess by colour
@@ -205,6 +205,7 @@ function warpDraw() {
   if (warp.cv.width !== sc.w || warp.cv.height !== sc.h) { warp.cv.width = sc.w; warp.cv.height = sc.h; }
   if (!warp.n) warpMesh();
   const p = warp.p = warpParams(), pr = warp.prog;
+  if (typeof fxGlRender === "function") fxGlRender(gl); // the hits into their own texture first (aspira-fxgl.js)
   gl.viewport(0, 0, sc.w, sc.h);
   gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.disable(gl.DEPTH_TEST); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); // no depth: the far side shows through the near (owner: "should not occlude")
