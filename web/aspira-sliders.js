@@ -184,10 +184,19 @@ function upgradeButton(t) {
   if (!box) return;
   box.innerHTML = "";
   const n = basketPoints(t), cost = basketCost(t), pts = t.lvl - 1 + levelsFor(t, basketFor(t));
-  const label = towerTitle(t) + (pts ? " " + roman(pts) : "") + (n ? ' <span class="asp-spend-cost' + (cost <= G.money ? " asp-cost-ok" : "") + '">(−' + cr(cost) + ")</span>" : ""); // affordable: just BOLD, its own colour (owner, 2026-10-09)
+  const label = '<span class="asp-up-name">' + towerTitle(t) + "</span>" + (pts ? '<span class="asp-up-lvl"> ' + roman(pts) + "</span>" : "") + (n ? ' <span class="asp-spend-cost' + (cost <= G.money ? " asp-cost-ok" : "") + '">(−' + cr(cost) + ")</span>" : ""); // affordable: just BOLD, its own colour (owner, 2026-10-09)
   const btn = button(box, "asp-primary asp-up-big" + (n && G.money >= cost ? " asp-confirm" : ""), label, () => lockIn(t), "asp-up"); // pulses while a pull waits to be locked in (owner)
+  fitUpLabel(btn);
   btn.classList.toggle("poor", n > 0 && G.money < cost); btn.disabled = !n || G.money < cost; // greyed until a slider moves; red, no tap, when the bank cannot cover it (owner)
   button(box, "asp-up-cancel", n ? "cancel" : "close", () => { if (basketPoints(t)) { basket.add = {}; refreshPanels(); } else closeCard(); }, "asp-up-cancel");
+}
+// the COST is never cut off (owner, 2026-10-14: "the cost should never be hidden ... remove the tower name and then the
+// level if there isn't enough space"): too wide, the name goes; still too wide, the level too
+function fitUpLabel(btn) {
+  for (const sel of [".asp-up-name", ".asp-up-lvl"]) {
+    if (btn.scrollWidth <= btn.clientWidth) return;
+    const el = btn.querySelector(sel); if (el) el.remove();
+  }
 }
 // buy every pulled point, in axis order, each at its own ladder step (upgradeTower pays one)
 function lockIn(t) {
