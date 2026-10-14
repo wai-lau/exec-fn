@@ -1,13 +1,16 @@
 // /aspira — DOM: HUD, build/inspect/power decks, input, overlay, main loop.
 
-// ui.speed is a setting (0.5/1/2/3); SPEED_MULT turns it into simulation rate.
+// ui.speed is a setting (1/1.5/2/3, the owner's 10); SPEED_MULT turns it into simulation rate.
 // 1x is REAL TIME (owner): every rate/duration in the code is in real seconds.
 // the old 2x is the new 1x (owner, 2026-10-02): every button runs the game
 // twice as fast as its label used to (0.5x added, 10x for testing - owner)
 // ...and back (owner, 2026-10-12: "make whatever is 1/2 speed the new 1x speed"): every button at half its 2-based rate
 const BASE_SPEED = 1;
-const SPEED_MULT = { 0.25: 0.25 * BASE_SPEED, 0.5: 0.5 * BASE_SPEED, 1: BASE_SPEED, 2: 2 * BASE_SPEED, 3: 3 * BASE_SPEED, 10: 10 * BASE_SPEED };
-const SPEEDS = [1, 2, 3, 10] /* no 1/4x or 1/2x (owner, 2026-10-12) */, speedId = v => "asp-sp-" + String(v).replace(".", "_");
+const SPEED_MULT = { 0.25: 0.25 * BASE_SPEED, 0.5: 0.5 * BASE_SPEED, 1: BASE_SPEED, 1.5: 1.5 * BASE_SPEED, 2: 2 * BASE_SPEED, 3: 3 * BASE_SPEED, 10: 10 * BASE_SPEED };
+// 1x 1.5x 2x 3x, and 10x for the OWNER only (owner, 2026-10-14: "make 10x speed owner only, replace 2x with 1.5x and 3x with 2x",
+// "also add a 3x speed then"; was 1 2 3 10) - the page says whose it is (data-owner, routes_aspira.py)
+const IS_OWNER = document.getElementById("asp").dataset.owner === "1";
+const SPEEDS = [1, 1.5, 2, 3, ...(IS_OWNER ? [10] : [])] /* no 1/4x or 1/2x (owner, 2026-10-12) */, speedId = v => "asp-sp-" + String(v).replace(".", "_");
 const ui = { build: null, sel: null, hover: null, speed: 1, paused: false };
 const $ = id => document.getElementById(id);
 function setText(el, v) { v = String(v); if (el.textContent !== v) el.textContent = v; }
@@ -97,7 +100,7 @@ KINDS.forEach((k, i) => {
     '<span class="ab">' + b.ab + '</span><span class="c">' + b.cost + "</span>", () => selectBuild(k), "asp-tw-" + k);
   btn.title = b.name;
 });
-[["pause", "pause"], [1, "1×"], [2, "2×"], [3, "3×"], [10, "10×"]].forEach(([v, label]) => {
+[["pause", "pause"], ...SPEEDS.map(v => [v, v + "×"])].forEach(([v, label]) => {
   button($("asp-speed"), "", label, () => {
     if (v === "pause") { ui.paused = !ui.paused; ui.pauseBtn = ui.paused; } else { ui.speed = v; ui.paused = false; } // pauseBtn: paused BY the button (it flashes)
   }, v === "pause" ? "asp-sp-pause" : speedId(v));
@@ -439,7 +442,7 @@ document.addEventListener("keydown", ev => {
     else if (ev.key === "Escape") closeChooser();
     ev.preventDefault(); return;
   }
-  if (["1", "2", "3"].includes(ev.key)) { ui.speed = Number(ev.key); ui.paused = false; }
+  if (/^[1-9]$/.test(ev.key) && SPEEDS[ev.key - 1]) { ui.speed = SPEEDS[ev.key - 1]; ui.paused = false; } // 1-4: the buttons in order
   else if (ev.key === "m" || ev.key === "M") setMuted(!muted);
   else if (ev.key === " ") { ev.preventDefault(); ui.paused = !ui.paused; ui.pauseBtn = ui.paused; }
   else if (ev.key === "u" || ev.key === "U") keyUpgrade(ui.sel && G.towers.find(x => x.id === ui.sel));

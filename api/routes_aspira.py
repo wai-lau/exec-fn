@@ -75,7 +75,7 @@ async def aspira_moved():
 @guest_protected.get("/spire", response_class=HTMLResponse)
 async def aspira_page(request: Request):
     is_full_auth = request.cookies.get("session") == SESSION_TOKEN
-    html = _tmpl("aspira.html").replace("__SPIRE_VERSION__", spire_version()).replace("__SPIRE_BUILD__", spire_build())
+    html = _tmpl("aspira.html").replace("__SPIRE_VERSION__", spire_version()).replace("__SPIRE_BUILD__", spire_build()).replace("__SPIRE_OWNER__", "1" if is_full_auth else "")
     # no nav bar (owner): the game takes the whole screen; a favicon button
     # top-left goes home to the landing page instead
     # no CRT stack either (owner, 2026-10-09: "just get rid of the crt effects for this game")
