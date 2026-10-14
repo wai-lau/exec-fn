@@ -40,9 +40,24 @@ _GAME_DIRS = [_HERE / "static", _HERE.parent / "web"]
 
 
 def spire_version() -> str:
-    """The game's version, shown top-left after BEST (owner): when its files
-    last changed, "1005.1432" (month day . hour minute) - so a phone showing an
-    older stamp is running cached code. Never raises."""
+    """The game's version, shown top-left after BEST: major.minor.tiny, kept by
+    hand in web/aspira-version.txt (owner, 2026-10-14: "change the version to be
+    a number like major.minor.tiny") - the changelog card (aspira-changelog.js)
+    names its days by it. Never raises."""
+    for d in _GAME_DIRS:
+        try:
+            v = (d / "aspira-version.txt").read_text().strip()
+        except OSError:
+            continue
+        if v:
+            return v
+    return "?"
+
+
+def spire_build() -> str:
+    """When the game's files last changed, "1005.1432" (month day . hour minute):
+    the slow logs carry it beside the version, so a phone on cached code still
+    shows. Never raises."""
     try:
         files = [f for d in _GAME_DIRS if d.is_dir() for f in d.glob("aspira*")]
         files.append(_HERE / "templates" / "aspira.html")
@@ -60,7 +75,7 @@ async def aspira_moved():
 @guest_protected.get("/spire", response_class=HTMLResponse)
 async def aspira_page(request: Request):
     is_full_auth = request.cookies.get("session") == SESSION_TOKEN
-    html = _tmpl("aspira.html").replace("__SPIRE_VERSION__", spire_version())
+    html = _tmpl("aspira.html").replace("__SPIRE_VERSION__", spire_version()).replace("__SPIRE_BUILD__", spire_build())
     # no nav bar (owner): the game takes the whole screen; a favicon button
     # top-left goes home to the landing page instead
     # no CRT stack either (owner, 2026-10-09: "just get rid of the crt effects for this game")

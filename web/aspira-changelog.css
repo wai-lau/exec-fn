@@ -1,0 +1,21 @@
+/* /spire - the WHAT'S NEW card (aspira-changelog.js): the version number opens it, centred over the board, its list scrolling */
+#asp .asp-ver { pointer-events: auto; cursor: pointer; } /* the header lets taps through; the version takes them */
+.asp-log {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: var(--z-bubble);
+  width: 380px;
+  max-width: calc(100% - 16px);
+  max-height: 80%;
+  border-color: hsl(var(--green-hsl) / 0.45);
+  line-height: var(--lh-snug);
+}
+.asp-log[hidden] { display: none; }
+.asp-log h2 { margin: 0; font-size: var(--fs-lg); letter-spacing: var(--tracking-wide); text-transform: uppercase; color: hsl(var(--orange-hsl)); }
+.asp-log-list { overflow-y: auto; min-height: 0; font-size: var(--fs-sm); }
+.asp-log h3 { margin: var(--space-3) 0 var(--space-1); font-size: var(--fs-sm); color: hsl(var(--green-hsl)); }
+.asp-log ul { margin: 0; padding-left: var(--space-4); }
+.asp-log li { margin-bottom: var(--space-1); }
+.asp-log > button { align-self: center; }
