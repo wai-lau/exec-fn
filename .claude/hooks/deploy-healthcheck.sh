@@ -25,7 +25,7 @@ deploying=0
 case "$cmd" in
   *"git commit"*|*"git push"*) deploying=1 ;;
   *"docker compose up"*|*"docker compose restart"*|*"docker-compose up"*) deploying=1 ;;
-  *"wai-root@wai-lau.net"*) deploying=1 ;;
+  *"wai-root@wai-lau.net"*|*"scripts/deploy.sh"*) deploying=1 ;;
 esac
 [ "$deploying" -eq 1 ] || exit 0
 case "$cmd" in *--dry-run*) exit 0 ;; esac
