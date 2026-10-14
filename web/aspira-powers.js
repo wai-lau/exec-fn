@@ -45,7 +45,7 @@ function relayArmTap(hit) {
   return true;
 }
 // a power's button FLASHES, quick, when it comes online (granted or off cooldown) - POWER_FLASH_MS of the .pop animation
-const POWER_FLASH_MS = 900, powerFlashAt = {};
+const POWER_FLASH_MS = 4000 /* longer (owner, 2026-10-14; was 900) */, powerFlashAt = {};
 function flashPower(id) { powerFlashAt[id] = performance.now() + POWER_FLASH_MS; }
 function updatePowers() {
   const box = $("asp-powers"), c = G.core, owned = DIAL.filter(d => powerLvl(d.id));
@@ -59,6 +59,7 @@ function updatePowers() {
     b.classList.toggle("ready", run <= 0 && cd <= 0); b.classList.toggle("run", run > 0);
     b.classList.toggle("armed", d.id === "relay" && !!ui.relayArm);
     // a power coming off cooldown pops "<NAME> ONLINE" where the interest pops up, under the core (was the dial's)
+    if (c.flashAt && c.flashAt[d.id] && G.wave >= c.flashAt[d.id]) { flashPower(d.id); delete c.flashAt[d.id]; } // won from a boss: flashes as the next wave starts (grantPowers)
     const was = (c.cdSeen ||= {})[d.id];
     if (was > 0 && cd <= 0) flashPower(d.id); // back online: its button flashes, quick (owner, 2026-10-12; was a pop-up under the core)
     b.classList.toggle("pop", (powerFlashAt[d.id] || 0) > performance.now());
