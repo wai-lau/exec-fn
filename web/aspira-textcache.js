@@ -22,9 +22,10 @@ function textSprite(str, x, y, size, color, outline, bold) {
     textSprites.set(key, sp);
   }
   const k = dev / q, X = m.a * x + m.e, Y = m.d * y + m.f;
-  ctx.save(); CanvasRenderingContext2D.prototype.setTransform.call(ctx, 1, 0, 0, 1, 0, 0); // device px (the full-density layer's own setTransform would scale it - entCtx)
+  const st = CanvasRenderingContext2D.prototype.setTransform; // (the prototype's: the full-density layer's own would scale it - entCtx)
+  st.call(ctx, 1, 0, 0, 1, 0, 0); // device px; only the transform changes, so it alone is put back (a save / restore a number was most of its cost)
   ctx.drawImage(sp.c, X - sp.ox * k, Y - sp.oy * k, sp.c.width * k, sp.c.height * k);
-  ctx.restore();
+  st.call(ctx, m);
   return true;
 }
 // draw the text the old way (text(), aspira-draw.js) at q device px onto a canvas just big enough: its outline, its glow
