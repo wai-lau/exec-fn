@@ -17,7 +17,7 @@ const CHANGELOG = [ // each day's lines in two groups: b = Balance, u = Perf/UI
     "The threat ring round the core runs into the two triangles beside the enemy.",
     "The pause button flashes while the game is paused.",
     "Game speeds are 1x, 1.5x, 2x and 3x (keys 1-4).",
-    "3D runs much faster, most of all on phones.",
+    "3D runs much faster, most of all on phones, and keeps its full resolution (it no longer drops it when frames run slow).",
     "Acid's late effects are calmer: piled-up pools no longer flood the board green, Spray V shows its jets, Contagion's pools are dashed rings.",
     "When an enemy gets close, a ring round the core shows its distance again.",
     "A power won from a boss flashes when the next wave starts; the flash lasts 4 s.",

@@ -80,11 +80,13 @@ function stepDetail(dt) {
   if (!(dt > 0) || dt > 0.5) return;
   detailEma += (dt * 1000 - detailEma) * 0.05;
   const slow = detailEma > DETAIL_SLOW_MS, quick = detailEma < DETAIL_FAST_MS;
-  // slow: first the detail radius comes in, then the 3D picture shrinks (glows always stay - owner, 2026-10-12); quick: back the other way
-  // ...and last, the 3D view's own resolution, 0.75 down to WARP_RES_MIN (slow logs: the paint, not the code, was the cost)
-  const res = typeof WARP_RES !== "undefined";
-  if (slow) { if (detailFarR > DETAIL_MIN_R) detailFarR = Math.max(DETAIL_MIN_R, detailFarR - DETAIL_RATE * dt); else if (warpTexCap > TEX_CAP_MIN) warpTexCap = Math.max(TEX_CAP_MIN, warpTexCap - TEX_CAP_RATE * dt); else if (res && WARP_RES > WARP_RES_MIN) WARP_RES = Math.max(WARP_RES_MIN, WARP_RES - 0.1 * dt); else setDpr3d(dpr3dRaw - 0.25 * dt); }
-  else if (quick) { if (dpr3dRaw < DPR_3D_MAX) setDpr3d(dpr3dRaw + 0.25 * dt); else if (res && WARP_RES < WARP_RES_MAX) WARP_RES = Math.min(WARP_RES_MAX, WARP_RES + 0.1 * dt); else if (warpTexCap < TEX_CAP_MAX) warpTexCap = Math.min(TEX_CAP_MAX, warpTexCap + TEX_CAP_RATE * dt); else detailFarR = Math.min(DETAIL_MAX_R, detailFarR + DETAIL_RATE * dt); }
+  // slow: the detail radius comes in (glows always stay - owner, 2026-10-12); quick: back out. (Until 2026-10-14 the 3D picture,
+  // then the view's resolution, then its pixel density shrank after it)
+  // ...ONLY the detail radius now (owner, 2026-10-14: never lower the resolution; slow logs: the picture shrinking and growing
+  // back, 1024 <-> 2048 and res 0.5 <-> 0.75, reallocated the big 3D canvases over and over - 380-540 ms hitches on an iPhone,
+  // and a likely cause of its crashes): the 3D picture and resolution stay at their best (TEX_CAP_MAX, WARP_RES_MAX, DPR_3D_MAX)
+  if (slow) { if (detailFarR > DETAIL_MIN_R) detailFarR = Math.max(DETAIL_MIN_R, detailFarR - DETAIL_RATE * dt); }
+  else if (quick) detailFarR = Math.min(DETAIL_MAX_R, detailFarR + DETAIL_RATE * dt);
 }
 const farFx = e => q3d() && (e.x - CX) ** 2 + (e.y - CY) ** 2 > detailFarR * detailFarR;
 // AUTO STEP-DOWN (owner, 2026-10-12: "extremely laggy on my partner's brave browser" - 3D is the default now): while the
