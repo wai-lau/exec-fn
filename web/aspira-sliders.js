@@ -159,13 +159,15 @@ function skillDesc(t, pv) {
 const sameWord = (x, y) => x.toLowerCase() === y.toLowerCase();
 function wordDiff(a, b) {
   const L = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
-  for (let i = a.length - 1; i >= 0; i--) for (let j = b.length - 1; j >= 0; j--) L[i][j] = sameWord(a[i], b[j]) ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  // an exact match outweighs a case-only one, so "A jet" pairs with "A jet", not the "a" in "drops a goo" (owner, 2026-10-13)
+  const w = (i, j) => (a[i] === b[j] ? 3 : sameWord(a[i], b[j]) ? 2 : 0);
+  for (let i = a.length - 1; i >= 0; i--) for (let j = b.length - 1; j >= 0; j--) L[i][j] = Math.max(L[i + 1][j], L[i][j + 1], w(i, j) ? L[i + 1][j + 1] + w(i, j) : 0);
   const out = [];
   let i = 0, j = 0, del = [], ins = [];
   // out: [html, first token] pairs; a piece opening on punctuation takes no space before it
   const flush = () => { if (del.length) out.push(["<del>" + joinWords(del) + "</del>", del[0]]); if (ins.length) out.push(["<ins>" + joinWords(ins) + "</ins>", ins[0]]); del = []; ins = []; };
   while (i < a.length || j < b.length) {
-    if (i < a.length && j < b.length && sameWord(a[i], b[j])) { flush(); out.push([b[j], b[j]]); i++; j++; }
+    if (i < a.length && j < b.length && w(i, j) && L[i][j] === L[i + 1][j + 1] + w(i, j)) { flush(); out.push([b[j], b[j]]); i++; j++; }
     else if (j < b.length && (i >= a.length || L[i][j + 1] >= L[i + 1][j])) ins.push(b[j++]);
     else del.push(a[i++]);
   }
