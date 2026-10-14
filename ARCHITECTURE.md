@@ -164,6 +164,12 @@ A clash would be decided silently by that order, so **`tests/test_app_paths.py` 
 
 **`claude-box` is a submodule too (2026-10-14)** — `wai-lau/cc-sidecar` (public), split out of this repo with `git subtree split -P claude-box` so its 34 commits of history came along, and re-added at the SAME path: `setup.sh`'s `/exec-fn/claude-box/...` install list, `scripts/cc-probe-daily.sh` and the two node-test wrappers (`tests/test_cc_login.py`, `test_cc_sandbox_paths.py`) needed no change. The live sidecar runs from `/srv/cc-agent/`, not from the checkout, so swapping the directory touched nothing running. The two wrappers still FAIL (not skip) on an uninitialised submodule: the sandbox gate's tests must never disappear quietly.
 
+**Traps hit doing it (2026-10-14):**
+- **A rebase cannot cross a folder→submodule commit.** The `claude-box` swap commit was rejected on push (a spire commit from another clone landed meanwhile), and `push-after-commit.sh`'s `pull --rebase` aborted with `untracked working tree files would be overwritten by checkout: claude-box/...` / `could not detach HEAD`: the rebase first checks out origin/master, where those paths are plain files, while the working tree holds them as a submodule checkout. No rebase is left in progress. Fix: `mv claude-box <scratch>` → `git pull --rebase` → `rmdir claude-box` (the rebase recreates it empty) → `mv <scratch> claude-box` → `git push`. The `.git` FILE inside the checkout points at `.git/modules/<name>`, so the moved dir stays valid. For the spire / noodle swaps: `git fetch` immediately before the swap commit, and expect to do this by hand if it races anyway.
+- **The commit-hook `if` filter missed `git -C <dir> commit`** — `Bash(git commit*)` is a prefix match, so the docs guard never saw a submodule commit made from the parent. The filter is gone; the script's own regex narrows.
+- **`api/apps` appears on the host as an empty dir** (the mount point for the nested `./apps` bind). Pre-created as `wai-root` so docker would not make it root-owned; `app_paths` skips it because it is empty. Untracked (git ignores empty dirs) — leave it.
+- **A mirror that pulls the conversion** (`~/src/exec-fn`, a fresh deploy) gets EMPTY submodule dirs until `git submodule update --init` runs once; the deploy command now does it, an interactive `git pull` does not.
+
 **The cost:** an app change is two commits (app + pointer bump); the hook makes the second. Two sessions bumping the same pointer conflict on the gitlink — take the newer SHA.
 
 ---
