@@ -5,6 +5,7 @@ importing main — main imports the route modules, which would otherwise cycle.
 Sub-routers (nightfall/chat/mtg/tarot) are folded in at their auth tier."""
 from fastapi import APIRouter, Depends
 
+import app_paths  # noqa: F401  — FIRST: puts apps/*/api on sys.path (submodule apps)
 from auth import require_auth, require_guest_auth
 from routes_nightfall import game_router as nightfall_game
 from routes_chat import router as chat_router

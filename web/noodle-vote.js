@@ -194,12 +194,14 @@ async function ndvLoadPoll() {
   if (!isNaN(served)) NDV.skew = served - Date.now();
   // a DRAFT (no poll stored yet, drafts.py): an empty poll stands in until the
   // host's first commit creates the real one
-  NDV.poll = r.status === 404 && NDV.draft
+  var poll = r.status === 404 && NDV.draft
     ? { slug: NDV.slug, title: 'title', halves: false, crop: null, voters: [], host: null }
     : await r.json();
   // an end-to-end poll arrives sealed: opened here, it is the same poll a
-  // plain one's JSON is (noodle-e2e.js)
-  if (NDV.e2e && NDV.poll.e2e) NDV.poll = await ndeView(NDV.poll);
+  // plain one's JSON is (noodle-e2e.js). Opened BEFORE it becomes NDV.poll:
+  // anything that ran meanwhile used to see the raw blobs (no names, no title)
+  if (NDV.e2e && poll.e2e) poll = await ndeView(poll);
+  NDV.poll = poll;
   if (NDV.e2e) ndeShowTexts();
   NDV.seals = await window.NoodleRoster.seals(NDV.poll.voters);
   if (!NDV.blankSeal) NDV.blankSeal = ndvBlankSeal();

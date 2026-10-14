@@ -126,7 +126,11 @@ def vote(slug: str, body: dict, now: int | None = None) -> dict:
             if not prev and len(voters) >= config.MAX_VOTERS:
                 raise VoteError(409, "this poll is full")
             order = prev["order"] if prev else max((v["order"] for v in voters.values()), default=-1) + 1
-            voters[pub] = {"pub": pub, "ts": ts, "order": order, "ct": ct}
+            # the signature is KEPT and served with the ts it covers ("vts":
+            # "ts" itself moves on with every later action the host signs) --
+            # the page checks it itself, so a server that also holds the poll
+            # key still cannot re-seal a vote
+            voters[pub] = {"pub": pub, "ts": ts, "order": order, "ct": ct, "sig": body.get("sig"), "vts": ts}
     except KeyError:
         raise VoteError(404, "no such poll") from None
     return {"pub": pub, "order": order}
@@ -140,7 +144,7 @@ def head(slug: str, body: dict, now: int | None = None) -> dict:
     try:
         with store.edit(slug) as poll:
             _as_host(poll, pub, ts)
-            poll["head"] = {"ct": ct, "ts": ts}
+            poll["head"] = {"ct": ct, "ts": ts, "sig": body.get("sig"), "pub": pub}
     except KeyError:
         raise VoteError(404, "no such poll") from None
     return {"ok": True}
@@ -194,10 +198,24 @@ def rekey(slug: str, body: dict, now: int | None = None) -> dict:
     return {"pub": newpub}
 
 
+def _signed(rec: dict, keep: tuple) -> dict:
+    """A record as the page gets it: the sealed blob, plus -- when it was
+    signed since 2026-10-14 -- the signature and the ts it covers, so the page
+    verifies it ITSELF (web/noodle-e2e.js ndeTrust). Older records, and a seat
+    just handed to a new key (rekey) until that key votes, carry none."""
+    out = {k: rec[k] for k in keep}
+    if rec.get("sig"):
+        out.update(ts=rec.get("vts", rec["ts"]), sig=rec["sig"])
+    return out
+
+
 def public(poll: dict) -> dict:
-    """What the page gets: sealed blobs + the public keys they belong to.
-    Timestamps stay server-side (the page needs none of them)."""
+    """What the page gets: sealed blobs, the public keys they belong to, and
+    the signatures over them where the server kept one."""
     voters = sorted(poll["voters"].values(), key=lambda v: v["order"])
     h = poll.get("head")
-    return {"slug": poll["slug"], "e2e": True, "head": {"ct": h["ct"]} if h else None,
-            "voters": [{"pub": v["pub"], "order": v["order"], "ct": v["ct"]} for v in voters]}
+    head = _signed(h, ("ct",)) if h else None
+    if head and h.get("sig"):
+        head["pub"] = h["pub"]
+    return {"slug": poll["slug"], "e2e": True, "head": head,
+            "voters": [_signed(v, ("pub", "order", "ct")) for v in voters]}

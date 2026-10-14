@@ -183,13 +183,27 @@ def test_rekey_moves_the_seat_to_the_new_key(slug):
     e2e.head(slug, signed(slug, new, NOW + 4, "e2e-head", ct=blob()), now=NOW + 4)   # still the host
 
 
-def test_the_page_gets_blobs_and_keys_only(slug):
+def test_the_page_gets_blobs_keys_and_the_signatures_to_check(slug):
     h = Ed25519PrivateKey.generate()
     vote(slug, h, NOW)
     e2e.head(slug, signed(slug, h, NOW + 1, "e2e-head", ct=blob()), now=NOW + 1)
     view = e2e.public(store.load(slug))
     assert set(view) == {"slug", "e2e", "head", "voters"}
-    assert set(view["head"]) == {"ct"} and set(view["voters"][0]) == {"pub", "order", "ct"}
+    assert set(view["head"]) == {"ct", "ts", "sig", "pub"} and view["head"]["pub"] == pub(h)
+    assert set(view["voters"][0]) == {"pub", "order", "ct", "ts", "sig"}
+    # every served signature verifies over exactly what the browser signed
+    v = view["voters"][0]
+    assert sig.verify(v["pub"], v["sig"], sig.canonical_action(poll=slug, ts=v["ts"], kind="e2e-vote", ct=v["ct"]))
+
+
+def test_records_from_before_signatures_were_kept_still_serve(slug):
+    # stored before 2026-10-14: no sig -- served without one, never refused
+    with store.edit(slug) as poll:
+        poll["claim"] = None
+        poll["voters"]["old"] = {"pub": "old", "ts": NOW, "order": 0, "ct": "x"}
+        poll["head"] = {"ct": "y", "ts": NOW}
+    view = e2e.public(store.load(slug))
+    assert view["voters"] == [{"pub": "old", "order": 0, "ct": "x"}] and view["head"] == {"ct": "y"}
 
 
 def test_the_page_html_carries_no_title_or_note(slug):

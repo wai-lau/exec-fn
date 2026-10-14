@@ -5,6 +5,8 @@ assemble HTML responses. Kept out of main.py so the entry point stays thin."""
 import re
 from pathlib import Path
 
+import app_paths
+
 _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 
@@ -356,15 +358,27 @@ def _render_page(active: str | None, content: str, full_height: bool = False, gu
         .replace("</body>", (_CRT_FX if crt else "") + body + nav + "</body>", 1))
 
 
-_tmpl_cache: dict[str, tuple[float, str]] = {}
+_tmpl_cache: dict[Path, tuple[float, str]] = {}
+
+
+def _tmpl_path(name: str) -> Path:
+    """The parent's templates first, then each app submodule's
+    (apps/*/api/templates) -- the same parent-wins order as the static mount."""
+    path = _TMPL / name
+    if path.exists():
+        return path
+    for d in app_paths.app_subdirs("api/templates"):
+        if (d / name).exists():
+            return d / name
+    return path   # missing everywhere: let stat() raise on the parent path
 
 
 def _tmpl(name: str) -> str:
-    path = _TMPL / name
+    path = _tmpl_path(name)
     mtime = path.stat().st_mtime
-    cached = _tmpl_cache.get(name)
+    cached = _tmpl_cache.get(path)
     if cached and cached[0] == mtime:
         return cached[1]
     text = path.read_text()
-    _tmpl_cache[name] = (mtime, text)
+    _tmpl_cache[path] = (mtime, text)
     return text

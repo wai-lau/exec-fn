@@ -140,6 +140,29 @@ The fix is an explicit `upstream` block listing the server **TWICE** — nginx a
 History — the incidents behind the rules above: [ARCHAEOLOGY.md §1](ARCHAEOLOGY.md).
 
 ---
+
+### 1e. App submodules — `apps/<name>` (plumbing landed 2026-10-14)
+
+Self-contained apps (spire, noodle) are moving out into their own repos, consumed as git submodules under `apps/`. Phase 0 built the parent side with nothing moved yet; nightfall-incident and claude-box follow as submodules at their CURRENT paths (they are not laid out like the parent and are not under `apps/`).
+
+**An app mirrors the parent layout** (`apps/README.md`): `apps/<name>/api` (python), `api/templates`, `web`, `tests`, `scripts`. That one rule is why nothing else had to change: history extracts with a path filter and no renames, the pre-commit's staged-path patterns (`^web/`, `^api/templates/`) match verbatim inside the submodule, and every asset URL + `?v=` stays byte-identical.
+
+**How the parent finds an app's pieces — each searches the PARENT FIRST, then `apps/*/` in name order:**
+- **python** — `api/app_paths.py`, imported first by `main.py` and `routers.py`, APPENDS each `apps/*/api` to `sys.path`, so `import noodle` / `import routes_aspira` resolve unchanged. The apps dir is `/app/apps` in the container (compose mounts `./apps` beside the `./api` bind) and `<repo>/apps` on the host; the first NON-EMPTY one wins, because the compose bind leaves an empty `api/apps` mount point on the host. An uninitialised (empty) submodule is skipped.
+- **static** — the one `"/"` `StaticFiles` mount in `main.py` gets the app `web/` dirs appended to its `all_directories`; Starlette's `lookup_path` walks that list (html mode and 404.html included), so asset URLs stay flat.
+- **templates** — `pages._tmpl` resolves through `_tmpl_path` (parent `api/templates`, then `apps/*/api/templates`); the cache is keyed by resolved path. `/api/ui/usage` scans the same dirs.
+
+A clash would be decided silently by that order, so **`tests/test_app_paths.py` pins uniqueness** (file names across `web/` and `api/templates/`, top-level module names across `api/`) and **no `node_modules` under `apps/`** — uvicorn's reload poller walks `/app/apps` too (§17e).
+
+**Tooling follows the commit into the submodule:**
+- `scripts/pre-commit` computes `HOST` (`git rev-parse --show-superproject-working-tree`, else the repo root) and runs the host's lints, `.venv` and `tests/` (plus the app's own `tests/`). `session-context.sh` symlinks it into each `apps/*` submodule's hooks dir and re-attaches a submodule left on a detached HEAD (only when HEAD == origin/master and local master is absent or at the same commit).
+- `lint-colors.py` / `lint-scale.py` glob `apps/*/` alongside the root, so one baseline covers parent + apps; `eslint.config.mjs`'s script-scope override covers `apps/*/web/**`.
+- The commit hooks resolve WHICH repo a commit ran in (`.claude/hooks/commit_repo.py`: `git -C <dir> commit`, a leading `cd <dir> &&`, the payload `cwd`). `docs-commit-guard.sh` judges that repo's index and docs (its `if` filter was dropped — `Bash(git commit*)` cannot see the `-C` form). `push-after-commit.sh` pushes the submodule FIRST, then commits ONLY the parent's gitlink (`git commit -- <path>`, other sessions' staged files untouched) and pushes the parent. It bumps forward only: if the recorded SHA is not an ancestor of the checkout's HEAD (the parent moved ahead after a rebase), it refuses and says so rather than rolling the app back.
+- `push.recurseSubmodules=check` (repo-local config, set on the droplet): a parent push that points at an unpushed submodule commit is refused.
+
+**The cost:** an app change is two commits (app + pointer bump); the hook makes the second. Two sessions bumping the same pointer conflict on the gitlink — take the newer SHA.
+
+---
 ### 1-notes. From CLAUDE.md (moved 2026-09-27)
 
 Moved verbatim from CLAUDE.md on 2026-09-27 when CLAUDE.md was thinned to an index. Unedited; may overlap the subsections above.
@@ -4094,6 +4117,8 @@ head or removes a guest (`target` = pub); only your old key moves your seat
 to a new key (`e2e-rekey`, the vote re-sealed to the new pub, order kept);
 replay (strictly newer ts per key) and the skew window.
 
+**The page checks signatures itself** (2026-10-14, security audit: a server that ALSO holds the poll key -- its operator invited to the poll, say -- could re-seal anyone's vote or the head, and pages took it). The server now KEEPS each vote's signature with the ts it covers (`vts`: a voter's `ts` moves on with every later host action) and the head's signature + signer, and serves them (`e2e.public`, `_signed`); `noodle-e2e.js ndeTrusted` verifies each with WebCrypto Ed25519 against `ndeCanon({ct, kind, poll, ts})` -- the exact bytes the browser signed -- and DROPS a record whose signature fails. The head counts only if signed by the host seat (order 0); a host's passphrase change re-seals and re-signs the head with the new key in the same Commit (`ndvSubmit` sets `pendingTitle`). Records from before 2026-10-14 (and a seat just handed to a new key, until that key votes -- which the same Commit does) carry no signature and still show, so existing polls work; once a browser has seen a poll FULLY signed it remembers (`localStorage noodle.signed.<slug>`) and from then on drops unsigned records there too -- a stripped signature is the only way one could appear. Not covered: a malicious server can still withhold, roll back or REORDER records (order 0 is the host), and a first-time visitor cannot tell stripped from old. Link holders now see each vote's ts. `ndvLoadPoll` builds the opened view BEFORE assigning `NDV.poll` (it used to hold the raw blobs for a moment). Pinned by `tests/test_noodle_browser_signed.py` (a route tampers the poll JSON: forged -> dropped, stripped -> dropped once seen signed, shown to a fresh browser; host rekey re-signs the head).
+
 **What moved into the browser** (`ndeView`, mirroring the server rules
 byte for byte -- `tests/test_noodle_e2e_view.py` runs it in node against
 `slots.convert`): the split conversion, the crop filter, the host's offer
@@ -4133,7 +4158,8 @@ needed) can post seats whose sealed contents are junk (dropped when drawn,
 up to the seat cap, 21d), and a link holder can claim a name first; the claim
 key derives from the poll key, so anyone the creator hands the raw draft
 address to before their first Commit can host instead; a malicious server
-can still withhold or roll back records (it cannot forge or read them),
+can still withhold, roll back or reorder records (it cannot read them, and
+pages drop what it forges -- above),
 and -- as with any web page -- a compromised server could serve JS that
 reads the fragment; no owner reset (above). Tests:
 `tests/test_noodle_e2e.py` (server, incl. the slug + token alone failing

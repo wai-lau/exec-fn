@@ -8,6 +8,7 @@ COPY api/requirements.txt .
 RUN pip install -r requirements.txt
 COPY api/ .
 COPY web/ /app/static/
+COPY apps/ /app/apps/
 RUN chmod +x /app/morning_cron.sh
 COPY api/exec-fn.cron /etc/cron.d/exec-fn
 RUN chmod 0644 /etc/cron.d/exec-fn

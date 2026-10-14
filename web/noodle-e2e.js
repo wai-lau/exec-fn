@@ -130,12 +130,53 @@ async function ndeSealHead(head) {
     from: head.from || null, to: head.to || null }) };
 }
 
+// ── signatures, checked HERE ────────────────────────────────────────────────
+// Since 2026-10-14 the server keeps and serves each vote's and the head's
+// signature (noodle/e2e.py public), and the page verifies them itself: a server
+// that ALSO holds the poll key (its operator invited to the poll, say) still
+// cannot re-seal anyone's vote or the host's settings. A record from before
+// then has none and is shown as it always was -- until this browser has seen
+// the poll FULLY signed (noodle.signed.<slug>): after that an unsigned record
+// can only be one with its signature stripped, and it is dropped.
+async function ndeVerify(pub, sig, text) {
+  try {
+    var key = await crypto.subtle.importKey('raw', ndeFromB64u(pub), { name: 'Ed25519' }, false, ['verify']);
+    return await crypto.subtle.verify({ name: 'Ed25519' }, key, ndeFromB64(sig), new TextEncoder().encode(text));
+  } catch (e) { return false; }
+}
+
+// -> 'ok' | 'bad' | 'unsigned', for a record the key `pub` should have signed
+async function ndeTrust(rec, kind, pub) {
+  if (!rec || !rec.sig || !pub) return 'unsigned';
+  var text = ndeCanon({ ct: rec.ct, kind: kind, poll: NDV.slug, ts: rec.ts });
+  return (await ndeVerify(pub, rec.sig, text)) ? 'ok' : 'bad';
+}
+
+function ndeSignedKey() { return 'noodle.signed.' + NDV.slug; }
+
+// The records worth opening: never a forged one, and an unsigned one only
+// while this browser has not yet seen the poll fully signed.
+async function ndeTrusted(raw, recs) {
+  var strict = false;
+  try { strict = localStorage.getItem(ndeSignedKey()) === '1'; } catch (e) { /* blocked */ }
+  var keep = function (t) { return t === 'ok' || (t === 'unsigned' && !strict); };
+  var verdicts = await Promise.all(recs.map(function (v) { return ndeTrust(v, 'e2e-vote', v.pub); }));
+  // the head counts only as signed by the HOST seat (order 0)
+  var hostPub = recs.length ? recs[0].pub : null, h = raw.head;
+  var hv = h ? (h.pub && h.pub === hostPub ? await ndeTrust(h, 'e2e-head', h.pub) : 'unsigned') : 'ok';
+  if (recs.length && hv === 'ok' && verdicts.every(function (t) { return t === 'ok'; })) {
+    try { localStorage.setItem(ndeSignedKey(), '1'); } catch (e) { /* blocked */ }
+  }
+  return { recs: recs.filter(function (_, i) { return keep(verdicts[i]); }), head: h && keep(hv) ? h : null };
+}
+
 // What the server holds -> the poll as a plain poll's JSON looks
 // (noodle/pages.py public_poll), with the server's old rules applied here.
 async function ndeView(raw) {
-  var h = raw.head ? await ndeOpen('head', '', raw.head.ct) : null;
+  var all = raw.voters.slice().sort(function (a, b) { return a.order - b.order; }).slice(0, NDE_MAX_SEATS);
+  var t = await ndeTrusted(raw, all), recs = t.recs;
+  var h = t.head ? await ndeOpen('head', '', t.head.ct) : null;
   var head = ndeHeadOf(h), seen = new Set(), voters = [], opened = h ? 1 : 0;
-  var recs = raw.voters.slice().sort(function (a, b) { return a.order - b.order; }).slice(0, NDE_MAX_SEATS);
   var votes = await Promise.all(recs.map(function (v) { return ndeOpen('vote', v.pub, v.ct); }));
   recs.forEach(function (v, i) {
     var o = votes[i], name = o && window.noodleNormName(o.name);
@@ -156,7 +197,7 @@ async function ndeView(raw) {
   }
   return { slug: raw.slug, e2e: true, title: head.title, note: head.note, halves: head.halves, crop: head.crop,
     voters: voters, host: voters.length ? voters[0].name : null,
-    sealed: recs.length + (raw.head ? 1 : 0), opened: opened };
+    sealed: all.length + (raw.head ? 1 : 0), opened: opened };
 }
 
 // The title + note the server could not write into the page.

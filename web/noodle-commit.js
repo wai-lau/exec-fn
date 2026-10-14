@@ -91,9 +91,14 @@ async function ndvSubmit() {
     // a new name/passphrase first (the rest is signed by it), then a pending
     // split/crop (it converts every stored vote); each request is signed
     // strictly newer, as the server's replay check demands
+    var wasHost = NDV.e2e && window.ndxIsHost && window.ndxIsHost();   // asked as the OLD key
     var rk = await ndrCommit(ts);
     if (!rk.ok) { ndvStatus(rk.data.error || 'could not make the change', 'err'); await ndvLoadPoll(); return; }
     if (rk.did) ts += 1;
+    // an end-to-end host's settings were signed by the key just retired: they
+    // are re-sealed and re-signed by the new one in this same Commit, or pages
+    // checking signatures (noodle-e2e.js ndeTrusted) could not vouch for them
+    if (rk.did && wasHost && NDV.poll && NDV.pendingTitle === undefined) NDV.pendingTitle = NDV.poll.title;
     // A plain poll takes the settings first (a split converts every stored
     // vote, and this one must arrive in the new shape). An END-TO-END poll
     // takes the vote first: it creates the poll and makes this key its host,

@@ -17,6 +17,9 @@ services:
       - ./api/data:/app/data
       - ./api/templates:/app/templates
       - ./web:/app/static
+      # App submodules (spire, noodle): api/app_paths.py puts apps/*/api on
+      # sys.path; their web/ joins the "/" static mount, their templates _tmpl.
+      - ./apps:/app/apps
       - ./graphify-out:/app/graphify-out:ro
       - ./mtg/data:/app/mtg/data
       - ./nightfall-incident:/app/nightfall

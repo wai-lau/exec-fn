@@ -16,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse, RedirectResponse
 from starlette.datastructures import MutableHeaders
 
+import app_paths  # FIRST: puts apps/*/api on sys.path (submodule apps)
 from nudge_loop import _run_nudge_loop
 from routes_graph import run_graph_warm_loop
 from discord_bot import _run_discord_bot
@@ -182,4 +183,10 @@ app.include_router(public)
 app.include_router(protected)
 app.include_router(guest_protected)
 app.mount("/nightfall-game", StaticFiles(directory="/app/nightfall"), name="nightfall")
-app.mount("/", StaticFiles(directory="/app/static", html=True), name="static")
+# One "/" mount over the parent's web/ AND every app submodule's web/: Starlette
+# walks `all_directories` in order, so asset URLs stay flat (/aspira-game.js)
+# wherever the file lives, and the parent wins a name clash (pinned unique by
+# tests/test_app_paths.py).
+_static = StaticFiles(directory="/app/static", html=True)
+_static.all_directories += [str(p) for p in app_paths.app_subdirs("web")]
+app.mount("/", _static, name="static")

@@ -14,6 +14,7 @@ from urllib.parse import quote
 from fastapi import Request, HTTPException, status
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 
+import app_paths
 from routers import public, protected, guest_protected
 from pages import (
     _render_page, _tmpl, _index_pages, _build_nav,
@@ -256,16 +257,16 @@ async def ui_usage():
     /UI moodboard. Definitions (`--x:`) don't match, so chrome.css only
     contributes its own genuine usages. Bare hsl(var(--X-hsl)) counts as
     alpha 1. Public: token names + derived site labels only."""
+    tmpl_dirs = [Path("/app/templates"), *app_paths.app_subdirs("api/templates")]
+    web_dirs = [Path("/app/static"), *app_paths.app_subdirs("web")]
     paths = [
-        *Path("/app/templates").glob("*.html"),
-        *Path("/app/static").glob("*.html"),
-        *Path("/app/static").glob("*.css"),
-        *Path("/app/static").glob("*.js"),
+        *(f for d in tmpl_dirs for f in d.glob("*.html")),
+        *(f for d in web_dirs for ext in ("html", "css", "js") for f in d.glob(f"*.{ext}")),
         # all api modules — several ship inline CSS (security.py alone ~56 tokens)
         # that would otherwise misflag used tokens (e.g. --fs-2xl) as "unused" on
         # /UI. The count regex wants a literal `var(` so this file's own escaped
         # `var\(` regex source never self-matches.
-        *Path("/app").glob("*.py"),
+        *(f for d in [Path("/app"), *app_paths.app_subdirs("api")] for f in d.glob("*.py")),
     ]
 
     def site_label(text: str, idx: int, fname: str) -> str:

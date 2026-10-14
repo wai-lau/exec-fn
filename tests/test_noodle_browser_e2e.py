@@ -93,7 +93,8 @@ def test_an_end_to_end_poll_from_draft_to_rekey(browser, base_url):
 
         sealed = server_view()
         assert sealed["e2e"] is True and sealed["head"]["ct"]
-        assert [set(v) for v in sealed["voters"]] == [{"pub", "order", "ct"}]
+        # sealed blobs + keys + each vote's signature (the page checks it itself)
+        assert [set(v) for v in sealed["voters"]] == [{"pub", "order", "ct", "ts", "sig"}]
 
         # a GUEST, in their own browser, with the whole link
         gctx = browser.new_context(viewport={"width": 430, "height": 932})

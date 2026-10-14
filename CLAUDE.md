@@ -14,6 +14,8 @@ ADHD scaffolding for Wai. Claude runs planning pipeline.
 - *Templates/static* are live on next page load — `api/templates/` read per request via `_tmpl()`; `web/static/index.html` per request via `_index_pages()` (mtime-cached); `web/` served directly by FastAPI. No restart.
 - *Python* is live too — `./api` is volume-mounted to `/app` and uvicorn runs `--reload`, so editing any `api/*.py` auto-reloads the worker (1–2s). No `docker cp`, no rebuild. (If `--reload` misses a change: `docker compose restart api`.)
 
+**APP SUBMODULES (`apps/<name>`)** mirror the parent layout (`api/`, `api/templates/`, `web/`, `tests/`); `api/app_paths.py` + the `"/"` static mount + `pages._tmpl` search the parent first, then `apps/*`. Commit INSIDE the app; the push hook pushes it and bumps the parent's pointer. **ARCHITECTURE.md §1e**.
+
 **Local-claude deploy — push, then deterministic reset over SSH, never `git pull`/`git stash`** (the bind-mounted untracked dirs make pull/stash fragile; both have caused outages). `git stash` is blocked by a hook. `graphify-out/` is gitignored (never commit it). Why, and the `/nightfall` lazy-mount history: **ARCHITECTURE.md §1**. After `git push` from `~/src/exec-fn`:
 ```bash
 ssh wai-root@wai-lau.net 'cd /exec-fn && git fetch origin && git reset --hard origin/master && sudo docker compose up -d --force-recreate api'
