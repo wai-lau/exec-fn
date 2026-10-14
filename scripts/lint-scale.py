@@ -173,7 +173,7 @@ def _fully_tokenized(norm):
 def _baselined_values():
     """{prop: set(normalized value)} for the freeze-governed props, current."""
     out = {p: set() for p in BASELINED}
-    for path in sorted(ROOT.glob("web/*.css")):
+    for path in sorted(ROOT.glob("web/*.css")) + sorted(ROOT.glob("apps/*/web/*.css")):
         for m in DECL.finditer(_clean_text(path)):
             prop = m.group(1).strip().lower()
             if prop in BASELINED:
@@ -196,7 +196,7 @@ def check():
         allowed = {k: set(v) for k, v in json.loads(SCALE_BASELINE.read_text()).items()}
 
     errors = []
-    for path in sorted(ROOT.glob("web/*.css")):
+    for path in sorted(ROOT.glob("web/*.css")) + sorted(ROOT.glob("apps/*/web/*.css")):
         for m in DECL.finditer(_clean_text(path)):
             prop = m.group(1).strip().lower()
             if prop in BASELINED:

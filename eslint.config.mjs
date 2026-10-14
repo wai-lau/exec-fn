@@ -31,7 +31,9 @@ export default [
     // web/*.js are same-global-scope files loaded in order (not modules), so each
     // file references globals defined in its siblings. Linted in isolation that
     // reads as undefined/unused — disable those two here; the size cap still runs.
-    files: ["web/**/*.js"],
+    // apps/*/web is the same thing inside an app submodule (apps/README.md); the
+    // hook runs eslint from the submodule, which finds this config walking up.
+    files: ["web/**/*.js", "apps/*/web/**/*.js"],
     rules: {
       "no-undef": "off",
       "no-unused-vars": "off",

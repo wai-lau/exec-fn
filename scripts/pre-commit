@@ -4,6 +4,18 @@ set -e
 # Repo root — portable across the droplet (/exec-fn) and local dev
 # (~/src/exec-fn): derive it instead of hardcoding either path.
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+# HOST = the exec-fn checkout that owns scripts/, .venv and tests/. Inside an
+# app submodule (apps/<name>, installed there by .claude/hooks/session-context.sh)
+# that is the superproject; at the top level it is REPO_ROOT itself. Staged-path
+# patterns below (^web/, ^api/templates/) match in both, because an app mirrors
+# the parent layout (apps/README.md).
+HOST="$(git rev-parse --show-superproject-working-tree 2>/dev/null || true)"
+[ -n "$HOST" ] || HOST="$REPO_ROOT"
+# The suites to run: the host's tests/, plus the app's own when committing in one.
+TEST_DIRS="$HOST/tests/"
+if [ "$HOST" != "$REPO_ROOT" ] && [ -d "$REPO_ROOT/tests" ]; then
+  TEST_DIRS="$TEST_DIRS $REPO_ROOT/tests/"
+fi
 
 TEMPLATES="api/templates"
 TMPDIR_="$(mktemp -d)"
@@ -72,7 +84,7 @@ fi
 # colour; scripts/lint-colors.py's APPROVED_ALPHAS the only place to add an alpha.
 PALETTE_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^(web/.*\.(css|js)|api/templates/.*\.html)$' | grep -vE '^web/vendor/' || true)
 if [ -n "$PALETTE_FILES" ]; then
-  if ! python3 scripts/lint-colors.py; then
+  if ! python3 "$HOST/scripts/lint-colors.py"; then
     echo ""
     echo "Palette lint failed — commit blocked. No new colors or alphas (see above)."
     exit 1
@@ -85,7 +97,7 @@ fi
 # chrome.css scale token; scripts/scale-codemod.py snaps a page onto them.
 SCALE_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^web/.*\.css$' | grep -vE '^web/vendor/' || true)
 if [ -n "$SCALE_FILES" ]; then
-  if ! python3 scripts/lint-scale.py; then
+  if ! python3 "$HOST/scripts/lint-scale.py"; then
     echo ""
     echo "Scale lint failed — commit blocked. Snap raw values to chrome.css tokens"
     echo "(python3 scripts/scale-codemod.py shows the diff; see above)."
@@ -99,7 +111,7 @@ fi
 # layout shipped to desktop while the phone kept rendering the pre-rows CSS).
 ASSET_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^web/.*\.(css|js)$' | grep -vE '^web/vendor/' || true)
 if [ -n "$ASSET_FILES" ]; then
-  if ! python3 scripts/lint-cachebust.py; then
+  if ! python3 "$HOST/scripts/lint-cachebust.py"; then
     echo ""
     echo "Cache-bust lint failed -- commit blocked. Bump the ?v= on every"
     echo "reference to the changed asset (python3 scripts/lint-cachebust.py --all"
@@ -157,7 +169,7 @@ fi
 SWALLOW_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^web/[^/]+\.js$' || true)
 if [ -n "$SWALLOW_FILES" ]; then
   # shellcheck disable=SC2086
-  if ! python3 scripts/lint-swallowed.py $SWALLOW_FILES; then
+  if ! python3 "$HOST/scripts/lint-swallowed.py" $SWALLOW_FILES; then
     echo "Code after a mid-line // never runs - commit blocked."
     exit 1
   fi
@@ -206,14 +218,14 @@ fi
 FIXTURES_CHANGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^tests/.*\.py$|^api/.*\.py$' || true)
 if [ -n "$FIXTURES_CHANGED" ]; then
   PYTEST=""
-  if [ -x "$REPO_ROOT/.venv/bin/pytest" ]; then
-    PYTEST="$REPO_ROOT/.venv/bin/pytest"
+  if [ -x "$HOST/.venv/bin/pytest" ]; then
+    PYTEST="$HOST/.venv/bin/pytest"
   elif command -v pytest &>/dev/null; then
     PYTEST=pytest
   fi
   if [ -z "$PYTEST" ]; then
     echo "NOTE: skipping fixture-resolution check — no pytest venv."
-  elif ! FX_OUT=$("$PYTEST" "$REPO_ROOT/tests/" --setup-plan -q 2>&1); then
+  elif ! FX_OUT=$("$PYTEST" $TEST_DIRS --setup-plan -q 2>&1); then
     echo ""
     echo "$FX_OUT" | grep -E "fixture .* not found|ERROR" | head
     echo ""
@@ -231,15 +243,15 @@ fi
 SRC_CHANGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^api/.*\.py$|^api/templates/.*\.html$' || true)
 if [ -n "$SRC_CHANGED" ]; then
   PYTEST=""
-  if [ -x "$REPO_ROOT/.venv/bin/pytest" ]; then
-    PYTEST="$REPO_ROOT/.venv/bin/pytest"
+  if [ -x "$HOST/.venv/bin/pytest" ]; then
+    PYTEST="$HOST/.venv/bin/pytest"
   elif command -v pytest &>/dev/null; then
     PYTEST=pytest
   fi
   if [ -z "$PYTEST" ]; then
     echo "NOTE: skipping page smoke tests — no pytest. Run:"
     echo "      python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt"
-  elif ! SMOKE_BASE_URL="${SMOKE_BASE_URL:-http://localhost:8080}" "$PYTEST" "$REPO_ROOT/tests/" -q -x -m "not browser"; then
+  elif ! SMOKE_BASE_URL="${SMOKE_BASE_URL:-http://localhost:8080}" "$PYTEST" $TEST_DIRS -q -x -m "not browser"; then
     echo ""
     echo "Page smoke tests failed — commit blocked. A page route is broken."
     exit 1
@@ -291,14 +303,14 @@ run_capped() {
 TAROT_CHANGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^api/tarot/|^api/templates/tarot\.html$|^web/tarot.*\.js$|^web/hosaka-audio\.js$|^tests/test_tarot_progression\.py$' || true)
 if [ -n "$TAROT_CHANGED" ]; then
   PYTEST=""
-  if [ -x "$REPO_ROOT/.venv/bin/pytest" ]; then
-    PYTEST="$REPO_ROOT/.venv/bin/pytest"
+  if [ -x "$HOST/.venv/bin/pytest" ]; then
+    PYTEST="$HOST/.venv/bin/pytest"
   elif command -v pytest &>/dev/null; then
     PYTEST=pytest
   fi
   if [ -z "$PYTEST" ]; then
     echo "NOTE: skipping tarot progression tests — no pytest venv."
-  elif ! SMOKE_BASE_URL="${SMOKE_BASE_URL:-http://localhost:8080}" run_capped "$PYTEST" "$REPO_ROOT/tests/test_tarot_progression.py" -q; then
+  elif ! SMOKE_BASE_URL="${SMOKE_BASE_URL:-http://localhost:8080}" run_capped "$PYTEST" "$HOST/tests/test_tarot_progression.py" -q; then
     echo ""
     echo "Tarot progression tests failed — commit blocked. A reading can hang."
     exit 1
@@ -313,14 +325,14 @@ fi
 VOICE_CHANGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^web/exec-voice\.js$|^web/exec-voice-listener\.js$|^web/voice-util\.js$|^web/exec-bubble\.js$|^web/hosaka-audio\.js$|^api/pages\.py$|^tests/test_exec_voice_browser\.py$' || true)
 if [ -n "$VOICE_CHANGED" ]; then
   PYTEST=""
-  if [ -x "$REPO_ROOT/.venv/bin/pytest" ]; then
-    PYTEST="$REPO_ROOT/.venv/bin/pytest"
+  if [ -x "$HOST/.venv/bin/pytest" ]; then
+    PYTEST="$HOST/.venv/bin/pytest"
   elif command -v pytest &>/dev/null; then
     PYTEST=pytest
   fi
   if [ -z "$PYTEST" ]; then
     echo "NOTE: skipping exec-voice tests — no pytest venv."
-  elif ! SMOKE_BASE_URL="${SMOKE_BASE_URL:-http://localhost:8080}" run_capped "$PYTEST" "$REPO_ROOT/tests/test_exec_voice_browser.py" -q; then
+  elif ! SMOKE_BASE_URL="${SMOKE_BASE_URL:-http://localhost:8080}" run_capped "$PYTEST" "$HOST/tests/test_exec_voice_browser.py" -q; then
     echo ""
     echo "Exec-voice tests failed — commit blocked. The voice may be broken."
     exit 1

@@ -40,6 +40,43 @@ if command -v graphify >/dev/null 2>&1; then
   done
 fi
 
-jq -n --arg c "$ctx$graph" \
+# Submodules (apps/<name>, nightfall-incident). Two things a fresh clone or a
+# deploy's `git submodule update` leave wrong:
+#  - a DETACHED HEAD: a commit made there belongs to no branch and is lost at the
+#    next update. Re-attach to master when HEAD is exactly origin/master (never
+#    move a HEAD that carries its own work).
+#  - no pre-commit: hooks are per-repo, so an app submodule gets the parent's
+#    scripts/pre-commit symlinked in (it finds the parent's lints, .venv and
+#    tests via --show-superproject-working-tree). apps/* only: nightfall and
+#    claude-box are not laid out like the parent and have their own rules.
+subs=""
+paths="$(git config --file .gitmodules --get-regexp '\.path$' 2>/dev/null | awk '{print $2}')"
+for p in $paths; do
+  [ -e "$p/.git" ] || continue
+  head="$(git -C "$p" rev-parse HEAD 2>/dev/null)"
+  if [ "$(git -C "$p" rev-parse --abbrev-ref HEAD 2>/dev/null)" = "HEAD" ] \
+     && [ "$head" = "$(git -C "$p" rev-parse origin/master 2>/dev/null)" ]; then
+    # Local master must be absent (create it) or AT this commit — a master that
+    # points elsewhere holds work this must not move or drop.
+    lm="$(git -C "$p" rev-parse -q --verify refs/heads/master 2>/dev/null)"
+    if { [ -z "$lm" ] && git -C "$p" switch -q -c master --track origin/master 2>/dev/null; } \
+       || { [ "$lm" = "$head" ] && git -C "$p" switch -q master 2>/dev/null; }; then
+      subs="${subs}
+[hook] $p was on a detached HEAD — switched it to master (same commit)."
+    fi
+  fi
+  case "$p" in
+    apps/*)
+      hookdir="$(git -C "$p" rev-parse --path-format=absolute --git-path hooks 2>/dev/null)" || continue
+      if [ -n "$hookdir" ] && [ ! -e "$hookdir/pre-commit" ]; then
+        mkdir -p "$hookdir" && ln -s "$root/scripts/pre-commit" "$hookdir/pre-commit" \
+          && subs="${subs}
+[hook] installed the parent's pre-commit into $p."
+      fi
+      ;;
+  esac
+done
+
+jq -n --arg c "$ctx$graph$subs" \
   '{hookSpecificOutput:{hookEventName:"SessionStart",additionalContext:$c}}'
 exit 0

@@ -11,10 +11,16 @@
 # PreToolUse deny JSON. Fail-open on any error — never block on a hook bug.
 set -u
 
-cd "${CLAUDE_PROJECT_DIR:-.}" 2>/dev/null || exit 0
+project="${CLAUDE_PROJECT_DIR:-.}"
+cd "$project" 2>/dev/null || exit 0
 
 # Pull the command being run. jq if present, else a tolerant grep fallback.
 payload="$(cat)"
+# Judge the index of the repo the commit RUNS in: an app submodule (apps/<name>)
+# carries its own CLAUDE.md / ARCHITECTURE.md and its own index; the parent's
+# staging area says nothing about it (commit_repo.py).
+repo="$(printf '%s' "$payload" | python3 "$(dirname "$0")/commit_repo.py" "$project" 2>/dev/null)"
+if [ -n "$repo" ]; then cd "$repo" 2>/dev/null || exit 0; fi
 # Prefer cmdscan: it strips heredoc BODIES, so a script that merely mentions
 # "git commit" is not read as running one. Quoted strings are deliberately kept
 # — the [skip-docs] opt-out lives inside the quoted commit message.
@@ -27,12 +33,10 @@ else
   cmd="$(printf '%s' "$payload" | grep -o '"command"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*:[[:space:]]*"//; s/"$//')"
 fi
 
-# Only care about git commits. (The hook's `if` filter already narrows to these,
-# but re-check so the script is correct if invoked directly.)
-case "$cmd" in
-  *"git commit"*) ;;
-  *) exit 0 ;;
-esac
+# Only care about git commits: `git commit` or `git -C <dir> commit` (a submodule
+# commit from the parent). No `if` filter in settings.json — `Bash(git commit*)`
+# cannot see the -C form, so the narrowing lives here.
+[[ $cmd =~ git([[:space:]]+-C[[:space:]]+[^[:space:]]+)?[[:space:]]+commit ]] || exit 0
 
 # Explicit opt-out token in the commit message.
 case "$cmd" in

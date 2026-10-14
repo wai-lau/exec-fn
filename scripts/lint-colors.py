@@ -116,9 +116,11 @@ _STRIP_FUNCS = re.compile(
 
 
 def _scan_paths():
-    paths = sorted(ROOT.glob("api/templates/*.html"))
-    for g in ("web/*.html", "web/*.css", "web/*.js"):
-        paths += sorted(ROOT.glob(g))
+    # apps/*/ mirror the parent layout (apps/README.md), so each glob runs at
+    # the root AND inside every app submodule: one palette, one baseline.
+    paths = []
+    for g in ("api/templates/*.html", "web/*.html", "web/*.css", "web/*.js"):
+        paths += sorted(ROOT.glob(g)) + sorted(ROOT.glob("apps/*/" + g))
     paths.append(ROOT / "api/main.py")
     return [p for p in paths if "/vendor/" not in p.as_posix() and p.exists()]
 
@@ -183,12 +185,12 @@ def named_color_errors():
     """CSS named colour in a colour property -- web/*.css declarations + template
     inline style="" attrs. There are none in the tree, so any hit is new."""
     errors = []
-    for p in sorted(ROOT.glob("web/*.css")):
+    for p in sorted(ROOT.glob("web/*.css")) + sorted(ROOT.glob("apps/*/web/*.css")):
         for m in _DECL.finditer(_strip_comments(p.read_text())):
             if m.group(1).strip().lower() in COLOR_PROPS and (w := _named_in(m.group(2))):
                 errors.append(f"{p.name}: {m.group(1).strip()}: named colour '{w}' "
                               f"-- use a palette token hsl(var(--X-hsl) / α).")
-    for p in sorted(ROOT.glob("api/templates/*.html")):
+    for p in sorted(ROOT.glob("api/templates/*.html")) + sorted(ROOT.glob("apps/*/api/templates/*.html")):
         for sm in _STYLE_ATTR.finditer(p.read_text()):
             for m in _DECL.finditer(sm.group(1)):
                 if m.group(1).strip().lower() in COLOR_PROPS and (w := _named_in(m.group(2))):
