@@ -1,0 +1,20 @@
+# What a sub repo pulls from exec-fn to lint itself (scripts/subrepo-pre-commit,
+# the shim each sub repo carries as scripts/pre-commit). Sparse-checkout
+# patterns (no-cone), one per line -- ONLY the tooling, never the tree.
+# Adding a lint, config or file it reads? Add it here, or a standalone sub
+# repo's commit fails on a missing file. ARCHITECTURE.md §1e.
+/scripts/pre-commit
+/scripts/subrepo-pre-commit
+/scripts/tooling-paths.txt
+/scripts/lintkit.py
+/scripts/lint-colors.py
+/scripts/lint-scale.py
+/scripts/lint-swallowed.py
+/scripts/palette-baseline.json
+/scripts/raw-color-baseline.json
+/scripts/scale-baseline.json
+/api/app_paths.py
+/web/chrome.css
+/ruff.toml
+/.stylelintrc.json
+/eslint.config.mjs

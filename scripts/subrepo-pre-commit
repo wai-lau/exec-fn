@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# exec-fn tooling shim: a sub repo's git pre-commit hook (core.hooksPath=scripts).
+#
+# exec-fn owns EVERY lint, hook and check (exec-fn ARCHITECTURE.md §1e); a sub
+# repo carries only this file, which finds them:
+#   - checked out as an exec-fn submodule -> run the superproject's own hook;
+#   - cloned on its own -> sparse-pull ONLY the tooling (exec-fn's
+#     scripts/tooling-paths.txt, never the tree) into ./.exec-fn (gitignored),
+#     refresh it at most hourly, and run that copy.
+# Canonical copy: exec-fn scripts/subrepo-pre-commit, copied VERBATIM into each
+# sub repo as scripts/pre-commit (exec-fn tests/test_subrepo_shims.py pins it).
+set -e
+ROOT="$(git rev-parse --show-toplevel)"
+SUPER="$(git rev-parse --show-superproject-working-tree 2>/dev/null || true)"
+if [ -n "$SUPER" ] && [ -x "$SUPER/scripts/pre-commit" ]; then
+  exec "$SUPER/scripts/pre-commit" "$@"
+fi
+
+# git runs hooks with GIT_DIR / GIT_INDEX_FILE pointing at the committing repo;
+# every call on the tooling copy must drop them or it acts on the wrong repo.
+tgit() { env -u GIT_DIR -u GIT_INDEX_FILE -u GIT_WORK_TREE -u GIT_PREFIX git -C "$T" "$@"; }
+T="$ROOT/.exec-fn"
+URL="${EXEC_FN_URL:-https://github.com/wai-lau/exec-fn}"
+if [ ! -d "$T/.git" ]; then
+  echo "exec-fn tooling: first use -- pulling the lint files into .exec-fn/ (gitignored)"
+  env -u GIT_DIR -u GIT_INDEX_FILE -u GIT_WORK_TREE git clone -q --depth 1 \
+    --filter=blob:none --no-checkout "$URL" "$T"
+  tgit sparse-checkout set --no-cone /scripts/tooling-paths.txt
+  tgit checkout -q
+elif [ -z "$(find "$T/.git/FETCH_HEAD" -mmin -60 2>/dev/null)" ]; then
+  tgit pull -q --ff-only 2>/dev/null \
+    || echo "NOTE: could not refresh exec-fn tooling; using the copy in .exec-fn/"
+fi
+# shellcheck disable=SC2046  # one pattern per line, none with spaces
+tgit sparse-checkout set --no-cone $(grep -v '^[[:space:]]*#' "$T/scripts/tooling-paths.txt")
+exec "$T/scripts/pre-commit" "$@"

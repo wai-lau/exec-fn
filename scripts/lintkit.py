@@ -8,6 +8,7 @@ ARCHITECTURE.md §1e). One baseline covers all of it. Kept out of the lints so
 a new app, or a new kind of served dir, is one edit here, not one per lint.
 """
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -21,17 +22,34 @@ def _glob(dirs, *exts):
     return [p for d in dirs for ext in exts for p in sorted(d.glob(f"*.{ext}"))]
 
 
+def _with_app_root(dirs: list[Path], rel: str) -> list[Path]:
+    """Add the committing sub repo's own dir (LINT_APP_ROOT, set by
+    scripts/pre-commit) unless it is already one of exec-fn's: a sub repo
+    cloned on its own lints its files against exec-fn's tooling copy in its
+    gitignored .exec-fn/, where app_paths finds no apps."""
+    extra = os.environ.get("LINT_APP_ROOT")
+    if extra:
+        d = Path(extra) / rel
+        if d.is_dir() and d.resolve() not in {x.resolve() for x in dirs if x.is_dir()}:
+            dirs = [*dirs, d]
+    return [d for d in dirs if d.is_dir()]
+
+
+def _web_dirs() -> list[Path]:
+    return _with_app_root(app_paths.web_dirs(), "web")
+
+
 def css_files() -> list[Path]:
     """Every served stylesheet (top level of each web dir; vendor/ excluded)."""
-    return _glob(app_paths.web_dirs(), "css")
+    return _glob(_web_dirs(), "css")
 
 
 def template_files() -> list[Path]:
-    return _glob(app_paths.template_dirs(), "html")
+    return _glob(_with_app_root(app_paths.template_dirs(), "api/templates"), "html")
 
 
 def web_files(*exts: str) -> list[Path]:
-    return _glob(app_paths.web_dirs(), *exts)
+    return _glob(_web_dirs(), *exts)
 
 
 def strip_comments(text: str, html: bool = True) -> str:
