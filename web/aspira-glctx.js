@@ -55,13 +55,13 @@ function glCtx(real, toWorld) { // toWorld: the real canvas's pixels -> world un
   const plain = s => typeof s === "string";
   g.fill = (...a) => {
     const st = real.fillStyle, grad = st && st.__disc;
-    const why = odd ? "fill:" + odd : a.length ? "fill:rule" : real.globalCompositeOperation !== "source-over" ? "fill:" + real.globalCompositeOperation : real.shadowBlur > 0 ? "fill:shadow" : real.filter !== "none" ? "fill:filter" : !plain(st) && !grad ? "fill:style" : !glcFill(g, parts, st, grad) ? "fill:shape" + parts.map(p => (p.circle ? "o" : p.pts.length)).join("") : null;
+    const why = odd ? "fill:" + odd : a.length ? "fill:rule" : real.globalCompositeOperation !== "source-over" ? "fill:" + real.globalCompositeOperation : real.shadowBlur > 0 ? "fill:shadow" : (real.filter || "none") !== "none" ? "fill:filter" : !plain(st) && !grad ? "fill:style" : !glcFill(g, parts, st, grad) ? "fill:shape" + parts.map(p => (p.circle ? "o" : p.pts.length)).join("") : null;
     if (why) { replay(why); real.fill(...a); }
   };
   g.stroke = (...a) => {
     const st = real.strokeStyle, dash = g.dash ? real.getLineDash() : null, glow = real.shadowBlur > 0 && real.shadowColor === st; // a glow in its own colour: soft rings under it (glcGlow)
     const why = odd ? "stroke:" + odd : a.length ? "stroke:path" : dash && dash.length !== 2 ? "stroke:dash" + dash.length : real.globalCompositeOperation !== "source-over" ? "stroke:" + real.globalCompositeOperation :
-      real.shadowBlur > 0 && !glow ? "stroke:shadow" : real.filter !== "none" ? "stroke:filter" : !plain(st) ? "stroke:style" :
+      real.shadowBlur > 0 && !glow ? "stroke:shadow" : (real.filter || "none") !== "none" ? "stroke:filter" : !plain(st) ? "stroke:style" :
       real.lineJoin !== "round" && parts.some(p => !p.circle && p.pts.length + (p.closed ? 1 : 0) > 2 && !glcRegular(p, g.w2)) ? "stroke:join-" + real.lineJoin : null; // (a mitred corner: the canvas - but a regular polygon's is the batch's shape 5)
     if (why) { replay(why); real.stroke(...a); return; }
     glcStroke(g, parts, st, dash, sc(), glow);
