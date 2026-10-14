@@ -12,7 +12,7 @@ function newGame() {
   // loads after this file, so the very first call finds no pushCells yet)
   if (typeof pushCells === "function") pushCells(0); if (typeof bossInv === "object") Object.assign(bossInv, { phase: "off", full: false, r: 0 }); // (no boss sky carried over)
   return {
-    money: START_MONEY, drips: [], lives: 18, score: 0, wave: 0, interest: 0.03, // 18 = two full shield rings (owner)
+    money: START_MONEY, drips: [], lives: 18, score: 0, wave: 0, interest: 0.02, // 18 = two full shield rings (owner); interest 2% (owner, 2026-10-14: "balance the money" - at 3% uncapped, 97% of a run's money was interest, ~350k banked by wave 91; was 0.03)
     towers: [], enemies: [], spawns: [], fleetQ: [], chains: [], nextIn: 0, started: false, over: false,
     power: { SCR: 0, RNG: 0, MNY: 0, DAM: 0 }, charge: 0,
     nextLifeAt: 50000, id: 1,
@@ -43,7 +43,7 @@ let HP_GROWTH = 1.13; const ARMOR_EXP = 0.4, SHIELD_EXP = 0.29 /* FEWER shield c
 let HP_LATE = 1.13 /* 2026-10-11: the axis roles made the towers stronger - waverep x3 36/36, late lives 16.5 (1.115: 2.9; was 1.11) */; const HP_KNEE = 20; // let: the simulator sweeps it
 // THE END GAME EASES (owner, 2026-10-11: "for waves that make lives go fix them"): towers are fully built by about
 // wave 80, so HP growing x HP_LATE on past it made waves 80-100 a wall (47 of 48 lives lost there); x HP_END past HP_END_KNEE
-let HP_END = 1.06, HP_END_KNEE = 80; // let: the simulator sweeps both. waverep x3: 1.115 won 9/36, 1.08 33, 1.06 35 (36 with FAST_LATE_MUL)
+let HP_END = 1.07 /* "make it harder" (owner, 2026-10-14; was 1.06) */, HP_END_KNEE = 80; // let: the simulator sweeps both. waverep x3: 1.115 won 9/36, 1.08 33, 1.06 35 (36 with FAST_LATE_MUL)
 const hpPow = n => Math.pow(HP_GROWTH, Math.min(n, HP_KNEE) - 1) * Math.pow(HP_LATE, Math.max(0, Math.min(n, HP_END_KNEE) - HP_KNEE)) * Math.pow(HP_END, Math.max(0, n - HP_END_KNEE));
 // one enemy's HP on wave n (before a boss's own multiplier); the wave list shows it too
 // shields GROW SLOWER (owner, 2026-10-06): to the SHIELD_EXP power of the old

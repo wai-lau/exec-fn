@@ -112,7 +112,7 @@ const FLEET_GAP = 10, FLEET_LAYER = 3 * V_BACK; // clear space between bodies, w
 // x a plain wave, per boss: the fleet's SIZE, the balance lever (owner: "balance by adding to boss fleets") - fitted by
 // scripts/aspira-sim/bossfleet.mjs against the regular waves before each boss, which overlap where a boss wave does not
 // FLEET_TO_BOSS of every escort's HP moves onto its boss (owner, 2026-10-11: "move some life from boss fleet to boss")
-const FLEET_TO_BOSS = 0.3;
+const FLEET_TO_BOSS = 0.2; // 0.2 (2026-10-14: the transfer had been dead inside a comment since 10-11; at 0.3 a saver lost ARC+SOL+ACD to the wave-120 boss, 0.2 keeps every trio winnable)
 const FLEET_MUL = { star: 3 /* a pack of 3 waves following it (2026-10-12) */, empress: 1, strength: 1, chariot: 1, lovers: 1, temperance: 1, devil: 1, justice: 0.75 /* Justice slowed (owner, 2026-10-12: "boss 80 nerf by slow" - it broke through in 5 of 36 games) */, judgement: 1, death: 1 };
 // the slots ([lat, ahead of the boss]) for a boss's shield and armor escorts; R: the boss's own radius
 function fleetForm(e, R) {
@@ -180,7 +180,9 @@ function bossFleet(e, n) {
         // in FORMATION: at the boss's own pace, so the spacing holds (a fast escort behind would run through it)
         m.spd = (e.spd || 1) * ENEMIES.bonus.speed / ENEMIES[k].speed; m.jit = 0; // (a swarmer's wander would carry it into its neighbours)
         m.bossKin = true; m.fleetSpd = m.spd; e.fleet.push(m);
-        const moved = isA(e, "temperance") ? 0 : Math.floor(m.max * FLEET_TO_BOSS); // not onto Temperance: her regen is a share of her HP (2026-10-11: w60 killed 11 of 32 two-tower openings) m.max -= moved; m.hp = m.max; e.max += moved; e.hp = e.max;
+        // not onto Temperance: her regen is a share of her HP (2026-10-11: w60 killed 11 of 32 two-tower openings)
+        const moved = isA(e, "temperance") ? 0 : Math.floor(m.max * FLEET_TO_BOSS);
+        m.max -= moved; m.hp = m.max; e.max += moved; e.hp = e.max; // (was swallowed by the comment above from 2026-10-11 to 10-14)
       }
     }
     span[0] = Math.max(span[0], reach[0]); span[1] = Math.max(span[1], reach[1]);
