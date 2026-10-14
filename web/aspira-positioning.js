@@ -105,14 +105,16 @@ let autoMove = false;
 try { autoMove = localStorage.getItem("spire.automove") === "1"; } catch (e) { /* not remembered */ }
 const HUMAN_V = 300; // a phone's width (500 units) in under two seconds (halved, owner 2026-10-13; was 600)
 const GLIDE_TURNS = [0, 0.5, -0.5, 1, -1, 1.4, -1.4], GLIDE_GIVE_UP = 2; // radians off the straight line, tried in order
+const GLIDE_ESCAPE = 4; // a tower caught overlapping glides out this many times faster (at the halved HUMAN_V one sat overlapped 42 frames - stuck.mjs)
 function autoGlide(t, dt) {
   // two towers gliding at once can each step clear of where the other WAS and end up overlapping (stuck.mjs found one): a
   // tower that cannot stay where it stands heads home to its slot first
-  if (!t.goal && !legalSpot(t, t)) { t.goal = { x: CELLS[t.cell].x, y: CELLS[t.cell].y }; }
+  const caught = !legalSpot(t, t);
+  if (!t.goal && caught) { t.goal = { x: CELLS[t.cell].x, y: CELLS[t.cell].y }; }
   t.posT = (t.posT || 0) - dt;
   if (t.posT <= 0) { t.posT = POS_EVERY; const s = bestSpot(t, towerStats(t).range); if (s) t.goal = s; }
   if (!t.goal || (typeof towerHeld === "function" && towerHeld(t)) || t.fling) return;
-  const real = dt / Math.max(0.01, typeof speedX === "function" ? speedX() : 1), dx = t.goal.x - t.x, dy = t.goal.y - t.y, d = Math.hypot(dx, dy), step = HUMAN_V * real;
+  const real = dt / Math.max(0.01, typeof speedX === "function" ? speedX() : 1), dx = t.goal.x - t.x, dy = t.goal.y - t.y, d = Math.hypot(dx, dy), step = HUMAN_V * (caught ? GLIDE_ESCAPE : 1) * real;
   if (d <= step) { moveTower(t, t.goal); t.goal = null; return; }
   // NEVER STUCK (owner, 2026-10-13: "ensure that the towers don't get stuck during simulations"): straight at it, else STEERED
   // round what is in the way (another tower, the core) - the first heading GLIDE_TURNS off the line that both moves it and
