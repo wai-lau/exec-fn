@@ -23,7 +23,7 @@ const CHANGELOG = [ // each day's lines in two groups: b = Balance, u = Perf/UI
     "The upgrade button always shows the cost (the tower name, then the level, give way first).",
     "Boss text and the power buttons no longer block dragging a tower.",
     "3D: shapes below the floor fade out again.",
-    "The quality slider fills the rest of its line.",
+    "The quality slider stretches to line up with the stats above it.",
     "This card: tap the version number (V, top bar).",
   ] },
   { v: "4.2", day: "Oct 13", b: [
