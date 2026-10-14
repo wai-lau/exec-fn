@@ -45,11 +45,11 @@ function drawAcd() {
     drawPuddles(t); // the chart ACD's puddles, under its lines (aspira-skills.js)
     if (!t.lines || !t.lines.length) continue;
     const st = towerStats(t, true);
+    // Spray V (a jet on every enemy in reach): its reach a thin pulsing ring and the JETS themselves below - it was one green
+    // disc over the whole reach, the pools and jets lost under it (owner, 2026-10-14: "want them to be distinguishable")
     if (st.allInRange) {
-      gradDisc(t.x, t.y, st.range, COL.chatsubo);
-      ctx.globalAlpha = 0.35 + 0.15 * Math.sin(performance.now() / 200); ctx.lineWidth = 4;
+      ctx.globalAlpha = 0.3 + 0.15 * Math.sin(performance.now() / 200); ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(t.x, t.y, st.range, 0, 6.283); ctx.stroke();
-      continue;
     }
     for (const l of t.lines) {
       if (l.e.dead) continue;

@@ -274,7 +274,7 @@ function stepPuddles(t, st, dt) {
         if (e.dead || (e.x - p.x) ** 2 + (e.y - p.y) ** 2 > p.r * p.r) continue;
         const hp0 = e.hp;
         damage(e, p.dps * every, t, false, false, hit); e.burnT = 0.4;
-        if (st.spread && hp0 > 0 && e.hp <= 0 && t.puddles.length + born.length < ACD_SPREAD_MAX) born.push({ x: e.x, y: e.y, r: p.r * ACD_SPREAD_R, life: p.life * ACD_SPREAD_LIFE, age: 0, tick: 0, dps: p.dps });
+        if (st.spread && hp0 > 0 && e.hp <= 0 && t.puddles.length + born.length < ACD_SPREAD_MAX) born.push({ x: e.x, y: e.y, r: p.r * ACD_SPREAD_R, life: p.life * ACD_SPREAD_LIFE, age: 0, tick: 0, dps: p.dps, spread: true });
         if (hit && hp0 > e.hp) (t.poolAcc ||= new Map()).set(e, (t.poolAcc.get(e) || 0) + hp0 - Math.max(0, e.hp)); // a real hit: it pops one shield charge
       }
     }
@@ -341,11 +341,14 @@ function drawPools(t, now) {
   const pools = t.puddles || [], deep = poolDepth(pools);
   pools.forEach((p, i) => {
     const crowd = 1 / deep[i], fade = Math.min(1, (1 - p.age / p.life) * puddleGlow(p)) * crowd, seed = p.seed ||= 1 + Math.floor(Math.random() * 1e6);
-    if (many) { ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 0.9 * (0.8 + 0.2 * (1 - p.age / p.life)), 0, 6.283); ctx.globalAlpha = 0.14 * fade; ctx.fill(); ctx.globalAlpha = 0.4 * fade * crowd; ctx.stroke(); return; } // (a crowd's rims fade faster than its bodies: overlapping rims were the foam)
-    puddleBlob(p, now, 1, seed); ctx.globalAlpha = 0.14 * fade; ctx.fill(); ctx.globalAlpha = 0.4 * fade; ctx.stroke();
-    puddleBlob(p, now, 0.5, seed * 7); ctx.globalAlpha = 0.12 * fade; ctx.fill();
+    // a pool a KILL left (Contagion's spread) is a DASHED ring, no body; the jets' own drips filled: the two read apart (owner, 2026-10-14)
+    if (many) { ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 0.9 * (0.8 + 0.2 * (1 - p.age / p.life)), 0, 6.283); if (!p.spread) { ctx.globalAlpha = 0.14 * fade; ctx.fill(); } ctx.setLineDash(p.spread ? POOL_DASH : []); ctx.globalAlpha = (p.spread ? 0.7 : 0.4) * fade / Math.sqrt(crowd); ctx.stroke(); return; } // (a crowd's rims fade only by the root of it: the rims tell one pool from the next)
+    puddleBlob(p, now, 1, seed); if (!p.spread) { ctx.globalAlpha = 0.14 * fade; ctx.fill(); } ctx.setLineDash(p.spread ? POOL_DASH : []); ctx.globalAlpha = (p.spread ? 0.7 : 0.4) * fade; ctx.stroke();
+    if (!p.spread) { puddleBlob(p, now, 0.5, seed * 7); ctx.globalAlpha = 0.12 * fade; ctx.fill(); }
   });
+  ctx.setLineDash([]);
 }
+const POOL_DASH = [18, 12]; // board units: big enough to read as dashes once the 3D view shrinks a pool
 // how many pools cover each pool's centre (itself included), the crowd bucketed by POOL_CELL like the enemies
 function poolDepth(pools) {
   if (pools.length <= 1) return pools.map(() => 1);
