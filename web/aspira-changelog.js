@@ -24,7 +24,7 @@ const CHANGELOG = [ // each day's lines in two groups: b = Balance, u = Perf/UI
     "Boss text and the power buttons no longer block dragging a tower.",
     "3D: shapes below the floor fade out again.",
     "The quality slider fills the rest of its line.",
-    "This card: tap the version number.",
+    "This card: tap the version number (V, top bar).",
   ] },
   { v: "4.2", day: "Oct 13", b: [
     "Bosses are tougher (x1.4 HP; the Empress and Strength x3.5, Death x2.8).",
