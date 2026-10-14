@@ -1,17 +1,25 @@
-// Asset loaders for the exec bubble: the lazy marked.js fetch, the markdown
-// sanitiser that pairs with it, and the stylesheet injection. (The reveal moved
+// Asset loaders for the exec bubble: the lazy marked.js + DOMPurify fetch, the
+// markdown sanitiser that pairs with them, and the stylesheet injection. (The reveal moved
 // to exec-stream.js.) Split out of
 // exec-bubble.js (500-line cap); loaded immediately before it, same global
 // scope, so exec-bubble.js calls these by bare name like its own functions.
 'use strict';
 
-// ── marked lazy-load ────────────────────────────────────────────────────────
+// ── marked + DOMPurify lazy-load ────────────────────────────────────────────
+// Both from THIS site (web/vendor/, pinned versions): a CDN script runs with
+// the page's origin, so a bad release could read everything kept in this
+// origin's localStorage (noodle's identities) or call the owner's APIs.
+const EXEC_MD_LIBS = [['marked', '/vendor/marked-15.0.12.min.js'], ['DOMPurify', '/vendor/purify-3.4.17.min.js']];
 function loadMarked(cb) {
-  if (window.marked) { cb(); return; }
-  const s = document.createElement('script');
-  s.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
-  s.onload = cb;
-  document.head.appendChild(s);
+  const need = EXEC_MD_LIBS.filter(([name]) => !window[name]);
+  let left = need.length;
+  if (!left) { cb(); return; }
+  for (const [, src] of need) {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = () => { if (--left === 0) cb(); };
+    document.head.appendChild(s);
+  }
 }
 
 // A link in a reply opens in a NEW TAB, always. The panel lives ON /rd and /hq,
@@ -43,8 +51,15 @@ function execRenderer() {
   return execMdRenderer;
 }
 
-// marked passes raw HTML straight through — strip <script>/on*=/javascript: URLs.
-function mdHtml(t) { const r = execRenderer(); return marked.parse(t, r ? { renderer: r } : undefined).replace(/<script[\s\S]*?<\/script>/gi, '').replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '').replace(/(href|src)\s*=\s*(["'])\s*javascript:[^"']*\2/gi, '$1="#"'); }
+// marked passes raw HTML straight through, and a reply can carry whatever the
+// agent read on the web: DOMPurify drops scripts, handlers, javascript: URLs,
+// srcdoc and the rest (regex stripping let `src=x/onerror=` and entity-encoded
+// schemes through -- security audit 2026-10-14). `target` is kept: links open
+// in a new tab. ```svg blocks stay escaped code here; exec-svg.js draws them.
+function mdHtml(t) {
+  const r = execRenderer();
+  return DOMPurify.sanitize(marked.parse(t, r ? { renderer: r } : undefined), { ADD_ATTR: ['target'] });
+}
 
 // Load the stylesheets and invoke cb once they have applied (or failed).
 // Callers wait on this before building the panel so it never paints unstyled.

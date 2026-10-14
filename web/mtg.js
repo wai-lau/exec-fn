@@ -62,7 +62,8 @@ _renderer.link = ({href, title, text}) => {
 marked.use({ breaks: true });
 
 function renderText(raw) {
-  return marked.parse(raw, {renderer: _renderer});
+  // sanitised: marked passes raw HTML through (DOMPurify, web/vendor/)
+  return DOMPurify.sanitize(marked.parse(raw, {renderer: _renderer}));
 }
 
 function addMsg(role, text) {

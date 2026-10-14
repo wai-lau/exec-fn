@@ -88,7 +88,8 @@ function renderSigCard() {
 const renderSigSlot = renderSigCard;
 
 marked.use({ breaks: true });
-function renderText(raw) { return marked.parse(raw); }
+// sanitised: marked passes raw HTML through (DOMPurify, web/vendor/)
+function renderText(raw) { return DOMPurify.sanitize(marked.parse(raw)); }
 
 function addMsg(role, text) {
   const div = document.createElement('div');

@@ -23,6 +23,7 @@ var ZB_SWF = ZB_BASE + 'inrozxa.swf';
  * That is also why this file probes the clip before committing to anything. */
 var ZB_CLIP = ZB_BASE + 'welcomeclip.swf';
 var ZB_RUFFLE = 'https://cdn.jsdelivr.net/npm/@ruffle-rs/ruffle@0.6.0/ruffle.min.js';
+var ZB_RUFFLE_SRI = 'sha384-R823DiJ1nTfZTOrftmm4f3LMRqa9QJOvg8V+lkZRQKt81SxocT5WEzyLjo/HHPmC';
 
 /* The ONE outbound link in the whole intro. "sign up for the newzletter" is a
  * button in the LOADER swf (the movie itself carries no URL string at all --
@@ -118,9 +119,15 @@ function zbLoadRuffle() {
     salign: 'T',           // the original <embed> top-aligns the movie
     contextMenu: 'off',
     warnOnUnsupportedContent: false,
+    // the movie is third-party bytes playing on THIS origin: it never gets a
+    // bridge to the page's script (Ruffle's default, said out loud)
+    allowScriptAccess: false,
   };
   var s = document.createElement('script');
   s.src = ZB_RUFFLE;
+  // the loader is pinned by version AND by hash: a changed file never runs
+  s.integrity = ZB_RUFFLE_SRI;
+  s.crossOrigin = 'anonymous';
   s.onload = zbFlashMount;
   document.head.appendChild(s);
 }

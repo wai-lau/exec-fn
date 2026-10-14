@@ -18,13 +18,6 @@ _FONT_PRELOAD = (
     '<link rel="preload" href="/fonts/iosevka-700.woff2?v=1" as="font" '
     'type="font/woff2" crossorigin>'
 )
-# Open the DNS+TLS to the script CDN early on the pages that load from it
-# (rd/hq = sortable+marked; debug/mtg/tarot = marked), so the
-# handshake overlaps page parse instead of blocking the script fetch.
-_JSDELIVR_PRECONNECT = (
-    '<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>'
-)
-_JSDELIVR_PAGES = {"rd", "hq", "mtg", "tarot"}
 # Site favicon (matches web/index.html, used by login + the in-shell pages).
 # Injected into the pages built from their own HTML (graph) so they show
 # the same icon. /recruiter keeps its own ✦; /nightfall keeps its game hack.png.
@@ -261,7 +254,7 @@ def _build_nav(active=None, guest=False):
                   '<script src="/exec-choices.js?v=7"></script>'
                   '<script src="/voice-input.js?v=3"></script>'
                   '<script src="/exec-mic.js?v=2"></script>'
-                  '<script src="/exec-bubble-assets.js?v=30"></script>'
+                  '<script src="/exec-bubble-assets.js?v=31"></script>'
                   '<script src="/chat-dom.js?v=1"></script>'
                   '<script src="/exec-bubble-msg.js?v=3"></script>'
                   # The agent transcript (the /cc page until it folded in, 2026-09-29):
@@ -345,8 +338,7 @@ def _render_page(active: str | None, content: str, full_height: bool = False, gu
                  show_nav: bool = True, crt: bool = True) -> str:
     no_form, bare = _index_pages()
     base = bare if active else no_form
-    preconnect = _JSDELIVR_PRECONNECT if active in _JSDELIVR_PAGES else ""
-    head_inject = preconnect + _FONT_PRELOAD + _CHROME_LINK + (_FULL_HEIGHT_STYLE if full_height else "")
+    head_inject = _FONT_PRELOAD + _CHROME_LINK + (_FULL_HEIGHT_STYLE if full_height else "")
     # show_nav=False: a page with its own way out and no room for the bar
     # (/spire, owner 2026-10-05: a favicon button home instead)
     nav = _build_nav(active, guest=guest) if show_nav else ""
