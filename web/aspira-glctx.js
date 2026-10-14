@@ -50,20 +50,24 @@ function glCtx(real, toWorld) { // toWorld: the real canvas's pixels -> world un
   };
   g.stroke = (...a) => {
     const st = real.strokeStyle, lw = real.lineWidth * sc() / g.w2.k;
-    if (odd || a.length || g.dash || real.globalCompositeOperation !== "source-over" || real.shadowBlur > 0 || real.filter !== "none" || !plain(st) ||
+    const dash = g.dash ? real.getLineDash() : null, dk = sc() / g.w2.k;
+    if (odd || a.length || (dash && dash.length !== 2) || real.globalCompositeOperation !== "source-over" || real.shadowBlur > 0 || real.filter !== "none" || !plain(st) ||
       (real.lineJoin !== "round" && parts.some(p => !p.circle && p.pts.length + (p.closed ? 1 : 0) > 2))) { replay(); real.stroke(...a); return; } // (a mitred corner: the canvas)
     const butt = real.lineCap === "butt";
     for (const p of parts) {
-      if (p.circle) { const [x, y] = g.w2(p.circle[0], p.circle[1]); fxGlPush(x, y, x, y, p.circle[2] / g.w2.k, lw, st, 0, st, real.globalAlpha); continue; }
+      const dOn = dash ? dash[0] * dk : 0, dOff = dash ? dash[1] * dk : 0, dAt = dash ? real.lineDashOffset * dk : 0; // (a dash: on, off, its offset - world units)
+      if (p.circle) { const [x, y] = g.w2(p.circle[0], p.circle[1]); fxGlPush(x, y, x, y, p.circle[2] / g.w2.k, lw, st, 0, st, real.globalAlpha, 0, 0, 0, 0, 0, dOn, dOff, dAt); continue; }
       const closed = p.closed && p.pts.length > 2, P = (closed ? [...p.pts, p.pts[0]] : p.pts).map(q => g.w2(q[0], q[1])), n = P.length - 1;
       const dir = i => { const dx = P[i + 1][0] - P[i][0], dy = P[i + 1][1] - P[i][1], l = Math.hypot(dx, dy) || 1; return [dx / l, dy / l]; };
       const D = Array.from({ length: n }, (_, i) => dir(i));
       // each segment cut at its joints (the bisector of its direction and its neighbour's): seen-through lines never overlap
       const joint = (u, w) => { const x = u[0] + w[0], y = u[1] + w[1], l = Math.hypot(x, y); return l > 1e-6 ? [x / l, y / l] : [0, 0]; };
+      let along = 0; // the dash carries on round the corners
       for (let i = 0; i < n; i++) {
         const prev = i > 0 ? D[i - 1] : closed ? D[n - 1] : null, next = i < n - 1 ? D[i + 1] : closed ? D[0] : null;
         const [b0x, b0y] = prev ? joint(prev, D[i]) : [0, 0], [b1x, b1y] = next ? joint(D[i], next) : [0, 0];
-        fxGlPush(P[i][0], P[i][1], P[i + 1][0], P[i + 1][1], lw / 2, 0, st, real.globalAlpha, st, 0, butt && !prev && !next ? 2 : 0, b0x, b0y, b1x, b1y);
+        fxGlPush(P[i][0], P[i][1], P[i + 1][0], P[i + 1][1], lw / 2, 0, st, real.globalAlpha, st, 0, butt && !prev && !next ? 2 : 0, b0x, b0y, b1x, b1y, dOn, dOff, dAt + along);
+        along += Math.hypot(P[i + 1][0] - P[i][0], P[i + 1][1] - P[i][1]);
       }
     }
   };
