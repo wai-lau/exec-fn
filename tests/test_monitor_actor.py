@@ -3,7 +3,7 @@
 Exec reports what it did in its reply; a monitor comment on the same change a
 minute later is Exec talking about itself. Everything logged inside one Exec
 tool call is stamped actor=exec (helpers.LOG_ACTOR, set by exec_tools.run_tool)
-and the monitor skips those. The panel's done/exile buttons log source=Exec
+and the monitor skips those. The panel's archive/exile buttons log source=Exec
 too, but they are Wai's taps, carry no actor, and still earn a comment.
 """
 import asyncio

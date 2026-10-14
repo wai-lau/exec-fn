@@ -25,7 +25,7 @@ pytest.importorskip("playwright.sync_api")
 pytestmark = pytest.mark.browser
 
 
-# A realistic three-answer nudge: with the client-appended done/exile the row
+# A realistic three-answer nudge: with the client-appended archive/exile the row
 # runs to the right edge of a 430px screen, which is where the bubble rests.
 _HISTORY = {
     "messages": [

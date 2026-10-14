@@ -269,7 +269,7 @@ body:has(#exec-panel.open) #exec-bubble { display: none; }
 
 .exec-act + .exec-act { margin-left: 0; border-left: 0; }
 
-.exec-act-done { border-color: hsl(var(--green-hsl) / 0.8); }
+.exec-act-archive { border-color: hsl(var(--green-hsl) / 0.8); }
 
 .exec-act-exile {
   border-color: hsl(var(--orange-glow-hsl) / 0.6);

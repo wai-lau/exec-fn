@@ -193,7 +193,7 @@ _CHAT_STATIC_PREFIX = (
     "on a statement.\n"
     "CARD ACTIONS: whenever the question is about ONE card on the board, make card=<that card's "
     "exact id> the FIRST cell of the same row — [card=card-1750000000000 | Got it | Not yet]. It "
-    "renders as done and exile buttons beside the answers, which archive or drop that card on one "
+    "renders as archive and exile buttons beside the answers, which archive or drop that card on one "
     "tap; without the cell Wai can answer the question but cannot mark the thing she just did. If "
     "the question is about a card but has no small set of likely answers, write the row as the "
     "card cell alone — [card=card-1750000000000]. Leave the cell out only when the question is "

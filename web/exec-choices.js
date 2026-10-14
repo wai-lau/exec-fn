@@ -14,8 +14,8 @@
 // belongs to none of them on its face (see answerRef).
 //
 // CARD ACTIONS are the exception, and they are deliberately NOT messages. A
-// nudge also carries its card's id, and `done` / `exile` mean exactly what the
-// same two buttons on the card dialog mean — archive it, or drop it — so they
+// nudge also carries its card's id, and `archive` / `exile` mean exactly what
+// the card dialog's done / exile buttons mean — archive it, or drop it — so they
 // PATCH the card directly (cdDone/cdExile in card-dialog.js do the identical
 // {id, column} write). Routing those through the model instead would spend a
 // turn asking it to do something the tap already decided, and could silently
@@ -35,16 +35,19 @@
 // Only {id, column} is sent — PATCH /api/rd merges by id, so every field the
 // client does not own (above all the server-owned `nudge` block) is preserved.
 window.execChoices = (function () {
-  // Label -> the column the card dialog's button moves it to.
+  // Label -> the column the card dialog's button moves it to. The dialog says
+  // `done`; here it says `archive`, because here it sits beside a step's
+  // answers, and `done` read as "this step is done" -- the tap meant to mark one
+  // prep step archived the whole interview card (2026-10-14).
   const CARD_ACTIONS = [
-    { label: 'done', column: 'archives' },
+    { label: 'archive', column: 'archives' },
     { label: 'exile', column: 'exile' },
   ];
   // Anchored to the LAST line, and required to carry a '|' OR to be a lone
   // `card=` cell, so an ordinary [bracketed] sys note, a markdown link, or a
   // stray bracket mid-sentence is never mistaken for a choice row. The lone
   // form covers a question about a card that has no small answer set ("what do
-  // you want to do with it?"): no answer buttons, but done/exile still apply.
+  // you want to do with it?"): no answer buttons, but archive/exile still apply.
   //
   // Emphasis around the row is tolerated (`**[a | b]**`) and so is trailing
   // whitespace: the model reaches for bold on a line that reads like a control,

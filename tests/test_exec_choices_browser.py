@@ -50,7 +50,7 @@ _HISTORY = {
 
 # An ordinary chat reply — no nudge, no card_id in any payload. The card it is
 # about is named in the row itself (`card=`), which is the only thing that can
-# tell the panel which card `done` would archive.
+# tell the panel which card `archive` would archive.
 _CHAT_HISTORY = {
     "messages": [
         {"role": "user", "ts": "2026-09-19T10:00:00+00:00", "text": "poster?"},
@@ -138,8 +138,8 @@ def test_every_open_question_stays_tappable(open_panel):
     """Both nudges keep their own answers AND their own card actions."""
     rows = _rows(open_panel())
     assert rows == [
-        ["Packed", "Not yet", "done", "exile"],
-        ["Got it", "Not yet", "done", "exile"],
+        ["Packed", "Not yet", "archive", "exile"],
+        ["Got it", "Not yet", "archive", "exile"],
     ]
 
 
@@ -157,21 +157,21 @@ def test_answer_carries_a_reference_to_its_question(open_panel):
     assert text.endswith("Not yet")
     # Answering retires that question's answers; its card actions and the OTHER
     # question both stay live.
-    assert _rows(pg) == [["done", "exile"], ["Got it", "Not yet", "done", "exile"]]
+    assert _rows(pg) == [["archive", "exile"], ["Got it", "Not yet", "archive", "exile"]]
 
 
 def test_older_done_patches_its_own_card(open_panel):
-    """Tapping the OLDER row's `done` archives THAT card, not the newer one."""
+    """Tapping the OLDER row's `archive` archives THAT card, not the newer one."""
     pg = open_panel()
     # .nth(0), not :first-of-type — the rows are <div> siblings of the message
     # <div>s, so "first of type" is the first message, not the first row.
-    pg.locator("#exec-term .exec-choice-row .exec-act-done").nth(0).click()
+    pg.locator("#exec-term .exec-choice-row .exec-act-archive").nth(0).click()
     pg.wait_for_function("() => (window.__patched || []).length >= 1", timeout=4000)
     assert pg.evaluate("() => window.__patched")[0] == {
         "cards": [{"id": "card-climbing", "column": "archives"}]
     }
     # The tapped row is gone; the newest nudge is untouched.
-    assert _rows(pg) == [["Got it", "Not yet", "done", "exile"]]
+    assert _rows(pg) == [["Got it", "Not yet", "archive", "exile"]]
 
 
 def test_chat_reply_naming_a_card_gets_card_actions(open_panel):
@@ -181,11 +181,11 @@ def test_chat_reply_naming_a_card_gets_card_actions(open_panel):
     before the message renders, so the id stays out of Wai's sight.
     """
     pg = open_panel(_CHAT_HISTORY)
-    assert _rows(pg) == [["Got it", "Not yet", "done", "exile"]]
+    assert _rows(pg) == [["Got it", "Not yet", "archive", "exile"]]
     body = pg.text_content("#exec-term .msg.assistant .msg-body")
     assert "card-poster" not in body and "[" not in body
 
-    pg.locator("#exec-term .exec-choice-row .exec-act-done").click()
+    pg.locator("#exec-term .exec-choice-row .exec-act-archive").click()
     pg.wait_for_function("() => (window.__patched || []).length >= 1", timeout=4000)
     assert pg.evaluate("() => window.__patched")[0] == {
         "cards": [{"id": "card-poster", "column": "archives"}]
