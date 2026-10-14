@@ -53,7 +53,7 @@ const NO_LANES = 4; // NOTHING rides exactly four lanes (owner, 2026-10-13: "mak
 // SWARM on 20 or 24 lanes, FOUR times its old 5-6 (owner, 2026-10-12: "double swarm lanes ... keep the number of enemies the
 // same"; doubled again 2026-10-13, "mostly a visual change, double the swarm lanes again, but keep the counts"): the count is
 // still rounded to the old lane-fulls (k / SWARM_K), then shared over the k lanes, some one more (sendWave)
-const SWARM_LANES = [20, 24], SWARM_K = 4;
+const SWARM_LANES = [20, 24], SWARM_K = 4; // (kept with HALF the bodies - owner, 2026-10-14: "no same number of lanes")
 const ARMOR_LANES = 2; // ALWAYS two (owner, 2026-10-12: "armor should always use 2 paths"; was 1-3)
 const SHIELD_LANES = [2, 3]; // 2-3 (owner, 2026-10-12; briefly 3 or 5, never 4)
 function formSplit(type, count, n) {
