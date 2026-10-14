@@ -73,7 +73,9 @@ function drawTimeStop(c) {
   if (!c.freeze) return;
   const f = c.freeze, shimmer = 0.85 + 0.15 * Math.sin(performance.now() / 40);
   ctx.strokeStyle = ctx.fillStyle = COL.white; ctx.lineJoin = "miter";
-  for (let t0 = 0; t0 < f.dur && t0 <= f.t; t0 += TEMPORAL_RING_EVERY) {
+  const r0 = q3d() ? f.ring0 : 0; // 3D: the rings start as the slammed core LANDS (coreH3d, aspira-warp.js; owner, 2026-10-14 "like wave on hit")
+  if (r0 == null) return;
+  for (let t0 = r0; t0 < f.dur + r0 && t0 <= f.t; t0 += TEMPORAL_RING_EVERY) {
     const a = f.t - t0; // this pulse's age
     if (a > TEMPORAL_GROW + TEMPORAL_FADE) continue;
     const A = AT_ALPHA * shimmer * (1 - Math.max(0, a - TEMPORAL_GROW) / TEMPORAL_FADE), R = Math.max(1, TEMPORAL_R * Math.min(1, a / TEMPORAL_GROW)) / AT_EDGE; // the octagon's FLAT SIDES on the freeze front (owner: cover what the ring did)

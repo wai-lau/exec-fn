@@ -26,6 +26,7 @@ const CHANGELOG = [ // each day's lines in two groups: b = Balance, u = Perf/UI.
     "Pause button flashes while paused.",
     "Numbers and text: outline only, no glow.",
     "3D: beams are hidden where a tower covers them.",
+    "Temporal Drive: no screen shake; the first ring goes out as the core lands.",
     "3D: movement range rings evenly dashed all round.",
     "Upgrade button always shows the cost.",
     "Boss text and power buttons no longer block dragging.",

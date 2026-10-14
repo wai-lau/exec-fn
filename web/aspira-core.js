@@ -106,7 +106,8 @@ function temporalFreeze() {
   c.freeze = { t: 0, dur: lv.dur, hit: new Set() };
   c.frozenIds = c.freeze.hit; c.freezeUntil = c.clock + lv.dur; // for the look (aspira-core-fx.js)
   if (typeof sfx === "function") sfx("powertemporal");
-  if (typeof q3d === "function" && q3d() && typeof shakeScreen === "function") shakeScreen(); // the core SLAMS into the floor (coreH3d, aspira-warp.js)
+  // (no screen shake - owner, 2026-10-14: "don't screenshake on activating temporal drive, just time the first AT wave with the
+  // dropping of the core": the core SLAMS into the floor (coreH3d, aspira-warp.js) and the first ring goes out as it lands)
   return true;
 }
 

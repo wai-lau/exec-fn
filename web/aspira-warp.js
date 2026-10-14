@@ -387,6 +387,7 @@ const CORE_SLAM_H = 2, CORE_SLAM_DOWN = 0.12, CORE_SLAM_UP = 0.8, coreSlam = { k
 function coreH3d() {
   const now = performance.now() / 1000, dt = Math.min(0.1, now - (coreSlam.at || now)), down = powerLvl("temporal") > 0 && cooldownLeft("temporal") > 0;
   coreSlam.at = now; coreSlam.k = Math.max(0, Math.min(1, coreSlam.k + (down ? -dt / CORE_SLAM_DOWN : dt / CORE_SLAM_UP)));
+  const fz = G.core && G.core.freeze; if (fz && fz.ring0 == null && (!down || coreSlam.k === 0)) fz.ring0 = fz.t; // LANDED: Temporal Drive's first ring goes out now (drawTimeStop)
   const k = down ? coreSlam.k ** 2 : 1 - (1 - coreSlam.k) ** 2, full = coreH3dFull(); // a hard slam, an eased rise
   return CORE_SLAM_H + (full - CORE_SLAM_H) * k;
 }
