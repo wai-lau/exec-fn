@@ -7,3 +7,7 @@
 	path = claude-box
 	url = git@github.com:wai-lau/cc-sidecar.git
 	branch = master
+[submodule "apps/spire"]
+	path = apps/spire
+	url = git@github.com:wai-lau/spire.git
+	branch = master

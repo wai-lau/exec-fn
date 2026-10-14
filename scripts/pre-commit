@@ -11,11 +11,13 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 # the parent layout (apps/README.md).
 HOST="$(git rev-parse --show-superproject-working-tree 2>/dev/null || true)"
 [ -n "$HOST" ] || HOST="$REPO_ROOT"
-# The suites to run: the host's tests/, plus the app's own when committing in one.
+# The suites to run: the host's tests/ AND every app's (apps/*/tests) -- from
+# the parent or from inside an app alike, since an app's python imports the
+# parent's and a parent change can break an app. Fixtures: the root conftest.py.
 TEST_DIRS="$HOST/tests/"
-if [ "$HOST" != "$REPO_ROOT" ] && [ -d "$REPO_ROOT/tests" ]; then
-  TEST_DIRS="$TEST_DIRS $REPO_ROOT/tests/"
-fi
+for d in "$HOST"/apps/*/tests; do
+  [ -d "$d" ] && TEST_DIRS="$TEST_DIRS $d/"
+done
 
 TEMPLATES="api/templates"
 TMPDIR_="$(mktemp -d)"
@@ -264,7 +266,8 @@ fi
 # draws, each tower built (range, tower, movement arrows drawn), a wave fought,
 # the boss sky, Temporal Drive, the lives-left line, loss / win / Ascendants.
 # Checks things DRAW, not just that nothing threw (a swallowed else once blanked
-# the board with no error at all). ARCHITECTURE.md §22.
+# the board with no error at all). Fires on a commit INSIDE apps/spire (its
+# paths mirror these patterns); see apps/spire/ARCHITECTURE.md.
 SPIRE_CHANGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^web/aspira-.*\.js$|^api/templates/aspira\.html$|^scripts/spire-smoke/' || true)
 if [ -n "$SPIRE_CHANGED" ]; then
   if ! command -v node &>/dev/null; then
