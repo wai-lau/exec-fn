@@ -28,6 +28,7 @@ against real data. A test must not be the thing that fires it. Mutating routes
 get the structural assertion instead (declared under `protected`, absent from
 the other two tiers), which is what actually determines their tier.
 """
+import glob
 import os
 import re
 import sys
@@ -40,6 +41,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "api"))
 from conftest import HTML_ACCEPT  # noqa: E402,F401
 
 _API = os.path.join(os.path.dirname(__file__), "..", "api")
+# App submodules (apps/<name>/api) are on the app's import path too
+# (api/app_paths.py), so a route module may live in one: spire's routes_aspira,
+# noodle's package. Searched AFTER api/, the same parent-first order. Missing
+# them dropped spire's and noodle's owner routes out of this guard silently
+# when they moved out (2026-10-14).
+_API_DIRS = [_API, *sorted(glob.glob(os.path.join(os.path.dirname(__file__), "..", "apps", "*", "api")))]
 
 # `protected` is a SUFFIX of `guest_protected`, so an unanchored match reports
 # every guest route as admin — the same substring trap cmdscan.py exists for.
@@ -76,10 +83,11 @@ _IMPORT = re.compile(
 
 def _module_source(mod: str):
     """Dotted api-relative module -> its source file, or None if not ours."""
-    base = os.path.join(_API, *mod.split("."))
-    for cand in (base + ".py", os.path.join(base, "__init__.py")):
-        if os.path.isfile(cand):
-            return cand
+    for root in _API_DIRS:
+        base = os.path.join(root, *mod.split("."))
+        for cand in (base + ".py", os.path.join(base, "__init__.py")):
+            if os.path.isfile(cand):
+                return cand
     return None
 
 
@@ -139,8 +147,8 @@ def _scan_tiers():
         mod, symbol = origins.get(m.group("name"), (None, m.group("name")))
         if not mod:
             continue
-        src = _read(os.path.join(_API, *mod.split("."))) or \
-            _read(os.path.join(_API, *mod.split(".")) + ".py")
+        path = _module_source(mod)
+        src = _read(path) if path else ""
         sub = re.compile(
             rf"@{re.escape(symbol)}\.(?P<method>get|post|patch|delete|put|head)"
             rf"\(\s*[\"'](?P<path>[^\"']+)[\"']"
