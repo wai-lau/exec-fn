@@ -299,6 +299,15 @@ def test_noodle_signed_actions_refuse_junk_without_writing(client, noodle_slug, 
     assert client.get(f"/api/noodle/{noodle_slug}").json()["voters"] == before
 
 
+def test_data_never_serves_noodle_even_to_the_owner(client, admin_headers):
+    """/data/{path} once handed the owner tier noodle's secret.key (which mints
+    draft tokens) -- one XSS on an owner page away from anyone (audit 2026-10-14)."""
+    h = {**admin_headers, "Accept": "application/json"}
+    for path in ("noodle/secret.key", "noodle/created.json", "noodle/polls", "./noodle/secret.key"):
+        assert client.get(f"/data/{path}", headers=h).status_code == 404, path
+    assert client.get("/data/rd.json", headers=h).status_code == 200, "everything else still serves"
+
+
 def test_every_response_carries_the_security_headers(client):
     """HSTS, no framing by other sites, nosniff -- on pages and static alike
     (api/security_headers.py, security audit 2026-10-14)."""

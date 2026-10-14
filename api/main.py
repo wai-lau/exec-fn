@@ -22,6 +22,7 @@ from discord_bot import _run_discord_bot
 from tarot.openings_loop import run_openings_loop
 from routers import public, protected, guest_protected
 from security_headers import SecurityHeadersMiddleware
+import log_masking
 import routes_views  # noqa: F401  — registers HTML routes on the shared routers
 import routes_api    # noqa: F401  — registers JSON routes on the shared routers
 import routes_tts    # noqa: F401  — registers the /tts page + WS reverse-proxy
@@ -31,6 +32,8 @@ import routes_cc     # noqa: F401  — registers the sandboxed Claude Code sidec
 import routes_zombo  # noqa: F401  — registers /zombo (secret: gated, but linked from nowhere)
 import routes_aspira  # noqa: F401  — registers /aspira (owner-only game; not a nav entry)
 import routes_exec   # noqa: F401  — registers /api/exec/tool* (the sidecar runs Exec's card tools here)
+
+log_masking.install()   # noodle slugs + draft tokens never reach the access log
 
 # StaticFiles guesses MIME via mimetypes, which doesn't know woff2 -> it served
 # them as application/octet-stream. Register the real types so the preload

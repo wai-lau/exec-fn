@@ -20,6 +20,9 @@ OWNER = os.environ.get("SECURITY_OWNER_IP", "").strip()
 TOPN = int(os.environ.get("SECURITY_GEO_TOPN", "600"))
 IP = r"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
 
+_NOODLE_SLUG = re.compile(r"(/noodle/|/api/noodle/)[A-Za-z0-9_-]{22}")
+
+
 def openf(p):
     return io.TextIOWrapper(gzip.open(p, "rb"), errors="replace") if p.endswith(".gz") else open(p, "r", errors="replace")
 
@@ -111,7 +114,9 @@ class _Web:
 
     def strict(self, m):
         ip,t,meth,url,ver,st,_by,_ref,ua=m.groups(); st=int(st)
-        p=url.split("?",1)[0][:60]; self.methods[meth]+=1; self.httpver[ver]+=1; self.paths[p]+=1
+        # a noodle path carries its poll's slug -- the link IS the key to that
+        # poll (and the public /security page lists 404s): never published
+        p=_NOODLE_SLUG.sub(r"\1<slug>", url.split("?",1)[0])[:60]; self.methods[meth]+=1; self.httpver[ver]+=1; self.paths[p]+=1
         if st==404: self.p404[p]+=1
         self.kind[_ua_kind(ua)]+=1
         short=re.sub(r"\s+"," ",re.sub(r"\(.*?\)","",ua)).strip()[:40] or "-"; self.uas[short]+=1

@@ -41,6 +41,14 @@ services:
     # of the ./nightfall-incident bind above it; the host copy is untouched.
     tmpfs:
       - /app/nightfall/nightfall-src
+    # The docker log had no size limit and lived as long as the container. It is
+    # capped (3 x 10MB, oldest dropped) -- the access lines in it carried noodle
+    # slugs and draft tokens until api/log_masking.py (security audit 2026-10-14).
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Always-on GLaDOS voice (CPU Piper). Built separately from the hosaka repo:
   #   docker build -f ~/src/hosaka/Dockerfile.piper -t hosaka-piper:latest ~/src/hosaka

@@ -464,11 +464,21 @@ def api_mtg_log():
 # ── data file serving ───────────────────────────────────────────────────────
 
 
+# Never served, even to the owner: noodle's directory holds the secret that
+# mints draft tokens and every sealed poll (security audit 2026-10-14 -- an
+# XSS or a bad script on an owner page could have fetched secret.key here).
+_DATA_NEVER = ("noodle",)
+
+
 @protected.get("/data/{filename:path}")
 async def serve_data(filename: str):
+    base = DATA_DIR.resolve()
     path = (DATA_DIR / filename).resolve()
-    if not str(path).startswith(str(DATA_DIR.resolve())):
+    if not path.is_relative_to(base):   # not a string prefix: /app/data2 is not inside
         raise HTTPException(status_code=400, detail="Invalid path")
+    rel = path.relative_to(base).parts
+    if rel and rel[0] in _DATA_NEVER:
+        raise HTTPException(status_code=404)
     if not path.exists() or not path.is_file():
         raise HTTPException(status_code=404)
     return FileResponse(str(path))

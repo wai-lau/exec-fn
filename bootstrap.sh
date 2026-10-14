@@ -31,6 +31,22 @@ fi
 # ── nginx + certbot + fail2ban ────────────────────────────────────────────────
 apt-get install -y nginx certbot python3-certbot-nginx fail2ban
 
+# noodle: a poll's link IS its key (the slug opens its sealed file; ?t= is a
+# draft token), so both are masked out of the access log -- "combined" with
+# $request rewritten. Must exist before the site config that names it.
+cat > /etc/nginx/conf.d/noodle-log-mask.conf << 'MASKEOF'
+map $request $noodle_req1 {
+    "~^(?<nm1>.*?/(?:api/)?noodle/)[A-Za-z0-9_-]{22}(?<nm2>.*)$" "${nm1}<slug>${nm2}";
+    default $request;
+}
+map $noodle_req1 $noodle_req {
+    "~^(?<nt1>\S+ [^ ?]*\?(?:\S*&)?t=)[^ &]*(?<nt2>.*)$" "${nt1}<token>${nt2}";
+    default $noodle_req1;
+}
+log_format masked '$remote_addr - $remote_user [$time_local] "$noodle_req" '
+                  '$status $body_bytes_sent "$http_referer" "$http_user_agent"';
+MASKEOF
+
 # Basic HTTP config (certbot will upgrade to HTTPS)
 cat > /etc/nginx/sites-available/exec-fn << 'NGINXEOF'
 # The app runs under `uvicorn --reload` on purpose: editing api/*.py on the
@@ -52,6 +68,7 @@ upstream execfn_app {
 server {
     listen 80;
     server_name wai-lau.net;
+    access_log /var/log/nginx/access.log masked;   # noodle slugs + tokens masked
 
     # A pasted screenshot on /cc arrives as base64 in a JSON body, and nginx's
     # 1m DEFAULT rejected it with its own HTML 413 before the app saw it (fixed
