@@ -12,5 +12,8 @@
 }
 .nd-create { display: flex; flex-direction: column; gap: var(--space-4); }
 
+/* what "create poll" makes, in one plain line under the button */
+.nd-create .nd-create-note { margin: 0; text-align: center; }
+
 /* the empty status line under the button would push it off centre */
 .nd-create #nd-msg:empty { display: none; }

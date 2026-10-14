@@ -3905,7 +3905,11 @@ alone and the page says so.
 **Everyone, owner included**: the title and one `create poll` button
 (no title -- the draft starts `title`, a placeholder, until the host
 retitles by tapping it), centred in the screen above the nav
-(`#noodle-admin`). **No poll list since 2026-10-13** (Wai: "no need for
+(`#noodle-admin`), with one grey line under the button (`.nd-create-note`,
+2026-10-13): "end-to-end encrypted: your poll's key is made on your device
+and lives only in its link, so only people you send the link to can read
+it". Deliberately NOT "Signal Protocol" -- one static key per poll, no
+ratchet, no forward secrecy (21m). **No poll list since 2026-10-13** (Wai: "no need for
 host noodle to show poll lists"): the owner's table of sealed ids, the
 browser-side id mapping (`ndmIdOf`) and the `noodle.polls` localStorage
 it read are gone -- the vote page now REMOVES any `noodle.polls` it finds,
