@@ -49,21 +49,17 @@ function poly(x, y, r, n, rot, star) {
 // outline: a thick black stroke wrapped in a soft dark glow (shadow blur)
 // under the fill, so overlapping damage numbers stay separate and readable
 // outline: true = the background colour, or a palette key (the credits' white halo)
-const TEXT_BLUR_MIN = 30, TEXT_BLUR_MAX = 8, TEXT_STROKE_MAX = 5;
+const TEXT_BLUR_MIN = 30, TEXT_STROKE_MAX = 5; // (BLUR_MIN: only low quality reads it now - small text there goes unoutlined)
 function text(str, x, y, size, color, outline = false, bold = false) {
   if (typeof textSprite === "function" && textSprite(str, x, y, size, color, outline, bold)) return; ctx.font = (bold ? "bold " : "") + size + "px " + CANVAS_FONT;
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
   if (outline && !(lowQ && size < TEXT_BLUR_MIN)) { // low quality: small text unoutlined
     ctx.save();
     const oc = COL[outline === true ? "bg" : outline];
-    // the soft shadow only on BIG text (titles, banners): on the hundreds of
-    // small damage numbers a frame it was a large share of late-game frame
-    // time (profiled 2026-10-05); the stroked outline stays on all
-    // halo and stroke CAPPED (owner: big titles carried a slab of shadow)
-    if (size >= TEXT_BLUR_MIN) { ctx.shadowColor = oc; ctx.shadowBlur = Math.min(size * 0.7, TEXT_BLUR_MAX) * cam.k; } // shadow is in device px
+    // AN OUTLINE ONLY, no glow on any text (owner, 2026-10-14: "remove all glow on numbers, just use an outline"; big text had a
+    // soft shadow and a second stroke), stroke CAPPED (owner: big titles carried a slab of shadow)
     ctx.strokeStyle = oc; ctx.lineWidth = Math.min(size * 0.32, TEXT_STROKE_MAX); ctx.lineJoin = "round";
     ctx.strokeText(str, x, y);
-    if (size >= TEXT_BLUR_MIN) ctx.strokeText(str, x, y); // a second, darker pass only on big text (perf: damage numbers)
     ctx.restore();
   }
   ctx.fillStyle = COL[color] || color; // a palette key, or a colour already resolved (the boss title's red)

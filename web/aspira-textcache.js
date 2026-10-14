@@ -25,7 +25,7 @@ function textSprite(str, x, y, size, color, outline, bold) {
   const m = ctx.getTransform();
   if (Math.abs(m.b) > 1e-6 || Math.abs(m.c) > 1e-6 || m.a <= 0 || Math.abs(m.a - m.d) > 1e-6 * m.a) return false; // only a plain scale
   const dev = size * m.a, q = Math.max(TEXT_Q, Math.round(dev / TEXT_Q) * TEXT_Q);
-  const col = COL[color] || color, oc = outline ? COL[outline === true ? "bg" : outline] : "", blur = size >= TEXT_BLUR_MIN && outline ? Math.min(size * 0.7, TEXT_BLUR_MAX) * cam.k * (ctx.__ent ? warp.entScale || 1 : 1) : 0; // device px (the full-density layer scales its blurs - entCtx)
+  const col = COL[color] || color, oc = outline ? COL[outline === true ? "bg" : outline] : "", blur = 0; // (no glow on text since 2026-10-14 - aspira-draw.js text)
   const key = str + "|" + col + "|" + oc + "|" + (bold ? 1 : 0) + "|" + q + "|" + (lowQ ? 1 : 0) + "|" + blur.toFixed(1);
   let sp = textSprites.get(key);
   if (sp) { textSprites.delete(key); textSprites.set(key, sp); } // used: to the back of the line (the Map keeps insertion order - the front is the least recently used)

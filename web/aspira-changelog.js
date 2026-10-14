@@ -24,6 +24,7 @@ const CHANGELOG = [ // each day's lines in two groups: b = Balance, u = Perf/UI.
     "Boss lanes turned to stay on screen longer.",
     "Powers won from a boss flash when the next wave starts, for 4 s.",
     "Pause button flashes while paused.",
+    "Numbers and text: outline only, no glow.",
     "Upgrade button always shows the cost.",
     "Boss text and power buttons no longer block dragging.",
     "Phone-screen limit: shown only where it blocks a tower, as three thin lines.",
