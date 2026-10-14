@@ -26,7 +26,7 @@ function glCtx(real, toWorld) { // toWorld: the real canvas's pixels -> world un
   g.arc = (x, y, r, a0, a1, ccw) => {
     op("arc", [x, y, r, a0, a1, ccw]);
     const full = Math.abs(a1 - a0) >= GLCTX_TAU - 1e-3, uni = Math.abs(g.m[1]) < 1e-9 && Math.abs(g.m[2]) < 1e-9 && Math.abs(g.m[0] - g.m[3]) < 1e-9;
-    if (!uni) { odd = true; return; }
+    if (!uni) { odd = "arc:skewed"; return; }
     if (!full) { // a PART arc (the threat ring): short straight pieces on from the current point, as the canvas would join it
       const span = ccw ? -(((a0 - a1) % GLCTX_TAU + GLCTX_TAU) % GLCTX_TAU) : ((a1 - a0) % GLCTX_TAU + GLCTX_TAU) % GLCTX_TAU, n = Math.max(8, Math.min(160, Math.round(Math.abs(span) * r * sc() / 3)));
       if (!cur || cur.circle) { cur = { pts: [] }; parts.push(cur); }
@@ -37,15 +37,16 @@ function glCtx(real, toWorld) { // toWorld: the real canvas's pixels -> world un
     const [cx, cy] = T(x, y);
     cur = { circle: [cx, cy, r * sc()] }; parts.push(cur);
   };
-  for (const name of ["rect", "quadraticCurveTo", "bezierCurveTo", "arcTo", "roundRect"]) g[name] = (...a) => { op(name, a); odd = true; };
+  for (const name of ["rect", "quadraticCurveTo", "bezierCurveTo", "arcTo", "roundRect"]) g[name] = (...a) => { op(name, a); odd = name; };
   g.ellipse = (x, y, rx, ry, rot, a0, a1, ccw) => { // a whole one: a closed line of short straight pieces (the moons' orbit)
     op("ellipse", [x, y, rx, ry, rot, a0, a1, ccw]);
-    if (Math.abs(a1 - a0) < GLCTX_TAU - 1e-3) { odd = true; return; }
+    if (Math.abs(a1 - a0) < GLCTX_TAU - 1e-3) { odd = "ellipse:part"; return; }
     const n = Math.max(48, Math.min(160, Math.round(Math.max(rx, ry) * sc() / 3))), c = Math.cos(rot), sn = Math.sin(rot); // a piece every ~3 px
     cur = { pts: [], closed: true }; parts.push(cur);
     for (let i = 0; i < n; i++) { const t = i / n * GLCTX_TAU, ex = rx * Math.cos(t), ey = ry * Math.sin(t); cur.pts.push(T(x + ex * c - ey * sn, y + ex * sn + ey * c)); }
   };
-  const replay = () => { // the path onto the real context, each op under its own transform
+  const replay = why => { // the path onto the real context, each op under its own transform
+    glcWhy(why);
     const m0 = real.getTransform();
     real.beginPath();
     for (const [name, a, m] of ops) { real.setTransform(m[0], m[1], m[2], m[3], m[4], m[5]); real[name](...a); }
@@ -54,12 +55,15 @@ function glCtx(real, toWorld) { // toWorld: the real canvas's pixels -> world un
   const plain = s => typeof s === "string";
   g.fill = (...a) => {
     const st = real.fillStyle, grad = st && st.__disc;
-    if (odd || a.length || real.globalCompositeOperation !== "source-over" || real.shadowBlur > 0 || real.filter !== "none" || (!plain(st) && !grad) || !glcFill(g, parts, st, grad)) { replay(); real.fill(...a); }
+    const why = odd ? "fill:" + odd : a.length ? "fill:rule" : real.globalCompositeOperation !== "source-over" ? "fill:" + real.globalCompositeOperation : real.shadowBlur > 0 ? "fill:shadow" : real.filter !== "none" ? "fill:filter" : !plain(st) && !grad ? "fill:style" : !glcFill(g, parts, st, grad) ? "fill:shape" + parts.map(p => (p.circle ? "o" : p.pts.length)).join("") : null;
+    if (why) { replay(why); real.fill(...a); }
   };
   g.stroke = (...a) => {
     const st = real.strokeStyle, dash = g.dash ? real.getLineDash() : null, glow = real.shadowBlur > 0 && real.shadowColor === st; // a glow in its own colour: soft rings under it (glcGlow)
-    if (odd || a.length || (dash && dash.length !== 2) || real.globalCompositeOperation !== "source-over" || (real.shadowBlur > 0 && (!glow || parts.some(p => !p.circle))) || real.filter !== "none" || !plain(st) ||
-      (real.lineJoin !== "round" && parts.some(p => !p.circle && p.pts.length + (p.closed ? 1 : 0) > 2))) { replay(); real.stroke(...a); return; } // (a mitred corner: the canvas)
+    const why = odd ? "stroke:" + odd : a.length ? "stroke:path" : dash && dash.length !== 2 ? "stroke:dash" + dash.length : real.globalCompositeOperation !== "source-over" ? "stroke:" + real.globalCompositeOperation :
+      real.shadowBlur > 0 && !glow ? "stroke:shadow" : real.filter !== "none" ? "stroke:filter" : !plain(st) ? "stroke:style" :
+      real.lineJoin !== "round" && parts.some(p => !p.circle && p.pts.length + (p.closed ? 1 : 0) > 2 && !glcRegular(p, g.w2)) ? "stroke:join-" + real.lineJoin : null; // (a mitred corner: the canvas - but a regular polygon's is the batch's shape 5)
+    if (why) { replay(why); real.stroke(...a); return; }
     glcStroke(g, parts, st, dash, sc(), glow);
   };
   g.setLineDash = d => { g.dash = !!(d && d.length); real.setLineDash(d); };
@@ -80,9 +84,9 @@ function glCtx(real, toWorld) { // toWorld: the real canvas's pixels -> world un
     return gr;
   };
   // everything else straight to the canvas (and the layer is then sent up this frame)
-  for (const name of ["fillText", "strokeText", "drawImage", "fillRect", "strokeRect", "putImageData"]) g[name] = (...a) => { g.used = true; return real[name](...a); };
+  for (const name of ["fillText", "strokeText", "drawImage", "fillRect", "strokeRect", "putImageData"]) g[name] = (...a) => { g.used = true; glcWhy(name); return real[name](...a); };
   g.clearRect = (...a) => real.clearRect(...a);
-  g.clip = (...a) => { replay(); real.clip(...a); };
+  g.clip = (...a) => { replay("clip"); real.clip(...a); };
   for (const name of ["measureText", "createLinearGradient", "createPattern", "isPointInPath", "getImageData", "createImageData", "createConicGradient"]) g[name] = (...a) => real[name](...a);
   return g;
 }
@@ -127,6 +131,8 @@ function glcStroke(g, parts, st, dash, scale, glow) {
       fxGlPush(x, y, x, y, r, lw, st, 0, st, A, 0, 0, 0, 0, 0, dOn, dOff, dAt0);
       continue;
     }
+    const reg = real.lineJoin !== "round" && glcRegular(p, g.w2); // a sharp-cornered regular polygon (Temporal Drive's octagons): shape 5, its corners exact
+    if (reg) { fxGlPush(reg.x, reg.y, reg.x + Math.cos(reg.rot) * reg.n, reg.y + Math.sin(reg.rot) * reg.n, reg.r, lw, st, 0, st, A, 5); continue; }
     const closed = p.closed && p.pts.length > 2, P = (closed ? [...p.pts, p.pts[0]] : p.pts).map(q => g.w2(q[0], q[1])), n = P.length - 1;
     const dir = i => { const dx = P[i + 1][0] - P[i][0], dy = P[i + 1][1] - P[i][1], l = Math.hypot(dx, dy) || 1; return [dx / l, dy / l]; };
     const D = Array.from({ length: n }, (_, i) => dir(i));
@@ -136,8 +142,13 @@ function glcStroke(g, parts, st, dash, scale, glow) {
     for (let i = 0; i < n; i++) {
       const prev = i > 0 ? D[i - 1] : closed ? D[n - 1] : null, next = i < n - 1 ? D[i + 1] : closed ? D[0] : null;
       const [b0x, b0y] = prev ? joint(prev, D[i]) : [0, 0], [b1x, b1y] = next ? joint(D[i], next) : [0, 0];
+      if (glow) { const b = real.shadowBlur / g.w2.k; for (const [wk, ak] of [[b, 0.18], [b * 0.45, 0.3]]) fxGlPush(P[i][0], P[i][1], P[i + 1][0], P[i + 1][1], (lw + wk) / 2, 0, st, A * ak, st, 0, 0, b0x, b0y, b1x, b1y); } // a glow: two soft wider strokes under it (the Relay's beam)
       fxGlPush(P[i][0], P[i][1], P[i + 1][0], P[i + 1][1], lw / 2, 0, st, A, st, 0, butt && !prev && !next ? 2 : 0, b0x, b0y, b1x, b1y, dOn, dOff, dAt0 + along);
       along += Math.hypot(P[i + 1][0] - P[i][0], P[i + 1][1] - P[i][1]);
     }
   }
 }
+// WHY the moving layer went to the canvas (and up to the GPU) - counted for the slow logs (perfSplit, aspira-perflog.js): a phone
+// still sent it every frame on 2026-10-14 after every known case was moved to the batch
+const glcWhyN = {};
+function glcWhy(why) { if (why) glcWhyN[why] = (glcWhyN[why] || 0) + 1; }
