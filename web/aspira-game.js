@@ -64,7 +64,7 @@ function shieldsOf(type, n) {
 // ...and EARLY ARMOR HARDER (owner, 2026-10-12: "armor feels too easy early"): x ARMOR_EARLY to wave 20, easing to x1 by 30
 const SHIELD_EARLY = 0.6, ARMOR_EARLY = 2 /* owner, 2026-10-12: "make early armor stronger" (was 1.6) */, early = (k, n) => k + (1 - k) * Math.min(1, Math.max(0, (n - 20) / 10));
 const SWARM_HP_X = 1.5; // a swarm wave's whole HP x1.5 (owner, 2026-10-12), spread by the jitter (spawnEnemy)
-const enemyHp = (type, n0, n = eqWave(n0)) => (9 * hpPow(n) + n * 2) * ENEMIES[type].hp * 2 * (ENEMIES[type].star ? 1 : plainHpMul(n0)) * shieldsOf(type, n0).hpMul * (type === "shield" ? early(SHIELD_EARLY, n) : type === "armor" ? early(ARMOR_EARLY, n) : type === "swarm" ? SWARM_HP_X : 1); // x2: half as many enemies (owner); 9 / 2 (2026-10-08: all HP halved, was 18 / 4)
+const enemyHp = (type, n0, n = eqWave(n0)) => (9 * hpPow(n) + n * 2) * ENEMIES[type].hp * 2 * (ENEMIES[type].star ? 1 : plainHpMul(n0) / speedGrow(n0)) * shieldsOf(type, n0).hpMul * (type === "shield" ? early(SHIELD_EARLY, n) : type === "armor" ? early(ARMOR_EARLY, n) : type === "swarm" ? SWARM_HP_X : 1); // x2: half as many enemies (owner); 9 / 2 (2026-10-08: all HP halved, was 18 / 4)
 function spawnEnemy(type, n, pi, ang = 0) {
   const d = ENEMIES[type], s0 = entryS(pi), p0 = pathAt(pi, s0, ang);
   // a SWARMER's HP - and its SIZE - jitter 30-300% of the average, which is SWARM_HP_X the wave's (owner, 2026-10-12: "increase
@@ -83,7 +83,7 @@ function spawnEnemy(type, n, pi, ang = 0) {
     // swarm members wander widely off the lane, each at its own speed (+-20%)
     // and its own wobble rate, so a clump churns as it moves
     jit: type === "swarm" ? 18 + Math.random() * 45 : 0, /* x1.5 wider (owner, 2026-10-12: "swarm units spread wider across lane"; was 12 + 30) */ ph: Math.random() * 6.283, // owner: tripled, halved twice, doubled 2026-10-08
-    spd: (type === "swarm" ? 0.8 + Math.random() * 0.4 : type === "fast" ? lateK(n, "fast") : 1) * speedRamp(n), /* (aspira-defs.js) */ phr: 0.6 + Math.random(),
+    spd: (type === "swarm" ? 0.8 + Math.random() * 0.4 : type === "fast" ? lateK(n, "fast") : 1) * speedRamp(n) * (ENEMIES[type].star ? 1 : speedGrow(n)), /* (aspira-defs.js) */ phr: 0.6 + Math.random(),
     id: G.id++, type, n, hp, max: hp, pi, ang, s: s0, x: p0.x, y: p0.y, rot: Math.random() * 6,
     // fractional, so a cheap swarmer really pays its share (owner: halved
     // swarm bounty must hold; money is shown rounded down)
