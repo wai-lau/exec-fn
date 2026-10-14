@@ -36,9 +36,9 @@ var graphLit = (function () {
   var DUR_PER_DEG = 290;
   var DUR_DEG_CAP = 12;
   var DUR_JITTER = 0.4;
-  // EVERY EDGE EFFECT FADES FASTER THAN A NODE'S. 900 against a node's 1845 at
-  // minimum (DUR_MIN + DUR_PER_DEG, before jitter) and 3990 at the degree cap, so
-  // an edge is roughly half the quickest node and a quarter of the slowest.
+  // EVERY EDGE EFFECT FADES FASTER THAN A NODE'S. 900 against a node's 2790 at
+  // minimum (DUR_MIN + DUR_PER_DEG, before jitter) and 5980 at the degree cap, so
+  // an edge is roughly a third of the quickest node and a sixth of the slowest.
   //
   // The reason is what each one MEANS. A node is a place and it stays a place; an
   // edge is a crossing, an event with a direction, and once the activation has

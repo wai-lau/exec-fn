@@ -373,9 +373,9 @@ _EDGE_WIDTH = 3
 
 
 def _hide_graph_edges(page: str) -> str:
-    """Set every RAW_EDGES entry to `_EDGE_OPACITY` / `_EDGE_WIDTH`. Named for what
-    it does now: at opacity 0 the unlit edge draws nothing, and the cascade's
-    overlay is the only thing that ever shows one. No-op if RAW_EDGES is absent."""
+    """Set every RAW_EDGES entry to `_EDGE_OPACITY` / `_EDGE_WIDTH`. The name is
+    historical: at `_EDGE_OPACITY` (0.2) the unlit edge is a faint trace, and the
+    cascade's overlay is what makes one read. No-op if RAW_EDGES is absent."""
     def _brighten(edges):
         for e in edges:
             color = e.get("color")

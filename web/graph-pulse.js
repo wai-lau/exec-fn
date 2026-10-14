@@ -50,7 +50,7 @@ var graphPulse = (function () {
   var HOP_JITTER = 0.3;           // is what makes it travel rather than appear
 
   // A neighbour lights with a probability set by ITS OWN size, mapped across the
-  // size range. Sizes are geometric in degree (graph_style._size_graph_by_degree),
+  // size range. Sizes are geometric in degree (graph_geometry._size_graph_by_degree),
   // so this is a degree rule wearing the size it is drawn at. Branching is
   // degree x p: at P_MIN a chain through degree-1 nodes carries about two hops
   // before it dies, and anything with real degree keeps going. The floor was 0.18
@@ -70,7 +70,7 @@ var graphPulse = (function () {
   // compounds, and a pool that grows too fast turns a loud bar into the whole
   // graph at once.
   // The audio biases (reach, extent, edge length) live in graph-bias.js.
-  // The size range graph_style._size_graph_by_degree emits. Mirrored rather than
+  // The size range graph_geometry._size_graph_by_degree emits. Mirrored rather than
   // derived from the data so one enormous outlier can't flatten everything else
   // onto P_MIN; if that range moves, move these with it.
   var SIZE_FLOOR = 12;

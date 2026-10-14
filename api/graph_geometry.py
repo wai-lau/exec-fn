@@ -141,7 +141,7 @@ def _pctl(ordered, pctl: float) -> float:
     return ordered[min(int(len(ordered) * pctl), len(ordered) - 1)]
 
 
-# vis hands `color.background` straight to a canvas `fillStyle`# vis hands `color.background` straight to a canvas `fillStyle`, so the CSS keyword
+# vis hands `color.background` straight to a canvas `fillStyle`, so the CSS keyword
 # is enough and fills nothing under `source-over`. Deliberately not an `rgba()`
 # string with a zero alpha: the palette lint reads source text with the whitespace
 # stripped and any colour-function name followed by a paren reports as a new raw

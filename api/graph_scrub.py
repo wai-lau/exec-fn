@@ -12,11 +12,13 @@ transforms live here:
 - `_drop_graph_moltbook_nodes`: cut the moltbook heartbeat plumbing.
 - `_drop_graph_inferred_edges`: cut the dashed low-confidence edges (and
   recompute the baked per-node degree against what survives).
+- `_drop_graph_small_islands`: cut components under `min_size` nodes.
 - `_drop_graph_orphan_nodes`: cut the nodes no surviving edge touches.
 
-Everything about how the surviving graph LOOKS — community regrouping/colours,
-the hexagon restyle, hover-tooltip removal, line-count node sizes, the header
-count fixup — lives in graph_style.py, which builds on the array helpers here.
+Everything about how the surviving graph LOOKS lives elsewhere: communities,
+colours, labels and the header count fixup in graph_style.py; shapes, degree
+sizes and occlusion in graph_geometry.py; physics and the layout bake in
+graph_layout.py. They build on the array helpers here.
 
 graphify emits each array as a single physical line, so we anchor on the line
 (`^NAME = [...];$`, greedy within the line). A non-greedy `\\[.*?\\]` would stop
