@@ -4032,6 +4032,8 @@ RENDERED width of each in real WebKit.
 
 ### 21k. Tests
 
+**End to end, as people use it** -- `tests/test_noodle_browser_journey.py`: a real plain poll (owner API) and a real end-to-end poll (made from `/noodle`), a host and three guests each in their OWN browser context voting different parts of the host's offer; then a fresh visitor sees every vote exactly as cast, a later host edit reaches everyone, a voter on a NEW device gets their own vote back with their passphrase, and on the e2e poll the server's JSON and HTML hold no name, title, note or slot while a link without its key opens nothing.
+
 The unit isolation test is an AST import-graph audit that noodle imports no
 app module, plus a runtime audit wrapping `open`/`replace`/`mkdir`/
 `scandir`/`mkstemp` over a full create→vote→edit→ask→reset cycle. The rest
