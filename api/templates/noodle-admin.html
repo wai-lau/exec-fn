@@ -2,7 +2,13 @@
   <h1 class="nd-title nd-brand">noodle</h1>
   <form id="nd-create" class="nd-create">
     <button type="submit" class="nd-submit">create poll</button>
-    <p class="nd-dim nd-create-note">end-to-end encrypted: the part of your poll's link after the # is its key. it's made on your device and never sent to the server, so only people you send the link to can read the poll</p>
+    <div class="nd-dim nd-create-note">
+      <p class="nd-create-note-head">end-to-end encrypted</p>
+      <p><code>/noodle/&lt;slug&gt;?t=&lt;token&gt;#k=&lt;K&gt;</code></p>
+      <p>&lt;K&gt; is a secret key composed on your device</p>
+      <p>data after the # is not sent to the server</p>
+      <p>only people you send the full URL can access the poll</p>
+    </div>
     <p id="nd-msg" class="nd-status"></p>
   </form>
 </main>
