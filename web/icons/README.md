@@ -231,5 +231,5 @@ different colours, because that is exactly what their PNGs are. `IMG_25419`
 icons.
 
 The nav serves these at `/icons/<name>.svg` (`_NAV_ICONS` in `api/pages.py`).
-A changed icon needs its `?v=` bumped there in the same commit, per the
-cache-bust lint.
+Its `?v=` is filled in with the file's content hash at serve time
+(`api/asset_version.py`), so a changed icon needs no bump.

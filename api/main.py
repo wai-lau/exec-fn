@@ -23,6 +23,7 @@ from discord_bot import _run_discord_bot
 from tarot.openings_loop import run_openings_loop
 from routers import public, protected, guest_protected
 from security_headers import SecurityHeadersMiddleware
+from asset_version import VersionedAssetsMiddleware
 import log_masking
 import routes_views  # noqa: F401  — registers HTML routes on the shared routers
 import routes_api    # noqa: F401  — registers JSON routes on the shared routers
@@ -100,6 +101,9 @@ app = FastAPI(lifespan=_lifespan)
 _gzip_kwargs = {"minimum_size": 1000}
 if "exclude_content_types" in inspect.signature(GZipMiddleware.__init__).parameters:
     _gzip_kwargs["exclude_content_types"] = _gzip.DEFAULT_EXCLUDED_CONTENT_TYPES
+# Innermost (registered first): rewrites every /<asset>?v= in an HTML body to
+# the served file's content hash, BEFORE GZip compresses it (asset_version.py).
+app.add_middleware(VersionedAssetsMiddleware)
 app.add_middleware(GZipMiddleware, **_gzip_kwargs)
 
 
@@ -108,9 +112,9 @@ _STATIC_SUFFIXES = (".css", ".js", ".woff2", ".woff", ".ttf", ".otf",
 
 
 class CacheControlMiddleware:
-    # Static assets are content-versioned via ?v= query params (the codebase
-    # bumps the query on every edit), so cache them hard and let the bumped
-    # query bust them — this kills the per-asset revalidation round-trip on
+    # Static assets are content-versioned via ?v= query params (filled in with
+    # the file's content hash at serve time -- asset_version.py), so cache them
+    # hard and let the changed hash bust them — this kills the per-asset revalidation round-trip on
     # every navigation across the multi-page app. HTML shells embed live data,
     # so they stay no-cache. Unversioned static gets a 1-day safety TTL.
     # Nightfall serves its own bundle and manages its own caching.

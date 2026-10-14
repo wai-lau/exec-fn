@@ -46,3 +46,12 @@ def app_subdirs(rel: str) -> list[Path]:
 for _p in app_subdirs("api"):
     if str(_p) not in sys.path:
         sys.path.append(str(_p))
+
+
+def web_dirs() -> list[Path]:
+    """Every dir the "/" static mount serves from, in its order: the parent's
+    web/ (/app/static in the container, <repo>/web on the host), then each
+    app's web/. The one list main.py, pages, the lints and asset_version use."""
+    container = Path("/app/static")
+    parent = container if container.is_dir() else _HERE.parent / "web"
+    return [parent, *app_subdirs("web")]
