@@ -31,6 +31,8 @@ docker compose up -d --build
 
 **COMMIT after each discrete fix.** Don't batch.
 
+**SECURITY HEADERS** on every response (`api/security_headers.py`: HSTS, `X-Frame-Options: SAMEORIGIN`, nosniff); noodle's vote page adds a strict CSP, which the browser-test harness strips except in `test_noodle_browser_csp.py`. **ARCHITECTURE.md §20a, §21m**.
+
 **TESTS SKIP RATE LIMITS**: the suite sends `x-ratelimit-exempt` (token from `API_KEY`, `auth.rate_exempt`); every per-IP limiter honours it, so test runs never fail on a limiter. **ARCHITECTURE.md** (Rate limits never fail the test suite).
 
 **PRE-COMMIT HOOK** (`scripts/pre-commit`; `.git/hooks/pre-commit` symlinks to it — `bash scripts/install-hooks.sh` on a fresh clone, `bash scripts/pre-commit` by hand). Every check gated on what is staged: ruff, JS syntax + ESLint (`max-lines-per-function: 100`), stylelint, palette lint, scale lint, **cache-bust lint** (a changed asset must bump its `?v=` on every `api/` reference in the SAME commit), shellcheck, 500-line cap, no-multiline-inline-JS/CSS, fixture resolution, page smoke tests, the `/spire` game smoke (`scripts/spire-smoke/`, node, fake DOM + recording canvas), admin-tier guard (route list enumerated from decorators), and the CLAUDE.md 140k cap. **Adding a colour, alpha, shadow or z-index is deliberate**: make the change, eyeball it on `/UI`, then `python3 scripts/lint-colors.py --update` (or `lint-scale.py --update`) and commit the baseline. Snap onto the scale with `python3 scripts/scale-codemod.py [file...]` / `--write`. **ARCHITECTURE.md §13**.

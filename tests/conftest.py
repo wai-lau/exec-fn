@@ -159,11 +159,34 @@ class _ExemptBrowser:
     def __getattr__(self, name):
         return getattr(self._b, name)
 
+    def new_page(self, *a, **kw):
+        # a page in its own context, through new_context above (so it gets the
+        # same CSP bypass and rate-limit exemption); closing it closes both
+        ctx = self.new_context(*a, **kw)
+        page = ctx.new_page()
+        page.on("close", lambda _: ctx.close())
+        return page
+
     def new_context(self, *a, **kw):
+        # Playwright's wait_for_function compiles its STRING predicate in the
+        # page each time it polls, and a strict Content-Security-Policy (noodle's
+        # vote page: no eval) refuses that -- WebKit's bypass_csp covers only the
+        # first evaluation. So the suites strip the CSP header off PAGE documents
+        # here, in the harness; tests/test_noodle_browser_csp.py passes
+        # bypass_csp=False to keep it and polls from Python instead.
+        keep_csp = kw.get("bypass_csp") is False
+        kw.setdefault("bypass_csp", True)
         ctx = self._b.new_context(*a, **kw)
-        if RL_EXEMPT:
-            ctx.route(self._origin + "/**",
-                      lambda route: route.continue_(headers={**route.request.headers, **RL_EXEMPT}))
+
+        def _route(route):
+            headers = {**route.request.headers, **RL_EXEMPT}
+            if keep_csp or route.request.resource_type != "document":
+                route.continue_(headers=headers)
+                return
+            resp = route.fetch(headers=headers)
+            route.fulfill(response=resp, headers={k: v for k, v in resp.headers.items()
+                                                  if k.lower() != "content-security-policy"})
+        ctx.route(self._origin + "/**", _route)
         return ctx
 
 

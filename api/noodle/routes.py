@@ -23,8 +23,17 @@ guest_router = APIRouter()   # mounted on the site's Turnstile-gated guest tier
 owner_router = APIRouter()
 
 _NO_STORE = {"Cache-Control": "no-store"}
+# The vote page holds the poll's key (in the address) and, once typed, the
+# voter's key: no script but this site's own files may run there, nothing
+# may frame it, and nothing it fetches leaves the site. Styles may be inline
+# (seal inks are style="--seal-hsl:..." strings); scripts never.
+_VOTE_CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+             "img-src 'self' data:; font-src 'self'; connect-src 'self'; worker-src 'self'; "
+             "object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'")
 _PRIVATE_PAGE = {"Cache-Control": "no-store", "X-Robots-Tag": "noindex",
-                 "Referrer-Policy": "no-referrer"}
+                 "Referrer-Policy": "no-referrer", "Content-Security-Policy": _VOTE_CSP}
+# /noodle carries the site nav (inline script), so only the framing rule here
+_ADMIN_PAGE = {"Cache-Control": "no-store", "Content-Security-Policy": "frame-ancestors 'none'"}
 
 
 async def _json_body(request: Request, cap: int) -> dict:
@@ -195,7 +204,7 @@ async def noodle_ask(slug: str, request: Request):
 async def noodle_admin_page(request: Request):
     """GUEST tier (behind Cloudflare Turnstile): any guest may start a poll. The
     page lists no polls; the owner API below does (ids only)."""
-    return HTMLResponse(pages.admin_page(request), headers=_NO_STORE)
+    return HTMLResponse(pages.admin_page(request), headers=_ADMIN_PAGE)
 
 
 @guest_router.post("/api/noodle-polls/new")

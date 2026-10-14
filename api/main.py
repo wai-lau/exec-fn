@@ -21,6 +21,7 @@ from routes_graph import run_graph_warm_loop
 from discord_bot import _run_discord_bot
 from tarot.openings_loop import run_openings_loop
 from routers import public, protected, guest_protected
+from security_headers import SecurityHeadersMiddleware
 import routes_views  # noqa: F401  — registers HTML routes on the shared routers
 import routes_api    # noqa: F401  — registers JSON routes on the shared routers
 import routes_tts    # noqa: F401  — registers the /tts page + WS reverse-proxy
@@ -135,7 +136,11 @@ class CacheControlMiddleware:
                 headers = MutableHeaders(raw=message["headers"])
                 ctype = headers.get("content-type", "")
                 if ctype.startswith("text/html"):
-                    headers["Cache-Control"] = "no-cache"
+                    # a page that asked for no-store (noodle's: a draft token
+                    # or a plain poll's title must not sit in the disk cache)
+                    # keeps it; no-cache would have overwritten it
+                    if "no-store" not in headers.get("cache-control", ""):
+                        headers["Cache-Control"] = "no-cache"
                 elif path.endswith(_STATIC_SUFFIXES):
                     headers["Cache-Control"] = (
                         "public, max-age=31536000, immutable" if query
@@ -149,6 +154,7 @@ class CacheControlMiddleware:
 # Registered after GZip so it stays the outermost http middleware (matches the
 # old decorator order): it stamps the final response headers last.
 app.add_middleware(CacheControlMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)   # HSTS, framing, nosniff (security_headers.py)
 
 
 @app.exception_handler(401)

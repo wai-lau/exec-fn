@@ -299,6 +299,24 @@ def test_noodle_signed_actions_refuse_junk_without_writing(client, noodle_slug, 
     assert client.get(f"/api/noodle/{noodle_slug}").json()["voters"] == before
 
 
+def test_every_response_carries_the_security_headers(client):
+    """HSTS, no framing by other sites, nosniff -- on pages and static alike
+    (api/security_headers.py, security audit 2026-10-14)."""
+    for path in ("/", "/chrome.css?v=84", "/login"):
+        h = client.get(path).headers
+        assert h["strict-transport-security"].startswith("max-age="), path
+        assert h["x-frame-options"] == "SAMEORIGIN" and h["x-content-type-options"] == "nosniff", path
+
+
+def test_noodle_pages_keep_their_csp_and_no_store(client, guest_cookie, noodle_slug):
+    vote = client.get(f"/noodle/{noodle_slug}", headers=HTML_ACCEPT).headers
+    assert "script-src 'self'" in vote["content-security-policy"]
+    assert "frame-ancestors 'none'" in vote["content-security-policy"]
+    assert vote["cache-control"] == "no-store", "the site middleware must not turn it into no-cache"
+    page = client.get("/noodle", headers={**guest_cookie, **HTML_ACCEPT}).headers
+    assert page["content-security-policy"] == "frame-ancestors 'none'" and page["cache-control"] == "no-store"
+
+
 def test_noodle_drafts_need_their_token(client, guest_cookie):
     slug = "B" * 22
     assert client.get(f"/noodle/{slug}", headers=HTML_ACCEPT).status_code == 404
