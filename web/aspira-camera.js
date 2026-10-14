@@ -157,32 +157,55 @@ function contrastCursor() {
 
 // the phone's screen box and the cap it sets live in aspira-positioning.js (the simulator loads that one); here its drawing
 const phonePath = (c, b) => { c.beginPath(); c.roundRect(b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0, b.r); };
-// ONLY NEAR ITS EDGE (owner, 2026-10-13: "only show mobile outline when tower is near edge (like 20 units)"): shown while any tower
+// ONLY NEAR ITS EDGE (owner, 2026-10-13: "only show mobile outline when tower is near edge (like 20 units)"): shown while a tower
 // stands within PHONE_NEAR world units of the furthest it may go (legalSpot's edge), easing in and out over PHONE_FADE s (real)
-const PHONE_NEAR = 20, PHONE_FADE = 0.25;
-let phoneShow = 0, phoneAt = 0;
-function phoneFrameAlpha() {
-  const now = performance.now() / 1000, dt = Math.min(0.1, now - (phoneAt || now)), e = CELL_S * TOWER_K + MOVE_EDGE + PHONE_NEAR;
+// ...and only an edge that HOLDS A TOWER BACK FOR NO REASON (owner, 2026-10-14: "don't show mobile phone outline when near edge
+// that is already at edge of screen, only show when tower movement appears to be needlessly blocked"): an edge of the box INSIDE
+// this screen, a tower near it - drawn as THREE thin lines, fainter inward ("increasing in opacity as you reach the exterior one")
+const PHONE_NEAR = 20, PHONE_FADE = 0.25, PHONE_WALL_A = [0.3, 0.6, 1], PHONE_WALL_GAP = 4, PHONE_WALL_W = 0.75; // GAP, W: screen px
+let phoneShow = 0, phoneAt = 0, phoneLast = [];
+// the box's edges (l r t b) to show: b the box, S the screen and pos(tower) in one space, near and m (in-screen margin) in it too
+function phoneWalls(b, S, pos, near, m) {
+  const open = { l: b.x0 > S.x0 + m, r: b.x1 < S.x1 - m, t: b.y0 > S.y0 + m, b: b.y1 < S.y1 - m }, out = new Set();
+  for (const t of G.towers) {
+    const p = pos(t);
+    if (open.l && p.x - b.x0 < near) out.add("l"); if (open.r && b.x1 - p.x < near) out.add("r");
+    if (open.t && p.y - b.y0 < near) out.add("t"); if (open.b && b.y1 - p.y < near) out.add("b");
+  }
+  return [...out];
+}
+function phoneFrameAlpha(walls) {
+  const now = performance.now() / 1000, dt = Math.min(0.1, now - (phoneAt || now));
   phoneAt = now;
-  const near = G.towers.some(t => !phoneInside(t.x, t.y, e));
-  phoneShow = Math.max(0, Math.min(1, phoneShow + (near ? 1 : -1) * dt / PHONE_FADE));
+  if (walls.length) phoneLast = walls; // (fading out, the last ones shown)
+  phoneShow = Math.max(0, Math.min(1, phoneShow + (walls.length ? 1 : -1) * dt / PHONE_FADE));
   return PHONE_ALPHA * phoneShow;
+}
+function drawPhoneWalls(c, b, a, px) { // px: one screen px in c's units
+  c.save(); c.strokeStyle = COL.white; c.lineWidth = PHONE_WALL_W * px; c.lineCap = "butt";
+  PHONE_WALL_A.forEach((k, i) => {
+    const d = (PHONE_WALL_A.length - 1 - i) * PHONE_WALL_GAP * px; // the faintest innermost, the strongest ON the edge
+    c.globalAlpha = a * k; c.beginPath();
+    for (const w of phoneLast) {
+      if (w === "l") { c.moveTo(b.x0 + d, b.y0); c.lineTo(b.x0 + d, b.y1); } else if (w === "r") { c.moveTo(b.x1 - d, b.y0); c.lineTo(b.x1 - d, b.y1); }
+      else if (w === "t") { c.moveTo(b.x0, b.y0 + d); c.lineTo(b.x1, b.y0 + d); } else { c.moveTo(b.x0, b.y1 - d); c.lineTo(b.x1, b.y1 - d); }
+    }
+    c.stroke();
+  });
+  c.restore();
 }
 function drawPhoneFrame() { // 2D, on the board (render); 3D draws it on the view instead (drawPhoneFrame3d)
   if (phoneOn3d()) return;
-  const a = phoneFrameAlpha();
-  if (!a) return;
-  ctx.save();
-  ctx.globalAlpha = a; ctx.strokeStyle = COL.white; ctx.lineWidth = 1.5;
-  phonePath(ctx, phoneBox()); ctx.stroke();
-  ctx.restore();
+  const k = cam.k, px = canvasDpr() / k, b = phoneBox(), near = CELL_S * TOWER_K + MOVE_EDGE + PHONE_NEAR;
+  const S = { x0: -cam.ox / k, y0: -cam.oy / k, x1: (cv.width - cam.ox) / k, y1: (cv.height - cam.oy) / k }; // the screen, in world units
+  const a = phoneFrameAlpha(phoneWalls(b, S, t => t, near, 6 * px));
+  if (a) drawPhoneWalls(ctx, b, a, px);
 }
 function drawPhoneFrame3d() { // in warpEntities, under the texture camera, before the boss sky's flip: over the view, square to the screen
-  const a = phoneFrameAlpha();
+  const g = warp.ent.getContext("2d"), px = canvasDpr() * warpRes(), b = phoneRect3d();
+  const near = (CELL_S * TOWER_K + MOVE_EDGE + PHONE_NEAR) * cam.k;
+  const a = phoneFrameAlpha(phoneWalls(b, { x0: 0, y0: 0, x1: warp.ent.width, y1: warp.ent.height }, t => warpProject(t.x, t.y, 0), near, 6 * px));
   if (!a) return;
-  const g = warp.ent.getContext("2d");
-  g.save(); g.setTransform(1, 0, 0, 1, 0, 0);
-  g.globalAlpha = a; g.strokeStyle = COL.white; g.lineWidth = 1.5 * canvasDpr() * warpRes();
-  phonePath(g, phoneRect3d()); g.stroke();
-  g.restore();
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0); drawPhoneWalls(g, b, a, px); g.restore();
 }
+
