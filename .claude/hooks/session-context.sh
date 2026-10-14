@@ -45,10 +45,10 @@ fi
 #  - a DETACHED HEAD: a commit made there belongs to no branch and is lost at the
 #    next update. Re-attach to master when HEAD is exactly origin/master (never
 #    move a HEAD that carries its own work).
-#  - no pre-commit: hooks are per-repo, so an app submodule gets the parent's
-#    scripts/pre-commit symlinked in (it finds the parent's lints, .venv and
-#    tests via --show-superproject-working-tree). apps/* only: nightfall and
-#    claude-box are not laid out like the parent and have their own rules.
+#  - no pre-commit: hooks are per-repo. An app (apps/*) mirrors the parent, so
+#    it gets the PARENT's scripts/pre-commit (shared lints/tests, then the app's
+#    own scripts/pre-commit). Any other submodule (claude-box, nightfall) is laid
+#    out differently and gets ITS OWN scripts/pre-commit, if it has one.
 subs=""
 paths="$(git config --file .gitmodules --get-regexp '\.path$' 2>/dev/null | awk '{print $2}')"
 for p in $paths; do
@@ -66,15 +66,16 @@ for p in $paths; do
     fi
   fi
   case "$p" in
-    apps/*)
-      hookdir="$(git -C "$p" rev-parse --path-format=absolute --git-path hooks 2>/dev/null)" || continue
-      if [ -n "$hookdir" ] && [ ! -e "$hookdir/pre-commit" ]; then
-        mkdir -p "$hookdir" && ln -s "$root/scripts/pre-commit" "$hookdir/pre-commit" \
-          && subs="${subs}
-[hook] installed the parent's pre-commit into $p."
-      fi
-      ;;
+    apps/*) src="$root/scripts/pre-commit" ;;
+    *) src="$root/$p/scripts/pre-commit" ;;
   esac
+  [ -x "$src" ] || continue
+  hookdir="$(git -C "$p" rev-parse --path-format=absolute --git-path hooks 2>/dev/null)" || continue
+  if [ -n "$hookdir" ] && [ ! -e "$hookdir/pre-commit" ]; then
+    mkdir -p "$hookdir" && ln -s "$src" "$hookdir/pre-commit" \
+      && subs="${subs}
+[hook] installed ${src#"$root"/} as $p's pre-commit."
+  fi
 done
 
 jq -n --arg c "$ctx$graph$subs" \
