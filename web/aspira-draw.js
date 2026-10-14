@@ -312,8 +312,8 @@ function drawFx(pass, at = (x, y, fn) => fn(), map = null) {
     if (kind !== pass || f.t >= f.life || (lowQ && (kind === "dmg" || LOW_SKIP_FX[f.k]))) continue; // a retired damage number (dmgNumber) is not drawn; low quality skips the decoration
     // full strength for the first half of the effect's life, then fade out
     const k = 1 - f.t / f.life;
+    if (glFx && fxGlFx(f, k, Math.min(1, k * 2))) continue; // (before the canvas's alpha is touched: thousands a frame)
     ctx.globalAlpha = Math.min(1, k * 2);
-    if (glFx && fxGlFx(f, k, ctx.globalAlpha)) continue;
     const one = () => {
     if (f.k === "beam") {
       ctx.globalAlpha = Math.min(1, ctx.globalAlpha * (f.alpha ?? 1) * BEAM_BRIGHT); // ARC: an arc as opaque as its damage share; x BEAM_BRIGHT (owner)

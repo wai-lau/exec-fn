@@ -11,8 +11,9 @@ const FXGL_IN = 19; // per shape (one GPU instance): p0, p1 (world), radius, lin
 function fxGlTake() { fxGl.on = !fxGl.broken && typeof q3d === "function" && q3d() && !!(typeof warp !== "undefined" && warp.gl); if (!fxGl.on) fxGl.n = 0; return fxGl.on; } // (broken: the 2D way)
 // a palette colour as 0..1 rgb, read once per colour string through a 1 px canvas
 function fxGlRgb(css) {
+  if (css === fxGl.lastCss) return fxGl.lastRgb; // (runs of one colour: most hits in a row)
   let c = fxGl.rgb.get(css);
-  if (c) return c;
+  if (c) { fxGl.lastCss = css; fxGl.lastRgb = c; return c; }
   const x = (fxGl.px ||= Object.assign(document.createElement("canvas"), { width: 1, height: 1 })).getContext("2d", { willReadFrequently: true });
   x.clearRect(0, 0, 1, 1); x.fillStyle = css; x.fillRect(0, 0, 1, 1);
   const d = x.getImageData(0, 0, 1, 1).data;
