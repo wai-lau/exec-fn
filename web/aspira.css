@@ -148,6 +148,10 @@
 
 /* the title sits CENTRED under the build buttons (owner; was under the wave list) */
 .asp-buildcol { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
+/* only its BUTTONS catch a touch (owner, 2026-10-14: "boss text and powers stop me from dragging my towers"): the boss text,
+   the title and the gaps round the power buttons let a drag through to the board */
+#asp .asp-bottom > .asp-buildcol, #asp .asp-buildcol > *, #asp .asp-buildcol .asp-powers { pointer-events: none; }
+#asp .asp-buildcol button { pointer-events: auto; }
 #asp .asp-build .asp-tw { min-width: 96px; padding-block: var(--space-3); background: hsl(var(--bg-hsl)); } /* bigger (owner, 2026-10-05; was 72px) */
 
 /* the tower being placed: its card (an .asp-pop, so it looks and colours like
