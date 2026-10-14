@@ -54,7 +54,11 @@ void main() {
   gl_Position = vec4(p.x / S.x * 2.0 - 1.0, p.y / S.y * 2.0 - 1.0, 0.0, 1.0);
 }`;
 const FXGL_FS = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float; /* a phone's mediump is 16-bit: a 1000 px ring's edge or a dash would come out blocky */
+#else
 precision mediump float;
+#endif
 varying vec2 loc; varying vec4 v, fc, sc, cb; varying vec3 dsh;
 void main() {
   if ((dot(cb.xy, cb.xy) > 0.0 && dot(loc + vec2(v.w, 0.0), cb.xy) < 0.0) || (dot(cb.zw, cb.zw) > 0.0 && dot(loc - vec2(v.w, 0.0), cb.zw) > 0.0)) discard;
