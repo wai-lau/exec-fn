@@ -106,7 +106,7 @@ function relayStats(s, kind, m) {
 // ---------- Temporal Drive: the stopping ring ----------
 function temporalFreeze() {
   const lv = TEMPORAL[powerLvl("temporal")];
-  if (!lv || cooldownLeft("temporal") > 0) return false;
+  if (!lv || cooldownLeft("temporal") > 0 || !G.enemies.some(e => !e.dead)) return false; // (nothing to stop: it would end at once, stepCore)
   const c = coreState();
   c.cd.temporal = lv.cd;
   c.freeze = { t: 0, dur: lv.dur, hit: new Set() };
@@ -132,6 +132,9 @@ function stepCore(dt) {
       if (e.dead || f.hit.has(e.id)) continue;
       f.hit.add(e.id); applySlow(e, 1, left, "core:time"); // a 100% slow: stopped dead (bosses' own rules still apply)
     }
+    // ...and it ENDS once nothing is left on the board (owner, 2026-10-14: "end temporal drive when there are no enemies left"):
+    // the spawns it holds come on, the rings fade from here
+    if (f.t < f.dur && !G.enemies.some(e => !e.dead)) { f.dur = f.t; c.freezeUntil = c.clock; }
     if (f.t >= f.dur + TEMPORAL_GROW + TEMPORAL_FADE) c.freeze = null; // the last ring has faded
   }
 }
