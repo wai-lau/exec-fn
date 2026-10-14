@@ -22,8 +22,11 @@ function warpRender() {
     warp.shake = shakeOffset();
     const key = [S, COL.bg].join();
     if (cv.width !== S || cv.height !== S) { cv.width = S; cv.height = S; warp.statKey = ""; } // (resize() sets it back for 2D)
-    if (key !== warp.statKey || now - (warp.statAt || 0) >= WARP_STAT_MS) { // THE BOARD, now and then, on the main canvas
-      warp.statKey = key; warp.statAt = now; warp.statNew = true;
+    // THE BOARD on the main canvas: at once for a new size or palette, else only when what it shows has changed (the lit
+    // lanes, their brightness, the wave's labels - warpBoardSig), at most every WARP_STAT_MS (a still board is never resent)
+    const sig = warpBoardSig(now);
+    if (key !== warp.statKey || (sig !== warp.statSig && now - (warp.statAt || 0) >= WARP_STAT_MS)) {
+      warp.statKey = key; warp.statSig = sig; warp.statAt = now; warp.statNew = true;
       ctx.setTransform(cam.k, 0, 0, cam.k, cam.ox, cam.oy); ctx.save(); drawSceneBase(); ctx.restore();
     }
     warp.texCam = { ...cam };
@@ -41,6 +44,19 @@ function warpRender() {
     ctx.setTransform(cam.k, 0, 0, cam.k, cam.ox, cam.oy); ctx.save(); drawSceneTop(); ctx.restore();
     warp.dynUp = !g || g.used || warp.dynDirty; warp.dynDirty = !g || g.used;
   } finally { ctx = main; Object.assign(cam, view); }
+}
+// what the board layer shows, as a string: the lanes lit (each one's lane, turn, colour, wave and brightness to 1/LIT_STEPS -
+// as aspira-lanes.js keys its own layers), the wave (the idle labels), the boss sky's phase; while a lane is still fading in,
+// the time too, so the fade is drawn
+function warpBoardSig(now) {
+  const live = typeof litLanes === "function" ? litLanes() : [];
+  let fading = false;
+  const lanes = live.map(u => {
+    const t0 = laneSeen.get(u.pi + ":" + u.ang);
+    if (!u.star && (t0 === undefined || now - t0 < LANE_FADE_IN_MS)) fading = true;
+    return u.pi + ":" + u.ang.toFixed(3) + ":" + u.color + ":" + u.n + ":" + Math.round(u.a * LIT_STEPS);
+  }).join(",");
+  return G.wave + "|" + bossInv.phase + "|" + lanes + (fading ? "|" + Math.floor(now / WARP_STAT_MS) : "");
 }
 // both layers onto their texture units for the bell (warpDraw): the board sent up only when it was redrawn
 function warpLayersBind(gl, u) {
