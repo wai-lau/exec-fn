@@ -693,6 +693,7 @@
 /* auto-wait ON and a power ONLINE flash BRIGHTER and HARDER (owner, 2026-10-08; were asp-blink):
    faster, down to near nothing, and up to an over-bright glow in their own colour */
 #asp-ov-btn { animation: asp-flash 2.4s ease-in-out infinite; } /* slow (owner, 2026-10-12: "should not flash this fast"; was the 0.7s blink) */ /* Play again FLASHES (owner, 2026-10-12) - the overlay is only the game-over card */
+#asp #asp-sp-pause.asp-held { animation: asp-flash var(--asp-blink) ease-in-out infinite; } /* paused by the button (aspira-ui.js) */
 #asp .asp-powers .asp-power.pop { animation: asp-flash 0.5s ease-in-out infinite; } /* online: flashing for POWER_FLASH_MS (aspira-powers.js flashPower; owner 2026-10-14 "flash them longer" - was three quick ones) */
 @keyframes asp-flash {
   0%, 100% { opacity: 1; filter: brightness(1.4) drop-shadow(0 0 var(--blur-sm) currentcolor); } /* a touch softer (owner, 2026-10-08; were 1.6 / 0.15) */

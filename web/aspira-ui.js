@@ -99,7 +99,7 @@ KINDS.forEach((k, i) => {
 });
 [["pause", "pause"], [1, "1×"], [2, "2×"], [3, "3×"], [10, "10×"]].forEach(([v, label]) => {
   button($("asp-speed"), "", label, () => {
-    if (v === "pause") ui.paused = !ui.paused; else { ui.speed = v; ui.paused = false; }
+    if (v === "pause") { ui.paused = !ui.paused; ui.pauseBtn = ui.paused; } else { ui.speed = v; ui.paused = false; } // pauseBtn: paused BY the button (it flashes)
   }, v === "pause" ? "asp-sp-pause" : speedId(v));
 });
 
@@ -327,7 +327,8 @@ function updateHud() {
   const boss = G.enemies.find(e => (e.arcana || e.bossKin) && !e.dead);
   setText(document.querySelector(".asp-title"), boss ? arcanaOf(boss.n).name.toLowerCase() : best.ascended ? "ascendant" : "the source");
   document.querySelector(".asp-title").classList.toggle("asp-title-boss", !!boss);
-  $("asp-sp-pause").classList.toggle("on", ui.paused);
+  if (!ui.paused) ui.pauseBtn = false;
+  $("asp-sp-pause").classList.toggle("on", ui.paused); $("asp-sp-pause").classList.toggle("asp-held", ui.paused && !!ui.pauseBtn); // paused by the button: it flashes (owner, 2026-10-14) - a card's pause does not
   const mute = $("asp-mute");
   if (mute.dataset.muted !== String(muted)) { // redraw the icon only when it changes
     mute.dataset.muted = String(muted); mute.innerHTML = muted ? ICON_MUTED : ICON_SOUND;
@@ -440,7 +441,7 @@ document.addEventListener("keydown", ev => {
   }
   if (["1", "2", "3"].includes(ev.key)) { ui.speed = Number(ev.key); ui.paused = false; }
   else if (ev.key === "m" || ev.key === "M") setMuted(!muted);
-  else if (ev.key === " ") { ev.preventDefault(); ui.paused = !ui.paused; }
+  else if (ev.key === " ") { ev.preventDefault(); ui.paused = !ui.paused; ui.pauseBtn = ui.paused; }
   else if (ev.key === "u" || ev.key === "U") keyUpgrade(ui.sel && G.towers.find(x => x.id === ui.sel));
   else if (ev.key === "Escape") { ui.build = null; ui.sel = null; refreshPanels(); }
 });
