@@ -357,7 +357,7 @@ function warpEntities() {
   try {
     ctx.drawImage(warp.cv, 0, 0); // (the full sky: already turned over, in GL - warpFlip)
     if (skyPal()) withPalette(all); else all();
-    if (skyPal()) withPalette(drawPhoneFrame3d); else drawPhoneFrame3d(); /* the phone's screen, turned over with the sky (owner, 2026-10-13; aspira-camera.js) */
+    if (skyPal()) withPalette(drawPhoneFrame3d); else drawPhoneFrame3d(); drawLeashRings3d(); /* the leash rings, square to the screen (aspira-camera.js) */ /* the phone's screen, turned over with the sky (owner, 2026-10-13; aspira-camera.js) */
     // the sky's DIFFERENCE over the overlay (the towers' layer draws its own flip, above)
     if (skyOn() && !skyPal()) for (const [x, cnv] of [[entCtx2d, c]]) {
       ctx = x;

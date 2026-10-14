@@ -26,6 +26,7 @@ const CHANGELOG = [ // each day's lines in two groups: b = Balance, u = Perf/UI.
     "Pause button flashes while paused.",
     "Numbers and text: outline only, no glow.",
     "3D: beams stop at the edge of a tower's hexagon.",
+    "3D: movement range rings evenly dashed all round.",
     "Upgrade button always shows the cost.",
     "Boss text and power buttons no longer block dragging.",
     "Phone-screen limit: shown only where it blocks a tower, as three thin lines.",

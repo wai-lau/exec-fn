@@ -208,4 +208,17 @@ function drawPhoneFrame3d() { // in warpEntities, under the texture camera, befo
   if (!a) return;
   g.save(); g.setTransform(1, 0, 0, 1, 0, 0); drawPhoneWalls(g, b, a, px); g.restore();
 }
-
+// 3D: the LEASH RINGS (drawLeash, aspira-towers.js) on the screen layer - the floor circle's points projected, dashed in screen
+// px so every dash is the same on the sides as in front. In warpEntities, under the texture camera, beside drawPhoneFrame3d
+function drawLeashRings3d() {
+  const rings = warp.leashRings;
+  if (!rings || !rings.length) return;
+  const g = warp.ent.getContext("2d"), px = canvasDpr() * warpRes();
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.lineWidth = 1.5 * px; g.lineJoin = "round"; g.setLineDash([6 * px, 6 * px]);
+  for (const r of rings) {
+    g.strokeStyle = r.col; g.globalAlpha = r.A; g.lineDashOffset = -r.march * 18 * px; g.beginPath(); // (marching while it hints)
+    for (let i = 0; i <= 96; i++) { const a = i / 96 * 6.283, p = warpProject(r.x + Math.cos(a) * r.R, r.y + Math.sin(a) * r.R, 0); if (i) g.lineTo(p.x, p.y); else g.moveTo(p.x, p.y); }
+    g.stroke();
+  }
+  g.restore();
+}

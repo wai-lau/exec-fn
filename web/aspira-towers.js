@@ -430,6 +430,7 @@ function drawLeash() {
   ctx.save(); if (!phoneOn3d()) { phonePath(ctx, phoneBox()); ctx.clip(); } /* a leash past the phone's screen is no use: cut at it in 2D (owner, 2026-10-13) */
   ctx.lineWidth = 2;
   const now = performance.now() / 1000;
+  if (typeof warp !== "undefined") warp.leashRings = [];
   for (const t of G.towers) {
     const c = CELLS[t.cell], col = COL[TOWERS[t.kind].color], held = towerHeld(t);
     ctx.strokeStyle = col;
@@ -440,9 +441,11 @@ function drawLeash() {
     if (held && Math.hypot(t.x - c.x, t.y - c.y) > 1) { ctx.globalAlpha = 0.6; ctx.setLineDash([8, 8]); ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(t.x, t.y); ctx.stroke(); ctx.setLineDash([]); } // dashed like the leash ring
     const hint = t.leashHint > now ? Math.min(1, (t.leashHint - now) / LEASH_HINT_FADE_S) : 0;
     if (t.id !== ui.sel && !held && !hint) continue;
-    ctx.globalAlpha = Math.max(held ? 0.8 : t.id === ui.sel ? 0.5 : 0, 0.8 * hint); ctx.setLineDash([8, 8]);
-    if (hint) ctx.lineDashOffset = -now * 24; // marching
-    ctx.beginPath(); ctx.arc(c.x, c.y, leashR(t), 0, 6.283); ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
+    ctx.globalAlpha = Math.max(held ? 0.8 : t.id === ui.sel ? 0.5 : 0, 0.8 * hint);
+    // 3D: the RING goes on the screen layer (drawLeashRings3d, aspira-camera.js), its dashes even in screen px - on the floor
+    // the warp drew them long and slanted toward the sides (owner, 2026-10-14: "the mvmt range indicators look weird on the sides")
+    if (q3d()) (warp.leashRings ||= []).push({ x: c.x, y: c.y, R: leashR(t), col, A: ctx.globalAlpha, march: hint ? now : 0 });
+    else { ctx.setLineDash([8, 8]); if (hint) ctx.lineDashOffset = -now * 24; /* marching */ ctx.beginPath(); ctx.arc(c.x, c.y, leashR(t), 0, 6.283); ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0; }
     if (!held) leashArrows(t, c, now, ctx.globalAlpha); // not while it is being dragged (owner, 2026-10-11)
   }
   ctx.globalAlpha = 1; ctx.restore();
