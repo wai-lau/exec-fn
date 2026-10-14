@@ -70,9 +70,14 @@ const speedRamp = n => 1 + SPEED_RAMP * Math.max(0, n - ARMOR_HP_FROM);
 // ramps faster mid game, hp ramps faster late game"): ordinary enemies speed up along an S from SPEED_FROM to SPEED_TO, SPEED_MID
 // faster at the top of it (steepest mid-game, flat after); their HP / that speed to the HP_TRADE (a tower gets 1/speed the time
 // on them) and x HP_LATE_X a wave past HP_LATE_FROM. Bosses and armor keep their curves. let: the sims sweep them
-let SPEED_MID = 0.5, SPEED_FROM = 12, SPEED_TO = 84, HP_TRADE = 0.5, HP_LATE_FROM = 84, HP_LATE_X = 1.005;
-const speedGrow = n => { const t = Math.min(1, Math.max(0, (n - SPEED_FROM) / (SPEED_TO - SPEED_FROM))); return 1 + SPEED_MID * t * t * (3 - 2 * t); };
-const plainHpGrow = n => Math.pow(speedGrow(n), -HP_TRADE) * Math.pow(HP_LATE_X, Math.max(0, n - HP_LATE_FROM));
+// ...then (owner, 2026-10-14: "mid game feels a bit easy, late game waves become a slog"): x (1 + MID_HP) more HP over the middle
+// (MID_HP_FROM .. MID_HP_TO, eased in and out over MID_HP_EASE waves), and past SPEED_TO the speed keeps on, SPEED_LATE a wave, with
+// HP / it as before - the late waves shorter, not softer
+let SPEED_MID = 0.5, SPEED_FROM = 12, SPEED_TO = 84, SPEED_LATE = 0.01, HP_TRADE = 0.75, HP_LATE_FROM = 84, HP_LATE_X = 1, MID_HP = 0.5, MID_HP_FROM = 48, MID_HP_TO = 72, MID_HP_EASE = 24;
+const ease01 = t => { const u = Math.min(1, Math.max(0, t)); return u * u * (3 - 2 * u); };
+const speedGrow = n => 1 + SPEED_MID * ease01((n - SPEED_FROM) / (SPEED_TO - SPEED_FROM)) + SPEED_LATE * Math.max(0, n - SPEED_TO);
+const midHump = n => ease01((n - MID_HP_FROM + MID_HP_EASE) / MID_HP_EASE) * (1 - ease01((n - MID_HP_TO) / MID_HP_EASE));
+const plainHpGrow = n => Math.pow(speedGrow(n), -HP_TRADE) * (1 + MID_HP * midHump(n)) * Math.pow(HP_LATE_X, Math.max(0, n - HP_LATE_FROM));
 // LATE HYBRIDS (owner, 2026-10-13): after HYBRID_FROM swarms carry SWARM_SHIELD of a shield unit's charges, fast FAST_ARMOR of an
 // armor unit's armor ("maybe just 1/10 shields", "give fast armour") - first the other way round, but any armor on a swarm made ARC
 // (the swarm counter: many small hits) its worst tower, 10-18% leaked at even 3%. let: the sims sweep them

@@ -4,7 +4,7 @@
 // THE VERSION (web/aspira-version.txt, major.minor.tiny): a new day here is the next minor (its v); every deploy after bumps tiny.
 const CHANGELOG = [ // each day's lines in two groups: b = Balance, u = Perf/UI
   { v: "4.3", day: "Oct 14", b: [
-    "Enemies speed up through the mid-game and carry less HP to match; late waves keep getting faster.",
+    "Enemies speed up through the mid-game and carry less HP to match; mid-game enemies are tougher; late waves are faster, with less HP, so they end sooner.",
     "Boss escorts hand part of their HP to their boss again.",
     "Interest is 2% (was 3%).",
     "The +6 lives for every 100,000 score now arrive when the wave's boss falls.",
