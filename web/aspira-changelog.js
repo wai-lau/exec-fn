@@ -7,6 +7,7 @@ const CHANGELOG = [ // each day's lines in two groups: b = Balance, u = Perf/UI
     "Enemies speed up through the mid-game and carry less HP to match; mid-game enemies are tougher; late waves are faster, with less HP, so they end sooner.",
     "Boss escorts hand part of their HP to their boss again.",
     "Interest is 2% (was 3%).",
+    "Acid Corrosion: its goo lasts 5x longer (40 s).",
     "Swarms bring half as many enemies, each a little tougher, worth twice the credits and costing two lives if it gets through.",
     "The +6 lives for every 100,000 score now arrive when the wave's boss falls.",
     "Acid Contagion: an enemy killed in a pool leaves a pool of its own.",

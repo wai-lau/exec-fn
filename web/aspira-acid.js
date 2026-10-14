@@ -139,7 +139,7 @@ function corrodeHit(e, amt, t) {
 // as drops of DRIP_UNIT x the wave's armor reference; a drop lies DRIP_LIFE s, and the first other enemy within DRIP_R of it
 // takes it - its armor loses DRIP_TAKE x the drop, credited to the ACD. let: the sims sweep them
 let DRIP_TAKE = 2 /* countermx 2026-10-13: 0.5 / 1 / 2 - 2 brought the late armor column down most (ACD 6-13%) */, DRIP_UNIT = 0.3 /* a third as many drops, each 3x - the same goo in all (owner, 2026-10-13: "reduce goo pellet count"; was 0.1) */, DRIP_REAL = 3, DRIP_TIER_K = 0.6; // DRIP_TIER_K: x (1 + it x the dropping ACD's Corrosion tier) - countermx 2026-10-13: 0.6 brings Corrosion builds to 1-6% late armor (0: 6-12%)
-const DRIP_LIFE = 8, DRIP_R = 14, DRIP_MAX = 300, DRIP_JIT = 8;
+const DRIP_LIFE = 40 /* x5 (owner, 2026-10-14: "make corrosion goo last 5x longer"; was 8) */, DRIP_R = 14, DRIP_MAX = 1000 /* (was 300 at the 8 s life) */, DRIP_JIT = 8;
 // a drop is FLUNG back up the lane (owner, 2026-10-13: "give them some initial velocity in the direction of the lane (outwards),
 // give them a bit of angle jitter"): along the lane behind the enemy, +-DRIP_SPREAD rad, slowing from the start (by DRIP_TAU s)
 // and coming to rest DRIP_STOP units out ("it should slow down right away, but stop at 200 units"): launched at DRIP_STOP / DRIP_TAU
@@ -176,12 +176,12 @@ function dripRide(d, dt, keep) {
 }
 function stepDrips(dt) {
   if (!G.drips.length) return;
-  const keep = Math.exp(-dt / DRIP_TAU);
+  const keep = Math.exp(-dt / DRIP_TAU), grid = enemyGrid(); // the live enemies in POOL_CELL squares: a drop looks only in its own and the 8 round it (pull <= 120 < POOL_CELL) - up to DRIP_MAX of them a step
   for (const d of G.drips) {
     d.t += dt;
     if (d.lane) dripRide(d, dt, keep); else { d.x += d.vx * dt; d.y += d.vy * dt; d.vx *= keep; d.vy *= keep; }
     let near = null, nd = d.pull * d.pull;
-    for (const o of G.enemies) {
+    for (const o of poolNear(grid, { x: d.x, y: d.y, r: POOL_CELL })) {
       if (o.dead || o === d.src) continue; // never its own enemy's (owner, 2026-10-13)
       const dd = (o.x - d.x) ** 2 + (o.y - d.y) ** 2, rr = DRIP_R + ENEMIES[o.type].size * (o.sizeMul || 1);
       if (dd <= rr * rr) { // picked up
