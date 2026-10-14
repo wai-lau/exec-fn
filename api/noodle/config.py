@@ -67,6 +67,10 @@ ASK_POLL_RATE = 60       # per poll, everyone together ...
 ASK_POLL_WINDOW_S = 3600  # ... per hour
 ASK_IP_RATE = 60         # per client IP ...
 ASK_IP_WINDOW_S = 3600   # ... per this many seconds (in memory)
+# ... and a ceiling on ALL asks together: each is a paid Haiku call, and the
+# per-IP window alone let proxies spend without bound (<= ~$1/h at most here).
+ASK_GLOBAL_RATE = 120
+ASK_GLOBAL_WINDOW_S = 3600
 
 # Starting a poll (the public /noodle page): drafts per client IP.
 NEW_RATE = 20

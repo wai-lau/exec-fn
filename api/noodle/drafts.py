@@ -129,6 +129,10 @@ def new_for(ip: str, claim: str, now: float | None = None) -> dict:
         if len(q) >= config.NEW_RATE:
             raise TooFast(f"too many new polls -- try again in {int(q[0] + config.NEW_WINDOW_S - now) + 1}s")
         q.append(now)
+        # an address whose window has emptied is forgotten, or every client
+        # that ever started a poll stays in memory
+        for gone in [k for k, v in _starts.items() if not v or v[-1] <= now - config.NEW_WINDOW_S]:
+            del _starts[gone]
     return new(claim)
 
 

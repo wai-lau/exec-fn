@@ -3906,9 +3906,13 @@ split, so halves fold back into whole days. A `crop` in the answer is also
 a LIMIT on the slots returned, not just a suggested view.
 
 **Rate limits are ROLLING windows, never lifetime caps** (in-memory:
-`ASK_POLL_RATE`=60/hr per poll, `ASK_IP_RATE`=60/hr per IP, checked+recorded
-under one lock BEFORE the model call); a refused ask is never recorded, so
-the window refills on schedule. No per-voter limit — asking needs no name
+`ASK_POLL_RATE`=60/hr per poll, `ASK_IP_RATE`=60/hr per IP, and a ceiling on
+ALL asks together, `ASK_GLOBAL_RATE`=120/hr -- each is a paid Haiku call;
+checked+recorded under one lock BEFORE the model call); a refused ask is
+never recorded, so the window refills on schedule. **Only a stored poll, or a
+draft carrying its own token, may ask** (2026-10-14): a made-up slug used to
+pass the shape check, and a fresh one per call slipped past the per-poll
+window -- ~$12/day per IP with no ceiling (security audit). No per-voter limit — asking needs no name
 and a key is free to mint. `ASK_MAX_CHARS`=280, `ASK_MAX_TOKENS`=1024 (a
 truncated tool call raises `Truncated` → 422). An answer REPLACES the grid
 outright unless it matches nothing, in which case existing picks are left

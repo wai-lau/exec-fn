@@ -265,3 +265,31 @@ def test_relative_days_are_named_for_the_model(env):
     monday = today + timedelta(days=(0 - today.weekday()) % 7 or 7)
     assert f"next monday = {monday.isoformat()}" in system
     assert today.strftime("%A") in system
+
+
+def test_a_made_up_slug_cannot_ask(env):
+    """A fresh 22-character string per ask used to slip past the per-poll
+    window: only a stored poll, or a draft holding its own token, may ask."""
+    calls = len(env["calls"])
+    with pytest.raises(env["ask"].AskError) as e:
+        env["ask"].ask("Z" * 22, {"text": "fridays", "dates": OCT}, "203.0.113.1")
+    assert e.value.status == 404 and len(env["calls"]) == calls, "refused before any model call"
+
+
+def test_a_draft_with_its_token_may_ask(env, monkeypatch):
+    from noodle import drafts, store
+    monkeypatch.setattr(drafts, "_secret", None)
+    claim = base64.urlsafe_b64encode(bytes([7]) * 32).decode().rstrip("=")
+    d = drafts.new(claim)
+    assert not store.exists(d["slug"])
+    body = {"text": "fridays", "dates": OCT, "draft": d["token"]}
+    assert env["ask"].ask(d["slug"], body, "203.0.113.1")["reading"]
+    with pytest.raises(env["ask"].AskError):
+        env["ask"].ask(d["slug"], {**body, "draft": "x" * 32}, "203.0.113.1")
+
+
+def test_all_asks_together_have_a_ceiling(env, monkeypatch):
+    monkeypatch.setattr(env["config"], "ASK_GLOBAL_RATE", 2)
+    go(env, ip="203.0.113.1")
+    go(env, ip="203.0.113.2")
+    assert status(env, ip="203.0.113.3").status == 429, "a third address still hits the ceiling"

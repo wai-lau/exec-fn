@@ -21,7 +21,7 @@ import threading
 import time
 from collections import defaultdict, deque
 
-from noodle import config, holidays, llm, rules, slots, store
+from noodle import config, drafts, holidays, llm, rules, slots, store
 
 _hits: dict[str, deque] = defaultdict(deque)
 _LOCK = threading.Lock()
@@ -41,6 +41,7 @@ def _windows(slug: str, ip: str) -> list[tuple[str, int, int]]:
     return [
         ("poll:" + slug, config.ASK_POLL_RATE, config.ASK_POLL_WINDOW_S),
         ("ip:" + ip, config.ASK_IP_RATE, config.ASK_IP_WINDOW_S),
+        ("all", config.ASK_GLOBAL_RATE, config.ASK_GLOBAL_WINDOW_S),
     ]
 
 
@@ -133,7 +134,10 @@ def _prompt(dates: list) -> str:
 
 def ask(slug: str, body: dict, ip: str, exempt: bool = False) -> dict:
     text = body.get("text")
-    if not store.valid_slug(slug):   # its SHAPE only: the poll itself is never read
+    # a real poll, or a draft carrying its own token: a made-up slug used to
+    # be enough, and a fresh one each time slipped past the per-poll window
+    # (the poll's contents are still never read)
+    if not store.exists(slug) and not drafts.valid(slug, body.get("draft")):
         raise AskError(404, "no such poll")
     if not isinstance(text, str) or not text.strip():
         raise AskError(400, "say something first")
