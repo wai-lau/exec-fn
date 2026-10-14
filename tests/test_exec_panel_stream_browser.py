@@ -83,10 +83,17 @@ def panel(browser, base_url, admin_headers):
         pg.route("**/api/cc/limits*", _json({"ok": False}))
         pg.route("**/api/cc/sessions*", _json({"current": "t", "sessions": []}))
         sent = []
+        # Mocked like every other sidecar route: unmocked, a test's interrupt
+        # would reach the LIVE sidecar and stop whatever Wai has running.
+        pg.route("**/api/cc/interrupt", lambda r: (
+            sent.append({"interrupt": True}),
+            r.fulfill(status=200, content_type="application/json",
+                      body='{"ok": true, "stopped": true}')))
 
         def _query(route):
             sent.append(json.loads(route.request.post_data))
-            body = replies[len(sent) - 1] if len(sent) <= len(replies) else _DONE
+            n = sum(1 for x in sent if "prompt" in x)
+            body = replies[n - 1] if n <= len(replies) else _DONE
             if body is not None:
                 route.fulfill(status=200, content_type="text/event-stream", body=body)
 
@@ -218,7 +225,74 @@ def test_sending_again_interrupts_and_the_cursor_goes(panel):
         ".some(e => e.textContent.includes('interrupted'))", timeout=8000)
     _idle(pg)
     assert any("second" in u for u in _texts(pg, "#exec-term .msg.user"))
-    assert [s["prompt"] for s in sent] == ["first", "second"]
+    # Hanging up no longer stops a run (exec-resync.js), so the interrupt is
+    # asked for by name, between the two queries.
+    assert sent[0]["prompt"] == "first" and sent[1] == {"interrupt": True}
+    assert sent[2]["prompt"] == "second" and len(sent) == 3
+
+
+def _replay(pg, *messages):
+    """What the transcript holds once the run is done: history replays it."""
+    pg.route("**/api/cc/exec-history", _json({"messages": list(messages), "monitorTotal": 0}))
+
+
+def _has(pg, sel, text):
+    return (f"() => [...document.querySelectorAll('{sel}')]"
+            f".some(e => e.textContent.includes({json.dumps(text)}))")
+
+
+def test_a_cut_stream_is_picked_back_up_from_the_transcript(panel):
+    """The phone backgrounding the page cuts the stream, and the sidecar's run
+    goes on (2026-10-14). No error: the page waits for the run to end and
+    replays the whole reply from the transcript."""
+    pg, _ = panel(_frames({"type": "session", "sessionId": "s"},
+                          {"type": "text", "text": "Half an ans"}))
+    _replay(pg, {"role": "user", "text": "hello", "ts": "2026-10-14T15:00:00Z"},
+            {"role": "assistant", "text": "Half an answer, then the rest.",
+             "ts": "2026-10-14T15:00:05Z"})
+    _send(pg, "hello")
+    pg.wait_for_function(_has(pg, "#exec-term .msg.assistant", "then the rest"), timeout=8000)
+    sys = _texts(pg, "#exec-term .msg.sys")
+    assert not any("cut" in t or "interrupted" in t or "dropped" in t for t in sys), sys
+
+
+def test_a_stream_cut_before_the_sidecar_took_it_says_send_again(panel):
+    """Cut while still queued for the slot, nothing runs: the message stays on
+    screen and the line says to send it again."""
+    pg, _ = panel(_frames({"type": "waiting"}))
+    _send(pg, "hello")
+    pg.wait_for_function(_has(pg, "#exec-term .msg.sys", "send again"), timeout=8000)
+    assert any("hello" in u for u in _texts(pg, "#exec-term .msg.user"))
+
+
+def test_reopened_mid_answer_the_reply_lands_when_the_run_ends(panel):
+    """Closed and reopened while Exec was still answering: the page says so,
+    then replays once the sidecar's slot frees."""
+    pg, _ = panel()
+    calls = []
+
+    def _health(route):
+        calls.append(1)
+        busy = len(calls) == 1
+        route.fulfill(status=200, content_type="application/json",
+                      body=json.dumps({"ok": True, "busy": busy, "authed": True}))
+
+    pg.route("**/api/cc/health*", _health)
+    _replay(pg, {"role": "assistant", "text": "The finished reply.", "ts": "2026-10-14T15:00:05Z"})
+    pg.evaluate("execFollowRun()")
+    pg.wait_for_function(_has(pg, "#exec-term .msg.assistant", "finished reply"), timeout=8000)
+
+
+def test_a_dead_stream_is_given_up_on_when_the_page_comes_back(panel):
+    """iOS can suspend a page without the socket ever erroring. Back in the
+    foreground, a sidecar that is free while the stream is still open means
+    the stream is dead: the page stops waiting on it."""
+    pg, _ = panel(None)
+    _send(pg, "hello")
+    pg.wait_for_selector("#exec-term #exec-bc", timeout=5000)
+    pg.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
+    pg.wait_for_function(_has(pg, "#exec-term .msg.sys", "connection dropped"), timeout=10000)
+    _idle(pg)
 
 
 def test_busy_sidecar_is_said_out_loud(panel):

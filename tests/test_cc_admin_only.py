@@ -19,10 +19,10 @@ What is fired over HTTP and what is asserted structurally:
   - POST /api/cc/query is fired with an EMPTY body, which is provably safe: the
     handler 400s when prompt and images are both empty, so even in the failure
     case under test (auth gone) no agent turn runs
-  - POST /api/cc/new and /api/cc/resume are structural ONLY. Firing them in the
-    failure case would archive and drop Wai's live conversation, or move the
-    session pointer. A test must not be the thing that destroys the state it is
-    protecting.
+  - POST /api/cc/new, /api/cc/resume and /api/cc/interrupt are structural ONLY.
+    Firing them in the failure case would archive and drop Wai's live
+    conversation, move the session pointer, or stop the run she has in flight.
+    A test must not be the thing that destroys the state it is protecting.
 """
 import re
 from pathlib import Path
@@ -43,7 +43,7 @@ _DECORATOR = re.compile(
 _SAFE_EMPTY_POST = {"/api/cc/query"}
 
 # Never fired: in the failure case these mutate real state.
-_STRUCTURAL_ONLY = {"/api/cc/new", "/api/cc/resume"}
+_STRUCTURAL_ONLY = {"/api/cc/new", "/api/cc/resume", "/api/cc/interrupt"}
 
 
 def _cc_routes():

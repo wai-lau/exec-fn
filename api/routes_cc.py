@@ -118,6 +118,14 @@ async def cc_new():
     return JSONResponse(await cc_client.new_conversation())
 
 
+@protected.post("/api/cc/interrupt")
+async def cc_interrupt():
+    """Stop the run in flight. Closing the stream no longer does: a run
+    outlives a dropped connection (the phone backgrounding the page), so the
+    panel's send-to-interrupt asks for it here (web/exec-interrupt.js)."""
+    return JSONResponse(await cc_client.interrupt())
+
+
 @protected.post("/api/cc/query")
 async def cc_query(request: Request):
     body = await request.json()

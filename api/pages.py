@@ -269,10 +269,11 @@ def _build_nav(active=None, guest=False):
                   '<script src="/exec-status.js?v=2"></script>'
                   '<script src="/exec-sessions.js?v=2"></script>'
                   '<script src="/exec-commands.js?v=1"></script>'
-                  '<script src="/exec-interrupt.js?v=1"></script>'
-                  '<script src="/exec-term.js?v=3"></script>'
-                  '<script src="/exec-stream.js?v=5"></script>'
-                  '<script src="/exec-bubble.js?v=81"></script>')
+                  '<script src="/exec-interrupt.js?v=2"></script>'
+                  '<script src="/exec-term.js?v=4"></script>'
+                  '<script src="/exec-resync.js?v=1"></script>'
+                  '<script src="/exec-stream.js?v=6"></script>'
+                  '<script src="/exec-bubble.js?v=82"></script>')
     else:
         # Same #exec-bubble as the planning pages — same look (exec-bubble.css,
         # normally injected by exec-bubble.js, loaded directly here), same drag +

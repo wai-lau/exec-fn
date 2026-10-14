@@ -277,6 +277,10 @@ function rememberSession(id) {
 }
 
 let active = 0;
+// The AbortController of the run in flight, else null. A run ends three ways:
+// it finishes, it goes idle past IDLE_TIMEOUT_MS, or POST /interrupt aborts it.
+// A caller hanging up is deliberately NOT one of them (see handleQuery).
+let running = null;
 // Separate from `active` on purpose: a title run must never consume the single
 // query slot (that would 429 Wai's actual message to name the conversation),
 // and a query must never wait on one. They exclude each other by yielding, not
@@ -548,7 +552,11 @@ async function archiveSession(sessionId) {
   return file;
 }
 
+/** One frame to the caller, if the caller is still there. A run outlives a
+ *  hangup (handleQuery), so its later frames have nowhere to go: dropped, the
+ *  transcript is what the page replays them from. */
 function sse(res, event) {
+  if (res.destroyed || res.writableEnded) return;
   res.write(`data: ${JSON.stringify(event)}\n\n`);
 }
 
@@ -647,20 +655,18 @@ async function handleQuery(req, res, body) {
   res.writeHead(200, SSE_HEADERS);
 
   const controller = new AbortController();
-  // A browser that navigates away must not leave a CLI subprocess resident --
-  // at MAX_CONCURRENT 1 one orphan wedges every later request.
+  // A caller that hangs up does NOT abort the run (2026-10-14). The phone
+  // backgrounding the page, or the tab closing, drops the connection, and
+  // that used to kill Exec's answer halfway. Now the run finishes, its frames
+  // after the hangup are dropped (sse), and the page replays the reply from
+  // the transcript when it comes back (web/exec-resync.js). An orphan is
+  // still bounded: it ends on its own, or at the idle timeout below.
   //
-  // The listener goes on `res`, NOT on `req`, and that is the whole mechanism:
-  // this handler runs AFTER readBody() has consumed the request to 'end', and a
-  // fully-read IncomingMessage never emits 'close' again. Measured on node
-  // v22 (2026-09-21): a client that hangs up mid-stream fires 'close' on the
-  // RESPONSE at the moment of the hangup and nothing at all on the request. On
-  // `req` the abort therefore never fired, so a hangup -- which is exactly what
-  // /cc's interrupt is (web/cc-interrupt.js) -- freed neither the slot nor the
-  // CLI subprocess, and every later send answered `busy` until the 10-minute
-  // idle timeout finally aborted the run.
-  const onClose = () => controller.abort();
-  res.on("close", onClose);
+  // Interrupting is therefore its own request, POST /interrupt, which aborts
+  // `running`. It used to BE the hangup: a `res.on("close")` abort (on `res`,
+  // never `req`, since a fully-read IncomingMessage emits no further 'close'
+  // -- measured on node v22, 2026-09-21).
+  running = controller;
 
   let idle = setTimeout(() => controller.abort(), IDLE_TIMEOUT_MS);
   const touch = () => {
@@ -712,7 +718,7 @@ async function handleQuery(req, res, body) {
     if (!aborted && SIGNED_OUT_RE.test(detail)) sse(res, { type: "text", text: await signInLine() });
   } finally {
     clearTimeout(idle);
-    res.off("close", onClose);
+    if (running === controller) running = null;
     active -= 1;
     res.end();
   }
@@ -967,6 +973,17 @@ const server = http.createServer(async (req, res) => {
     } catch { /* already gone */ }
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify({ ok: true, archived }));
+    return;
+  }
+
+  // Stop the run in flight. The page's interrupt (send while a reply streams)
+  // lands here; hanging up no longer stops anything (see handleQuery). The
+  // slot frees when the run's handler unwinds, so the caller polls /health.
+  if (req.method === "POST" && req.url === "/interrupt") {
+    const stopped = !!running;
+    if (running) running.abort();
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ ok: true, stopped }));
     return;
   }
 

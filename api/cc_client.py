@@ -169,6 +169,21 @@ async def history() -> dict:
         return {"sessionId": None, "messages": [], "unreachable": True, "detail": str(exc)}
 
 
+async def interrupt() -> dict:
+    """Stop the run in flight. Hanging up no longer does (the sidecar lets a
+    run outlive its caller), so the panel's interrupt asks for it by name.
+    Never raises: a sidecar that cannot be reached has nothing to stop."""
+    if not _TOKEN:
+        return {"ok": False, "detail": "CC_SIDECAR_TOKEN unset"}
+    try:
+        async with httpx.AsyncClient(timeout=_HEALTH_TIMEOUT) as client:
+            r = await client.post(f"{_CC_URL}/interrupt", headers=_headers())
+            r.raise_for_status()
+            return r.json()
+    except Exception as exc:
+        return {"ok": False, "detail": str(exc)}
+
+
 async def new_conversation() -> dict:
     """End the current thread. Drops the pointer only — the old transcript stays
     on disk, so this is never destructive."""

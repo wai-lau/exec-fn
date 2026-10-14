@@ -157,12 +157,15 @@ async function execAnnounceState() {
  *  comments interleaved by time (GET /api/cc/exec-history, api/exec_panel.py).
  *  Returns {monitorTotal}, or null when there is nothing to replay or the fetch
  *  failed -- the panel must still open. Tool calls replay as `action` rows,
- *  one line each, exactly as they rendered live (execReplayAction). */
-async function execLoadHistory() {
+ *  one line each, exactly as they rendered live (execReplayAction).
+ *  `replace` swaps the transcript out, but only once the replay is in hand: a
+ *  failed fetch leaves what was on screen (exec-resync.js). */
+async function execLoadHistory(replace) {
   try {
     const r = await fetch('/api/cc/exec-history', { cache: 'no-store' });
     if (!r.ok) return null;
     const h = await r.json();
+    if (replace) execTermEl.innerHTML = '';
     for (const m of h.messages || []) {
       if (m.role === 'monitor') execAddMsg('probe', m.text, { cardId: m.card_id });
       else if (m.role === 'action') execReplayAction(m);

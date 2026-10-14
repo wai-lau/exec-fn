@@ -329,6 +329,7 @@
     if (!res) return;
     monitorTotal = res.monitorTotal;
     if (isOpen) markRead(); else recomputeUnread();
+    execFollowRun();   // reopened mid-answer: the rest lands when it ends
   }
 
   // ── monitor stream ───────────────────────────────────────────────────────

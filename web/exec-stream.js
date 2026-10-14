@@ -194,6 +194,9 @@ async function execStreamResponse(prompt, imgs, files) {
   const t = execBubbles();
   t.open();
   let receipt = null;
+  let taken = false;   // the sidecar has the turn: any frame but `waiting`
+  let ended = false;   // a frame that closes a turn: done / error / busy
+  let lost = false;    // the stream died under a run that goes on (exec-resync.js)
   try {
     const r = await fetch('/api/cc/query', {
       method: 'POST', signal,
@@ -210,7 +213,15 @@ async function execStreamResponse(prompt, imgs, files) {
       try { msg = (await r.json()).error || msg; } catch { /* non-JSON body */ }
       throw new Error(msg);
     }
-    for await (const data of execFrames(r.body)) receipt = execOnFrame(data, t) || receipt;
+    for await (const data of execFrames(r.body)) {
+      if (data.type !== 'waiting') taken = true;
+      if (data.type === 'done' || data.type === 'error' || data.type === 'busy') ended = true;
+      receipt = execOnFrame(data, t) || receipt;
+    }
+    // A stream that stops without a closing frame was CUT (the container
+    // reloading, a proxy dropping it), not finished. Once the sidecar has the
+    // turn the run goes on (lost, below); before that nothing is running.
+    if (!ended) throw new Error(taken ? 'stream cut' : 'connection dropped — send again');
     // The text is final HERE: speak before awaiting the reveal, never after,
     // or a long answer is read aloud to a screen that finished saying it.
     if (t.typer) { t.typer.speakAndPace(t.text); await t.typer.done(); }
@@ -222,10 +233,14 @@ async function execStreamResponse(prompt, imgs, files) {
     t.cur.remove();
     if (t.div && !t.text) t.div.remove();
     execFinishTools();
-    execAddMsg('sys warn', execStopNote(e));
+    // Lost only once the sidecar has the turn: cut before that, nothing runs,
+    // and the message must stay on screen to send again.
+    lost = taken && execRunWasLost(e);
+    if (!lost) execAddMsg('sys warn', execStopNote(e));
   }
   execStreaming = false;
   execRunEnd();
   execTermEl.dispatchEvent(new CustomEvent('exec:reply-done'));
   if (window.execMicReplyDone) execMicReplyDone();
+  if (lost) execResync();
 }
