@@ -14,7 +14,7 @@
 // the rekey FIRST, then the split and the vote under the new key (ndvSubmit).
 
 var NDR = { active: false, name: false, pass: false, oldName: '', oldPass: '', oldPub: null,
-  keeper: null, keeperPub: null };
+  keeper: null, keeperPub: null, keptRename: false };
 window.NDR = NDR;
 
 var NDR_FIELDS = {
@@ -38,7 +38,10 @@ function ndrSync() {
     btn.hidden = !on && !NDV.mine;
     btn.textContent = on ? 'undo' : 'change';
     btn.setAttribute('aria-label', (on ? 'cancel the ' : 'change your ') + (k === 'name' ? 'name' : 'passphrase'));
-    ndr$(f.input).placeholder = on ? f.newHint : ndrHint(k);
+    // a rename over a KEPT key needs the passphrase typed again: this page
+    // never knew it (only its key was kept, noodle-keystore.js)
+    var hint = k === 'pass' && NDR.keptRename ? 'your passphrase (same or new)' : f.newHint;
+    ndr$(f.input).placeholder = on ? hint : ndrHint(k);
   });
   ndr$('nd-pass').disabled = !!NDV.mine && !NDR.pass;
 }
@@ -48,6 +51,7 @@ function ndrSync() {
 function ndrHint(k) {
   var host = window.ndxIsHost && window.ndxIsHost();
   if (k === 'name') return host ? 'how shall the guests address you, host?' : 'please help the host know who you are';
+  if (NDV.usingKept && NDV.mine) return 'kept on this device';
   if (NDV.held) return 'please enter your passphrase';
   return "you'll need this to change your vote";   // host and guest alike (UI audit 2026-10-03)
 }
@@ -56,7 +60,7 @@ function ndrStop() {
   if (NDR.keeper) NDR.keeper.stop();
   NDR.keeper = null;
   NDR.keeperPub = null;
-  NDR.active = NDR.name = NDR.pass = false;
+  NDR.active = NDR.name = NDR.pass = NDR.keptRename = false;
 }
 
 // The first change of either field remembers who you were and starts
@@ -73,12 +77,20 @@ function ndrBegin() {
       onStart: function () {}, onDerived: function (d) { resolve(d.pub); }, onError: reject });
   });
   NDR.keeperPub.catch(function () {});   // surfaced at Commit, not as an unhandled rejection
-  NDR.keeper.input(NDR.oldName, NDR.oldPass);
+  // the OLD key: the kept one if that is what signs now, else re-derived
+  var kept = NDV.usingKept ? ndvKeptKey(NDR.oldName) : null;
+  if (kept) NDR.keeper.use(NDR.oldName, kept); else NDR.keeper.input(NDR.oldName, NDR.oldPass);
 }
 
 function ndrStart(k) {
+  var keptRename = k === 'name' && NDV.usingKept && !NDR.pass;
   ndrBegin();
   NDR[k] = true;
+  if (keptRename) {   // the new key is the new name + a passphrase this page never knew
+    NDR.pass = NDR.keptRename = true;
+    ndr$('nd-pass').disabled = false;
+    ndr$('nd-pass').value = '';
+  }
   var el = ndr$(NDR_FIELDS[k].input);
   el.disabled = false;
   if (k === 'pass') el.value = '';
@@ -89,6 +101,10 @@ function ndrStart(k) {
 
 function ndrCancel(k) {
   var old = k === 'name' ? NDR.oldName : NDR.oldPass;
+  if (k === 'name' && NDR.keptRename) {   // the passphrase was opened for the rename only
+    NDR.pass = NDR.keptRename = false;
+    ndr$('nd-pass').value = NDR.oldPass;
+  }
   NDR[k] = false;
   if (!NDR.name && !NDR.pass) ndrStop();
   ndr$(NDR_FIELDS[k].input).value = old;
@@ -117,7 +133,10 @@ async function ndrCommit(ts) {
     return { ok: false, data: { error: 'could not make the change: ' + e.message } };
   }
   ndrStop();
-  ndvSaveIdentity();   // only now does the new name/passphrase become the remembered one
+  ndvSaveIdentity();   // only now does the new name become the remembered one
+  // ... and the new key the kept one; a name left behind keeps nothing
+  if (window.noodleNormName(newname) !== window.noodleNormName(name)) ndvForgetKey(name);
+  ndvRememberKey();
   return { ok: true, did: true };
 }
 

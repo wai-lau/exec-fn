@@ -18,8 +18,13 @@ NAME, PASS = "smoke bot", "a fixed smoke passphrase"
 
 
 def _ready(page):
-    page.fill("#nd-name", NAME)
-    page.fill("#nd-pass", PASS)
+    # a key this browser kept for the voter already signs (and locks the
+    # passphrase field, as the right passphrase does); otherwise type it in
+    page.wait_for_function("NDV.keysLoaded && (!NDV.usingKept || NDV.mine || NDV.blocked)", timeout=10000)
+    if not page.evaluate(f"NDV.usingKept && NDV.mine && ndv$('nd-name').value === {NAME!r}"):
+        page.evaluate("NDV.step === 'pick' && ndvStep('you')")
+        page.fill("#nd-name", NAME)
+        page.fill("#nd-pass", PASS)
     page.wait_for_function("(NDV.step !== 'pick' && ndvCanNext() && ndvStep('pick'), !document.getElementById('nd-cal').classList.contains('nd-readonly'))"
                            " || document.querySelector('#nd-why').textContent.includes('different')", timeout=20000)
     _offer_one(page)
@@ -105,10 +110,14 @@ def test_form_is_remembered_locally_never_in_a_cookie(browser, base_url, noodle_
         assert page.locator("#nd-voters .nd-face").count() >= 1
         assert page.is_visible("#nd-who")
         page.reload()
+        # the name is remembered; the passphrase is not -- the KEY is, kept
+        # non-extractable in IndexedDB, and it signs straight away
         assert page.input_value("#nd-name") == NAME
-        assert page.input_value("#nd-pass") == PASS
+        page.wait_for_function("NDV.mine && NDV.usingKept", timeout=10000)
+        assert page.input_value("#nd-pass") == ""
         _can_commit(page)
         assert all(PASS not in c["value"] for c in ctx.cookies()), "passphrase must never be a cookie"
+        assert PASS not in page.evaluate("JSON.stringify(localStorage)"), "nor in localStorage"
     finally:
         ctx.close()
 

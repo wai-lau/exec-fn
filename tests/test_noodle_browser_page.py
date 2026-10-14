@@ -114,36 +114,6 @@ def test_the_ask_text_is_kept_per_poll_and_name(browser, base_url, noodle_slug):
         page.close()
 
 
-def test_the_passphrase_is_remembered_per_poll_and_name(browser, base_url, noodle_slug):
-    page = browser.new_page(viewport={"width": 430, "height": 932})
-    try:
-        page.goto(f"{base_url}/noodle/{noodle_slug}")
-        page.fill("#nd-name", "smoke rememberer")
-        page.fill("#nd-pass", "remember me")
-        page.reload()
-        page.wait_for_function("document.getElementById('nd-pass').value === 'remember me'", timeout=10000)
-        assert "pass" not in (page.evaluate("localStorage.getItem('noodle.identity')") or ""), \
-            "the passphrase is no longer kept poll-agnostic"
-        page.fill("#nd-name", "smoke someone new")   # another name: nothing to offer
-        assert page.input_value("#nd-pass") == ""
-        page.fill("#nd-name", "smoke rememberer")    # back: offered again
-        assert page.input_value("#nd-pass") == "remember me"
-        page.fill("#nd-pass", "typed by hand")
-        page.fill("#nd-name", "smoke rememberer2")   # a hand-typed passphrase is never replaced
-        assert page.input_value("#nd-pass") == "typed by hand"
-        # nothing saved for the name on THIS poll: the last passphrase that NAME
-        # used anywhere ("typed by hand" was typed under it above)
-        page.evaluate(f"localStorage.removeItem('noodle.pass.{noodle_slug}.smoke rememberer')")
-        page.fill("#nd-pass", "")
-        page.fill("#nd-name", "smoke rememberer")
-        assert page.input_value("#nd-pass") == "typed by hand"
-        page.fill("#nd-pass", "")
-        page.fill("#nd-name", "smoke never seen")    # a name never used: still empty
-        assert page.input_value("#nd-pass") == ""
-    finally:
-        page.close()
-
-
 def test_the_top_dates_rank_and_line_up(browser, base_url, noodle_slug):
     """Every slot a non-host voter picked (cols[0] is the host), most voters
     first, soonest on a tie; a sun or moon only on a split poll; every row's

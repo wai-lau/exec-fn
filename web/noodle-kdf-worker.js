@@ -4,9 +4,13 @@
 // private key never leave this worker; only the public key and signatures do.
 //
 // Messages in:  {op:'derive', gen, pass, salt, m, t, p, len}
+//               {op:'use', gen, key, pub}    -- a key kept in IndexedDB (noodle-keystore.js)
 //               {op:'sign', id, text}
+//               {op:'key', id}               -- the CryptoKey itself, to be kept
 // Messages out: {op:'derived', gen, pub, ms} | {op:'signed', id, sig}
-//               {op:'error', gen|id, detail}
+//               {op:'key', id, key} | {op:'error', gen|id, detail}
+// The CryptoKey crosses postMessage as a structured clone and STAYS
+// non-extractable: whoever holds it can sign, nobody can read it out.
 
 importScripts('/vendor/hash-wasm-argon2-4.12.0.min.js');
 
@@ -53,9 +57,21 @@ async function sign(m) {
   self.postMessage({ op: 'signed', id: m.id, sig: b64(sig) });
 }
 
+async function use(m) {
+  if (!m.key || m.key.extractable || m.key.algorithm.name !== 'Ed25519') throw new Error('not a kept key');
+  key = m.key;
+  self.postMessage({ op: 'derived', gen: m.gen, pub: m.pub, ms: 0 });
+}
+
+async function hand(m) {
+  if (!key) throw new Error('no key yet');
+  self.postMessage({ op: 'key', id: m.id, key: key });
+}
+
 self.onmessage = function (e) {
   var m = e.data;
-  var job = m.op === 'derive' ? derive(m) : m.op === 'sign' ? sign(m) : null;
+  var job = { derive: derive, sign: sign, use: use, key: hand }[m.op];
+  job = job ? job(m) : null;
   if (job) {
     job.catch(function (err) {
       self.postMessage({ op: 'error', gen: m.gen, id: m.id, detail: String(err && err.message || err) });

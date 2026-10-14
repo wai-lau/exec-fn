@@ -3869,14 +3869,30 @@ as smaller Commit buttons (`noodle-foot.css .nd-another a`, `--fs-2xs`).
 
 ### 21g. Browser storage
 
-All `localStorage`, **deliberately never a cookie** — a cookie rides on
-every request, which would ship the passphrase to the server.
+`localStorage` and IndexedDB, **deliberately never a cookie** — a cookie
+rides on every request. **The passphrase is never stored at all** (since
+2026-10-14, security audit: it sat in localStorage in plain text, readable by
+any script that ever ran on this origin, and people reuse passphrases). What
+is kept is the KEY it made: the worker's non-extractable Ed25519 `CryptoKey`,
+structured-cloned out (`NoodleKdf.key()`) into IndexedDB `noodle`/`keys`,
+id `<slug>\0<name>` -> `{key, pub}` (`web/noodle-keystore.js`). A script on
+the origin could USE it here but never read it out. It is kept once PROVEN
+(the derived key matches the voter's seat, `ndvOnDerived` -> `ndvRememberKey`,
+or a commit lands). Next visit: an EMPTY passphrase field over a name with a
+kept key signs as that key (`NoodleKdf.use`, no Argon2), the field shows
+"kept on this device", locked like a right passphrase. The name restores at
+once; the kept keys load a moment later and re-check the identity unless the
+voter has typed (`NDV.touched`). Renaming over a kept key opens the
+passphrase field too ("your passphrase (same or new)" -- the page never
+knew it); a passphrase change signs with the kept key (`NDR.keeper.use`); a
+committed change keeps the new key and drops the old name's.
 
 | Key | Holds |
 |---|---|
 | `noodle.identity` | last-used NAME only (travels between polls), no passphrase |
-| `noodle.pass.<slug>.<name>` | that name's passphrase on THIS poll |
-| `noodle.lastpass.<name>` | fallback: that name's last passphrase on ANY poll, offered only where this poll has none yet, never overriding a hand-typed one |
+| IndexedDB `noodle`/`keys` `<slug>\0<name>` | that name's KEPT signing key on this poll (above) -- never a passphrase |
+| ~~`noodle.pass.<slug>.<name>`~~ | written by pages before 2026-10-14: that name's passphrase in plain text. Still fills the field ONCE on this poll; when its key proves to be the seat it becomes a kept key and the entry is deleted |
+| ~~`noodle.lastpass.<name>`~~ | the cross-poll passphrase fallback: gone, every entry deleted on load |
 | `noodle.draft.<slug>.<name>` | unsaved calendar picks + a host's unsaved title/note |
 | `noodle.ask.<slug>.<name>` | the Ask textarea text (a Commit leaves it alone) |
 | ~~`noodle.polls`~~ | Gone 2026-10-13 with `/noodle`'s poll list (21i): it held every opened poll's link, `#k=` key included; `noodle-storage.js` now removes it on load |

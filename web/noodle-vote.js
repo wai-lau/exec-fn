@@ -10,7 +10,7 @@
 // the slots and a signature over them.
 
 var NDV = { poll: null, cal: null, calKey: null, kdf: null, skew: 0, blocked: '', keyError: false, salt: '', seals: {},
-  saved: new Set() };
+  saved: new Set(), keptKeys: {}, usingKept: false };
 
 function ndv$(id) { return document.getElementById(id); }
 
@@ -245,8 +245,17 @@ function ndvInit() {
     var at = String(e.stack || '').split('\n').slice(1, 2).join('').trim();
     ndvStatus('could not load the poll (' + e.message + (at ? ' ' + at : '') + ')', 'err');
   });
-  // a saved identity that unlocks goes straight to the pick (ndvPaintStep)
-  if (ndvRestoreIdentity()) { NDV.autoStep = true; ndvOnIdentityInput(); }
+  // a saved identity that unlocks goes straight to the pick (ndvPaintStep).
+  // The NAME comes back at once, as it always did; the keys this browser kept
+  // for the poll (noodle-keystore.js) load a moment later and the identity is
+  // checked again against them -- unless the voter has typed meanwhile.
+  NDV.restored = ndvRestoreIdentity();
+  if (NDV.restored) { NDV.autoStep = true; ndvOnIdentityInput(true); }
+  window.NoodleKeys.load(NDV.slug).then(function (kept) {
+    NDV.keptKeys = kept;
+    NDV.keysLoaded = true;   // tests wait on this
+    if (NDV.restored && !NDV.touched) ndvOnIdentityInput(true);
+  });
 }
 
 window.ndvOnIdentityInput = ndvOnIdentityInput;

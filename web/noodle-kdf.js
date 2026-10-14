@@ -46,8 +46,8 @@ function NoodleKdf(opts) {
       busy = false;
       current = { norm: current && current.pendingNorm, pub: m.pub };
       opts.onDerived({ pub: m.pub, ms: m.ms });
-    } else if (m.op === 'signed' && pendingSigns[m.id]) {
-      pendingSigns[m.id].resolve(m.sig); delete pendingSigns[m.id];
+    } else if ((m.op === 'signed' || m.op === 'key') && pendingSigns[m.id]) {
+      pendingSigns[m.id].resolve(m.op === 'key' ? m.key : m.sig); delete pendingSigns[m.id];
     } else if (m.op === 'error') {
       if (m.id && pendingSigns[m.id]) { pendingSigns[m.id].reject(new Error(m.detail)); delete pendingSigns[m.id]; }
       if (m.gen === gen) { busy = false; opts.onError(m.detail); }
@@ -78,17 +78,35 @@ function NoodleKdf(opts) {
     timer = setTimeout(function () { run(name, pass, myGen); }, opts.kdf.debounce);
   }
 
-  function sign(text) {
+  function ask(msg) {
     var id = ++signId;
     return new Promise(function (resolve, reject) {
       pendingSigns[id] = { resolve: resolve, reject: reject };
-      worker.postMessage({ op: 'sign', id: id, text: text });
+      worker.postMessage(Object.assign({ id: id }, msg));
     });
+  }
+
+  function sign(text) { return ask({ op: 'sign', text: text }); }
+
+  // The worker's current CryptoKey (non-extractable), to keep in IndexedDB.
+  function key() { return ask({ op: 'key' }); }
+
+  // Sign as a KEPT key (noodle-keystore.js) instead of deriving one: no
+  // passphrase, no Argon2 -- the worker just takes the key it is handed.
+  function use(name, kept) {
+    gen++;
+    clearTimeout(timer);
+    var myGen = gen, norm = noodleNormName(name);
+    if (busy) { worker.terminate(); spawn(); }
+    busy = true;
+    current = { pendingNorm: norm, pub: null };
+    opts.onStart({ salt: '', norm: norm });
+    worker.postMessage({ op: 'use', gen: myGen, key: kept.key, pub: kept.pub });
   }
 
   spawn();
   return {
-    input: input, sign: sign,
+    input: input, sign: sign, key: key, use: use,
     stop: function () { gen++; clearTimeout(timer); worker.terminate(); },
     ready: function () { return !!(current && current.pub) && !busy; },
     pub: function () { return current && current.pub; },

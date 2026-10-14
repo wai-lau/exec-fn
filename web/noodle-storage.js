@@ -1,15 +1,17 @@
 // noodle's BROWSER STORAGE (localStorage, never a cookie): the last NAME you
-// used (kept across polls); per poll AND per name the passphrase (with the
-// name's last-used one as the fallback), the calendar draft (picks + a host's
-// unsaved title / note) and the Ask text. Same global scope as
+// used (kept across polls), the calendar draft (picks + a host's unsaved
+// title / note) and the Ask text -- and, through noodle-keystore.js, the
+// signing KEY per poll and name. Never the passphrase. Same global scope as
 // noodle-vote.js; loaded before it, called once it has run.
 
-// Name + passphrase are remembered in localStorage, NOT a cookie: a cookie
-// rides along on every request, which would send the passphrase to the server
-// -- the one thing this page promises never happens. The last NAME is kept
-// across polls; the PASSPHRASE is kept per poll and per name
-// (noodle.pass.<slug>.<name>), with the name's last-used one as the fallback
-// on a poll where that name has none yet.
+// The NAME is remembered in localStorage, not a cookie (a cookie rides along
+// on every request). The PASSPHRASE is not remembered at all since 2026-10-14:
+// what is kept is the key it made, once that key is proven to be you (it
+// matches your seat, or a commit lands) -- NoodleKeys. A passphrase an older
+// page left here in plain text (noodle.pass.<slug>.<name>) still fills the
+// field once, for this poll only; when its key is proven it is converted to a
+// kept key and the text is deleted (ndvRememberKey). The cross-poll fallback
+// (noodle.lastpass.<name>) is gone, and so are its entries.
 function ndvIdentityKey() { return 'noodle.identity'; }
 
 function ndvPassKey(raw) {
@@ -17,14 +19,40 @@ function ndvPassKey(raw) {
   return name ? 'noodle.pass.' + NDV.slug + '.' + name : null;
 }
 
-// This poll's passphrase for the name; failing that, the LAST one that name
-// used on any poll (noodle.lastpass.<name>) -- so a new poll opens ready.
+// A plain-text passphrase an older page kept for this name on THIS poll.
 function ndvStoredPass(raw) {
-  var k = ndvPassKey(raw), name = window.noodleNormName(raw);
-  try {
-    var here = k ? localStorage.getItem(k) : null;
-    return here !== null ? here : (name ? localStorage.getItem('noodle.lastpass.' + name) : null);
-  } catch (e) { return null; }
+  var k = ndvPassKey(raw);
+  try { return k ? localStorage.getItem(k) : null; } catch (e) { return null; }
+}
+
+// The kept key for a name on this poll (noodle-keystore.js), or null.
+function ndvKeptKey(raw) {
+  var name = window.noodleNormName(raw);
+  return name && NDV.keptKeys && NDV.keptKeys[name] ? NDV.keptKeys[name] : null;
+}
+
+// Keep the key now in use for the name in the field: it has just been proven
+// to be this voter's (their seat matched it, or their commit landed). Its
+// plain-text passphrase, if an older page left one, goes.
+async function ndvRememberKey() {
+  if (window.NDR && NDR.active) return;   // mid change: the new key is kept once committed
+  var name = window.noodleNormName(ndv$('nd-name').value), pub = ndvReady() ? NDV.kdf.pub() : null;
+  if (!name || !pub) return;
+  var kept = ndvKeptKey(name);
+  if (!kept || kept.pub !== pub) {
+    var key = await NDV.kdf.key().catch(function () { return null; });
+    if (!key) return;
+    NDV.keptKeys[name] = { key: key, pub: pub };
+    await window.NoodleKeys.save(NDV.slug, name, key, pub);
+  }
+  try { localStorage.removeItem(ndvPassKey(name)); } catch (e) { /* blocked */ }
+}
+
+function ndvForgetKey(raw) {
+  var name = window.noodleNormName(raw);
+  if (!name) return;
+  delete NDV.keptKeys[name];
+  window.NoodleKeys.drop(NDV.slug, name);
 }
 
 // The rest of the form -- calendar picks not yet submitted, and the Ask box --
@@ -108,14 +136,9 @@ function ndvClearDraft() {
 }
 
 function ndvSaveIdentity() {
-  if (window.NDR && NDR.active) return;   // the new passphrase is kept only once committed
-  var name = ndv$('nd-name').value, k = ndvPassKey(name);
+  if (window.NDR && NDR.active) return;   // the new name is kept only once committed
   try {
-    localStorage.setItem(ndvIdentityKey(), JSON.stringify({ name: name }));   // no passphrase here any more
-    if (k) {
-      localStorage.setItem(k, ndv$('nd-pass').value);
-      localStorage.setItem('noodle.lastpass.' + window.noodleNormName(name), ndv$('nd-pass').value);
-    }
+    localStorage.setItem(ndvIdentityKey(), JSON.stringify({ name: ndv$('nd-name').value }));   // a name, never a passphrase
   } catch (e) { /* storage blocked: the form just is not remembered */ }
 }
 
@@ -133,9 +156,9 @@ function ndvRestoreIdentity() {
   return false;
 }
 
-// Typing a name used before ON THIS POLL fills its passphrase back in --
-// but only over an empty field or one this same rule filled, never over a
-// passphrase the voter typed themselves.
+// Typing a name an older page kept a plain-text passphrase for ON THIS POLL
+// fills it back in (once, until it converts to a kept key) -- but only over an
+// empty field or one this same rule filled, never over one typed by hand.
 function ndvOfferPass() {
   var name = window.noodleNormName(ndv$('nd-name').value), pass = ndv$('nd-pass');
   if (name === NDV.lastName || (window.NDR && NDR.active) || pass.disabled) return;
@@ -146,6 +169,11 @@ function ndvOfferPass() {
 }
 
 // noodle.polls kept every opened poll's link -- its key included -- for the
-// owner's poll list on /noodle, which went 2026-10-13. Nothing reads it now,
-// so a browser that still holds one drops it.
-try { localStorage.removeItem('noodle.polls'); } catch (e) { /* storage blocked */ }
+// owner's poll list on /noodle, which went 2026-10-13; noodle.lastpass.<name>
+// kept a passphrase for EVERY poll a name was used on. Nothing reads either
+// now, so a browser that still holds them drops them.
+try {
+  localStorage.removeItem('noodle.polls');
+  Object.keys(localStorage).filter(function (k) { return k.indexOf('noodle.lastpass.') === 0; })
+    .forEach(function (k) { localStorage.removeItem(k); });
+} catch (e) { /* storage blocked */ }

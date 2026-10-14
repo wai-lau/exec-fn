@@ -81,10 +81,12 @@ def test_changing_the_passphrase_and_name_hands_the_vote_to_the_new_key(browser,
     page.on("pageerror", lambda e: errors.append(str(e) + " @ " + str(getattr(e, "stack", ""))))
 
     def fresh(nm, pw):
-        """A clean load (nothing remembered), then this name + passphrase:
-        is it the one sealed to that name?"""
-        page.evaluate("localStorage.clear()")
+        """A clean load (nothing remembered -- no name, no kept key), then this
+        name + passphrase: is it the one sealed to that name?"""
+        page.evaluate("localStorage.clear(); new Promise(r => { const q = indexedDB.deleteDatabase('noodle');"
+                      " q.onsuccess = q.onerror = q.onblocked = r; })")
         page.reload()
+        page.wait_for_function("NDV.keysLoaded", timeout=10000)
         page.fill("#nd-name", nm)
         page.fill("#nd-pass", pw)
         page.wait_for_function("(NDV.step !== 'pick' && ndvCanNext() && ndvStep('pick'), !document.getElementById('nd-cal').classList.contains('nd-readonly'))"
@@ -136,7 +138,10 @@ def test_changing_the_passphrase_and_name_hands_the_vote_to_the_new_key(browser,
         assert page.is_disabled("#nd-pass"), "the new passphrase locks once committed"
         page.reload()
         page.wait_for_function("NDV.mine", timeout=20000)
-        assert page.input_value("#nd-pass") == two, "the committed passphrase is the remembered one"
+        # the committed KEY is what this browser kept -- never the passphrase
+        assert page.input_value("#nd-pass") == "" and page.evaluate("NDV.usingKept")
+        assert page.get_attribute("#nd-pass", "placeholder") == "kept on this device"
+        assert two not in page.evaluate("JSON.stringify(localStorage)")
         assert not fresh(name, one), "the old passphrase no longer opens the vote"
         assert fresh(name, two)
         change("nd-name", "nd-rename", renamed)

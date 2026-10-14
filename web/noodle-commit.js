@@ -113,6 +113,7 @@ async function ndvSubmit() {
       if (vote || res.sent) ts += 1;
     }
     ndvClearDraft();
+    ndvRememberKey();   // the commit proves the key: keep it (never the passphrase)
     if (NDV.draft) {   // the poll exists now: its plain link (+ key) is the one to keep
       NDV.draft = '';
       history.replaceState(null, '', ndeLink().slice(location.origin.length));

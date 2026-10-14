@@ -19,6 +19,9 @@ async function ndvOnDerived(d) {
   NDV.seal = await window.NoodleSeal.seal(d.pub);
   window.NoodleSeal.stamp(seal, NDV.seal);
   ndvRefreshBinding(d.pub);
+  // the key just made IS this voter's seat: keep it (never the passphrase),
+  // so this browser signs as them next time without asking (noodle-storage.js)
+  if (NDV.mine) ndvRememberKey();
 }
 
 // "<name>'s seal of approval", following the name field as it is typed.
@@ -42,7 +45,9 @@ function ndvSealCaption() {
 // No passphrase = the name alone decides the key, so say so plainly.
 // For the HOST it is worse: the host's key runs the whole poll.
 function ndvWarnEmpty() {
-  var open = !!window.noodleNormName(ndv$('nd-name').value) && !ndv$('nd-pass').value, el = ndv$('nd-warn');
+  // an empty field over a KEPT key is not an empty passphrase
+  var open = !!window.noodleNormName(ndv$('nd-name').value) && !ndv$('nd-pass').value && !NDV.usingKept,
+    el = ndv$('nd-warn');
   el.hidden = !open;
   el.textContent = window.ndxIsHost && window.ndxIsHost()
     ? 'no passphrase: anyone can change the entire poll, what a chaotic host'
@@ -70,15 +75,25 @@ function ndvKeepOnly(el, lower) {
   if (a != null) el.setSelectionRange(Math.max(0, a - cut), Math.max(0, a - cut));
 }
 
-function ndvOnIdentityInput() {
+// byPage === true: the PAGE refilling a remembered identity (ndvInit). Any
+// other call -- typing, a tapped face, a change button -- is the voter's, and
+// a late kept-key check (ndvInit) must never undo it.
+function ndvOnIdentityInput(byPage) {
+  if (byPage !== true) NDV.touched = true;
   ndvCleanFields();
   ndvOfferPass();
   ndvSaveIdentity();
+  // an empty passphrase field over a name this browser KEPT a key for signs as
+  // that key -- no passphrase is remembered anywhere (noodle-keystore.js). A
+  // passphrase being changed (NDR.pass) always derives from what is typed.
+  var name = ndv$('nd-name').value, pass = ndv$('nd-pass').value;
+  var kept = !pass && !(window.NDR && NDR.pass) ? ndvKeptKey(name) : null;
+  NDV.usingKept = !!kept;
   ndvWarnEmpty();
   ndvSealCaption();
   NDV.blocked = '';
   NDV.keyError = false;
-  NDV.kdf.input(ndv$('nd-name').value, ndv$('nd-pass').value);
+  if (kept) NDV.kdf.use(name, kept); else NDV.kdf.input(name, pass);
   if (NDV.poll) ndvRefreshBinding(null);
 }
 
