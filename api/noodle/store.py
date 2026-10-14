@@ -42,6 +42,30 @@ _SALT = bytes(32)   # what HKDF uses for "no salt", spelled out
 _FORMAT = 1
 
 
+# The rules a poll was MADE under, stamped as "v" on every poll created since
+# 2026-10-14. A poll without it is OLD and keeps the old rules (owner,
+# 2026-10-14: "don't break old polls, keep them as special cases") wherever a
+# new rule could refuse or hide something an honest voter does: no seat or
+# file-size cap, no per-poll write limit (routes.py), an end-to-end poll with
+# no claim still seats its first voter as host (e2e.py), and pages show its
+# unsigned records however they have seen it before (noodle-e2e.js). Rules that
+# only ever stop an attacker apply to every poll.
+RULES = 2
+
+
+def legacy(poll: dict) -> bool:
+    """Made before the current rules (no "v" stamp) -- see RULES."""
+    return poll.get("v", 1) < RULES
+
+
+def is_legacy(slug: str) -> bool:
+    """legacy() for a stored poll; a missing or malformed slug is not one."""
+    try:
+        return legacy(load(slug))
+    except (KeyError, ValueError):
+        return False
+
+
 def valid_slug(slug: str) -> bool:
     return isinstance(slug, str) and bool(_SLUG_RE.fullmatch(slug))
 
@@ -104,7 +128,7 @@ class TooBig(Exception):
 def _write(slug: str, data: dict) -> None:
     path = _path(slug)
     sealed = json.dumps(_seal(slug, data))
-    if len(sealed) > config.POLL_FILE_MAX:
+    if len(sealed) > config.POLL_FILE_MAX and not legacy(data):
         raise TooBig(slug)
     fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".tmp-", suffix=".json")
     try:
@@ -201,10 +225,11 @@ def try_create(slug: str, title: str, now_iso: str, e2e: bool = False, claim: st
         if exists(slug):
             return False
         if e2e:
-            poll = {"slug": slug, "e2e": 1, "created_at": now_iso, "head": None, "voters": {}, "claim": claim}
+            poll = {"slug": slug, "e2e": 1, "v": RULES, "created_at": now_iso, "head": None, "voters": {},
+                    "claim": claim}
         else:
             poll = {
-                "slug": slug, "title": title, "halves": False,
+                "slug": slug, "title": title, "halves": False, "v": RULES,
                 "created_at": now_iso, "voters": {},
             }
         _write(slug, poll)

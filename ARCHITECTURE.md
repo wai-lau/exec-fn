@@ -3711,6 +3711,8 @@ choosing.
 
 ### 21d. Concurrency & storage
 
+**Old polls keep the old rules** (owner, 2026-10-14: "don't break old polls, keep them as special cases"). Every poll created since carries a rules stamp `"v": 2` (`store.RULES`); one without it is OLD (`store.legacy`), and wherever a new rule could refuse or hide something an honest voter does, an old poll is exempt: no seat cap, no file-size cap, no write rate limit (`routes._throttled` skips it), an end-to-end poll with no claim seats its first voter as host as it always did, and `e2e.public` marks it `legacy` so its pages show unsigned records and never go strict or cap the seats they open. Rules that only ever stop an attacker apply to every poll (tombstones, small-order keys, surrogate-safe signing, signature checks on records that HAVE one, log masking, headers, CSP, kept keys). Pinned by `tests/test_noodle_legacy.py`. The cost, accepted: an old poll's slug is still enough to flood that one poll.
+
 **Abuse bounds on writes** (2026-10-14, after a security audit showed a slug
 alone could add junk seats without end, each write re-sealing the whole file
 under the one lock -- 1,500 seats = a 12 MB file, 327 ms lock holds): a poll

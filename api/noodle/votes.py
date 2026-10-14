@@ -113,7 +113,7 @@ def submit(slug: str, body: dict, now: int | None = None) -> dict:
     with store.edit(slug) as poll:
         voters = poll["voters"]
         prev = voters.get(key)
-        if not prev and len(voters) >= config.MAX_VOTERS:
+        if not prev and len(voters) >= config.MAX_VOTERS and not store.legacy(poll):
             raise VoteError(409, "this poll is full")
         host = _admit(poll, prev, key, pub, ts, picked)
         rec = {

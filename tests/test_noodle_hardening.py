@@ -101,8 +101,10 @@ def test_a_removed_voter_cannot_be_replayed_back_in(slug):
         "a fresh vote may rejoin (the host can remove it again)"
 
 
-def test_an_unclaimed_empty_e2e_poll_cannot_be_claimed(monkeypatch, tmp_path):
-    # the 2026-10-09..12 shape: end-to-end, no claim, nobody voted yet
+def test_a_new_unclaimed_empty_e2e_poll_cannot_be_claimed(monkeypatch, tmp_path):
+    # under the current rules an end-to-end poll always carries its claim; one
+    # without (and nobody voted yet) cannot be seated by whoever holds the slug.
+    # (An OLD poll of that shape keeps the old rule -- tests/test_noodle_legacy.py.)
     monkeypatch.setattr(config, "DATA_DIR", tmp_path)
     s = "AbCdEfGhIjKlMnOpQrStUv"
     store.try_create(s, "t", "2026-10-10T00:00:00", e2e=True)

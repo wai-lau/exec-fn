@@ -116,10 +116,11 @@ async def noodle_poll(slug: str):
     return JSONResponse(view, headers=_NO_STORE)
 
 
-def _throttled(request: Request, slug: str) -> JSONResponse | None:
+async def _throttled(request: Request, slug: str) -> JSONResponse | None:
     """A signed write over its rate limit (limits.py) -> the 429 to send. The
-    test suite's requests are exempt, as from every other noodle limit."""
-    if _rate_exempt(request):
+    test suite's requests are exempt, as from every other noodle limit, and so
+    is a poll made under the old rules (store.RULES)."""
+    if _rate_exempt(request) or await asyncio.to_thread(store.is_legacy, slug):
         return None
     try:
         limits.take_write(slug, _client_ip(request))
@@ -134,7 +135,7 @@ _TOO_BIG = {"error": "this poll is too big to take more"}
 
 @router.post("/api/noodle/{slug}/vote")
 async def noodle_vote(slug: str, request: Request):
-    if (slow := _throttled(request, slug)) is not None:
+    if (slow := await _throttled(request, slug)) is not None:
         return slow
     body = await _json_body(request, config.BODY_MAX_VOTE)
     await _ensure(request, slug, body)   # a draft's first commit writes it
@@ -152,7 +153,7 @@ async def noodle_vote(slug: str, request: Request):
 async def _signed(plain, sealed, slug: str, request: Request):
     """One signed action, on whichever path the poll is: plain (the server
     reads it) or end-to-end (e2e.py -- it cannot)."""
-    if (slow := _throttled(request, slug)) is not None:
+    if (slow := await _throttled(request, slug)) is not None:
         return slow
     body = await _json_body(request, config.BODY_MAX_VOTE)
     if plain is host.settings:

@@ -113,7 +113,7 @@ def vote(slug: str, body: dict, now: int | None = None) -> dict:
             voters = poll["voters"]
             if poll.get("claim"):
                 _claim(slug, poll, body, pub)
-            elif not voters:
+            elif not voters and not store.legacy(poll):
                 # an end-to-end poll made 2026-10-09..12 (before the claim) that
                 # nobody ever voted on: its first vote would make whoever sent
                 # it the host, and the slug alone is enough to send one
@@ -123,7 +123,7 @@ def vote(slug: str, body: dict, now: int | None = None) -> dict:
                 raise VoteError(409, "stale or replayed submission")
             if pub in poll.get("gone", {}) and ts <= poll["gone"][pub]:
                 raise VoteError(409, "that key has left this poll")
-            if not prev and len(voters) >= config.MAX_VOTERS:
+            if not prev and len(voters) >= config.MAX_VOTERS and not store.legacy(poll):
                 raise VoteError(409, "this poll is full")
             order = prev["order"] if prev else max((v["order"] for v in voters.values()), default=-1) + 1
             # the signature is KEPT and served with the ts it covers ("vts":
@@ -217,5 +217,8 @@ def public(poll: dict) -> dict:
     head = _signed(h, ("ct",)) if h else None
     if head and h.get("sig"):
         head["pub"] = h["pub"]
-    return {"slug": poll["slug"], "e2e": True, "head": head,
+    view = {"slug": poll["slug"], "e2e": True, "head": head,
             "voters": [_signed(v, ("pub", "order", "ct")) for v in voters]}
+    if store.legacy(poll):
+        view["legacy"] = True   # made under the old rules: its pages accept unsigned records
+    return view

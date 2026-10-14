@@ -157,14 +157,16 @@ function ndeSignedKey() { return 'noodle.signed.' + NDV.slug; }
 // The records worth opening: never a forged one, and an unsigned one only
 // while this browser has not yet seen the poll fully signed.
 async function ndeTrusted(raw, recs) {
-  var strict = false;
-  try { strict = localStorage.getItem(ndeSignedKey()) === '1'; } catch (e) { /* blocked */ }
+  // a poll made under the old rules (raw.legacy, noodle/store.py RULES) is a
+  // special case: its unsigned records always show, however it was seen before
+  var strict = false, legacy = raw.legacy === true;
+  try { strict = !legacy && localStorage.getItem(ndeSignedKey()) === '1'; } catch (e) { /* blocked */ }
   var keep = function (t) { return t === 'ok' || (t === 'unsigned' && !strict); };
   var verdicts = await Promise.all(recs.map(function (v) { return ndeTrust(v, 'e2e-vote', v.pub); }));
   // the head counts only as signed by the HOST seat (order 0)
   var hostPub = recs.length ? recs[0].pub : null, h = raw.head;
   var hv = h ? (h.pub && h.pub === hostPub ? await ndeTrust(h, 'e2e-head', h.pub) : 'unsigned') : 'ok';
-  if (recs.length && hv === 'ok' && verdicts.every(function (t) { return t === 'ok'; })) {
+  if (!legacy && recs.length && hv === 'ok' && verdicts.every(function (t) { return t === 'ok'; })) {
     try { localStorage.setItem(ndeSignedKey(), '1'); } catch (e) { /* blocked */ }
   }
   return { recs: recs.filter(function (_, i) { return keep(verdicts[i]); }), head: h && keep(hv) ? h : null };
@@ -173,7 +175,8 @@ async function ndeTrusted(raw, recs) {
 // What the server holds -> the poll as a plain poll's JSON looks
 // (noodle/pages.py public_poll), with the server's old rules applied here.
 async function ndeView(raw) {
-  var all = raw.voters.slice().sort(function (a, b) { return a.order - b.order; }).slice(0, NDE_MAX_SEATS);
+  var all = raw.voters.slice().sort(function (a, b) { return a.order - b.order; });
+  if (raw.legacy !== true) all = all.slice(0, NDE_MAX_SEATS);   // old polls: every seat, as before
   var t = await ndeTrusted(raw, all), recs = t.recs;
   var h = t.head ? await ndeOpen('head', '', t.head.ct) : null;
   var head = ndeHeadOf(h), seen = new Set(), voters = [], opened = h ? 1 : 0;
