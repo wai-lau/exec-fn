@@ -52,7 +52,7 @@ function warpEdges(pts) { ctx.beginPath(); pts.forEach((p, i) => warpLine(p, pts
 // between(): drawn after the parts below the floor, before those above it
 function warpBands(draw, between) {
   for (let i = WARP_FADE_BANDS - 1; i >= 0; i--) {
-    warpBand = { lo: i === WARP_FADE_BANDS - 1 ? -Infinity : -WARP_FADE_Z * (i + 1) / WARP_FADE_BANDS, hi: -WARP_FADE_Z * i / WARP_FADE_BANDS }; // (the last slice runs to the bottom) warpFade = 1 - (i + 0.5) / WARP_FADE_BANDS;
+    warpBand = { lo: i === WARP_FADE_BANDS - 1 ? -Infinity : -WARP_FADE_Z * (i + 1) / WARP_FADE_BANDS, hi: -WARP_FADE_Z * i / WARP_FADE_BANDS }; /* (the last slice runs to the bottom) */ warpFade = 1 - (i + 0.5) / WARP_FADE_BANDS;
     draw(false);
   }
   warpBand = null; warpFade = 1; if (between) between();
