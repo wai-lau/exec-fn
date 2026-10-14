@@ -14,8 +14,11 @@
 }
 .asp-log[hidden] { display: none; }
 .asp-log h2 { margin: 0; font-size: var(--fs-lg); letter-spacing: var(--tracking-wide); text-transform: uppercase; color: hsl(var(--orange-hsl)); }
-.asp-log-list { overflow-y: auto; min-height: 0; font-size: var(--fs-sm); }
+.asp-log-list { overflow-y: auto; min-height: 0; font-size: var(--fs-2xs); } /* small (owner, 2026-10-14) */
 .asp-log h3 { margin: var(--space-3) 0 var(--space-1); font-size: var(--fs-sm); color: hsl(var(--green-hsl)); }
+.asp-log h4 { margin: var(--space-1) 0; font-size: var(--fs-2xs); font-weight: var(--fw-normal); color: hsl(var(--orange-hsl)); } /* Balance / Perf/UI */
 .asp-log ul { margin: 0; padding-left: var(--space-4); }
 .asp-log li { margin-bottom: var(--space-1); }
 .asp-log > button { align-self: center; }
+.asp-log p { margin: 0; }
+.asp-resume-row { justify-content: center; gap: var(--space-3); } /* the resume card (aspira-autosave.js) */
