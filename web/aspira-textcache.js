@@ -6,7 +6,19 @@
 // (a 1-2% scale at most). text() (aspira-draw.js) asks here first; under a skewed or rotated transform, before the font has
 // loaded, or with the cache off, it draws the old way. Loaded after aspira-draw.js.
 const TEXT_Q = 0.5, TEXT_CACHE_MAX = 900;
+// ...on a MEMORY budget too (2026-10-14: an iPhone died at wave 62-70 again and again - late damage numbers are big, glowing
+// and drawn at 3x density, up to ~1 MB a stamp, and 900 of them run past iOS Safari's total canvas memory): at most
+// TEXT_CACHE_PX pixels (~24 MB) held, the least recently used dropped first, each one's canvas zeroed so iOS frees it at once
+const TEXT_CACHE_PX = 6e6;
 const textSprites = new Map();
+let textPx = 0;
+function textEvict(keep) { // keep: the one about to be drawn - never zeroed under its own draw
+  for (const [k, sp] of textSprites) {
+    if (textPx <= TEXT_CACHE_PX && textSprites.size < TEXT_CACHE_MAX) return;
+    if (k === keep) continue;
+    textSprites.delete(k); textPx -= sp.c.width * sp.c.height; sp.c.width = 0; sp.c.height = 0; // (a zero-size canvas: its memory back now, not at the next GC)
+  }
+}
 let textCacheOn = true, textBuilding = false; // textBuilding: text() drawing a stamp - the old way, no recursion
 function textSprite(str, x, y, size, color, outline, bold) {
   if (!textCacheOn || textBuilding || !(size > 0) || (document.fonts && document.fonts.status !== "loaded") || !(ctx instanceof CanvasRenderingContext2D)) return false; // (not the GPU stand-in - aspira-glctx.js)
@@ -16,10 +28,10 @@ function textSprite(str, x, y, size, color, outline, bold) {
   const col = COL[color] || color, oc = outline ? COL[outline === true ? "bg" : outline] : "", blur = size >= TEXT_BLUR_MIN && outline ? Math.min(size * 0.7, TEXT_BLUR_MAX) * cam.k * (ctx.__ent ? warp.entScale || 1 : 1) : 0; // device px (the full-density layer scales its blurs - entCtx)
   const key = str + "|" + col + "|" + oc + "|" + (bold ? 1 : 0) + "|" + q + "|" + (lowQ ? 1 : 0) + "|" + blur.toFixed(1);
   let sp = textSprites.get(key);
-  if (!sp) {
-    if (textSprites.size >= TEXT_CACHE_MAX) textSprites.clear();
+  if (sp) { textSprites.delete(key); textSprites.set(key, sp); } // used: to the back of the line (the Map keeps insertion order - the front is the least recently used)
+  else {
     sp = textStamp(str, q, color, outline, bold, m.a, blur);
-    textSprites.set(key, sp);
+    textSprites.set(key, sp); textPx += sp.c.width * sp.c.height; textEvict(key);
   }
   const k = dev / q, X = m.a * x + m.e, Y = m.d * y + m.f;
   const st = CanvasRenderingContext2D.prototype.setTransform; // (the prototype's: the full-density layer's own would scale it - entCtx)

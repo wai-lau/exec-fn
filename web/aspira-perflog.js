@@ -44,9 +44,19 @@ function perfGpu() {
   return perfGpuName;
 }
 // the 3D pass's parts a frame (ms), the effects batch's shapes (mean, most), and the share of frames that sent each layer up
+// the big canvases' pixels (thousands; x4 = bytes), each named, + the text stamps and the effects texture - iOS kills a page past
+// its canvas memory, and the crashes came late in long games (2026-10-14); heapMB where the browser tells (Chrome)
+function perfCanvasK() {
+  try {
+    const px = c => (c ? c.width * c.height : 0), w = typeof warp !== "undefined" ? warp : {}, out = { board: px(cv), gl: px(w.cv), ent: px(w.ent), top: px(w.top), dyn: px(w.dynCv), fx: typeof fxGl !== "undefined" && fxGl.S ? fxGl.S * fxGl.S : 0, text: typeof textPx !== "undefined" ? textPx : 0, dom: [...document.querySelectorAll("canvas")].reduce((a, c) => a + px(c), 0) };
+    for (const k in out) out[k] = Math.round(out[k] / 1e3);
+    if (performance.memory) out.heapMB = Math.round(performance.memory.usedJSHeapSize / 1e6);
+    return out;
+  } catch (e) { return null; }
+}
 function perfSplit() {
   const n = Math.max(1, perf.frames), r = v => +(v / n).toFixed(1);
-  return { picMs: r(perf.picMs), fxMs: r(perf.fxMs), bindMs: r(perf.bindMs), fxN: Math.round(perf.fxN / n), fxMax: perf.fxMax, upBoard: +(perf.upBoard / n).toFixed(2), upDyn: +(perf.upDyn / n).toFixed(2), why: typeof glcWhyN !== "undefined" ? Object.fromEntries(Object.entries(glcWhyN).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, v]) => [k, +(v / n).toFixed(2)])) : null, tex: typeof cv !== "undefined" ? cv.width : null, fxTex: typeof fxGl !== "undefined" && fxGl.S ? fxGl.S : null };
+  return { picMs: r(perf.picMs), fxMs: r(perf.fxMs), bindMs: r(perf.bindMs), fxN: Math.round(perf.fxN / n), fxMax: perf.fxMax, upBoard: +(perf.upBoard / n).toFixed(2), upDyn: +(perf.upDyn / n).toFixed(2), textPx: typeof textPx !== "undefined" ? Math.round(textPx / 1e3) : null, canvasK: perfCanvasK(), textN: typeof textSprites !== "undefined" ? textSprites.size : null, why: typeof glcWhyN !== "undefined" ? Object.fromEntries(Object.entries(glcWhyN).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, v]) => [k, +(v / n).toFixed(2)])) : null, tex: typeof cv !== "undefined" ? cv.width : null, fxTex: typeof fxGl !== "undefined" && fxGl.S ? fxGl.S : null };
 }
 function perfSend() {
   const ver = document.querySelector(".asp-ver span");
