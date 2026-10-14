@@ -132,18 +132,20 @@ def new_for(ip: str, claim: str, now: float | None = None) -> dict:
     return new(claim)
 
 
-def ensure(slug: str, body: dict, e2e_ok: bool = True) -> None:
+def ensure(slug: str, body: dict, e2e_ok: bool = True) -> bool:
     """Before a commit: write the poll if it is still a draft and the body
     carries its token -- end-to-end or plain, as the token says. A poll that
     exists is left alone; one without a valid token stays missing (and the
     commit 404s). e2e_ok=False: this request cannot create an end-to-end poll
-    (its first write is always the host's vote, never the settings)."""
+    (its first write is always the host's vote, never the settings).
+    -> whether THIS call created it."""
     if store.exists(slug):
-        return
+        return False
     tok = body.get("draft")
     k = kind(slug, tok)
     now = datetime.now().isoformat(timespec="seconds")
     if k == "plain":
-        store.create_at(slug, UNTITLED, now)
-    elif k == "e2e" and e2e_ok:
-        store.create_at(slug, UNTITLED, now, e2e=True, claim=claim_of(tok))
+        return store.try_create(slug, UNTITLED, now)
+    if k == "e2e" and e2e_ok:
+        return store.try_create(slug, UNTITLED, now, e2e=True, claim=claim_of(tok))
+    return False

@@ -166,8 +166,8 @@ def create(title: str, now_iso: str) -> dict:
     with _LOCK:
         while True:
             slug = secrets.token_urlsafe(config.SLUG_BYTES)
-            if valid_slug(slug) and not exists(slug):
-                return create_at(slug, title, now_iso)
+            if valid_slug(slug) and try_create(slug, title, now_iso):
+                return load(slug)
 
 
 def create_at(slug: str, title: str, now_iso: str, e2e: bool = False, claim: str | None = None) -> dict:
@@ -179,8 +179,16 @@ def create_at(slug: str, title: str, now_iso: str, e2e: bool = False, claim: str
     has no title here at all: its settings arrive sealed, as `head`; `claim`
     is the public key whose holder alone may cast its first vote."""
     with _LOCK:
+        try_create(slug, title, now_iso, e2e, claim)
+        return load(slug)
+
+
+def try_create(slug: str, title: str, now_iso: str, e2e: bool = False, claim: str | None = None) -> bool:
+    """create_at, answering whether THIS call wrote the poll (False: it was
+    already there) -- what stats.py counts."""
+    with _LOCK:
         if exists(slug):
-            return load(slug)
+            return False
         if e2e:
             poll = {"slug": slug, "e2e": 1, "created_at": now_iso, "head": None, "voters": {}, "claim": claim}
         else:
@@ -189,7 +197,7 @@ def create_at(slug: str, title: str, now_iso: str, e2e: bool = False, claim: str
                 "created_at": now_iso, "voters": {},
             }
         _write(slug, poll)
-        return poll
+        return True
 
 
 def delete_id(poll_id_: str) -> bool:

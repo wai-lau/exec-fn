@@ -232,6 +232,7 @@ File split, the jump table and the gutter rules: **ARCHITECTURE.md §18**.
 | POST | `/api/noodle/{slug}/rekey` | Public, signed by the voter's OLD key: new passphrase and/or name (`noodle/rekey.py`). **ARCHITECTURE.md §21**. |
 | POST | `/api/noodle-polls/new` | **Guest tier** (Turnstile), rate-limited per IP (`NEW_RATE`). Starts a DRAFT: slug + token bound to the body's `{claim}` key, nothing stored; the host's first commit creates it (`noodle/drafts.py`, §21m). |
 | GET/POST/DELETE | `/api/noodle-polls`, `/api/noodle-polls/{ref}` | **Owner-only.** List (file ids + mtimes only -- §21d) / create (`{title}`) / delete by slug or id; a guest's `/noodle` page never shows the list. |
+| GET | `/api/noodle-polls/created` | **Owner-only.** `{days:{YYYY-MM-DD: n}}` -- polls created per day, counted as they are made (`noodle/stats.py`); feeds the owner's chart on `/noodle`. **ARCHITECTURE.md §21i**. |
 
 ### Exec chat tools (bubble overlay)
 

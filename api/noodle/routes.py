@@ -16,7 +16,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
-from noodle import ask, config, drafts, e2e, host, pages, rekey, store, votes
+from noodle import ask, config, drafts, e2e, host, pages, rekey, stats, store, votes
 
 router = APIRouter()
 guest_router = APIRouter()   # mounted on the site's Turnstile-gated guest tier
@@ -67,6 +67,13 @@ def _client_ip(request: Request) -> str:
             or (request.client.host if request.client else "unknown"))
 
 
+async def _ensure(request: Request, slug: str, body: dict, e2e_ok: bool = True) -> None:
+    """drafts.ensure, and a poll it creates is counted for the owner's chart
+    (stats.py) -- unless the request is the test suite's (its exemption)."""
+    if await asyncio.to_thread(drafts.ensure, slug, body, e2e_ok) and not _rate_exempt(request):
+        await asyncio.to_thread(stats.record)
+
+
 def _poll_or_404(slug: str) -> dict:
     try:
         return store.load(slug)
@@ -106,7 +113,7 @@ async def noodle_poll(slug: str):
 @router.post("/api/noodle/{slug}/vote")
 async def noodle_vote(slug: str, request: Request):
     body = await _json_body(request, config.BODY_MAX_VOTE)
-    await asyncio.to_thread(drafts.ensure, slug, body)   # a draft's first commit writes it
+    await _ensure(request, slug, body)   # a draft's first commit writes it
     try:
         if await asyncio.to_thread(e2e.is_e2e, slug):
             return {"ok": True, **await asyncio.to_thread(e2e.vote, slug, body)}
@@ -123,7 +130,7 @@ async def _signed(plain, sealed, slug: str, request: Request):
     if plain is host.settings:
         # a draft's first commit writes it -- a plain one; an end-to-end poll is
         # created by its host's first VOTE, which always comes first
-        await asyncio.to_thread(drafts.ensure, slug, body, False)
+        await _ensure(request, slug, body, e2e_ok=False)
     try:
         fn = sealed if await asyncio.to_thread(e2e.is_e2e, slug) else plain
         return await asyncio.to_thread(fn, slug, body)
@@ -197,6 +204,12 @@ async def noodle_list():
     return {"polls": await asyncio.to_thread(store.all_polls)}
 
 
+@owner_router.get("/api/noodle-polls/created")
+async def noodle_created():
+    """Polls created per day, for the owner's chart on /noodle (stats.py)."""
+    return JSONResponse({"days": await asyncio.to_thread(stats.per_day)}, headers=_NO_STORE)
+
+
 @owner_router.post("/api/noodle-polls")
 async def noodle_create(request: Request):
     body = await _json_body(request, config.BODY_MAX_CREATE)
@@ -206,6 +219,8 @@ async def noodle_create(request: Request):
         raise HTTPException(400, f"title must be 1-{config.TITLE_MAX} characters")
     now = datetime.now().isoformat(timespec="seconds")
     poll = await asyncio.to_thread(store.create, title, now)
+    if not _rate_exempt(request):
+        await asyncio.to_thread(stats.record)
     return {"slug": poll["slug"], "url": f"/noodle/{poll['slug']}"}
 
 

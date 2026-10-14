@@ -3471,10 +3471,11 @@ auth. The browser derives an Ed25519 key from the passphrase
 
 | File | What |
 |---|---|
-| `routes.py` | 3 routers: `router` (public — poll page/JSON, vote/settings/remove/rekey/ask), `guest_router` (`/noodle` + `POST /api/noodle-polls/new`), `owner_router` (list/create/delete). |
+| `routes.py` | 3 routers: `router` (public — poll page/JSON, vote/settings/remove/rekey/ask), `guest_router` (`/noodle` + `POST /api/noodle-polls/new`), `owner_router` (list/create/delete + the per-day counts). |
 | `pages.py` | HTML shell, Open Graph, KDF config as `data-*`, demo-video markup, `set_nav`/`set_owner` injection points. |
 | `store.py` | One JSON file per poll under `DATA_DIR/polls/`; the one lock; atomic writes. |
-| `drafts.py` | A poll that doesn't exist yet: HMAC token, `ensure()`. |
+| `drafts.py` | A poll that doesn't exist yet: HMAC token, `ensure()` (-> whether it created one). |
+| `stats.py` | Polls created per day, `DATA_DIR/created.json` = `{"YYYY-MM-DD": n}`, for the owner's chart (21i). |
 | `votes.py` | `VoteError`, `now_ms`, `check_action` (shared signed-action envelope), `host_of`, `_admit`, `submit`. |
 | `host.py` | Host-only: `settings` (split/crop/title/note), `remove`. |
 | `rekey.py` | Passphrase/name change: old key signs the new one. |
@@ -3493,7 +3494,7 @@ order is the cascade**: `noodle.css` (font-face, shell, title/note,
 host/guest wording) → `noodle-identity.css` (fields, seal, you -> pick step) →
 `noodle-actions.css` (Ask, banner, Commit, lock states, share) →
 `noodle-roster.css` (voter faces) → `noodle-split.css` (split checkbox) →
-`noodle-admin.css` (`/noodle` page) → `noodle-foot.css` (top dates + foot
+`noodle-admin.css` (`/noodle` page) → `noodle-created.css` (the owner's chart) → `noodle-foot.css` (top dates + foot
 links) → `noodle-cal.css` (grid).
 
 **JS** (`web/`), loaded in this order by `noodle-vote.html` — **order
@@ -3504,7 +3505,7 @@ calls must already be loaded: `qc-holidays` → `noodle-toggle` →
 `noodle-storage` → `noodle-identity` → `noodle-claim` → `noodle-e2e` → `noodle-commit` → `noodle-vote` →
 `noodle-ask` → `noodle-host` → `noodle-rekey` → `noodle-top` →
 `noodle-share`. `/noodle` (`noodle-admin.html`) loads only `noodle-claim` +
-`noodle-admin`.
+`noodle-admin` + `noodle-created`.
 
 **Templates** (`api/templates/`): `noodle-shell.html` (shared shell —
 `.page-scroll` wrapper, OG slot; **no CRT stack**, removed 2026-10-03 on
@@ -3917,7 +3918,21 @@ it read are gone -- the vote page now REMOVES any `noodle.polls` it finds,
 since it held every opened poll's link with its key. The owner API stays:
 `GET /api/noodle-polls` lists file ids + mtimes only (the server holds no
 links, 21d), `DELETE /api/noodle-polls/{ref}` takes a slug or a file id
-and every vote with it. There was an autoplaying demo
+and every vote with it.
+
+**The owner's chart** (2026-10-13): "polls created per day", one column a
+day from the first counted day to today (90 at most; older days fold into
+an "earlier" count), tooltip on hover/focus/tap, the peak's count on its
+cap, an "as a table" fallback (`web/noodle-created.{js,css}`). Shown only
+when `GET /api/noodle-polls/created` (owner-only) answers. The sealed polls
+cannot say when they were made -- `created_at` is inside each poll's
+encryption and a file's mtime is its last write -- so `stats.py` COUNTS
+creations as they happen (`store.try_create` / `drafts.ensure` report
+whether they wrote one; the routes record it), skipping the test suite's
+rate-exempt requests. Days before 2026-10-13 were backfilled once from the
+nginx access logs (14 days kept): a draft page (`?t=`) followed by a first
+successful commit, plus the owner's `POST /api/noodle-polls` -- polls first
+seen before 2026-09-29 have no date and are not drawn. There was an autoplaying demo
 video under the button until 2026-10-03; Wai dropped it ("just have the
 thing in the middle"), the last two copies are in `.archaeology/media/`.
 The title (`.nd-brand`) is big, glowing, set in **Courier New** —

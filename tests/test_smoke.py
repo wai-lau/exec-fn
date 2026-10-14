@@ -326,3 +326,11 @@ def test_noodle_page_is_guest_tier_but_its_poll_list_is_owner_only(client, guest
         assert client.get("/api/noodle-polls", headers=headers).status_code == 401
         assert client.post("/api/noodle-polls", json={"title": "x"}, headers=headers).status_code == 401
         assert client.delete(f"/api/noodle-polls/{'A' * 22}", headers=headers).status_code == 401
+        assert client.get("/api/noodle-polls/created", headers=headers).status_code == 401
+
+
+def test_noodle_created_counts_are_the_owners(client, admin_headers):
+    r = client.get("/api/noodle-polls/created", headers={**admin_headers, "Accept": "application/json"})
+    assert r.status_code == 200
+    days = r.json()["days"]
+    assert all(len(d) == 10 and isinstance(n, int) and n > 0 for d, n in days.items())
