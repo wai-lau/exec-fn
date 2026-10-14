@@ -66,11 +66,13 @@ const LATE_FROM = 49, lateK = (n, type) => { const f = LATE_TRAIT[type]; return 
 let ARMOR_HP_FROM = 49, ARMOR_HP_EXP = 0.9 /* countermx sweep 2026-10-13: 0.45-0.6 left late armor flat (0-6%), 0.9 sorts it - SOL 0-6%, the rest 7-21% */, SPEED_RAMP = 0.002;
 const armorGrow = n => { const g = m => hpPow(m) + m * 4 / 18, e = eqWave(n), k = eqWave(ARMOR_HP_FROM); return Math.pow(g(Math.min(e, k)), ARMOR_EXP) * (e > k ? Math.pow(g(e) / g(k), ARMOR_HP_EXP) : 1); };
 const speedRamp = n => 1 + SPEED_RAMP * Math.max(0, n - ARMOR_HP_FROM);
-// LESS HP, MORE SPEED (owner, 2026-10-14: "generally reduce HP ramp, and increase general speed ramp instead"): every ordinary
-// enemy is SPEED_GROW a wave faster from wave 1 and its HP / as much (enemyHp) - a tower gets 1/speed the time on it, so the
-// trade keeps the damage a wave needs about where it was. Bosses and armor keep their curves. let: the sims sweep it
-let SPEED_GROW = 0.003;
-const speedGrow = n => 1 + SPEED_GROW * Math.max(0, n - 1);
+// LESS HP, MORE SPEED (owner, 2026-10-14: "generally reduce HP ramp, and increase general speed ramp instead"), as CURVES ("speed
+// ramps faster mid game, hp ramps faster late game"): ordinary enemies speed up along an S from SPEED_FROM to SPEED_TO, SPEED_MID
+// faster at the top of it (steepest mid-game, flat after); their HP / that speed to the HP_TRADE (a tower gets 1/speed the time
+// on them) and x HP_LATE_X a wave past HP_LATE_FROM. Bosses and armor keep their curves. let: the sims sweep them
+let SPEED_MID = 0.5, SPEED_FROM = 12, SPEED_TO = 84, HP_TRADE = 0.5, HP_LATE_FROM = 84, HP_LATE_X = 1.005;
+const speedGrow = n => { const t = Math.min(1, Math.max(0, (n - SPEED_FROM) / (SPEED_TO - SPEED_FROM))); return 1 + SPEED_MID * t * t * (3 - 2 * t); };
+const plainHpGrow = n => Math.pow(speedGrow(n), -HP_TRADE) * Math.pow(HP_LATE_X, Math.max(0, n - HP_LATE_FROM));
 // LATE HYBRIDS (owner, 2026-10-13): after HYBRID_FROM swarms carry SWARM_SHIELD of a shield unit's charges, fast FAST_ARMOR of an
 // armor unit's armor ("maybe just 1/10 shields", "give fast armour") - first the other way round, but any armor on a swarm made ARC
 // (the swarm counter: many small hits) its worst tower, 10-18% leaked at even 3%. let: the sims sweep them
