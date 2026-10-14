@@ -3908,7 +3908,8 @@ retitles by tapping it), centred in the screen above the nav
 (`#noodle-admin`), with Wai's blurb under the button (`.nd-create-note`, 2026-10-13):
 "end-to-end encrypted" / `https://wai-lau.net/noodle/<slug>?t=<token>#k=<K>` / "<K> is a
 secret key composed on your device" / "data after the # is not sent to the
-server" / "only people you send the full URL can access the poll". Deliberately NOT "Signal Protocol" -- one static key per poll, no
+server" / "only people you send the full URL can access the poll", then a link to
+Excalidraw's "End-to-End Encryption in the Browser" post (the same scheme). Deliberately NOT "Signal Protocol" -- one static key per poll, no
 ratchet, no forward secrecy (21m). **No poll list since 2026-10-13** (Wai: "no need for
 host noodle to show poll lists"): the owner's table of sealed ids, the
 browser-side id mapping (`ndmIdOf`) and the `noodle.polls` localStorage

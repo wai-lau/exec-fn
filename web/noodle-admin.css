@@ -19,6 +19,7 @@
 .nd-create-note p { margin: 0; }
 .nd-create-note .nd-create-note-head { margin-bottom: var(--space-3); color: hsl(var(--green-hsl) / 0.8); }
 .nd-create-note code { font: inherit; overflow-wrap: anywhere; }
+.nd-create-note a { color: inherit; text-decoration: underline; }
 
 /* the empty status line under the button would push it off centre */
 .nd-create #nd-msg:empty { display: none; }
