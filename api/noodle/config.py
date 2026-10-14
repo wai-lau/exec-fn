@@ -72,5 +72,18 @@ ASK_IP_WINDOW_S = 3600   # ... per this many seconds (in memory)
 NEW_RATE = 20
 NEW_WINDOW_S = 3600
 
+# ── abuse bounds on writes ───────────────────────────────────────────────────
+# A poll seats at most this many keys: past it a NEW key is refused (a seat
+# already there can always re-vote). A slug alone was enough to add junk seats
+# without end, and every write re-seals the whole file under the one store lock.
+MAX_VOTERS = 200
+# A poll's sealed file never grows past this many bytes (~MAX_VOTERS full votes).
+POLL_FILE_MAX = 2_000_000
+# Signed writes (vote, settings, remove, rekey): rolling windows like Ask's.
+WRITE_IP_RATE = 60          # per client IP ...
+WRITE_IP_WINDOW_S = 600     # ... per 10 minutes
+WRITE_POLL_RATE = 300       # per poll, everyone together ...
+WRITE_POLL_WINDOW_S = 3600  # ... per hour
+
 # The host's note under the poll's title.
 NOTE_MAX = 280

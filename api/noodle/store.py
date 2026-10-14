@@ -97,12 +97,19 @@ def _open(slug: str, blob: dict) -> dict:
     return json.loads(pt)
 
 
+class TooBig(Exception):
+    """A write that would take a poll's sealed file past config.POLL_FILE_MAX."""
+
+
 def _write(slug: str, data: dict) -> None:
     path = _path(slug)
+    sealed = json.dumps(_seal(slug, data))
+    if len(sealed) > config.POLL_FILE_MAX:
+        raise TooBig(slug)
     fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".tmp-", suffix=".json")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump(_seal(slug, data), f)
+            f.write(sealed)
             f.flush()
             os.fsync(f.fileno())   # on disk before the rename makes it the poll
         os.replace(tmp, path)
@@ -113,7 +120,11 @@ def _write(slug: str, data: dict) -> None:
 
 def _migrate(slug: str) -> None:
     """Encrypt a pre-encryption poll in place: write the sealed file, then
-    remove the plain one. Idempotent; runs on the poll's first touch."""
+    remove the plain one. Idempotent; runs on the poll's first touch. Checks
+    for the plain file BEFORE taking the lock: every read passes through here,
+    and a read must never queue behind another poll's write."""
+    if not valid_slug(slug) or not _legacy_path(slug).exists():
+        return
     with _LOCK:
         legacy = _legacy_path(slug)
         if not legacy.exists():

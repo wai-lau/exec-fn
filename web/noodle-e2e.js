@@ -15,6 +15,9 @@ var NDE_TITLE_MAX = 80;   // noodle/config.py TITLE_MAX
 var NDE_NOTE_MAX = 280;   // noodle/config.py NOTE_MAX
 var NDE_SLOT_RE = /^\d{4}-\d{2}-\d{2}:[dmn]$/;
 var NDE_DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+// at most this many seats are opened (the server seats 200 -- noodle/config.py
+// MAX_VOTERS): a flooded poll must not freeze the page decrypting it
+var NDE_MAX_SEATS = 250;
 
 function ndeBin(bytes) {
   var s = '';
@@ -132,7 +135,7 @@ async function ndeSealHead(head) {
 async function ndeView(raw) {
   var h = raw.head ? await ndeOpen('head', '', raw.head.ct) : null;
   var head = ndeHeadOf(h), seen = new Set(), voters = [], opened = h ? 1 : 0;
-  var recs = raw.voters.slice().sort(function (a, b) { return a.order - b.order; });
+  var recs = raw.voters.slice().sort(function (a, b) { return a.order - b.order; }).slice(0, NDE_MAX_SEATS);
   var votes = await Promise.all(recs.map(function (v) { return ndeOpen('vote', v.pub, v.ct); }));
   recs.forEach(function (v, i) {
     var o = votes[i], name = o && window.noodleNormName(o.name);

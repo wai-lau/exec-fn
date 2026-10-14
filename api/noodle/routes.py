@@ -16,7 +16,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
-from noodle import ask, config, drafts, e2e, host, pages, rekey, stats, store, votes
+from noodle import ask, config, drafts, e2e, host, limits, pages, rekey, stats, store, votes
 
 router = APIRouter()
 guest_router = APIRouter()   # mounted on the site's Turnstile-gated guest tier
@@ -110,8 +110,26 @@ async def noodle_poll(slug: str):
     return JSONResponse(view, headers=_NO_STORE)
 
 
+def _throttled(request: Request, slug: str) -> JSONResponse | None:
+    """A signed write over its rate limit (limits.py) -> the 429 to send. The
+    test suite's requests are exempt, as from every other noodle limit."""
+    if _rate_exempt(request):
+        return None
+    try:
+        limits.take_write(slug, _client_ip(request))
+    except limits.Limited as e:
+        return JSONResponse({"error": str(e), "retry_after": e.retry_after}, status_code=429,
+                            headers={"Retry-After": str(e.retry_after)})
+    return None
+
+
+_TOO_BIG = {"error": "this poll is too big to take more"}
+
+
 @router.post("/api/noodle/{slug}/vote")
 async def noodle_vote(slug: str, request: Request):
+    if (slow := _throttled(request, slug)) is not None:
+        return slow
     body = await _json_body(request, config.BODY_MAX_VOTE)
     await _ensure(request, slug, body)   # a draft's first commit writes it
     try:
@@ -120,12 +138,16 @@ async def noodle_vote(slug: str, request: Request):
         rec = await asyncio.to_thread(votes.submit, slug, body)
     except votes.VoteError as e:
         return JSONResponse({"error": e.msg}, status_code=e.status)
+    except store.TooBig:
+        return JSONResponse(_TOO_BIG, status_code=413)
     return {"ok": True, "name": rec["name"], "slots": rec["slots"]}
 
 
 async def _signed(plain, sealed, slug: str, request: Request):
     """One signed action, on whichever path the poll is: plain (the server
     reads it) or end-to-end (e2e.py -- it cannot)."""
+    if (slow := _throttled(request, slug)) is not None:
+        return slow
     body = await _json_body(request, config.BODY_MAX_VOTE)
     if plain is host.settings:
         # a draft's first commit writes it -- a plain one; an end-to-end poll is
@@ -136,6 +158,8 @@ async def _signed(plain, sealed, slug: str, request: Request):
         return await asyncio.to_thread(fn, slug, body)
     except votes.VoteError as e:
         return JSONResponse({"error": e.msg}, status_code=e.status)
+    except store.TooBig:
+        return JSONResponse(_TOO_BIG, status_code=413)
 
 
 @router.post("/api/noodle/{slug}/settings")

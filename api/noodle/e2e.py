@@ -106,6 +106,8 @@ def vote(slug: str, body: dict, now: int | None = None) -> dict:
             prev = voters.get(pub)
             if prev and ts <= prev["ts"]:
                 raise VoteError(409, "stale or replayed submission")
+            if not prev and len(voters) >= config.MAX_VOTERS:
+                raise VoteError(409, "this poll is full")
             order = prev["order"] if prev else max((v["order"] for v in voters.values()), default=-1) + 1
             voters[pub] = {"pub": pub, "ts": ts, "order": order, "ct": ct}
     except KeyError:

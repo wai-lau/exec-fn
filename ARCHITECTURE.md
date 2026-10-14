@@ -3682,6 +3682,19 @@ choosing.
 
 ### 21d. Concurrency & storage
 
+**Abuse bounds on writes** (2026-10-14, after a security audit showed a slug
+alone could add junk seats without end, each write re-sealing the whole file
+under the one lock -- 1,500 seats = a 12 MB file, 327 ms lock holds): a poll
+seats at most `MAX_VOTERS` = 200 keys (a NEW key past it gets 409 "this poll
+is full"; a seat already there always re-votes), its sealed file never
+passes `POLL_FILE_MAX` = 2 MB (`store.TooBig` -> 413), and every signed write
+(vote / settings / remove / rekey) is rate-limited per IP (60 / 10 min) and
+per poll (300 / h) by `noodle/limits.py` (429 + `Retry-After`; the test
+suite's exemption skips it). **Reads never take the lock**: `store._migrate`
+checks for a pre-encryption file before locking, so a load cannot queue
+behind another poll's write. The page opens at most 250 seats
+(`NDE_MAX_SEATS`), so a flooded poll cannot freeze it.
+
 **Encrypted at rest, keyed by the link** (since 2026-10-08). The slug (128
 random bits, already the only access control) goes through HKDF-SHA256
 (salt = 32 zero bytes) twice: info `noodle poll file v1` -> the FILE id
@@ -4071,7 +4084,7 @@ grey note right under the Ask box says so (`.nd-ask-note`: "your noodle polls
 are end-to-end encrypted" -- shown only on e2e polls, `.nd-e2e-only` -- then
 "the noodle helper is not end-to-end encrypted"), no redesign; anyone with the SLUG (no key
 needed) can post seats whose sealed contents are junk (dropped when drawn,
-no cap on how many), and a link holder can claim a name first; the claim
+up to the seat cap, 21d), and a link holder can claim a name first; the claim
 key derives from the poll key, so anyone the creator hands the raw draft
 address to before their first Commit can host instead; a malicious server
 can still withhold or roll back records (it cannot forge or read them),
