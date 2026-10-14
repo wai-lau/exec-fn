@@ -235,6 +235,10 @@ const ACD_PUDDLE_CAP = 8; // (2026-10-08: x8, was x32 - a pool held the jet's wh
 let ACD_SHIELD_POP = 1; // 1 (owner, 2026-10-12: ACD pops 1x, pools too - shields are a bare ACD's weakness); // 2026-10-11 (was 1, as every hit; 2 left ACD 16-34% leaked on shield waves, 3 gives 6-23%): let: the simulator sweeps it
 const ACD_PUDDLE_HEAT = [0.1, 0.11, 0.12, 0.13, 0.14, 0.15]; // 2026-10-12: base pools burn low (they are free now) // 2026-10-11: x1.5 so ACD answers a swarm a little (owner: "FRZ ACD handle swarms a bit better") // 10% of the jet with the bigger, longer pools (owner, 2026-10-08; was 30%): isolation I..V 108 117 133 160 197%, the curve it had (108 123 128 146 197) // flat 30% of the jet (2026-10-08, Contagion under 200%; no tier lowers it) // restored (overnight 2026-10-08): the tier fit cut it to ~15%, and without ARC the pools are the only swarm answer - FRZ+SOL+ACD went 0/6 -> 4/6 with them back
 // (the pools' slow moved to Flow's jets, owner 2026-10-12: "these rays could slow instead of contagion")
+// CONTAGION SPREADS (owner, 2026-10-13: "make acd contagion better vs swarms"): from Contagion I an enemy a POOL kills leaves
+// a pool of its own, ACD_SPREAD_R as wide and ACD_SPREAD_LIFE as long, as hot - a crowd dying in acid carries it down the lane.
+// At most ACD_SPREAD_MAX pools a tower (the late-game lag)
+const ACD_SPREAD_R = 0.8, ACD_SPREAD_LIFE = 0.5, ACD_SPREAD_MAX = 240;
 function acdSkillStats(t, s, b) {
   const c = skillOf(t, "corrosion");
   s.dmg = b.dmg * ACD_BASE_DMG_MUL * ACD_CORROSION_DMG[c]; s.range = b.range * RANGE_BONUS; s.double = ACD_DOUBLE[0]; s.cap = ACD_BASE_MAX; s.plagueR = 0;
@@ -242,7 +246,7 @@ function acdSkillStats(t, s, b) {
   // fast waves reset it); from Corrosion I, Etch, ALL of it
   const f = skillOf(t, "spray"); // Flow (id kept: saves)
   s.carry = ACD_FLOW_CARRY[f]; s.burnSlow = ACD_FLOW_SLOW[f]; s.corrode = ACD_CORRODE[c]; s.targets = ACD_LINES[f]; s.contagion = ACD_CONTAGION[skillOf(t, "contagion")];
-  s.shieldPop = ACD_SHIELD_POP; // acid EATS shields: every tick pops ACD_SHIELD_POP (the shield answer, counter matrix)
+  s.spread = skillOf(t, "contagion") > 0; s.shieldPop = ACD_SHIELD_POP; // acid EATS shields: every tick pops ACD_SHIELD_POP (the shield answer, counter matrix)
   s.contagionHeat = ACD_PUDDLE_HEAT[skillOf(t, "contagion")]; s.sprayMul = ACD_SPRAY_MUL[skillOf(t, "spray")]; s.skill = true;
 }
 // every step (stepAcd): each line drips a puddle every seep.every s; each
@@ -260,7 +264,7 @@ function stepPuddles(t, st, dt) {
   }
   if (!t.puddles) return;
   const every = 1 / st.rate;
-  let grid = null; // built at the first tick that needs it
+  let grid = null; const born = []; // grid: built at the first tick that needs it; born: pools the dead leave (Contagion spreads)
   const hit = t.puddles.length > POOL_LOD ? POOL_QUIET : null; // a crowd of pools: no flash or number per hit
   for (const p of t.puddles) {
     p.age += dt; p.tick += dt;
@@ -270,11 +274,12 @@ function stepPuddles(t, st, dt) {
         if (e.dead || (e.x - p.x) ** 2 + (e.y - p.y) ** 2 > p.r * p.r) continue;
         const hp0 = e.hp;
         damage(e, p.dps * every, t, false, false, hit); e.burnT = 0.4;
+        if (st.spread && hp0 > 0 && e.hp <= 0 && t.puddles.length + born.length < ACD_SPREAD_MAX) born.push({ x: e.x, y: e.y, r: p.r * ACD_SPREAD_R, life: p.life * ACD_SPREAD_LIFE, age: 0, tick: 0, dps: p.dps });
         if (hit && hp0 > e.hp) (t.poolAcc ||= new Map()).set(e, (t.poolAcc.get(e) || 0) + hp0 - Math.max(0, e.hp)); // a real hit: it pops one shield charge
       }
     }
   }
-  t.puddles = t.puddles.filter(p => p.age < p.life);
+  t.puddles = t.puddles.filter(p => p.age < p.life).concat(born);
   // the unseen hits SUMMED: one number an enemy every POOL_SUM_S (owner, 2026-10-12: "instead of hiding damage counts
   // entirely, just show the accumulated damage once per half second")
   t.poolSumT = (t.poolSumT ?? POOL_SUM_S) - dt;

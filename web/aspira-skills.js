@@ -135,7 +135,7 @@ SKILL_TREES.acd = [
     { name: "Cascade", desc: "Eight slowing jets; a jet lands hotter on its next enemy." },
   ] },
   { id: "contagion", name: "Contagion", base: "Jets drip large pools of acid; each kill leaves one more.", tiers: [
-    { name: "Blister", desc: "Jets drip larger pools that linger longer." },
+    { name: "Blister", desc: "Jets drip larger pools that linger longer; what dies in a pool leaves one of its own." },
     { name: "Plague", desc: "Jets drip larger pools that linger longer." },
     { name: "Pandemic", desc: "Jets drip wide pools that linger long." },
     { name: "Epidemic", desc: "Jets drip wide pools that linger long." },
