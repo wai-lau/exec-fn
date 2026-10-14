@@ -681,7 +681,7 @@
 
 /* auto-wait, auto-speed and quality: their own line in the header, under the stats (owner, 2026-10-10); it flips with the
    header under a boss's sky */
-.asp-autowait { pointer-events: auto; align-self: flex-start; flex-wrap: nowrap; gap: var(--space-4); } /* the header's box lets taps through, this does not */
+.asp-autowait { pointer-events: auto; align-self: stretch; flex-wrap: nowrap; gap: var(--space-4); } /* the header's box lets taps through, this does not */
 
 /* a plain checkbox + label, no button box (owner: "not on a card"), lit text while it holds the game slow */
 #asp .asp-autowait button { flex: 0 0 auto; white-space: nowrap; display: inline-flex; align-items: center; gap: var(--space-1); padding: 0; border: none; background: none; font-size: var(--fs-2xs); color: hsl(var(--green-hsl) / 0.8); }
@@ -700,8 +700,8 @@
 }
 
 /* the quality SLIDER (owner, 2026-10-09: "change quality to a slider: low, high, 3D") - three stops, its value named after it */
-#asp .asp-quality { display: flex; align-items: center; gap: var(--space-2); font-size: var(--fs-2xs); cursor: pointer; }
-#asp .asp-quality input { width: 4.5em; accent-color: hsl(var(--green-hsl)); cursor: pointer; }
+#asp .asp-quality { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: var(--space-2); font-size: var(--fs-2xs); cursor: pointer; } /* the rest of the line (owner, 2026-10-14) */
+#asp .asp-quality input { flex: 1 1 auto; min-width: 4.5em; width: auto; accent-color: hsl(var(--green-hsl)); cursor: pointer; }
 #asp .asp-quality b { min-width: 2.5em; font-weight: var(--fw-normal); }
 /* 3D (aspira-warp.js): the 2D canvas still draws and takes every touch, unseen; the spire is drawn over it and lets touches through */
 #asp.asp-3d #asp-cv { opacity: 0; }

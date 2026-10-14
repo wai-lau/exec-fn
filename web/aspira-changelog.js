@@ -19,6 +19,7 @@ const CHANGELOG = [
     "3D: shapes below the floor fade out again.",
     "3D runs much faster, most of all on phones.",
     "This card: tap the version number.",
+    "The quality slider fills the rest of its line.",
   ] },
   { v: "1.1", day: "Oct 13", items: [
     "Bosses are tougher (x1.4 HP; the Empress and Strength x3.5, Death x2.8).",
