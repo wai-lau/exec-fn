@@ -191,6 +191,7 @@ app.mount("/nightfall-game", StaticFiles(directory="/app/nightfall"), name="nigh
 # walks `all_directories` in order, so asset URLs stay flat (/aspira-game.js)
 # wherever the file lives, and the parent wins a name clash (pinned unique by
 # tests/test_app_paths.py).
-_static = StaticFiles(directory="/app/static", html=True)
-_static.all_directories += [str(p) for p in app_paths.app_subdirs("web")]
+_web = app_paths.web_dirs()
+_static = StaticFiles(directory=str(_web[0]), html=True)
+_static.all_directories = [str(p) for p in _web]
 app.mount("/", _static, name="static")
