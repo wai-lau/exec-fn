@@ -73,13 +73,23 @@ function dmgColor(f) {
 function float(x, y, text, color, size = 28, life = 1.1, alpha = 1, vy = 30, under = false) {
   fx.push({ k: "text", x, y, text, color, t: 0, life, size, alpha, vy, outline: true, under });
 }
+// ONE live impact flash an enemy a colour (owner, 2026-10-14: "late game ACD has too much effects visually" - Spray's jets
+// on every enemy in reach kept ~1,400 flashes stacked on ~45 enemies): a fresh hit RELIGHTS the one already there, as big
+// as the bigger of the two, rather than piling another on the same spot
+function hitFlash(e, r, m, color, life) {
+  const f = (e.flash ||= {})[color];
+  if (f && f.t < f.life) { const k = 1 - f.t / f.life; Object.assign(f, { x: e.x, y: e.y, r: Math.max(r, f.r * k), m: Math.max(m, f.m * k), t: 0, life: Math.max(life, f.life) }); return; }
+  fx.push(e.flash[color] = { k: "hit", x: e.x, y: e.y, r, m, color, t: 0, life });
+}
 // THE LAST SHIELDS BREAK (owner, 2026-10-11: "make the last 5 layers of shield falling off way more intense
 // visually"): once fewer than SHIELD_BREAK_N charges are left, every pop throws a shockwave and a spray of shards,
 // bigger the fewer remain - the last one biggest of all, with a white flash
 const SHIELD_BREAK_N = 5;
 function shieldBreak(e) {
   const k = 1 - e.shield / SHIELD_BREAK_N, r = ENEMIES[e.type].size * (e.sizeMul || 1); // k: 0.2 at 4 left .. 1 at none
-  ring(e.x, e.y, r * (2 + 3 * k), "cyan", 0.2 + 0.3 * k, true);
+  // ...one shockwave an enemy at a time (owner, 2026-10-14: ACD's pools pop five charges in a breath, five rings stacked): the newest replaces the last
+  if (e.breakRing) e.breakRing.t = e.breakRing.life;
+  ring(e.x, e.y, r * (2 + 3 * k), "cyan", 0.2 + 0.3 * k, true); const br = fx[fx.length - 1]; e.breakRing = br && br.k === "ring" ? br : null; // (the simulator stubs ring out)
   burst(e.x, e.y, "cyan", Math.round(8 + 22 * k));
   if (e.shield <= 0) { ring(e.x, e.y, r * 7, "white", 0.45, true); burst(e.x, e.y, "white", 24); }
 }

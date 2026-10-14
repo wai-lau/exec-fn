@@ -138,8 +138,8 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
   if (e.shield > 0 && !(st && st.ignoreShield)) {
     if (quiet) return;
     e.shield = Math.max(0, e.shield - ((st && st.shieldPop) || 1)); // most hits pop one; ACD's acid and SOL's beams pop more (shieldPop)
-    if (e.shield < SHIELD_BREAK_N) shieldBreak(e); // its last charges BREAK, loudly (aspira-floats.js)
-    if (!(st && st.noFx)) fx.push({ k: "hit", x: e.x, y: e.y, r: 18, m: 1, color: "cyan", t: 0, life: 0.07 });
+    if (e.shield < SHIELD_BREAK_N && (!(st && st.noFx) || e.shield <= 0)) shieldBreak(e); // its last charges BREAK, loudly (aspira-floats.js) - a crowd of pools (noFx) only the LAST one (owner, 2026-10-14: ACD too much late)
+    if (!(st && st.noFx)) hitFlash(e, 18, 1, "cyan", 0.07);
     // all of it soaked: a "0" in SHIELD blue, as BIG as the hit it swallowed (owner)
     if (!(st && st.noFx)) dmgNumber(e, "0", amt, "cyan", t);
     return;
@@ -174,7 +174,7 @@ function damage(e, amt, t, quiet = false, crit = false, st = null) {
   if (!quiet && !(st && st.noFx) && !(typeof farFx === "function" && farFx(e))) { // noFx: unseen (crowded pools - aspira-acid.js); farFx: 3D's far ring (aspira-quality.js)
     // impact flash sized and lit by the damage; big hits also throw sparks
     const m = dmgMag(amt), col = t ? TOWERS[t.kind].color : "orange";
-    fx.push({ k: "hit", x: e.x, y: e.y, r: 5 + 8 * m, m, color: col, t: 0, life: 0.05 + 0.027 * m });
+    hitFlash(e, 5 + 8 * m, m, col, 0.05 + 0.027 * m);
     if (m > 1.2) burst(e.x, e.y, col, Math.round(m * 3));
     // damage number, jittered so rapid hits don't stack
     // armor-blunted hits read GREYER the more armor took off them (owner, 2026-10-09: "greyness of damage popups should be

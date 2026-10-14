@@ -335,13 +335,28 @@ function puddleBlob(p, now, k, seed) {
 // are shared out so all of them together stay near POOL_LOD x PUDDLE_BUBBLES
 const POOL_LOD = 24;
 function drawPools(t, now) {
-  const many = q3d() || (t.puddles || []).length > POOL_LOD; // 3D: always the plain circle - the board is drawn into a texture and warped, the rim's wobble barely shows and its fills cost (owner, 2026-10-12: pool perf in 3D)
-  for (const p of t.puddles || []) {
-    const fade = Math.min(1, (1 - p.age / p.life) * puddleGlow(p)), seed = p.seed ||= 1 + Math.floor(Math.random() * 1e6);
-    if (many) { ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 0.9 * (0.8 + 0.2 * (1 - p.age / p.life)), 0, 6.283); ctx.globalAlpha = 0.14 * fade; ctx.fill(); ctx.globalAlpha = 0.4 * fade; ctx.stroke(); continue; }
+  const n = (t.puddles || []).length, many = q3d() || n > POOL_LOD; // 3D: always the plain circle - the board is drawn into a texture and warped, the rim's wobble barely shows and its fills cost (owner, 2026-10-12: pool perf in 3D)
+  // a PILE of pools reads as one (owner, 2026-10-14: "late game ACD has too much effects visually" - a Contagion's 100+
+  // see-through pools stacked 20 deep into one bright green wash): each is drawn at 1 / the pools over its centre
+  const pools = t.puddles || [], deep = poolDepth(pools);
+  pools.forEach((p, i) => {
+    const crowd = 1 / deep[i], fade = Math.min(1, (1 - p.age / p.life) * puddleGlow(p)) * crowd, seed = p.seed ||= 1 + Math.floor(Math.random() * 1e6);
+    if (many) { ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 0.9 * (0.8 + 0.2 * (1 - p.age / p.life)), 0, 6.283); ctx.globalAlpha = 0.14 * fade; ctx.fill(); ctx.globalAlpha = 0.4 * fade * crowd; ctx.stroke(); return; } // (a crowd's rims fade faster than its bodies: overlapping rims were the foam)
     puddleBlob(p, now, 1, seed); ctx.globalAlpha = 0.14 * fade; ctx.fill(); ctx.globalAlpha = 0.4 * fade; ctx.stroke();
     puddleBlob(p, now, 0.5, seed * 7); ctx.globalAlpha = 0.12 * fade; ctx.fill();
-  }
+  });
+}
+// how many pools cover each pool's centre (itself included), the crowd bucketed by POOL_CELL like the enemies
+function poolDepth(pools) {
+  if (pools.length <= 1) return pools.map(() => 1);
+  const g = new Map(), key = (x, y) => x + "," + y;
+  for (const q of pools) { const k = key(Math.floor(q.x / POOL_CELL), Math.floor(q.y / POOL_CELL)); const b = g.get(k); if (b) b.push(q); else g.set(k, [q]); }
+  const reach = Math.ceil(Math.max(...pools.map(q => q.r)) / POOL_CELL);
+  return pools.map(p => {
+    const cx = Math.floor(p.x / POOL_CELL), cy = Math.floor(p.y / POOL_CELL); let n = 0;
+    for (let x = cx - reach; x <= cx + reach; x++) for (let y = cy - reach; y <= cy + reach; y++) for (const q of g.get(key(x, y)) || []) if ((q.x - p.x) ** 2 + (q.y - p.y) ** 2 < (q.r * 0.9) ** 2) n++;
+    return Math.max(1, n);
+  });
 }
 function drawPuddles(t) {
   const now = performance.now() / 1000;
