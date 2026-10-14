@@ -12,12 +12,13 @@
 }
 .nd-create { display: flex; flex-direction: column; gap: var(--space-4); }
 
-/* what "create poll" makes, a few plain lines under the button: a heading,
-   the link's shape, and what each part of it means */
-.nd-create .nd-create-note { text-align: center; }
+/* what "create poll" makes, a few plain lines under the button, a line's
+   gap apart: the heading in green, then (grey) the link's shape and what
+   each part of it means */
+.nd-create .nd-create-note { display: flex; flex-direction: column; gap: var(--space-3); text-align: center; }
 .nd-create-note p { margin: 0; }
-.nd-create-note .nd-create-note-head { margin-bottom: var(--space-2); }
-.nd-create-note code { font: inherit; color: hsl(var(--green-hsl) / 0.8); overflow-wrap: anywhere; }
+.nd-create-note .nd-create-note-head { color: hsl(var(--green-hsl) / 0.8); }
+.nd-create-note code { font: inherit; overflow-wrap: anywhere; }
 
 /* the empty status line under the button would push it off centre */
 .nd-create #nd-msg:empty { display: none; }
