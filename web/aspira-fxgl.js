@@ -142,7 +142,8 @@ function fxGlBeam(f, a) {
     const len = Math.hypot(x2 - x1, y2 - y1) || 1, px = -(y2 - y1) / len, py = (x2 - x1) / len;
     for (let i = 0; i < f.beams; i++) { const o = (i - (f.beams - 1) / 2) * 2 * TWIN_GAP; segs.push([x1 + px * o, y1 + py * o]); }
   } else segs.push([x1, y1]);
-  const line = (w, css, al) => { for (const [sx, sy] of segs) fxGlPush(sx, sy, x2, y2, w / 2, 0, css, al, css, 0); };
+  const cut = segs.map(([sx, sy]) => trimToTowers(sx, sy, x2, y2)).filter(Boolean); // (nothing of it inside a tower)
+  const line = (w, css, al) => { for (const [sx, sy, ex, ey] of cut) fxGlPush(sx, sy, ex, ey, w / 2, 0, css, al, css, 0); };
   const core = (f.soft ? BEAM_MIN + (beamWidth(f.d || 0) - BEAM_MIN) * ARC_W_CORR : beamWidth(f.d || 0)) * (f.thin || 1), col = COL[f.color];
   if (f.m && !lowQ) {
     if (f.slim) for (let i = 4; i >= 1; i--) line(core * SOL_BEAM_W * (1 + i * 0.25), col, Math.min(1, a * SOL_GLOW_A * BEAM_BRIGHT));
@@ -158,4 +159,29 @@ function fxGlCoin(x, y, r, ring, fill, a) { fxGlPush(x, y, x, y, r, ring !== fil
 // its colour at the tip fading to clear at f.len x SOL_CONE_FADE
 function fxGlCone(f, a) {
   fxGlPush(f.x, f.y, f.x + Math.cos(f.a) * f.half, f.y + Math.sin(f.a) * f.half, f.len, f.len * SOL_CONE_FADE, COL[f.color], a, COL[f.color], 0, 4);
+}
+// BEAMS STOP AT A TOWER'S EDGE (owner, 2026-10-14: "make all beams 100% transparent when covered by a tower from the outside of the
+// hexagon rather than the middle"): a beam end inside a tower's hexagon (its footprint, CELL_S x TOWER_K, a vertex up) moves out to
+// where the beam crosses the edge; a beam wholly inside one is not drawn. World units; null: nothing left
+const HEX_IN = Math.cos(Math.PI / 6); // the apothem's share of the radius
+function inTowerHex(x, y) {
+  const R = CELL_S * TOWER_K;
+  for (const t of G.towers) {
+    const c = CELLS[t.cell], tx = t.x ?? c.x, ty = t.y ?? c.y, dx = x - tx, dy = y - ty, d = Math.hypot(dx, dy);
+    if (d >= R) continue;
+    const ph = Math.atan2(dy, dx), dl = ph - Math.round(ph / (Math.PI / 3)) * (Math.PI / 3); // off the nearest side's normal (0, 60, 120..)
+    if (d * Math.cos(dl) < R * HEX_IN) return true;
+  }
+  return false;
+}
+function trimToTowers(x0, y0, x1, y1) {
+  const a = inTowerHex(x0, y0), b = inTowerHex(x1, y1);
+  if (!a && !b) return [x0, y0, x1, y1];
+  // where along it the inside ends (from a) or begins (towards b): halving, 14 steps - under a hundredth of a unit on any beam
+  const edge = (from, to) => { let lo = 0, hi = 1; for (let i = 0; i < 14; i++) { const m = (lo + hi) / 2; if (inTowerHex(from[0] + (to[0] - from[0]) * m, from[1] + (to[1] - from[1]) * m)) lo = m; else hi = m; } return [from[0] + (to[0] - from[0]) * hi, from[1] + (to[1] - from[1]) * hi]; };
+  let p = [x0, y0], q = [x1, y1];
+  if (a) p = edge(p, q);
+  if (b) q = edge(q, p);
+  if (a && b && (inTowerHex((p[0] + q[0]) / 2, (p[1] + q[1]) / 2) || Math.hypot(q[0] - p[0], q[1] - p[1]) < 0.5)) return null; // all of it inside
+  return [p[0], p[1], q[0], q[1]];
 }

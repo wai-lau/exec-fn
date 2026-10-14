@@ -142,8 +142,12 @@ function glcStroke(g, parts, st, dash, scale, glow) {
     for (let i = 0; i < n; i++) {
       const prev = i > 0 ? D[i - 1] : closed ? D[n - 1] : null, next = i < n - 1 ? D[i + 1] : closed ? D[0] : null;
       const [b0x, b0y] = prev ? joint(prev, D[i]) : [0, 0], [b1x, b1y] = next ? joint(D[i], next) : [0, 0];
-      if (glow) { const b = real.shadowBlur / g.w2.k; for (const [wk, ak] of [[b, 0.18], [b * 0.45, 0.3]]) fxGlPush(P[i][0], P[i][1], P[i + 1][0], P[i + 1][1], (lw + wk) / 2, 0, st, A * ak, st, 0, 0, b0x, b0y, b1x, b1y); } // a glow: two soft wider strokes under it (the Relay's beam)
-      fxGlPush(P[i][0], P[i][1], P[i + 1][0], P[i + 1][1], lw / 2, 0, st, A, st, 0, butt && !prev && !next ? 2 : 0, b0x, b0y, b1x, b1y, dOn, dOff, dAt0 + along);
+      const seg = trimToTowers(P[i][0], P[i][1], P[i + 1][0], P[i + 1][1]); // nothing of a line inside a tower's hexagon (aspira-fxgl.js)
+      if (seg) {
+        const cutA = seg[0] !== P[i][0] || seg[1] !== P[i][1], cutB = seg[2] !== P[i + 1][0] || seg[3] !== P[i + 1][1], j0x = cutA ? 0 : b0x, j0y = cutA ? 0 : b0y, j1x = cutB ? 0 : b1x, j1y = cutB ? 0 : b1y; // (a cut end is a plain end)
+        if (glow) { const b = real.shadowBlur / g.w2.k; for (const [wk, ak] of [[b, 0.18], [b * 0.45, 0.3]]) fxGlPush(seg[0], seg[1], seg[2], seg[3], (lw + wk) / 2, 0, st, A * ak, st, 0, 0, j0x, j0y, j1x, j1y); } // a glow: two soft wider strokes under it (the Relay's beam)
+        fxGlPush(seg[0], seg[1], seg[2], seg[3], lw / 2, 0, st, A, st, 0, butt && !prev && !next ? 2 : 0, j0x, j0y, j1x, j1y, dOn, dOff, dAt0 + along + (cutA ? Math.hypot(seg[0] - P[i][0], seg[1] - P[i][1]) : 0));
+      }
       along += Math.hypot(P[i + 1][0] - P[i][0], P[i + 1][1] - P[i][1]);
     }
   }
