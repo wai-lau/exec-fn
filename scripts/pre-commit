@@ -4,25 +4,39 @@ set -e
 # Repo root — portable across the droplet (/exec-fn) and local dev
 # (~/src/exec-fn): derive it instead of hardcoding either path.
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-# HOST = the exec-fn checkout that owns scripts/, .venv and tests/. Inside an
-# app submodule (apps/<name>, installed there by .claude/hooks/session-context.sh)
-# that is the superproject; at the top level it is REPO_ROOT itself. Staged-path
-# patterns below (^web/, ^api/templates/) match in both, because an app mirrors
-# the parent layout (apps/README.md).
-HOST="$(git rev-parse --show-superproject-working-tree 2>/dev/null || true)"
-[ -n "$HOST" ] || HOST="$REPO_ROOT"
+# HOST = the exec-fn tree this script came from -- it owns ALL the tooling
+# (lints, baselines, configs, .venv, tests/). Three ways in, one answer:
+#   - committing in exec-fn itself: HOST = REPO_ROOT;
+#   - committing in a sub repo checked out as an exec-fn submodule: its
+#     scripts/pre-commit shim execs this file in the superproject;
+#   - a sub repo cloned on its own: the shim sparse-pulls ONLY the tooling
+#     (scripts/tooling-paths.txt) into the sub repo's gitignored .exec-fn/ and
+#     runs this copy from there. ARCHITECTURE.md §1e.
+HOST="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+# Which repo is committing (spire, noodle, cc-sidecar, exec-fn) -- the gates
+# that only one repo needs key off this, and they all live HERE.
+REPO_NAME="$(basename -s .git "$(git config --get remote.origin.url 2>/dev/null || echo "$REPO_ROOT")")"
+# A sparse tooling copy has no tests/, conftest or .venv: lints only.
+FULL_HOST=0
+[ -f "$HOST/conftest.py" ] && FULL_HOST=1
+# The lints scan what exec-fn serves (lintkit, via api/app_paths.py); a sub
+# repo's own files join that scan through this, wherever it is checked out.
+if [ "$HOST" != "$REPO_ROOT" ]; then
+  export LINT_APP_ROOT="$REPO_ROOT"
+fi
 # The suites to run: the host's tests/ AND every app's (apps/*/tests) -- from
 # the parent or from inside an app alike, since an app's python imports the
-# parent's and a parent change can break an app (claude-box/tests: the
-# sidecar's node suites, whose contract the parent's exec tools share). Fixtures: the root conftest.py.
+# parent's and a parent change can break an app. Fixtures: the root conftest.py.
 TEST_DIRS="$HOST/tests/"
-for d in "$HOST"/apps/*/tests "$HOST"/claude-box/tests; do
+for d in "$HOST"/apps/*/tests; do
   [ -d "$d" ] && TEST_DIRS="$TEST_DIRS $d/"
 done
 # The pytest every gate below uses -- the host's venv, else one on PATH, else
 # empty (each pytest gate then skips cleanly, e.g. on a fresh clone).
 PYTEST=""
-if [ -x "$HOST/.venv/bin/pytest" ]; then
+if [ "$FULL_HOST" -eq 0 ]; then
+  echo "NOTE: tooling-only copy of exec-fn (.exec-fn/) -- lints run, tests are skipped."
+elif [ -x "$HOST/.venv/bin/pytest" ]; then
   PYTEST="$HOST/.venv/bin/pytest"
 elif command -v pytest &>/dev/null; then
   PYTEST=pytest
@@ -69,7 +83,8 @@ fi
 # Python lint
 PY_FILES=$(printf '%s\n' "$STAGED" | grep '\.py$' || true)
 if [ -n "$PY_FILES" ]; then
-  if ! ~/.local/bin/ruff check $PY_FILES 2>&1; then
+  RUFF="$(command -v ruff || echo ~/.local/bin/ruff)"
+  if ! "$RUFF" check --config "$HOST/ruff.toml" $PY_FILES 2>&1; then
     echo ""
     echo "Python errors found — commit blocked. Fix before committing."
     exit 1
@@ -86,7 +101,7 @@ fi
 # they happened to finish. A pre-commit hook judges the commit.
 CSS_FILES=$(printf '%s\n' "$STAGED" | grep -E '^web/.*\.css$' | grep -vE '^web/vendor/' || true)
 if [ -n "$CSS_FILES" ] && command -v stylelint &>/dev/null; then
-  if ! echo "$CSS_FILES" | xargs stylelint 2>&1; then
+  if ! echo "$CSS_FILES" | xargs stylelint --config "$HOST/.stylelintrc.json" 2>&1; then
     echo ""
     echo "CSS errors found — commit blocked. Fix before committing."
     exit 1
@@ -132,7 +147,12 @@ if command -v shellcheck &>/dev/null; then
 fi
 
 # JS lint (extract inline scripts from templates)
-if command -v eslint &>/dev/null; then
+# eslint's config imports @eslint/js + globals from exec-fn's node_modules, and
+# finds its config by walking up from the cwd -- so it runs inside exec-fn (a
+# submodule included) and is skipped, with a note, in a tooling-only copy.
+if [ ! -d "$HOST/node_modules" ]; then
+  echo "NOTE: skipping eslint -- no node_modules beside the tooling ($HOST)."
+elif command -v eslint &>/dev/null; then
   JSTMP="$(mktemp -d "$REPO_ROOT/.eslint-tmp-XXXXXX")"
   trap 'rm -rf "$JSTMP"' EXIT
   python3 - "$TEMPLATES" "$JSTMP" <<'PYEOF'
@@ -245,16 +265,38 @@ if [ -n "$SRC_CHANGED" ]; then
   fi
 fi
 
-# ── The app's OWN checks (apps/<name>/scripts/pre-commit), committing inside one.
-# Everything above is shared (lints, caps, tests); what only one app needs --
-# /spire's game smoke -- lives in that app's repo and runs here, after the
-# shared checks. Same cwd (the app's root) and same staged set; it must not
-# call this script back. ARCHITECTURE.md §1e.
-if [ "$HOST" != "$REPO_ROOT" ] && [ -x "$REPO_ROOT/scripts/pre-commit" ]; then
-  if ! "$REPO_ROOT/scripts/pre-commit"; then
-    echo ""
-    echo "$(basename "$REPO_ROOT")'s own pre-commit failed — commit blocked."
-    exit 1
+# ── Repo-specific gates. They live HERE, not in the sub repos (exec-fn owns
+# every check); each keys off REPO_NAME and reads the repo's own test files.
+if [ "$REPO_NAME" = "spire" ]; then
+  # /spire game smoke (node, no browser) — only when the game changed. Loads
+  # every /spire script in the template's order into a fake DOM with a
+  # RECORDING canvas and drives the real frame loop: boot, 2D / low /
+  # 3D-fallback draws, each tower built, a wave fought, the boss sky, Temporal
+  # Drive, loss / win / Ascendants. Checks things DRAW, not just that nothing
+  # threw (a swallowed else once blanked the board with no error at all).
+  SPIRE_CHANGED=$(printf '%s\n' "$STAGED" | grep -E '^web/aspira-.*\.js$|^api/templates/aspira\.html$|^scripts/spire-smoke/' || true)
+  if [ -n "$SPIRE_CHANGED" ]; then
+    if ! command -v node &>/dev/null; then
+      echo "NOTE: skipping /spire smoke — no node."
+    elif ! node "$REPO_ROOT/scripts/spire-smoke/smoke.mjs"; then
+      echo ""
+      echo "/spire smoke failed — commit blocked. Run: node scripts/spire-smoke/smoke.mjs"
+      exit 1
+    fi
+  fi
+fi
+if [ "$REPO_NAME" = "cc-sidecar" ]; then
+  # The sidecar (claude-box): node + shell, not laid out like exec-fn. Syntax on
+  # staged .mjs, then EVERY suite (they import the modules) -- each named
+  # explicitly: a bare `node --test .` would execute server.mjs (binds the port).
+  MJS=$(printf '%s\n' "$STAGED" | grep -E '\.mjs$' || true)
+  for f in $MJS; do
+    node --check "$f" || { echo "$f: syntax error — commit blocked."; exit 1; }
+  done
+  if [ -n "$MJS" ]; then
+    for t in "$REPO_ROOT"/*.test.mjs; do
+      node --test "$t" >/dev/null 2>&1 || { echo "$(basename "$t") failed — commit blocked. Run: node --test $(basename "$t")"; exit 1; }
+    done
   fi
 fi
 

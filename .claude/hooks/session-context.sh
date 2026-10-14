@@ -45,10 +45,11 @@ fi
 #  - a DETACHED HEAD: a commit made there belongs to no branch and is lost at the
 #    next update. Re-attach to master when HEAD is exactly origin/master (never
 #    move a HEAD that carries its own work).
-#  - no pre-commit: hooks are per-repo. An app (apps/*) mirrors the parent, so
-#    it gets the PARENT's scripts/pre-commit (shared lints/tests, then the app's
-#    own scripts/pre-commit). Any other submodule (claude-box, nightfall) is laid
-#    out differently and gets ITS OWN scripts/pre-commit, if it has one.
+#  - no pre-commit: hooks are per-repo. exec-fn owns every check; a sub repo
+#    carries only the shim scripts/pre-commit (a verbatim copy of exec-fn's
+#    scripts/subrepo-pre-commit), and `core.hooksPath=scripts` makes git run
+#    it. Inside exec-fn the shim runs the superproject's hook. nightfall keeps
+#    its own long-standing eslint hook (no shim; left alone).
 subs=""
 paths="$(git config --file .gitmodules --get-regexp '\.path$' 2>/dev/null | awk '{print $2}')"
 for p in $paths; do
@@ -65,16 +66,11 @@ for p in $paths; do
 [hook] $p was on a detached HEAD — switched it to master (same commit)."
     fi
   fi
-  case "$p" in
-    apps/*) src="$root/scripts/pre-commit" ;;
-    *) src="$root/$p/scripts/pre-commit" ;;
-  esac
-  [ -x "$src" ] || continue
-  hookdir="$(git -C "$p" rev-parse --path-format=absolute --git-path hooks 2>/dev/null)" || continue
-  if [ -n "$hookdir" ] && [ ! -e "$hookdir/pre-commit" ]; then
-    mkdir -p "$hookdir" && ln -s "$src" "$hookdir/pre-commit" \
+  if [ -x "$p/scripts/pre-commit" ] && cmp -s "$p/scripts/pre-commit" "$root/scripts/subrepo-pre-commit" \
+     && [ "$(git -C "$p" config --get core.hooksPath)" != "scripts" ]; then
+    git -C "$p" config core.hooksPath scripts \
       && subs="${subs}
-[hook] installed ${src#"$root"/} as $p's pre-commit."
+[hook] $p now runs its exec-fn shim as pre-commit (core.hooksPath=scripts)."
   fi
 done
 
