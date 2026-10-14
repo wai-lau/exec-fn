@@ -133,12 +133,13 @@ var graphGlyph = (function () {
     // it instead of expanding around it. Taking the centre once at the node's own
     // radius and growing about that is concentric, which is what a wave is. A
     // hexagon and a dot are unaffected either way, `centre` returning `y` for both.
-    // `turn` is radians about the glyph centre, and it is what a node is rotated
-    // by the instant before it throws a wave — graph-ring.js writes the angle onto
-    // the node's own position record as `pos[id].t`, and graph-pulse-draw.js hands
-    // it to EVERY pass that draws that glyph: the outline, the interior clear and
-    // the opaque punch. All three have to agree, or a rotated node's cleared
-    // interior no longer lines up with its own outline. The halo is exempt, being
+    // `turn` is radians about the glyph centre, used by the WAVEFRONT only: each
+    // front graph-ring.js throws is drawn turned. The node itself no longer turns
+    // (graph-ring.js says why — vis's own static copy could not follow it), so
+    // graph-pulse-draw.js draws every node pass at turn 0. Were that to return,
+    // every pass that draws the glyph — outline, interior clear, opaque punch —
+    // would have to take the same angle, or a rotated node's cleared interior
+    // would no longer line up with its own outline. The halo is exempt, being
     // a circle, and so is `centre` — vis's offset is a vertical shift belonging to
     // the unrotated shape, and the glyph spins about the centre rather than
     // carrying it around.

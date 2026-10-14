@@ -62,6 +62,8 @@ _GRAPH_REDACT_IDS = {
 #                              architecture. Data files are read BY the code the
 #                              graph is about; they have no structure of their
 #                              own worth drawing.
+# Mirrored in .graphifyignore (skipped at extraction too, so runtime data never
+# counts against GRAPHIFY_VIZ_NODE_LIMIT) -- keep the two in step.
 _GRAPH_DROP_PREFIXES = (
     "api/tarot/book/",
     "web/vendor/",
