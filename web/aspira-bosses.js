@@ -256,6 +256,7 @@ function bossKilled(e) {
   // announced where the boss's name was, with an arrow down at the core (owner)
   if (!G.enemies.some(o => o !== e && !o.dead && o.arcana && o.n === e.n)) {
     grantPowers(e.n); // waves 20 / 40: a core power (aspira-core.js)
+    if (G.lifeOwed > 0) { G.lives += G.lifeOwed; sfx("life"); banner("+" + G.lifeOwed + " lives"); G.lifeOwed = 0; } // the score's lives, earned since the last boss (addScore)
     if (CORE_PICKS.includes(e.n)) {
       const given = grantPick();
       if (given) flashPower(given.id); else float(CX, CY - 80, "choose a core power", "white", 28, 4, 1, 3); // no pointer at the core: the button flashes (owner, 2026-10-12)

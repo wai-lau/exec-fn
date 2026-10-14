@@ -321,8 +321,10 @@ function bonusDrop(e) {
 
 function addScore(n) {
   G.score += n * (G.power.SCR > 0 ? 2 : 1);
+  // ...EARNED here, PAID when the wave's last boss falls (owner, 2026-10-14: "all rewards should come after boss levels never
+  // on the 10" - the 100k marks paid mid-wave): G.lifeOwed, bossKilled (aspira-bosses.js)
   while (G.score >= G.nextLifeAt) {
-    G.lives += LIFE_STEP; sfx("life"); banner("+" + LIFE_STEP + " lives");
+    G.lifeOwed = (G.lifeOwed || 0) + LIFE_STEP;
     G.nextLifeAt = G.nextLifeAt < 100000 ? 100000 : G.nextLifeAt + 100000;
   }
 }
