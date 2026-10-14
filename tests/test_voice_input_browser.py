@@ -1,11 +1,8 @@
-"""Hands-free chat input on BOTH surfaces (voice-input.js).
-
-One engine, three bindings — /cc's prompt (cc-mic.js), the Exec panel's
-(exec-mic.js) and /tarot's (tarot-mic.js) — so all three are exercised here:
-the `$` prompt becomes the control, and a final result sends the way Enter
-would. The panel and the reading table add the case /cc does not have: anything
-heard while the page is TALKING is dropped rather than sent, or the surface
-transcribes its own narration and answers itself.
+"""Hands-free chat input (voice-input.js), on the Exec panel's binding
+(exec-mic.js): the `$` prompt becomes the control, a final result sends the way
+Enter would, and anything heard while the page is TALKING is dropped rather
+than sent, or the surface transcribes its own narration and answers itself.
+(/cc's binding went with the page, 2026-09-29.)
 
 WebKit headless has no SpeechRecognition, so a fake one is installed before any
 page script runs; it is the same shape the engine drives (continuous session,
@@ -43,9 +40,6 @@ window.webkitSpeechRecognition = FakeRec;
 
 _HISTORY = {"messages": [], "monitorTotal": 0}
 
-_MARKED = "window.marked={use(){},parse:s=>s,Renderer:function(){}};"
-
-
 def _json_route(payload):
     def handler(route):
         route.fulfill(status=200, content_type="application/json",
@@ -55,16 +49,13 @@ def _json_route(payload):
 
 @pytest.fixture
 def phone(browser, base_url, admin_headers):
-    """iPhone-sized /rd with the panel's audio + markdown deps stubbed out."""
+    """iPhone-sized /rd with the panel's audio stubbed out (markdown is the
+    real vendored marked + DOMPurify, served by the app itself)."""
     ctx = browser.new_context(extra_http_headers=admin_headers,
                               viewport={"width": 430, "height": 932},
                               has_touch=True, is_mobile=True)
     pg = ctx.new_page()
     pg.add_init_script(_FAKE_REC)
-    pg.route("**/marked.min.js",
-             lambda r: r.fulfill(status=200,
-                                 content_type="application/javascript",
-                                 body="window.marked={use(){},parse:s=>s};"))
     pg.route("**/hosaka-audio.js*",
              lambda r: r.fulfill(status=200,
                                  content_type="application/javascript",
@@ -91,80 +82,6 @@ def phone(browser, base_url, admin_headers):
     pg.wait_for_selector("#exec-bubble", timeout=5000)
     yield pg
     ctx.close()
-
-
-@pytest.fixture
-def cc(browser, base_url, admin_headers):
-    """/cc with the sidecar stubbed out — the mic's other binding."""
-    ctx = browser.new_context(extra_http_headers=admin_headers,
-                              viewport={"width": 430, "height": 932},
-                              has_touch=True, is_mobile=True)
-    pg = ctx.new_page()
-    pg.add_init_script(_FAKE_REC)
-    pg.route("**/marked.min.js",
-             lambda r: r.fulfill(status=200,
-                                 content_type="application/javascript",
-                                 body=_MARKED))
-    pg.route("**/api/cc/health*", _json_route({"ok": True, "busy": False, "authed": True}))
-    pg.route("**/api/cc/history*", _json_route({"sessionId": "t", "messages": []}))
-    pg.route("**/api/cc/title*", _json_route({"sessionId": "t", "title": "test"}))
-    pg.route("**/api/cc/limits*", _json_route({"ok": False}))
-    pg.route("**/api/cc/sessions*", _json_route({"current": "t", "sessions": []}))
-
-    def _query(route):
-        pg.evaluate("b => window.__sent.push(b)", route.request.post_data)
-        route.fulfill(status=200, content_type="text/event-stream",
-                      body='data: {"type":"done"}\n\n')
-
-    pg.route("**/api/cc/query", _query)
-    pg.goto(f"{base_url}/cc", wait_until="domcontentloaded")
-    pg.evaluate("() => { window.__sent = []; }")
-    pg.wait_for_selector("#input-prompt.mic", timeout=5000)
-    yield pg
-    ctx.close()
-
-
-def test_cc_prompt_is_the_control(cc):
-    """/cc's `$` carries the mic too — same engine, same affordance."""
-    assert cc.eval_on_selector("#input-prompt", "e => e.textContent") == "$"
-    cc.tap("#input-prompt")
-    cc.wait_for_function(
-        "() => document.getElementById('input-prompt').dataset.live === 'true'",
-        timeout=4000)
-    assert cc.eval_on_selector("#input-prompt", "e => e.textContent") == "●"
-
-
-def test_cc_final_result_sends_it(cc):
-    """A finished utterance reaches /api/cc/query as the prompt."""
-    cc.tap("#input-prompt")
-    cc.wait_for_function(
-        "() => document.getElementById('input-prompt').dataset.live === 'true'",
-        timeout=4000)
-    cc.evaluate("() => window.__rec.say('list the files here', true)")
-    cc.wait_for_function("() => (window.__sent || []).length >= 1", timeout=4000)
-    assert "list the files here" in json.loads(cc.evaluate("() => window.__sent")[0])["prompt"]
-
-
-def test_a_pause_mid_sentence_does_not_send_half_of_it(cc):
-    """A final result is only the engine's guess that she stopped.
-
-    Thinking mid-sentence sounds exactly like finishing one, so the send waits
-    out a grace window (SEND_DELAY_MS) and anything heard inside it cancels the
-    send and joins what is already there — one message, not two.
-    """
-    cc.tap("#input-prompt")
-    cc.wait_for_function(
-        "() => document.getElementById('input-prompt').dataset.live === 'true'",
-        timeout=4000)
-    cc.evaluate("() => window.__rec.say('open the file', true)")
-    cc.wait_for_timeout(300)
-    assert cc.evaluate("() => window.__sent.length") == 0
-    cc.evaluate("() => window.__rec.say(' and read it out', true)")
-    cc.wait_for_function("() => (window.__sent || []).length >= 1", timeout=4000)
-    cc.wait_for_timeout(300)
-    sent = cc.evaluate("() => window.__sent")
-    assert len(sent) == 1
-    assert json.loads(sent[0])["prompt"] == "open the file and read it out"
 
 
 def _open(pg):
@@ -271,10 +188,6 @@ def tarot(browser, base_url, admin_headers):
     # /api/tarot/chat during load, long before the fixture's own evaluate could
     # create it.
     pg.add_init_script(_FAKE_REC + "\nwindow.__sent = [];")
-    pg.route("**/marked.min.js",
-             lambda r: r.fulfill(status=200,
-                                 content_type="application/javascript",
-                                 body=_MARKED))
     pg.route("**/hosaka-audio.js*",
              lambda r: r.fulfill(status=200,
                                  content_type="application/javascript",

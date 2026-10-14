@@ -8,7 +8,7 @@ SSE framing, or voice layer does, the turn settles (streaming clears, the input
 bar is usable again) and never freezes the page.
 
 They drive the real page in WebKit (iOS-engine parity — see the project memory),
-mocking only the boundaries: /api/tarot/chat (the SSE turn), the marked CDN (a
+mocking only the boundaries: /api/tarot/chat (the SSE turn), the vendored marked (a
 no-op shim so reveal text == buffered text), /tarot-voice.js (a controllable
 fake voice, to exercise the audio-failure / stall fallbacks without a TTS box),
 and the two canned-opening endpoints — /api/tarot/opening (which answers "no
@@ -197,7 +197,7 @@ def open_tarot(browser, base_url, admin_headers):
             extra_http_headers={"Authorization": admin_headers["Authorization"]})
         contexts.append(ctx)
         pg = ctx.new_page()
-        pg.route("**/marked.min.js", _marked)
+        pg.route("**/vendor/marked-*.min.js", _marked)
         if voice_js is not None:
             pg.route("**/tarot-voice.js*", fulfill_js(voice_js))
         # Warming loads models on a home GPU box — never from a test.

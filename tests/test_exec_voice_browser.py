@@ -10,7 +10,7 @@ or TTS box:
     every speak() request into window.__execSpoken (so no /ws/hosaka, no home
     GPU box dependency — same trick as the tarot fake voice).
   - /api/cc/query streams a canned SSE reply (history is empty).
-  - the marked CDN is a no-op shim.
+  - marked (web/vendor/) is a no-op shim.
 
 Marked `browser` so the fast smoke step skips it; runs in pre-commit as a
 dedicated step when the voice layer changes. Skips cleanly when playwright /
@@ -82,7 +82,7 @@ def open_rd(browser, base_url, admin_headers):
         contexts.append(ctx)
         pg = ctx.new_page()
         pg.route("**/hosaka-audio.js*", fulfill_js(_FAKE_HOSAKA))
-        pg.route("**/marked.min.js", _marked)
+        pg.route("**/vendor/marked-*.min.js", _marked)
         pg.route("**/api/cc/exec-history",
                  lambda r: r.fulfill(status=200, content_type="application/json",
                                      body='{"messages":[],"monitorTotal":0}'))

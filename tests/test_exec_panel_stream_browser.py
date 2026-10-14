@@ -72,7 +72,7 @@ def panel(browser, base_url, admin_headers):
         # it would wait forever. Narration has its own suite
         # (test_exec_voice_browser.py); this one is about layout.
         pg.add_init_script("try { localStorage.setItem('exec.voice', '0'); } catch (e) {}")
-        pg.route("**/marked.min.js", lambda r: r.fulfill(
+        pg.route("**/vendor/marked-*.min.js", lambda r: r.fulfill(
             status=200, content_type="application/javascript",
             body="window.marked={use(){},parse:s=>s,Renderer:function(){}};"))
         pg.route("**/hosaka-audio.js*", lambda r: r.fulfill(

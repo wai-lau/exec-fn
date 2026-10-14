@@ -74,7 +74,7 @@ def open_panel(browser, base_url, admin_headers):
         ctx = browser.new_context(extra_http_headers=admin_headers)
         contexts.append(ctx)
         pg = ctx.new_page()
-        pg.route("**/marked.min.js",
+        pg.route("**/vendor/marked-*.min.js",
                  lambda r: r.fulfill(status=200,
                                      content_type="application/javascript",
                                      body="window.marked={use(){},parse:s=>s};"))

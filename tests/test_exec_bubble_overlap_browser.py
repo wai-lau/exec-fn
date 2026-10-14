@@ -48,7 +48,7 @@ def phone(browser, base_url, admin_headers):
                               viewport={"width": 430, "height": 932},
                               has_touch=True, is_mobile=True)
     pg = ctx.new_page()
-    pg.route("**/marked.min.js",
+    pg.route("**/vendor/marked-*.min.js",
              lambda r: r.fulfill(status=200,
                                  content_type="application/javascript",
                                  body="window.marked={use(){},parse:s=>s};"))

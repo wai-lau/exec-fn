@@ -70,7 +70,7 @@ def panel(browser, base_url, admin_headers):
     """/rd with the chat history canned and marked stubbed; panel open."""
     ctx = browser.new_context(extra_http_headers=admin_headers)
     pg = ctx.new_page()
-    pg.route("**/marked.min.js",
+    pg.route("**/vendor/marked-*.min.js",
              lambda r: r.fulfill(status=200,
                                  content_type="application/javascript",
                                  body=_MARKED))
