@@ -21,7 +21,7 @@ const CHANGELOG = [ // each day's lines in two groups: b = Balance, u = Perf/UI.
     "3D: faster, most of all on phones; resolution no longer drops.",
     "Acid effects: pools don't stack brightness; Spray V shows its jets; Contagion pools are dashed rings.",
     "Threat ring round the core when an enemy is close, joined to its triangles.",
-    "Boss lanes turned to stay on screen longer.",
+    "Every lane turned to stay on screen longer.",
     "Powers won from a boss flash when the next wave starts, for 4 s.",
     "Pause button flashes while paused.",
     "Numbers and text: outline only, no glow.",

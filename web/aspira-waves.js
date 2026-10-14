@@ -132,7 +132,7 @@ function sendWave() {
     for (let j = 0, at = 0; j < k; j++) {
       const len = share ? per + (j < list.length - per * k ? 1 : 0) : per, part = list.slice(at, at + len); at += len;
       if (!part.length) continue;
-      const ang = ((boss && typeof bossTurn === "function" ? bossTurn(G.wave, k) : laneTurn(G.wave)) + (j / k) * Math.PI * 2) % (Math.PI * 2); // the wave's turn round the rim (a boss's: the most of its lane on screen, aspira-bosses.js), then the split
+      const ang = (laneBestTurn(lanes[list[0]], k, G.wave) + (j / k) * Math.PI * 2) % (Math.PI * 2); // the turn that keeps the most of the lane on screen (below), then the split
       // a boss arrives BOSS_INTRO s into its wave, after its warning (owner)
       G.spawns.push({ n: G.wave, list: part, lanes, ang, idx: 0, timer: boss ? BOSS_INTRO : 0 });
       // each lane copy remembers how many it was sent, for its brightness
@@ -236,4 +236,35 @@ function drawCredits(part) {
   const ws = parts.map(p => ctx.measureText(p[0]).width);
   let x = CX - ws.reduce((a, w) => a + w, 0) / 2;
   parts.forEach((p, i) => { text(p[0], x + ws[i] / 2, popY(), POP_PX, p[1], true); x += ws[i]; });
+}
+// EVERY LANE TURNED TO THE SCREEN (owner, 2026-10-14: bosses first - "rotate them so that they stay on screen for as long as
+// possible" - then "rotate all paths to maximize time on screen"): of LANE_TURNS turns of a group's lane (its k split copies
+// with it), those keeping within LANE_TURN_SLACK of the most lane on the screen (phoneInside: 2D or 3D) - and of those, the
+// nearest the wave's usual turn, so the waves still come round from new directions. Scores cached per lane, split and screen.
+// The simulator (no screen) keeps laneTurn
+const LANE_TURNS = 24, LANE_TURN_SLACK = 0.02, laneTurnCache = new Map();
+function laneTurnScores(pi, k) {
+  const pts = PATHS[pi].pts, key = pi + "|" + k + "|" + innerWidth + "x" + innerHeight + "|" + (typeof q3d === "function" && q3d() ? 3 : 2);
+  let sc = laneTurnCache.get(key);
+  if (sc) return sc;
+  sc = [];
+  for (let i = 0; i < LANE_TURNS; i++) {
+    let len = 0;
+    for (let j = 0; j < k; j++) {
+      const a = i / LANE_TURNS * Math.PI * 2 + (j / k) * Math.PI * 2;
+      let prev = null;
+      for (let q = 0; q < pts.length; q += 6) { const p = rotAbout(pts[q], a), on = phoneInside(p.x, p.y); if (on && prev) len += Math.hypot(p.x - prev.x, p.y - prev.y); prev = on ? p : null; }
+    }
+    sc.push(len);
+  }
+  laneTurnCache.set(key, sc);
+  return sc;
+}
+function laneBestTurn(pi, k, n) {
+  const base = laneTurn(n);
+  if ((typeof AUTO_POS !== "undefined" && AUTO_POS) || typeof phoneInside !== "function" || !PATHS[pi]) return base;
+  const sc = laneTurnScores(pi, k), best = Math.max(...sc), step = Math.PI * 2 / LANE_TURNS;
+  let pick = base, gap = Infinity;
+  sc.forEach((l, i) => { if (l < best * (1 - LANE_TURN_SLACK)) return; const t = i * step, d = Math.abs(((t - base) % (Math.PI * 2) + 3 * Math.PI) % (Math.PI * 2) - Math.PI); if (d < gap) { gap = d; pick = t; } });
+  return pick;
 }
