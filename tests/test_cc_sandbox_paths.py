@@ -20,7 +20,7 @@ TEST_FILE = REPO / "claude-box" / "sandbox-paths.test.mjs"
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
 def test_sandbox_path_gate():
-    assert TEST_FILE.is_file(), f"{TEST_FILE} is missing — the gate lost its tests"
+    assert TEST_FILE.is_file(), f"{TEST_FILE} is missing — the gate lost its tests (claude-box is a submodule: `git submodule update --init`)"
     proc = subprocess.run(
         ["node", "--test", str(TEST_FILE)],
         cwd=REPO, capture_output=True, text=True, timeout=120,

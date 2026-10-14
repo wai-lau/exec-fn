@@ -3,3 +3,7 @@
 	url = git@github.com:wai-lau/nightfall.git
 	branch = master
 	ignore = dirty
+[submodule "claude-box"]
+	path = claude-box
+	url = git@github.com:wai-lau/cc-sidecar.git
+	branch = master
