@@ -14,13 +14,22 @@ httpx won't replay over plain-HTTP localhost, so these set it as a raw header.
 """
 import hashlib
 import os
+import sys
 from pathlib import Path
 
 import httpx
 import pytest
 
 BASE_URL = os.environ.get("SMOKE_BASE_URL", "http://localhost:8080")
-_ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
+# Root conftest (moved up from tests/ on 2026-10-14) so the fixtures reach the
+# app submodules' suites too (apps/*/tests -- ARCHITECTURE.md §1e). The api/
+# modules + every apps/*/api go on sys.path here, once, the way the container
+# sees them: an app's python imports the parent's (auth, helpers, routers).
+HOST_ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(HOST_ROOT / "api"))
+import app_paths  # noqa: E402,F401  -- appends apps/*/api
+
+_ENV_FILE = HOST_ROOT / ".env"
 
 
 def _key(name: str) -> str | None:
