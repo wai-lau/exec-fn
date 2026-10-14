@@ -11,3 +11,7 @@
 	path = apps/spire
 	url = git@github.com:wai-lau/spire.git
 	branch = master
+[submodule "apps/noodle"]
+	path = apps/noodle
+	url = git@github.com:wai-lau/noodle.git
+	branch = master
