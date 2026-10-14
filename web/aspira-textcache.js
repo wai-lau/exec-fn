@@ -9,7 +9,7 @@ const TEXT_Q = 0.5, TEXT_CACHE_MAX = 900;
 const textSprites = new Map();
 let textCacheOn = true, textBuilding = false; // textBuilding: text() drawing a stamp - the old way, no recursion
 function textSprite(str, x, y, size, color, outline, bold) {
-  if (!textCacheOn || textBuilding || !(size > 0) || (document.fonts && document.fonts.status !== "loaded")) return false;
+  if (!textCacheOn || textBuilding || !(size > 0) || (document.fonts && document.fonts.status !== "loaded") || !(ctx instanceof CanvasRenderingContext2D)) return false; // (not the GPU stand-in - aspira-glctx.js)
   const m = ctx.getTransform();
   if (Math.abs(m.b) > 1e-6 || Math.abs(m.c) > 1e-6 || m.a <= 0 || Math.abs(m.a - m.d) > 1e-6 * m.a) return false; // only a plain scale
   const dev = size * m.a, q = Math.max(TEXT_Q, Math.round(dev / TEXT_Q) * TEXT_Q);

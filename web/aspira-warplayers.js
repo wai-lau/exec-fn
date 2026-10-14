@@ -29,11 +29,17 @@ function warpRender() {
     warp.texCam = { ...cam };
     const D = Math.max(64, Math.round(S * WARP_DYN_K)), d = warp.dynCv ||= document.createElement("canvas");
     if (d.width !== D || d.height !== D) { d.width = D; d.height = D; }
-    ctx = warp.dynCtx ||= d.getContext("2d");
+    const real = warp.dynCtx ||= d.getContext("2d");
     warpTexCamFor(D); // the same board, D px across: the layers line up in the shader's 0..1
-    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, D, D);
-    ctx.lineJoin = "round"; ctx.lineCap = "round"; // (as drawLanes leaves them for what follows, in 2D)
+    // the stand-in context (aspira-glctx.js): what the GPU batch can draw goes there; the canvas gets the rest, and is cleared
+    // and sent up only when it held something this frame or the last (warp.dynUp, warpLayersBind)
+    const k = cam.k, ox = cam.ox, oy = cam.oy, toWorld = Object.assign((x, y) => [(x - ox) / k, (y - oy) / k], { k });
+    const g = typeof glCtx === "function" && fxGlTake() ? glCtx(real, toWorld) : null;
+    if (warp.dynDirty || !g) { real.setTransform(1, 0, 0, 1, 0, 0); real.clearRect(0, 0, D, D); }
+    ctx = g || real;
+    real.lineJoin = "round"; real.lineCap = "round"; // (as drawLanes leaves them for what follows, in 2D)
     ctx.setTransform(cam.k, 0, 0, cam.k, cam.ox, cam.oy); ctx.save(); drawSceneTop(); ctx.restore();
+    warp.dynUp = !g || g.used || warp.dynDirty; warp.dynDirty = !g || g.used;
   } finally { ctx = main; Object.assign(cam, view); }
 }
 // both layers onto their texture units for the bell (warpDraw): the board sent up only when it was redrawn
@@ -45,9 +51,11 @@ function warpLayersBind(gl, u) {
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, warp.tex);
   if (warp.statNew || warp.statUp !== warp.tex) { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv); warp.statNew = false; warp.statUp = warp.tex; }
   gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, warp.dynTex);
-  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true); // premultiplied, so its soft edges filter without a dark fringe
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, warp.dynCv);
-  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+  if (warp.dynUp !== false || warp.dynSize !== warp.dynCv.width) { // only when the canvas held something (warpRender)
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true); // premultiplied, so its soft edges filter without a dark fringe
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, warp.dynCv);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false); warp.dynSize = warp.dynCv.width;
+  }
   gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, typeof fxGl !== "undefined" && fxGl.tex ? fxGl.tex : warp.dynTex); // the hits (aspira-fxgl.js)
   gl.activeTexture(gl.TEXTURE0);
   gl.uniform1i(u("tex"), 0); gl.uniform1i(u("dyn"), 1); gl.uniform1i(u("fxt"), 2);

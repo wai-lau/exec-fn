@@ -5,8 +5,8 @@
 // batch of quads into a texture of the board picture's own size (sharper than the moving layer they used to ride, which is
 // WARP_DYN_K of it); each still blends on its own, so stacked hits brighten exactly as they did. The bell's shader lays
 // this texture over the moving layer (WARP_FS `fxt`). 2D draws them as before. Loaded after aspira-warplayers.js.
-const fxGl = { on: false, n: 0, inst: new Float32Array(15 * 4096), rgb: new Map() };
-const FXGL_IN = 15; // per shape (one GPU instance): p0, p1 (world), radius, line width, square, fill rgba, stroke rgba
+const fxGl = { on: false, n: 0, inst: new Float32Array(19 * 4096), rgb: new Map() };
+const FXGL_IN = 19; // per shape (one GPU instance): p0, p1 (world), radius, line width, shape, fill rgba, stroke rgba, the two joint planes
 // this frame's shots pass gathers for the GPU: 3D, with WebGL up (warpRender draws the moving layer just before warpDraw)
 function fxGlTake() { fxGl.on = !fxGl.broken && typeof q3d === "function" && q3d() && !!(typeof warp !== "undefined" && warp.gl); if (!fxGl.on) fxGl.n = 0; return fxGl.on; } // (broken: the 2D way)
 // a palette colour as 0..1 rgb, read once per colour string through a 1 px canvas
@@ -16,43 +16,54 @@ function fxGlRgb(css) {
   const x = (fxGl.px ||= Object.assign(document.createElement("canvas"), { width: 1, height: 1 })).getContext("2d", { willReadFrequently: true });
   x.clearRect(0, 0, 1, 1); x.fillStyle = css; x.fillRect(0, 0, 1, 1);
   const d = x.getImageData(0, 0, 1, 1).data;
-  c = [d[0] / 255, d[1] / 255, d[2] / 255]; fxGl.rgb.set(css, c);
+  c = [d[0] / 255, d[1] / 255, d[2] / 255, d[3] / 255]; fxGl.rgb.set(css, c); // (a colour with its own alpha keeps it)
   return c;
 }
 // one shape (world units): the round-ended segment x0,y0 - x1,y1 (a disc when they meet) r round it, filled at fillA in
-// fillCss and outlined lw wide at strokeA in strokeCss; square: a fillRect's square instead. Written straight into the
-// instance array the GPU reads
-function fxGlPush(x0, y0, x1, y1, r, lw, fillCss, fillA, strokeCss, strokeA, square) {
+// fillCss and outlined lw wide at strokeA in strokeCss; shape: 0 round, 1 (or true) a fillRect's square, 2 a butt-ended
+// segment (lineCap "butt"), 3 a disc clear at its centre to its colour at the rim (gradDisc), 4 a light cone (fxGlCone).
+// b0 / b1: a polyline's JOINTS - the segment is cut where it meets its neighbour (the bisector, normal b pointing along
+// the line) so two segments seen through never overlap there; 0, 0: an open end. Written straight into the instance
+// array the GPU reads
+function fxGlPush(x0, y0, x1, y1, r, lw, fillCss, fillA, strokeCss, strokeA, shape, b0x = 0, b0y = 0, b1x = 0, b1y = 0) {
   if (fxGl.n >= 1e6) return; // (a runaway: never in play)
   if ((fxGl.n + 1) * FXGL_IN > fxGl.inst.length) { const g = new Float32Array(fxGl.inst.length * 2); g.set(fxGl.inst); fxGl.inst = g; }
   const D = fxGl.inst, f = fxGlRgb(fillCss), c = strokeCss === fillCss ? f : fxGlRgb(strokeCss);
   let o = fxGl.n++ * FXGL_IN;
-  D[o++] = x0; D[o++] = y0; D[o++] = x1; D[o++] = y1; D[o++] = r; D[o++] = lw; D[o++] = square ? 1 : 0;
-  D[o++] = f[0]; D[o++] = f[1]; D[o++] = f[2]; D[o++] = fillA; D[o++] = c[0]; D[o++] = c[1]; D[o++] = c[2]; D[o] = strokeA;
+  D[o++] = x0; D[o++] = y0; D[o++] = x1; D[o++] = y1; D[o++] = r; D[o++] = lw; D[o++] = shape === true ? 1 : shape || 0;
+  D[o++] = f[0]; D[o++] = f[1]; D[o++] = f[2]; D[o++] = fillA * f[3]; D[o++] = c[0]; D[o++] = c[1]; D[o++] = c[2]; D[o++] = strokeA * c[3]; D[o++] = b0x; D[o++] = b0y; D[o++] = b1x; D[o] = b1y;
 }
 const fxGlDisc = (x, y, r, lw, css, fillA, strokeA, square) => fxGlPush(x, y, x, y, r, lw, css, fillA, css, strokeA, square);
 // tcam: the board picture's camera (ox, oy px, k px a world unit); the colours premultiplied here
 const FXGL_VS = `
-attribute vec2 corner, p0, p1; attribute vec3 rws; attribute vec4 fillC, strokeC;
-uniform vec2 S; uniform vec3 tcam; varying vec2 loc; varying vec4 v; varying vec4 fc, sc;
+attribute vec2 corner, p0, p1; attribute vec3 rws; attribute vec4 fillC, strokeC, clipB;
+uniform vec2 S; uniform vec3 tcam; varying vec2 loc; varying vec4 v, fc, sc, cb;
 void main() {
   vec2 a = tcam.xy + p0 * tcam.z, b = tcam.xy + p1 * tcam.z;
   vec2 d = b - a; float len = length(d); vec2 u = len > 0.001 ? d / len : vec2(1.0, 0.0), nrm = vec2(-u.y, u.x);
   float r = rws.x * tcam.z, h = rws.y * tcam.z * 0.5, ext = r + h + 1.5, hl = len * 0.5;
   loc = vec2(corner.x * (hl + ext), corner.y * ext); v = vec4(r, h, rws.z, hl);
+  cb = vec4(dot(clipB.xy, u), dot(clipB.xy, nrm), dot(clipB.zw, u), dot(clipB.zw, nrm)); /* the joint planes, in the segment's own frame */
+  if (rws.z > 3.5) { u = normalize(d); nrm = vec2(-u.y, u.x); loc = corner * (r + 1.5); v.w = len / tcam.z; } /* 4, a cone: round its tip, p1 - p0 its direction, its length the half angle */
+  vec2 mid = rws.z > 3.5 ? a : (a + b) * 0.5;
   fc = vec4(fillC.rgb * fillC.a, fillC.a); sc = vec4(strokeC.rgb * strokeC.a, strokeC.a);
-  vec2 p = (a + b) * 0.5 + u * loc.x + nrm * loc.y;
+  vec2 p = mid + u * loc.x + nrm * loc.y;
   gl_Position = vec4(p.x / S.x * 2.0 - 1.0, p.y / S.y * 2.0 - 1.0, 0.0, 1.0);
 }`;
 const FXGL_FS = `
 precision mediump float;
-varying vec2 loc; varying vec4 v; varying vec4 fc, sc;
+varying vec2 loc; varying vec4 v, fc, sc, cb;
 void main() {
-  float d = v.z > 0.5 ? max(abs(loc.x), abs(loc.y)) : length(vec2(max(abs(loc.x) - v.w, 0.0), loc.y));
+  if ((dot(cb.xy, cb.xy) > 0.0 && dot(loc + vec2(v.w, 0.0), cb.xy) < 0.0) || (dot(cb.zw, cb.zw) > 0.0 && dot(loc - vec2(v.w, 0.0), cb.zw) > 0.0)) discard;
+  float sh = floor(v.z + 0.5);
+  float d = sh == 1.0 ? max(abs(loc.x), abs(loc.y)) : sh == 2.0 ? max(abs(loc.x) - v.w + v.x, abs(loc.y)) : length(vec2(max(abs(loc.x) - v.w, 0.0), loc.y)); /* square, butt segment, round */
   float r = max(v.x, 0.5), h = max(v.y, 0.5); /* under a pixel: drawn a pixel wide at its coverage, as a canvas does */
-  float fa = (1.0 - smoothstep(r - 0.5, r + 0.5, d)) * min(1.0, v.x * 2.0);
+  float fa = (1.0 - smoothstep(r - 0.5, r + 0.5, d)) * min(1.0, v.x * 2.0), g = 1.0; /* g: a gradient's share of the colour */
   float sa = v.y > 0.0 ? (1.0 - smoothstep(h - 0.5, h + 0.5, abs(d - v.x))) * min(1.0, v.y * 2.0) : 0.0;
-  vec4 s = sc * sa, f = fc * fa;
+  if (sh == 3.0) g = clamp(d / max(v.x, 0.001), 0.0, 1.0); /* the gradient disc: clear at the centre to its colour at the rim */
+  if (sh == 4.0) { float dd = length(loc), ang = abs(atan(loc.y, loc.x)); fa = (1.0 - smoothstep(v.x - 0.5, v.x + 0.5, dd)) * (1.0 - smoothstep(-0.5, 0.5, (ang - v.w) * dd)); g = clamp(1.0 - dd / max(2.0 * v.y, 0.001), 0.0, 1.0); sa = 0.0; } /* the cone: its colour at the tip to clear at 2h */
+  /* a canvas gradient to "transparent" (black at alpha 0) runs through the dark between: colour x g x g, alpha x g */
+  vec4 s = sc * sa, f = vec4(fc.rgb * g * g, fc.a * g) * fa;
   gl_FragColor = s + f * (1.0 - s.a);
 }`;
 function fxGlInit(gl) {
@@ -64,7 +75,7 @@ function fxGlInit(gl) {
   const ext = gl.getExtension("ANGLE_instanced_arrays"), pr = gl.createProgram();
   gl.attachShader(pr, sh(gl.VERTEX_SHADER, FXGL_VS)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, FXGL_FS)); gl.linkProgram(pr);
   if (!ext || !gl.getProgramParameter(pr, gl.LINK_STATUS)) { fxGl.broken = true; return null; } // (no instancing: the 2D way)
-  const loc = {}; for (const n of ["corner", "p0", "p1", "rws", "fillC", "strokeC"]) loc[n] = gl.getAttribLocation(pr, n);
+  const loc = {}; for (const n of ["corner", "p0", "p1", "rws", "fillC", "strokeC", "clipB"]) loc[n] = gl.getAttribLocation(pr, n);
   const quad = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, quad); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]), gl.STATIC_DRAW);
   Object.assign(fxGl, { gl, pr, ext, tex, quad, fb: gl.createFramebuffer(), buf: gl.createBuffer(), loc, S: 1, u: { S: gl.getUniformLocation(pr, "S"), tcam: gl.getUniformLocation(pr, "tcam") } });
   return fxGl;
@@ -86,9 +97,9 @@ function fxGlRender(gl) {
     gl.bindBuffer(gl.ARRAY_BUFFER, fxGl.quad); gl.enableVertexAttribArray(L.corner); gl.vertexAttribPointer(L.corner, 2, gl.FLOAT, false, 0, 0);
     gl.bindBuffer(gl.ARRAY_BUFFER, fxGl.buf); gl.bufferData(gl.ARRAY_BUFFER, fxGl.inst.subarray(0, n * FXGL_IN), gl.STREAM_DRAW);
     const st = FXGL_IN * 4, at = (name, size, off) => { const l = L[name]; gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l, size, gl.FLOAT, false, st, off * 4); X.vertexAttribDivisorANGLE(l, 1); };
-    at("p0", 2, 0); at("p1", 2, 2); at("rws", 3, 4); at("fillC", 4, 7); at("strokeC", 4, 11);
+    at("p0", 2, 0); at("p1", 2, 2); at("rws", 3, 4); at("fillC", 4, 7); at("strokeC", 4, 11); at("clipB", 4, 15);
     X.drawArraysInstancedANGLE(gl.TRIANGLES, 0, 6, n);
-    for (const name of ["corner", "p0", "p1", "rws", "fillC", "strokeC"]) { X.vertexAttribDivisorANGLE(L[name], 0); gl.disableVertexAttribArray(L[name]); } // (the bell's program shares the attribute slots)
+    for (const name of ["corner", "p0", "p1", "rws", "fillC", "strokeC", "clipB"]) { X.vertexAttribDivisorANGLE(L[name], 0); gl.disableVertexAttribArray(L[name]); } // (the bell's program shares the attribute slots)
   }
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   fxGl.n = 0;
@@ -122,3 +133,8 @@ function fxGlBeam(f, a) {
 }
 // the COINS (drawCoins, aspira-floats.js) in 3D: a disc in its fill, ringed in its ring colour when the two differ
 function fxGlCoin(x, y, r, ring, fill, a) { fxGlPush(x, y, x, y, r, ring !== fill ? 1.1 : 0, COL[fill], a, COL[ring], ring !== fill ? a : 0); }
+// SOL's light CONE (drawCone, aspira-skills.js) through the GPU stand-in: a sector f.half either side of f.a, f.len long,
+// its colour at the tip fading to clear at f.len x SOL_CONE_FADE
+function fxGlCone(f, a) {
+  fxGlPush(f.x, f.y, f.x + Math.cos(f.a) * f.half, f.y + Math.sin(f.a) * f.half, f.len, f.len * SOL_CONE_FADE, COL[f.color], a, COL[f.color], 0, 4);
+}
