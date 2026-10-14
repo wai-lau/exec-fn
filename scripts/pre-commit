@@ -19,6 +19,17 @@ TEST_DIRS="$HOST/tests/"
 for d in "$HOST"/apps/*/tests "$HOST"/claude-box/tests; do
   [ -d "$d" ] && TEST_DIRS="$TEST_DIRS $d/"
 done
+# The pytest every gate below uses -- the host's venv, else one on PATH, else
+# empty (each pytest gate then skips cleanly, e.g. on a fresh clone).
+PYTEST=""
+if [ -x "$HOST/.venv/bin/pytest" ]; then
+  PYTEST="$HOST/.venv/bin/pytest"
+elif command -v pytest &>/dev/null; then
+  PYTEST=pytest
+fi
+# What the commit stages (added/copied/modified/renamed), read ONCE; every gate
+# below filters this list instead of asking git again.
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR)
 
 TEMPLATES="api/templates"
 TMPDIR_="$(mktemp -d)"
@@ -56,7 +67,7 @@ if [ $fail -ne 0 ]; then
 fi
 
 # Python lint
-PY_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep '\.py$' || true)
+PY_FILES=$(printf '%s\n' "$STAGED" | grep '\.py$' || true)
 if [ -n "$PY_FILES" ]; then
   if ! ~/.local/bin/ruff check $PY_FILES 2>&1; then
     echo ""
@@ -73,7 +84,7 @@ fi
 # edits, and two Claude sessions share it, so somebody's half-written rule in a
 # file you have never opened would block every commit anyone tried to make until
 # they happened to finish. A pre-commit hook judges the commit.
-CSS_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^web/.*\.css$' | grep -vE '^web/vendor/' || true)
+CSS_FILES=$(printf '%s\n' "$STAGED" | grep -E '^web/.*\.css$' | grep -vE '^web/vendor/' || true)
 if [ -n "$CSS_FILES" ] && command -v stylelint &>/dev/null; then
   if ! echo "$CSS_FILES" | xargs stylelint 2>&1; then
     echo ""
@@ -85,7 +96,7 @@ fi
 # Palette discipline — no new colors or alphas (full-tree scan; runs when any
 # css / web-js / template is staged). chrome.css is the only place to add a
 # colour; scripts/lint-colors.py's APPROVED_ALPHAS the only place to add an alpha.
-PALETTE_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^(web/.*\.(css|js)|api/templates/.*\.html)$' | grep -vE '^web/vendor/' || true)
+PALETTE_FILES=$(printf '%s\n' "$STAGED" | grep -E '^(web/.*\.(css|js)|api/templates/.*\.html)$' | grep -vE '^web/vendor/' || true)
 if [ -n "$PALETTE_FILES" ]; then
   if ! python3 "$HOST/scripts/lint-colors.py"; then
     echo ""
@@ -98,7 +109,7 @@ fi
 # runs when any web css is staged). Every governed property (spacing / radius /
 # font-size / weight / line-height / letter-spacing / font-family) must use a
 # chrome.css scale token; scripts/scale-codemod.py snaps a page onto them.
-SCALE_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^web/.*\.css$' | grep -vE '^web/vendor/' || true)
+SCALE_FILES=$(printf '%s\n' "$STAGED" | grep -E '^web/.*\.css$' | grep -vE '^web/vendor/' || true)
 if [ -n "$SCALE_FILES" ]; then
   if ! python3 "$HOST/scripts/lint-scale.py"; then
     echo ""
@@ -110,7 +121,7 @@ fi
 
 # Shell lint
 if command -v shellcheck &>/dev/null; then
-  SHELL_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep '\.sh$' || true)
+  SHELL_FILES=$(printf '%s\n' "$STAGED" | grep '\.sh$' || true)
   if [ -n "$SHELL_FILES" ]; then
     if ! shellcheck --severity=warning $SHELL_FILES 2>&1; then
       echo ""
@@ -143,7 +154,7 @@ PYEOF
   fi
   # Lint staged web/*.js too (mainly the per-function size cap). Staged-only =
   # a ratchet: untouched legacy isn't forced, but a file you touch must comply.
-  WEB_JS=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^web/.*\.js$' | grep -vE '^web/vendor/' || true)
+  WEB_JS=$(printf '%s\n' "$STAGED" | grep -E '^web/.*\.js$' | grep -vE '^web/vendor/' || true)
   if [ -n "$WEB_JS" ]; then
     if ! eslint $WEB_JS 2>&1; then
       echo ""
@@ -154,7 +165,7 @@ PYEOF
 fi
 
 # ── No code swallowed by a mid-line // comment in staged web/*.js (scripts/lint-swallowed.py; it broke /spire 3x). ──
-SWALLOW_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^web/[^/]+\.js$' || true)
+SWALLOW_FILES=$(printf '%s\n' "$STAGED" | grep -E '^web/[^/]+\.js$' || true)
 if [ -n "$SWALLOW_FILES" ]; then
   # shellcheck disable=SC2086
   if ! python3 "$HOST/scripts/lint-swallowed.py" $SWALLOW_FILES; then
@@ -167,7 +178,7 @@ fi
 LINE_CAP=500
 LINE_CAP_ALLOW=""
 cap_fail=0
-CAP_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(py|js)$' | grep -vE '^(node_modules|graphify-out|web/vendor)/' || true)
+CAP_FILES=$(printf '%s\n' "$STAGED" | grep -E '\.(py|js)$' | grep -vE '^(node_modules|graphify-out|web/vendor)/' || true)
 for f in $CAP_FILES; do
   case " $LINE_CAP_ALLOW " in *" $f "*) continue ;; esac
   n=$(git show ":$f" | wc -l)
@@ -178,7 +189,7 @@ for f in $CAP_FILES; do
 done
 
 # ── No multi-line inline <script>/<style> in templates (one-liner handlers ok). ──
-TPL_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^api/templates/.*\.html$' || true)
+TPL_FILES=$(printf '%s\n' "$STAGED" | grep -E '^api/templates/.*\.html$' || true)
 for f in $TPL_FILES; do
   if ! git show ":$f" | python3 -c 'import sys,re; s=sys.stdin.read(); b=re.findall(r"<style[^>]*>(.*?)</style>",s,re.S)+re.findall(r"<script(?![^>]*\bsrc\b)[^>]*>(.*?)</script>",s,re.S); sys.exit(1 if any(chr(10) in x.strip() for x in b) else 0)'; then
     echo "$f: multi-line inline <script>/<style> — extract to web/ (one-liners ok)."
@@ -203,14 +214,8 @@ fi
 # no live app, no app needed — so a missing fixture fails here regardless of
 # which file is staged. Fires whenever any test or api .py is staged (the two
 # places a fixture or its consumer changes). Skips cleanly with no pytest venv.
-FIXTURES_CHANGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^tests/.*\.py$|^api/.*\.py$' || true)
+FIXTURES_CHANGED=$(printf '%s\n' "$STAGED" | grep -E '^tests/.*\.py$|^api/.*\.py$' || true)
 if [ -n "$FIXTURES_CHANGED" ]; then
-  PYTEST=""
-  if [ -x "$HOST/.venv/bin/pytest" ]; then
-    PYTEST="$HOST/.venv/bin/pytest"
-  elif command -v pytest &>/dev/null; then
-    PYTEST=pytest
-  fi
   if [ -z "$PYTEST" ]; then
     echo "NOTE: skipping fixture-resolution check — no pytest venv."
   elif ! FX_OUT=$("$PYTEST" $TEST_DIRS --setup-plan -q 2>&1); then
@@ -228,14 +233,8 @@ fi
 # A broken route (wrong status / 500) fails and blocks the commit. A missing
 # dev venv (fresh clone) or an unreachable app skips cleanly — the suite's
 # conftest pytest.skips when :8080 is down, so a stopped app never blocks.
-SRC_CHANGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^api/.*\.py$|^api/templates/.*\.html$' || true)
+SRC_CHANGED=$(printf '%s\n' "$STAGED" | grep -E '^api/.*\.py$|^api/templates/.*\.html$' || true)
 if [ -n "$SRC_CHANGED" ]; then
-  PYTEST=""
-  if [ -x "$HOST/.venv/bin/pytest" ]; then
-    PYTEST="$HOST/.venv/bin/pytest"
-  elif command -v pytest &>/dev/null; then
-    PYTEST=pytest
-  fi
   if [ -z "$PYTEST" ]; then
     echo "NOTE: skipping page smoke tests — no pytest. Run:"
     echo "      python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt"
@@ -283,14 +282,8 @@ run_capped() {
   fi
 }
 
-TAROT_CHANGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^api/tarot/|^api/templates/tarot\.html$|^web/tarot.*\.js$|^web/hosaka-audio\.js$|^tests/test_tarot_progression\.py$' || true)
+TAROT_CHANGED=$(printf '%s\n' "$STAGED" | grep -E '^api/tarot/|^api/templates/tarot\.html$|^web/tarot.*\.js$|^web/hosaka-audio\.js$|^tests/test_tarot_progression\.py$' || true)
 if [ -n "$TAROT_CHANGED" ]; then
-  PYTEST=""
-  if [ -x "$HOST/.venv/bin/pytest" ]; then
-    PYTEST="$HOST/.venv/bin/pytest"
-  elif command -v pytest &>/dev/null; then
-    PYTEST=pytest
-  fi
   if [ -z "$PYTEST" ]; then
     echo "NOTE: skipping tarot progression tests — no pytest venv."
   elif ! SMOKE_BASE_URL="${SMOKE_BASE_URL:-http://localhost:8080}" run_capped "$PYTEST" "$HOST/tests/test_tarot_progression.py" -q; then
@@ -305,14 +298,8 @@ fi
 # ones) without a real TTS box — the boundary is mocked. Run it when the voice
 # scripts / their wiring / this test are staged. Skips cleanly (no pytest venv,
 # no WebKit, or app down), same as the tarot suite.
-VOICE_CHANGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^web/exec-voice\.js$|^web/exec-voice-listener\.js$|^web/voice-util\.js$|^web/exec-bubble\.js$|^web/hosaka-audio\.js$|^api/pages\.py$|^tests/test_exec_voice_browser\.py$' || true)
+VOICE_CHANGED=$(printf '%s\n' "$STAGED" | grep -E '^web/exec-voice\.js$|^web/exec-voice-listener\.js$|^web/voice-util\.js$|^web/exec-bubble\.js$|^web/hosaka-audio\.js$|^api/pages\.py$|^tests/test_exec_voice_browser\.py$' || true)
 if [ -n "$VOICE_CHANGED" ]; then
-  PYTEST=""
-  if [ -x "$HOST/.venv/bin/pytest" ]; then
-    PYTEST="$HOST/.venv/bin/pytest"
-  elif command -v pytest &>/dev/null; then
-    PYTEST=pytest
-  fi
   if [ -z "$PYTEST" ]; then
     echo "NOTE: skipping exec-voice tests — no pytest venv."
   elif ! SMOKE_BASE_URL="${SMOKE_BASE_URL:-http://localhost:8080}" run_capped "$PYTEST" "$HOST/tests/test_exec_voice_browser.py" -q; then
@@ -325,7 +312,7 @@ fi
 # Docs reminder (non-blocking): substantive source changed but docs not staged.
 # The hook can't judge necessity — it just nudges so route/pipeline/schema/data/
 # naming changes don't ship with stale CLAUDE.md / ARCHITECTURE.md / ARCHAEOLOGY.md.
-CHANGED=$(git diff --cached --name-only --diff-filter=ACMR || true)
+CHANGED="$STAGED"
 CODE_CHANGED=$(echo "$CHANGED" | grep -E '^api/.*\.py$|^api/templates/.*\.html$' || true)
 DOCS_CHANGED=$(echo "$CHANGED" | grep -E '^CLAUDE\.md$|^ARCHITECTURE\.md$|^ARCHAEOLOGY\.md$' || true)
 if [ -n "$CODE_CHANGED" ] && [ -z "$DOCS_CHANGED" ]; then
