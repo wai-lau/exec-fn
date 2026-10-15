@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "api"))
 for _k in ("API_KEY", "TURNSTILE_SITE_KEY", "TURNSTILE_SECRET"):
     os.environ.setdefault(_k, "test")  # read at import by auth/routers
 
-import routes_api  # noqa: E402
+import routes_morning as routes_api  # noqa: E402
 
 
 def _run(monkeypatch, cc_result, morning=None):
@@ -79,3 +79,10 @@ def test_crashed_morning_is_posted_then_raised(monkeypatch):
     with pytest.raises(HTTPException):
         asyncio.run(routes_api.api_morning())
     assert len(posted) == 1 and "disk full" in posted[0]
+
+
+def test_gcal_invalid_grant_error_carries_regrant_link():
+    """An expired gcal token can only be fixed by hand — the error says where."""
+    fix = routes_api._morning_error_fix("gcal_import", "('invalid_grant: Token has been expired or revoked.', {})")
+    assert "https://wai-lau.net/api/gcal/auth" in fix
+    assert routes_api._morning_error_fix("gcal_import", "timeout") == ""

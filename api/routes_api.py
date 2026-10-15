@@ -11,8 +11,6 @@ from fastapi import Request, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 
 from routers import public, protected
-from morning import build_morning
-import cc_client
 from card_llm import classify_card, parse_date_natural
 from gcal import gcal_start_auth, gcal_complete_auth
 from helpers import (
@@ -20,42 +18,10 @@ from helpers import (
 )
 from monitor import schedule_monitor, flush_monitor, _entry_is_significant
 from monitor_sse import _monitor_subscribers, push_to_monitor
-from chat_store import append_monitor_comment
 import nudge_llm as _nllm
 from nudge_loop import _nudge_tick
 
 _RD_COLUMNS = ["rd", "hq", "archives", "exile"]
-
-
-@protected.post("/api/morning")
-async def api_morning():
-    try:
-        result = await asyncio.to_thread(build_morning)
-    except Exception as e:
-        await _post_morning_errors({"morning": str(e)})
-        raise HTTPException(status_code=500, detail=str(e))
-    # The Exec panel's thread lives in the cc sidecar, not chat.json — end it
-    # too, or the panel never starts a fresh day. Sidecar /new archives first.
-    cc = await cc_client.new_conversation()
-    if not cc.get("ok", True):
-        result.setdefault("errors", {})["cc_new"] = cc.get("detail", "failed")
-    if result.get("errors"):
-        await _post_morning_errors(result["errors"])
-    # Tell any open board to refresh (rollover re-laid the day).
-    await push_to_monitor({"cards_changed": True})
-    return result
-
-
-async def _post_morning_errors(errors: dict) -> None:
-    """Put the morning run's failures in the Exec chat (panel + Discord), so a
-    broken step is seen the same day instead of only in /debug's cron log."""
-    lines = "\n".join(f"- `{step}`: {msg}" for step, msg in errors.items())
-    text = f"**Morning run errors** ({len(errors)}):\n{lines}"
-    try:
-        append_monitor_comment(text)
-        await push_to_monitor({"comment": text})
-    except Exception:
-        pass   # reporting a failure must never become the failure
 
 
 @protected.get("/api/rd")
