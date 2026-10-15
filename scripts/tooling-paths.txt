@@ -10,6 +10,7 @@
 /scripts/lint-colors.py
 /scripts/lint-scale.py
 /scripts/lint-swallowed.py
+/scripts/render-mermaid.py
 /scripts/palette-baseline.json
 /scripts/raw-color-baseline.json
 /scripts/scale-baseline.json
