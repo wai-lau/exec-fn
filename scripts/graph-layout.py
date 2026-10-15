@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compute /graph's node layout once, out of band, and bake it to disk.
 
-Stabilising this graph is ~270 forceAtlas2 iterations over ~2700 nodes. On a
+Stabilising this graph is ~300 forceAtlas2 iterations over ~2700 nodes. On a
 desktop that is a few seconds under the loading cover; on a phone it measured
 around THIRTY, on every single visit, for a layout that comes out the same every
 time. So it is computed here instead, nightly, right after the graphify rebuild.

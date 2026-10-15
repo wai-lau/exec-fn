@@ -9,7 +9,7 @@
 // always readable, and the arc shows itself in the spacing instead: slots bunch
 // up toward the rim exactly the way the seats of a turning wheel do.
 //
-// DTH = PI / n is the load-bearing choice. It puts the SEAM -- where an item
+// DTH = (PI/2)/K is the load-bearing choice (K: see wheelGeometry below). It puts the SEAM -- where an item
 // wraps from the bottom of the ring back round to the top -- at exactly 90
 // degrees, where a spoke is edge-on and cos(theta) is 0. An item is therefore
 // already fully transparent at the instant it teleports, so the ring closes

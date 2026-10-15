@@ -159,8 +159,8 @@ def _active_nudge_block(cards: list) -> str:
 
 
 # Static, never-per-request slice of the exec system prompt — identity + voice +
-# global rules. Built once at import. With the exec tools (~3.5K) it forms a
-# ~5.2K-token prefix that clears opus's 4096 cache minimum, so a cache_control
+# global rules. Built once at import. With the exec tools it forms a ~6.5K-token
+# prefix (6,494 measured 2026-10-14, ARCHITECTURE.md §5) that clears opus's 4096 cache minimum, so a cache_control
 # marker on this block caches tools+this together. EVERYTHING that varies
 # per-request (TODAY, activity log, card lists, schedule, context, nudge block)
 # is appended AFTER this in a second, unmarked system block — that's what keeps
