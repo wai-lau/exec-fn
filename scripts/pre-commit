@@ -150,9 +150,13 @@ fi
 # eslint's config imports @eslint/js + globals from exec-fn's node_modules, and
 # finds its config by walking up from the cwd -- so it runs inside exec-fn (a
 # submodule included) and is skipped, with a note, in a tooling-only copy.
+# Prefer exec-fn's own eslint: a distro /usr/bin/eslint (Ubuntu ships 6.x) predates flat
+# config and dies on eslint.config.mjs with "couldn't find a configuration file".
+ESLINT="$HOST/node_modules/.bin/eslint"
+[ -x "$ESLINT" ] || ESLINT="$(command -v eslint || true)"
 if [ ! -d "$HOST/node_modules" ]; then
   echo "NOTE: skipping eslint -- no node_modules beside the tooling ($HOST)."
-elif command -v eslint &>/dev/null; then
+elif [ -n "$ESLINT" ]; then
   JSTMP="$(mktemp -d "$REPO_ROOT/.eslint-tmp-XXXXXX")"
   trap 'rm -rf "$JSTMP"' EXIT
   python3 - "$TEMPLATES" "$JSTMP" <<'PYEOF'
@@ -166,7 +170,7 @@ for f in Path(tmpl_dir).glob("*.html"):
         (Path(outdir) / (f.name + '.js')).write_text('\n;\n'.join(blocks))
 PYEOF
   if ls "$JSTMP"/*.js &>/dev/null; then
-    if ! eslint "$JSTMP"/*.js 2>&1 | sed "s|$JSTMP/||g; s|\.html\.js|.html|g"; then
+    if ! "$ESLINT" "$JSTMP"/*.js 2>&1 | sed "s|$JSTMP/||g; s|\.html\.js|.html|g"; then
       echo ""
       echo "JS errors found — commit blocked. Fix before committing."
       exit 1
@@ -176,7 +180,7 @@ PYEOF
   # a ratchet: untouched legacy isn't forced, but a file you touch must comply.
   WEB_JS=$(printf '%s\n' "$STAGED" | grep -E '^web/.*\.js$' | grep -vE '^web/vendor/' || true)
   if [ -n "$WEB_JS" ]; then
-    if ! eslint $WEB_JS 2>&1; then
+    if ! "$ESLINT" $WEB_JS 2>&1; then
       echo ""
       echo "JS errors found in web/ — commit blocked. Fix before committing."
       exit 1
