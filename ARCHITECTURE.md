@@ -3349,4 +3349,4 @@ noodle left this repo on 2026-10-14: `wai-lau/noodle`, consumed as the submodule
 
 ## 22. /spire — moved to its own repo
 
-THE SPIRE left this repo on 2026-10-14: `wai-lau/spire`, consumed as the submodule `apps/spire` (history kept — 1,172 commits, `git filter-repo`). This section's 818 lines are its `ARCHITECTURE.md` now, with its own `CLAUDE.md`. How the parent serves it: §1e.
+THE SPIRE left this repo on 2026-10-14: `wai-lau/spire`, consumed as the submodule `apps/spire` (history kept — 1,172 commits, `git filter-repo`). This section became its `ARCHITECTURE.md` — since rewritten (2026-10-14) as a topic-ordered game design doc, history in its `ARCHAEOLOGY.md`, with its own `CLAUDE.md`. How the parent serves it: §1e.
