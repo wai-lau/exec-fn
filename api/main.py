@@ -27,6 +27,7 @@ from asset_version import VersionedAssetsMiddleware
 import log_masking
 import routes_views  # noqa: F401  — registers HTML routes on the shared routers
 import routes_api    # noqa: F401  — registers JSON routes on the shared routers
+import routes_morning  # noqa: F401  — POST /api/morning
 import routes_tts    # noqa: F401  — registers the /tts page + WS reverse-proxy
 import routes_graph  # noqa: F401  — registers /graph (graphify viz, scrubbed + restyled)
 import routes_printer  # noqa: F401  — registers /printer + the ELEGOO printer reverse proxy
