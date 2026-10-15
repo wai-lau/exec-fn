@@ -64,4 +64,6 @@ def test_sidecar_reachable_through_the_parent(client, admin_cookie):
     r = client.get("/api/cc/health", headers=admin_cookie, timeout=15.0)
     assert r.status_code == 200
     body = r.json()
+    if body.get("detail") == "CC_SIDECAR_TOKEN unset":
+        pytest.skip("no sidecar on this box (CC_SIDECAR_TOKEN unset) - a dev mirror, not the droplet")
     assert body.get("ok") is True and body.get("authed") is True, body
