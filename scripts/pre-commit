@@ -146,6 +146,25 @@ if command -v shellcheck &>/dev/null; then
   fi
 fi
 
+# Mermaid diagrams: a staged .mmd is re-rendered to the .svg beside it and the
+# SVG joins the commit. Docs embed the SVG, not the fence: the Claude Code app's
+# markdown viewer prints a mermaid fence as a code block (GitHub renders both).
+# Needs the host's .venv (playwright + WebKit); a tooling-only copy just says so.
+MMD=$(printf '%s\n' "$STAGED" | grep -E '\.mmd$' || true)
+if [ -n "$MMD" ]; then
+  if [ -x "$HOST/.venv/bin/python" ]; then
+    if ! "$HOST/.venv/bin/python" "$HOST/scripts/render-mermaid.py" $MMD; then
+      echo ""
+      echo "mermaid render failed — commit blocked. Fix the .mmd before committing."
+      exit 1
+    fi
+    git add $(printf '%s\n' "$MMD" | sed 's/\.mmd$/.svg/')
+    echo "mermaid: rendered $(printf '%s\n' "$MMD" | wc -l) diagram(s); the SVGs are staged"
+  else
+    echo "NOTE: skipping mermaid render -- no .venv beside the tooling ($HOST); run scripts/render-mermaid.py yourself."
+  fi
+fi
+
 # JS lint (extract inline scripts from templates)
 # eslint's config imports @eslint/js + globals from exec-fn's node_modules, and
 # finds its config by walking up from the cwd -- so it runs inside exec-fn (a
