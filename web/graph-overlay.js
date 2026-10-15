@@ -142,9 +142,9 @@
   // intent into scale + pan bounds and clamp them in place on each USER
   // gesture:
   //   - zoom OUT wall: the whole cloud CONTAINS, with a little air around it.
-  //     Deliberately looser than the cover the page opens at, so zooming out to
-  //     see every node at once is still allowed. It used to cap the viewport at
-  //     half the cloud's area, which the opening view violated on arrival.
+  //     The page opens AT this wall (contain x FIT_MARGIN, placeAndOpen), so
+  //     the whole cloud is on screen on arrival and the first gesture can only
+  //     go inward.
   //   - zoom IN wall: viewport world-area >= 2 nodes' worth of area, so >= ~2
   //     nodes stay in frame  -> a maximum scale.
   //   - pan wall: the viewport centre is clamped to the node bounding box, so
@@ -328,14 +328,8 @@
 
   function placeAndOpen(cover) {
     {
-      // Open on COVER, not contain — a wallpaper's fill mode. vis's own fit()
-      // is contain: it scales until the limiting axis fits and leaves the other
-      // one as empty margin, which on this near-square cloud in a wide window
-      // was two black bands and the graph sitting in the middle distance. Cover
-      // takes the scale from the OTHER axis instead, so neither edge has a gap
-      // and the graph runs off the limiting one. Centred on the node bounding
-      // box, so what overflows is shared evenly top and bottom (or left and
-      // right), never all at one end.
+      // Snap the cloud to the lattice, then open centred on the node bounding
+      // box at the zoom-out wall (below).
       // Timed, and left on the window for the cover to read: this is one of
       // the three numbers that say where a slow load went, and the only one
       // measured on our side of the payload.

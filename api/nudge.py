@@ -64,8 +64,8 @@ def window_for(card: dict) -> int:
 def decomposable(c: dict) -> bool:
     """Every actionable hq card should carry a plan (graph), placed today or not.
 
-    Events are included (they can have prep steps) but never get time-based
-    nudges — `_eligible` excludes them via `is_dir_card`. Reminders (no work)
+    Events are included (they can have prep steps) and nudge like any other
+    card scheduled today (`_eligible`). Reminders (no work)
     and books (reading only) are excluded from plans entirely.
     """
     return (
