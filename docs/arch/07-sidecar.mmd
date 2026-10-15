@@ -1,0 +1,19 @@
+flowchart LR
+  subgraph Browser
+    P["Exec panel<br/>exec-stream.js"]
+  end
+  subgraph Container["app container (FastAPI)"]
+    RC["routes_cc.py<br/>/api/cc/* (protected)"]
+    CL["cc_client.py<br/>x-cc-token"]
+    RE["routes_exec.py<br/>/api/exec/* (sidecar token)"]
+    ET["exec_tools.run_tool<br/>rd.json + _RD_LOCK"]
+  end
+  subgraph Host["droplet host (cc-agent)"]
+    SC["claude-box/server.mjs<br/>172.17.0.1:8129"]
+  end
+  P -->|"POST /api/cc/query (SSE)"| RC
+  RC --> CL
+  CL -->|"HTTP, frames relayed"| SC
+  SC -->|"GET /prompt, /tools<br/>POST /tool/name"| RE
+  RE --> ET
+  ET -.->|"cards_changed (monitor SSE)"| P

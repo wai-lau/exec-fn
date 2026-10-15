@@ -1,0 +1,10 @@
+flowchart TB
+  sse["SSE deltas<br/>push(text) into tw.buffered"] --> eof{"read loop ends,<br/>text final"}
+  eof --> speak["execVoice.speak(fullText)<br/>fire-and-forget, BEFORE the await"]
+  speak --> ctl{"controller"}
+  ctl -->|"dead or queued"| guess["twGuess<br/>silent pace, speed 5"]
+  ctl -->|"live"| audio["twAudio<br/>rescaled to utterance"]
+  audio -->|"no audio in 12s or stall 2.5s"| guess
+  guess --> done["await reveal done"]
+  audio --> done
+  done --> settle["settle pass<br/>markdown, SVG, rule links"]

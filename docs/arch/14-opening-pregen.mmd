@@ -1,0 +1,18 @@
+flowchart TD
+  subgraph gen["Generation (openings_gen.py)"]
+    g1["one opus call per hour<br/>batch of variants"] --> g2{"blank line, ends in ?,<br/>420 chars or fewer,<br/>no marker echo?"}
+    g2 -->|no| drop["dropped, not repaired"]
+    g2 -->|yes| g3["voice_synth renders WAV<br/>nicole on kokoro"]
+    g3 --> g4["data/tarot_openings/<br/>index.json + id.wav"]
+  end
+  nightly["05:45 loop (openings_loop.py)<br/>probe voice, top up to 10 per hour"] --> g1
+  subgraph page["Page load (tarot-opening.js)"]
+    p1["first turn only:<br/>no Significator, no spread"] --> p2["GET /api/tarot/opening?hour=<br/>client hour"]
+    p2 --> p3{"clip?"}
+    p3 -->|null or fetch fails| live["live opus turn"]
+    p3 -->|clip| p4["prefetch WAV during<br/>tap-to-begin hold"]
+    p4 --> p5["typewriter reveal<br/>waits up to 5s for audio"]
+    p5 --> p6["push as assistant message"]
+  end
+  g4 --> p2
+  warm["POST /api/tarot/warm<br/>300s cooldown"] -.-> p1

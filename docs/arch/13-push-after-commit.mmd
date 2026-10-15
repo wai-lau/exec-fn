@@ -1,0 +1,11 @@
+flowchart TD
+  c["git commit ran"] --> ah{"HEAD ahead<br/>of upstream?"}
+  ah -->|no| done["nothing"]
+  ah -->|"detached, no upstream,<br/>mid-rebase"| skip["skip, say why"]
+  ah -->|yes| push["git push"]
+  push -->|ok| sub{"commit was in<br/>a submodule?"}
+  push -->|rejected| rb["checkout graphify-out,<br/>pull --rebase, push"]
+  rb --> sub
+  sub -->|no| done
+  sub -->|yes| bump["bump parent gitlink only,<br/>forward only, own commit"]
+  bump --> pp["push parent"]

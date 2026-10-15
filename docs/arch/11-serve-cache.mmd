@@ -1,0 +1,13 @@
+flowchart TD
+  Q["GET /graph"] --> T{"relayout=1?"}
+  T -- "yes" --> BD["_build off-loop<br/>no layout, never cached"]
+  T -- "no" --> KY["key = graph.html mtime_ns + size<br/>+ graph-layout.json mtime_ns + size"]
+  KY --> CH{"key changed?"}
+  CH -- "yes" --> CL["clear whole _CACHE"]
+  CH -- "no" --> HIT
+  CL --> HIT{"(guest, lite)<br/>cached?"}
+  HIT -- "no" --> RN["asyncio.to_thread(_build)<br/>under _CACHE_LOCK"]
+  HIT -- "yes" --> ET
+  RN --> ET["ETag = md5 of page<br/>Cache-Control no-cache"]
+  ET --> R["200, or 304 on If-None-Match"]
+  W["run_graph_warm_loop<br/>every 600s"] -. "pre-renders 4 variants<br/>when the key moves" .-> HIT

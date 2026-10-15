@@ -1,0 +1,9 @@
+flowchart TB
+  sse["monitor SSE<br/>cards_changed"] --> ev["exec:cards-changed"]
+  re["SSE re-open<br/>onopen after first"] --> ev
+  ev --> can{"hqCanReload()<br/>not dragging, saveTimer null,<br/>no PATCH in flight"}
+  wake["visible after 30s hidden<br/>or bfcache pageshow"] --> can
+  can -->|"yes, event"| lw["load(weekStart)"]
+  can -->|"yes, wake"| ln["load(null)<br/>re-anchor to logical today"]
+  can -->|"no"| skip["skipped"]
+  drag["drag or tap edit"] --> st["saveTimer 600ms"] --> fl["flushUpdates<br/>nulls saveTimer first"] --> pt["PATCH /api/hq<br/>merge-by-id"]

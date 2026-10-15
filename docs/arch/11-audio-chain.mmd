@@ -1,0 +1,15 @@
+flowchart LR
+  SRC["graph-source<br/>file, tab, loopback, mic"] --> AN["AnalyserNode<br/>FFT 4096, no lowpass"]
+  AN --> BD["graph-bands<br/>bass mid treble, flux,<br/>centroid, pan"]
+  BD --> NM["graph-norm<br/>amp, loud, pitch,<br/>sharpness, hit"]
+  BD -->|"bassRaw"| TP["graph-tempo<br/>autocorr + vote + PLL"]
+  NM -->|"flux ratio over SENS"| ON["onset"]
+  ON --> TP
+  TP -->|"fires on grid"| F["graph-audio fire"]
+  ON -->|"no lock: raw onset"| F
+  NM -->|"placeX, placeY"| F
+  F --> SA["graphSeed.at"]
+  SA --> PS["graphPulse.seedAt<br/>count = seedsForLevel"]
+  NM -.->|"hit, sharpness"| LT["graph-lit"]
+  NM -.->|"loud"| GL["graph-glow drain"]
+  TP -.->|"onBeat, hopMs"| RG["graph-ring + spread"]

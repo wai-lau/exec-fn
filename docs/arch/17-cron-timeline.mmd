@@ -1,0 +1,12 @@
+gantt
+    title Nightly jobs (ET), each logs to data/cron/YYYY-MM-DD__job.log
+    dateFormat HH:mm
+    axisFormat %H:%M
+    section Container cron
+    morning pipeline :04:30, 20m
+    section Host cron
+    graphify rebuild and layout bake :05:00, 10m
+    security refresh (root) :05:10, 5m
+    cc-probe-daily (root) :05:20, 5m
+    section In-process
+    tarot openings loop :05:45, 5m

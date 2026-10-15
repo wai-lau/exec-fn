@@ -1,0 +1,13 @@
+flowchart TD
+  subgraph exec["exec-fn clone"]
+    gh[".git/hooks/pre-commit<br/>symlink"] --> pc["scripts/pre-commit<br/>HOST = this tree"]
+  end
+  subgraph sub["sub repo (spire, noodle, cc-sidecar)"]
+    shim["scripts/pre-commit<br/>= subrepo-pre-commit<br/>core.hooksPath=scripts"]
+  end
+  shim --> q{"superproject has<br/>scripts/pre-commit?"}
+  q -->|"yes: submodule"| pc
+  q -->|"no: standalone clone"| tp["sparse-pull<br/>scripts/tooling-paths.txt<br/>into .exec-fn/ (gitignored),<br/>refresh at most hourly"]
+  tp --> tpc[".exec-fn/scripts/pre-commit<br/>FULL_HOST=0: lints only"]
+  pc --> lints["every lint + gate<br/>keyed by REPO_NAME"]
+  tpc --> lints

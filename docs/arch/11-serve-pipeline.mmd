@@ -1,0 +1,24 @@
+flowchart TD
+  A["graph.html<br/>(graphify-out, read-only)"] --> V["swap vis CDN tag for<br/>/vendor/vis-network-9.1.9"]
+  V --> S["scrub: _redact, _drop_prefixed,<br/>_drop_moltbook, _drop_library"]
+  S --> E["_drop_inferred_edges<br/>(recomputes degree)"]
+  E --> O["_drop_orphan_nodes"]
+  O --> I["_drop_small_islands (under 5)"]
+  I --> C["_merge_graph_communities<br/>(cap 14)"]
+  C --> L["_label_graph_nodes"]
+  L --> Z["_size_graph_by_degree"]
+  Z --> U["_unocclude_small_nodes<br/>(p90 cuts)"]
+  U --> H["_hide_graph_edges<br/>_fix_graph_stats"]
+  H --> P["improvedLayout off<br/>_tune_graph_physics"]
+  P --> K["graph_layout_key<br/>hash of ids + edges"]
+  K --> B{"baked layout<br/>key matches?"}
+  B -- "yes" --> AL["_apply_graph_layout<br/>x/y baked, physics off"]
+  B -- "no or relayout=1" --> N["keep physics:<br/>browser stabilises"]
+  AL --> LT{"lite=1?"}
+  N --> LT
+  LT -- "yes" --> PR["_prune_for_lite (600)<br/>_fix_graph_stats"]
+  LT -- "no" --> R
+  PR --> R["_restyle_graph_nodes<br/>(shapes by type)<br/>_drop_graph_tooltips"]
+  R --> BO["cover markup in body"]
+  BO --> X["_externalise_boot<br/>MUST run last on node JSON"]
+  X --> J["inject chrome, nav, overlay JS/CSS<br/>_defer_scripts"]

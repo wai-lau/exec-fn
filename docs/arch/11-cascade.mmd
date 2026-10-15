@@ -1,0 +1,21 @@
+flowchart LR
+  subgraph trig["Triggers"]
+    A["ambient clock<br/>ITER_MS 1s"]
+    T["tap: vis click<br/>seed(id)"]
+    U["audio beat<br/>seedAt(id, n)"]
+  end
+  A --> I["startIteration<br/>seen + queue"]
+  T --> I
+  U --> I
+  S["graph-seed<br/>any / at / near"] --> I
+  I --> G["ignite + spread<br/>HOP_MS jitter"]
+  G --> Q["advance: roll<br/>catchOdds x edge length bias"]
+  Q -->|"caught"| L["graphLit.fire<br/>+ fireEdge"]
+  Q -->|"failed"| X["spent: cascade dies"]
+  L --> W["graphGlow<br/>charge"]
+  L --> R["graphRing<br/>wavefront on beat"]
+  L --> D["graphPulseDraw<br/>paint"]
+  W --> D
+  R --> D
+  B["graph-bias<br/>reach, pool, node, length"] -.-> Q
+  B -.-> I

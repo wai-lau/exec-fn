@@ -1,0 +1,8 @@
+flowchart TB
+  P["graphPulse.step<br/>cascade state"] --> D["graphPulseDraw.paint<br/>clearRect, mode lighter"]
+  D --> H["1 halos<br/>white + saturated"]
+  H --> C["2 clearNodes<br/>destination-out"]
+  C --> K["3 punchNodes<br/>opaque, big nodes only"]
+  K --> O["4 outlines<br/>charge, white, saturated"]
+  O --> R["5 graphRing.draw<br/>source-atop, saturation blend"]
+  R --> E["6 edges<br/>destination-over: charge, white, saturated"]

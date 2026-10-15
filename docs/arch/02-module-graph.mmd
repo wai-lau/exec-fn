@@ -1,0 +1,128 @@
+flowchart LR
+  main["main.py<br/>(composition root)"]
+  routers["routers.py<br/>(tiers + mounts)"]
+  routes_api["routes_api.py"]
+  routes_views["routes_views.py"]
+  routes_chat["routes_chat.py"]
+  routes_nightfall["routes_nightfall.py"]
+  routes_cc["routes_cc.py"]
+  routes_exec["routes_exec.py"]
+  gamesave_store["gamesave_store.py"]
+  LEAF["routes_graph · routes_printer · routes_tts · routes_zombo<br/>(+ their leaf modules)"]
+  subgraph chatc["Exec chat + monitor"]
+    chat["chat"]
+    chat_actions["chat_actions"]
+    chat_passes["chat_passes"]
+    chat_store["chat_store"]
+    chat_tools["chat_tools"]
+    exec_tools["exec_tools"]
+    exec_board["exec_board"]
+    exec_context["exec_context"]
+    exec_panel["exec_panel"]
+    cc_client["cc_client"]
+    cc_title["cc_title"]
+    monitor["monitor"]
+    monitor_sse["monitor_sse"]
+    discord_bot["discord_bot"]
+  end
+  subgraph nudgec["Nudge, scheduling, morning"]
+    nudge["nudge"]
+    nudge_deadlines["nudge_deadlines"]
+    nudge_llm["nudge_llm"]
+    nudge_loop["nudge_loop"]
+    recalibration["recalibration"]
+    scheduler["scheduler"]
+    hq["hq"]
+    card_schedule["card_schedule"]
+    card_llm["card_llm"]
+    morning["morning"]
+    gcal["gcal"]
+  end
+  TAROT["tarot/ package<br/>(12 modules)"]
+  MTG["mtg/ package<br/>(5 modules)"]
+  card_schedule -.-> scheduler
+  cc_title -.-> cc_client
+  chat --> chat_actions
+  chat --> exec_board
+  chat -.-> nudge
+  chat -.-> scheduler
+  chat_passes --> chat
+  chat_passes --> chat_store
+  chat_passes --> exec_tools
+  chat_passes --> monitor_sse
+  chat_tools --> card_schedule
+  chat_tools -.-> nudge
+  chat_tools -.-> nudge_deadlines
+  chat_tools -.-> nudge_llm
+  discord_bot -.-> chat_passes
+  discord_bot -.-> chat_store
+  discord_bot -.-> monitor_sse
+  discord_bot -.-> nudge
+  exec_context --> chat
+  exec_context --> exec_panel
+  exec_panel --> cc_client
+  exec_panel --> chat_store
+  exec_tools --> chat_tools
+  hq --> scheduler
+  main --> discord_bot
+  main --> nudge_loop
+  main --> routers
+  main --> routes_api
+  main --> routes_cc
+  main --> routes_exec
+  main --> LEAF
+  main --> routes_views
+  main --> TAROT
+  monitor --> chat
+  monitor --> chat_store
+  monitor --> monitor_sse
+  morning --> chat
+  morning -.-> nudge_deadlines
+  morning -.-> scheduler
+  nudge -.-> recalibration
+  nudge -.-> scheduler
+  nudge_deadlines --> nudge
+  nudge_llm --> chat
+  nudge_llm --> nudge
+  nudge_loop --> chat_store
+  nudge_loop --> monitor_sse
+  nudge_loop -.-> nudge
+  nudge_loop -.-> nudge_deadlines
+  nudge_loop --> nudge_llm
+  nudge_loop -.-> scheduler
+  routers --> MTG
+  routers --> routes_chat
+  routers --> routes_nightfall
+  routers --> TAROT
+  routes_api --> card_llm
+  routes_api -.-> card_schedule
+  routes_api --> cc_client
+  routes_api --> chat_store
+  routes_api --> gcal
+  routes_api -.-> hq
+  routes_api --> monitor
+  routes_api --> monitor_sse
+  routes_api --> morning
+  routes_api -.-> nudge
+  routes_api -.-> nudge_deadlines
+  routes_api --> nudge_llm
+  routes_api --> nudge_loop
+  routes_api --> routers
+  routes_api -.-> scheduler
+  routes_cc --> cc_client
+  routes_cc --> cc_title
+  routes_cc --> exec_context
+  routes_cc --> exec_panel
+  routes_cc --> routers
+  routes_chat --> chat_passes
+  routes_chat --> chat_store
+  routes_chat -.-> nudge
+  routes_exec --> chat
+  routes_exec --> exec_context
+  routes_exec --> exec_tools
+  routes_exec --> monitor_sse
+  routes_exec --> routers
+  LEAF --> routers
+  routes_nightfall --> gamesave_store
+  routes_views --> routers
+  routes_views --> routes_nightfall

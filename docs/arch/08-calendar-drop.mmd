@@ -1,0 +1,21 @@
+sequenceDiagram
+  participant U as User
+  participant C as rd-calendar.js
+  participant R as rd.js
+  participant S as routes_api.py
+  U->>C: drop card on a day cell
+  C->>C: remember drop (data-day)
+  R->>S: PATCH /api/rd (save: column, order)
+  S-->>R: ok
+  R->>C: flushCalDrop
+  C->>S: POST /api/rd/id/schedule {date}
+  S->>S: card_schedule.drop_on_day
+  alt active nudge would be deferred
+    S-->>C: 409
+  else bad date
+    S-->>C: 400
+  else unknown card
+    S-->>C: 404
+  else ok
+    S-->>C: result, cards_changed pushed
+  end

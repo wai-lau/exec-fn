@@ -1,0 +1,10 @@
+flowchart TB
+  req["HTML GET"] --> ck{"cookie"}
+  ck -->|"session = sha256 of API_KEY"| full["protected router<br/>rd hq debug and all"]
+  ck -->|"guest_session = sha256 of TURNSTILE_SECRET"| guest["guest_protected router<br/>mtg tarot nightfall hosaka graph UI security printer zombo noodle spire"]
+  ck -->|"none"| h401["401 handler in main.py"]
+  h401 -->|"guest prefix or exact /printer /noodle"| g["302 /guest?next="]
+  h401 -->|"other"| l["302 /login?next="]
+  g --> ts["Turnstile solve<br/>POST /guest verifies via siteverify"]
+  ts -->|"next in _GUEST_NEXT_ALLOWED else /mtg"| guest
+  l --> pw["POST /login with API_KEY"] --> full

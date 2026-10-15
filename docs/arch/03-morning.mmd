@@ -1,0 +1,33 @@
+sequenceDiagram
+  participant cron as morning_cron.sh
+  participant API as routes_api.api_morning
+  participant P as morning.build_morning
+  participant LLM as Claude opus-4-8
+  participant GC as gcal
+  participant S as scheduler
+  participant FS as data files
+  participant CC as cc sidecar
+
+  cron->>API: POST /api/morning (Bearer API_KEY)
+  API->>P: to_thread(build_morning)
+  P->>FS: read activity_log.json
+  P->>LLM: _morning_retrospective
+  P->>FS: append durable facts to profile.json
+  P->>P: recalibration.recalibrate
+  P->>LLM: _purge_stale_notes
+  P->>GC: import_gcal_cards(days_ahead=14)
+  P->>P: _prune_cron_logs (30 days)
+  P->>FS: archive activity_log and moltbook-heartbeat, reset
+  Note over P,S: under _RD_LOCK
+  P->>S: _roll_and_schedule
+  P->>S: layout_day(anchor 10AM, only_ids=restack)
+  P->>P: nudge_deadlines.morning_reconcile
+  P->>FS: save rd.json
+  P->>FS: delete chat.json
+  P->>LLM: _dedupe_context
+  P->>FS: rewrite profile.json
+  P-->>API: result (errors per step)
+  API->>CC: cc_client.new_conversation
+  CC-->>API: archived, pointer dropped
+  API->>API: _post_morning_errors if any
+  API->>API: push cards_changed

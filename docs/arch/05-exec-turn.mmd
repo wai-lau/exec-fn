@@ -1,0 +1,10 @@
+stateDiagram-v2
+  [*] --> Act
+  Act: Pass 1 ACT<br/>tools on, not streamed, text discarded
+  Reply: Pass 2 REPLY<br/>tool_choice none, streamed
+  Dispatch: Run tool_use blocks
+  Act --> Dispatch: tool calls
+  Dispatch --> Act: next round (max 4)
+  Act --> Reply: no more tools
+  Reply --> Act: redo requested, held back, max 2
+  Reply --> [*]: text shown to Wai

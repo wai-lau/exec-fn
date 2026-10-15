@@ -1,0 +1,10 @@
+flowchart TD
+  S["turn streaming"] --> A{"stream error or ends<br/>without done/error/busy?"}
+  A -->|"before any frame but waiting"| Q["still queued: error line,<br/>send again"]
+  A -->|"after the sidecar took the turn"| R
+  S --> W{"tab visible again:<br/>/api/cc/health free twice,<br/>3s apart, stream still open?"}
+  W -->|yes| R
+  O["panel reopened<br/>mid-answer"] --> F["execFollowRun"] --> R
+  R["execResync: 'still answering' line"] --> B["wait: sidecar free<br/>and no own stream"]
+  B --> H["execLoadHistory(true)<br/>replace transcript"]
+  B -->|"15 min cap"| G["give up"]

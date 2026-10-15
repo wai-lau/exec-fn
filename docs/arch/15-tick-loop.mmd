@@ -1,0 +1,12 @@
+flowchart TD
+    T["_run_nudge_loop<br/>sleep 30s, then _nudge_tick"] --> P1
+    P1["1. Triage pass<br/>cards with triage_pending<br/>triage_sync, rebuild plan if needed"] --> P2
+    P2["2. Plan pass<br/>hq cards with no graph<br/>_build_graph, silent decompose"] --> P3
+    P3["3. Fire pass<br/>_scan_due_nudges"] --> S
+    S["assign_auto_deadlines<br/>compute_deadlines for every hq plan<br/>_arm_nudge: next_nudge_at tracks anchor"] --> D{"eligible, not resolved,<br/>not awaiting_reply,<br/>now >= next_nudge_at,<br/>not in flight or backoff?"}
+    D -- no --> T
+    D -- yes --> F["_fire_nudge<br/>decompose if no graph, else nudge text<br/>stage = awaiting, awaiting_reply = true"]
+    F --> O["append_monitor_comment + push_to_monitor<br/>comment, card_id, cards_changed"]
+    F -. "LLM error" .-> B["retry delay 300s<br/>in memory"]
+    O --> T
+    B --> T

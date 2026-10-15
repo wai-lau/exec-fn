@@ -1,0 +1,8 @@
+flowchart TB
+  a["zbFlashInit<br/>HEAD welcomeclip.swf"] -->|"ok"| b["zbFetchLoader<br/>GET loader, zbPatchLink splice<br/>(failure falls back to URL load)"]
+  a -->|"fails"| x["nothing else fetched,<br/>begin line stands alone"]
+  b --> c["zbLoadRuffle<br/>emulator WASM from jsDelivr"]
+  c --> d["player.load data or url, with base"]
+  d -->|"loadedmetadata, never the promise"| e["zbOnPlayerReady"]
+  click["click Anywhere<br/>zbClicked remembered"] --> e
+  e --> f["zbStart: play + unmuteAudio<br/>cross-fade 3.5s in / 2.5s out"]

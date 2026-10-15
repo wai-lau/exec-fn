@@ -1,0 +1,13 @@
+flowchart TD
+  N["each node source_file"] --> LK["_logical_key<br/>feature family"]
+  LK --> MIN{"family has 10+ nodes?<br/>_MIN_COMMUNITY"}
+  MIN -- "yes" --> F1["keep family"]
+  MIN -- "no" --> F2["fold to top-level dir<br/>API / Web / (root)"]
+  F1 --> CAP{"over 14 keys?<br/>_MAX_COMMUNITIES"}
+  F2 --> CAP
+  CAP -- "no" --> OUT
+  CAP -- "yes" --> D1["keep 14 biggest, fold tail<br/>to top-level dir"]
+  D1 --> CAP2{"still over 14?"}
+  CAP2 -- "no" --> OUT
+  CAP2 -- "yes" --> D2["keep 13 biggest dirs,<br/>rest into (other)"]
+  D2 --> OUT["rank biggest-first, ties by name<br/>colour from 28-hue palette<br/>rebuild LEGEND"]
