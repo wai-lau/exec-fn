@@ -1,0 +1,24 @@
+flowchart TB
+  subgraph callers["Callers"]
+    morning["morning _roll_and_schedule"]
+    execchat["exec chat tools<br/>card_schedule.apply_schedule"]
+    drop["POST /api/rd/id/schedule<br/>card_schedule.drop_on_day"]
+    hq["PATCH /api/hq<br/>clamp_to_window=True"]
+  end
+  s2d["scheduler.schedule_to_day"]
+  morning --> s2d
+  execchat --> s2d
+  drop --> s2d
+  hq --> s2d
+  s2d --> win{"target past<br/>today + 6 days?"}
+  win -->|"yes, no clamp"| out["column = rd<br/>due_date only<br/>scheduled_day = null"]
+  win -->|"yes, clamp"| edge["target = last window day"]
+  win -->|"no"| over{"target before today?"}
+  edge --> inwin
+  over -->|"yes"| clamp["target = today"]
+  over -->|"no"| inwin
+  clamp --> inwin["rd becomes hq<br/>scheduled_day = target"]
+  inwin --> today{"target is today?"}
+  today -->|"no"| clr["dir_start_min cleared"]
+  today -->|"yes"| pos["dir_start_min =<br/>param, else timed_start_min,<br/>else place_card_today"]
+  morning --> lay["layout_day<br/>stack from 10:00"]

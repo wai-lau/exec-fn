@@ -1,0 +1,23 @@
+sequenceDiagram
+  participant B as Browser HosakaAudio
+  participant WS as ws_tts proxy
+  participant U as upstream (piper or home)
+
+  B->>WS: WS upgrade with cookie
+  WS->>WS: session or guest_session, else close 1008
+  B->>WS: JSON utterance
+  WS->>WS: pick_upstream by backend
+  Note over WS: busy upstream: cut stale conn, reconnect
+  WS->>U: connect ws /v1/audio/stream, forward text
+  U-->>WS: start
+  WS-->>B: start
+  loop PCM
+    U-->>WS: float32 24kHz bytes
+    WS-->>B: bytes, scheduled as AudioBufferSource
+  end
+  alt normal
+    U-->>WS: end
+    WS-->>B: end
+  else upstream dies mid-utterance
+    WS-->>B: error "tts upstream closed mid-utterance"
+  end

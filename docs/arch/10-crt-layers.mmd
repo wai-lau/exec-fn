@@ -1,0 +1,5 @@
+flowchart LR
+  bg["cyber-bg<br/>phosphor tint<br/>static"] --> lines["cyber-lines<br/>scanlines, hard-light<br/>static"]
+  lines --> blur["cyber-blur<br/>backdrop blur<br/>cached"]
+  blur --> crt["cyber-crt<br/>brightness/contrast<br/>cached"]
+  crt --> scan["cyber-scan<br/>sweep, 7s<br/>ANIMATED, last"]

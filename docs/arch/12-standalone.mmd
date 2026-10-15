@@ -1,0 +1,11 @@
+flowchart TD
+  load["page load<br/>_build_nav script"] --> sa{"navigator.standalone or<br/>display-mode standalone?"}
+  sa -->|no| norm["one-row nav<br/>guest: F5 already server-rendered"]
+  sa -->|yes| cls["add html.standalone"]
+  cls --> has{"#nav-refresh<br/>exists?"}
+  has -->|no| add["append F5 item<br/>click = location.reload"]
+  has -->|yes| keep["keep the guest one"]
+  add --> per["--per-row = ceil(items / 2)<br/>two-row reflow"]
+  keep --> per
+  per --> ro["ResizeObserver keeps --nav-h live"]
+  norm --> ro

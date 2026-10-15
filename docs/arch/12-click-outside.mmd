@@ -1,0 +1,11 @@
+sequenceDiagram
+  participant T as tap target
+  participant C as document, capture
+  participant H as target handler
+  participant B as document, bubble
+  T->>C: click descends
+  C->>C: fromInside = panel.contains(target)
+  C->>H: continue to target
+  H->>H: retireAnswers removes the button
+  H->>B: click bubbles up
+  B->>B: closePanel only if not fromInside

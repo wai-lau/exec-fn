@@ -1,0 +1,13 @@
+flowchart TD
+  start["scripts/deploy.sh"] --> dirty{"uncommitted tracked<br/>changes?"}
+  dirty -->|"yes, no --discard"| refuse["REFUSED"]
+  dirty -->|"no / --discard"| sync["git fetch<br/>reset --hard origin/master<br/>submodule update --init"]
+  sync --> img{"Dockerfile, requirements.txt,<br/>entrypoint.sh or exec-fn.cron changed?"}
+  img -->|yes| build["compose up -d --build api"]
+  img -->|no| comp{"docker-compose.yml<br/>changed?"}
+  comp -->|yes| recreate["compose up -d api"]
+  comp -->|no| run{"api running?"}
+  run -->|no| startapi["compose up -d api"]
+  run -->|yes| bind{"nightfall index.html and<br/>apps/README.md visible<br/>inside the container?"}
+  bind -->|no, stale bind| force["up -d --force-recreate api"]
+  bind -->|yes| none["no restart<br/>api hot-reloads, web read per request"]

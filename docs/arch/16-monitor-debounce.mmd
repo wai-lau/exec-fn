@@ -1,0 +1,11 @@
+flowchart TD
+    W["PATCH /api/rd<br/>_log_entries_for_patch"] --> Q{"any entry significant?<br/>moved to archives/exile,<br/>book update, advanced<br/>not actor=exec, not reminder"}
+    Q -- no --> X["nothing scheduled"]
+    Q -- yes --> SM["schedule_monitor<br/>cancel pending task, start 60s timer"]
+    FL["POST /api/monitor/flush<br/>if significant entry newer than watermark"] --> G
+    SM --> D["sleep 60s<br/>a new event restarts the timer"]
+    D --> G{"_recent_entries since watermark<br/>(drops undone advanced)<br/>any commentable?"}
+    G -- no --> E["end"]
+    G -- yes --> TH["push thinking true<br/>generate_encouragement (opus)"]
+    TH --> OK["watermark = now, only on success"]
+    OK --> C["append_monitor_comment role=monitor<br/>push comment over /api/monitor/stream"]

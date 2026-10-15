@@ -1,0 +1,21 @@
+flowchart LR
+  subgraph ss["SessionStart"]
+    s1["session-start.sh<br/>web sandbox deps only"]
+    s2["session-context.sh<br/>droplet or local, graphify hook,<br/>submodule HEAD + shim"]
+  end
+  subgraph pre["PreToolUse"]
+    p1["docs-commit-guard.sh<br/>Bash: git commit"]
+    p2["git-stash-guard.sh<br/>Bash: git stash"]
+    p3["nightfall-build-guard.py<br/>Bash: webpack"]
+    p4["dead-file-guard.sh<br/>Edit, Write, NotebookEdit"]
+  end
+  subgraph post["PostToolUse Bash"]
+    q1["push-after-commit.sh"]
+    q2["deploy-healthcheck.sh"]
+  end
+  cs["cmdscan.py<br/>strips heredocs"] -.-> p1
+  cs -.-> p3
+  cs -.-> q1
+  cs -.-> q2
+  cr["commit_repo.py<br/>which repo ran the commit"] -.-> p1
+  cr -.-> q1

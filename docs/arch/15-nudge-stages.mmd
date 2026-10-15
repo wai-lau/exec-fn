@@ -1,0 +1,18 @@
+stateDiagram-v2
+    [*] --> idle: ensure_nudge
+    idle --> nudging: tick arms card
+    nudging --> awaiting: nudge fired
+    awaiting --> nudging: Wai replies, re-arm one window out
+    awaiting --> nudging: advance_chunk
+    nudging --> nudging: advance_chunk
+    awaiting --> resolved: advance_chunk, all done
+    nudging --> resolved: advance_chunk, all done
+    nudging --> resolved: archive_card
+    awaiting --> resolved: archive_card
+    nudging --> consequences: record_consequences
+    awaiting --> consequences: record_consequences
+    consequences --> idle: reschedule_after_consequences
+    nudging --> idle: morning_reconcile, not placed today
+    awaiting --> idle: morning_reconcile, not placed today
+    awaiting --> nudging: morning_reconcile, placed today
+    resolved --> [*]

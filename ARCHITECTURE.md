@@ -13,899 +13,423 @@ the rule is the point; the incident is written up in full over there.
 
 ## The diagrams
 
-Nine Mermaid diagrams in seven numbered sections (§3 and §4 carry two each),
-drawn from source (`api/*.py`, `docker-compose.yml`, `Dockerfile`, cron):
+Each section embeds its own diagrams as `![alt](docs/arch/<NN>-<topic>.svg)`.
+The source is `docs/arch/<NN>-<topic>.mmd` (Mermaid); the pre-commit hook renders
+a staged `.mmd` to the `.svg` beside it. Edit the `.mmd`, never the `.svg`.
+Diagrams are drawn from source (`api/*.py`, `docker-compose.yml`, `Dockerfile`,
+cron). In this part of the file:
 
-1. [Deployment](#1-deployment) — how a request reaches code
-2. [Module graph](#2-module-graph) — what imports what
-3. [Morning pipeline + scheduling](#3-morning-pipeline--scheduling) — how
-   cards move through time, plus the scheduler's decision tree
-4. [TTS](#4-tts-text-to-speech) — how every voice reaches the browser, and
-   the shape of one utterance
-5. [LLM call sites + prompt caching](#5-llm-call-sites--prompt-caching) —
-   which system prefixes are cached
-6. [Printer](#6-printer-elegoo-centauri-carbon--two-tier-reverse-proxy) — the
-   two-tier reverse proxy
-7. [`/cc`](#7-cc--claude-code-in-the-browser) — the sidecar topology
+1. [Deployment](#1-deployment) — how a request reaches code (`01-deployment`),
+   and what `scripts/deploy.sh` decides (`01-deploy-flow`)
+2. [Module graph](#2-module-graph) — what imports what (`02-module-graph`)
 
-(noodle's diagram — the isolated poll and where the passphrase stops — now
-lives in `apps/noodle/ARCHITECTURE.md`, its own repo since 2026-10-14.)
+Later sections (morning pipeline, TTS, LLM call sites, printer, `/cc`, …) carry
+their own. noodle's diagram lives in `apps/noodle/ARCHITECTURE.md`.
 
 ---
 
 ## 1. Deployment
 
-nginx (bare metal) terminates SSL, proxies to a single Docker container
-running cron + uvicorn. Persistent state is JSON files on a bind-mounted
-volume.
+nginx (bare metal) terminates SSL and proxies to the `api` container (cron +
+uvicorn). `hosaka-piper` (the always-on GLaDOS voice) is a second compose
+service on the same network; no port is published. Persistent state is JSON files
+on bind mounts.
 
-```mermaid
-flowchart TB
-  browser["Browser<br/>wai-lau.net"]
+![Deployment topology](docs/arch/01-deployment.svg)
 
-  subgraph droplet["DigitalOcean droplet (Ubuntu 24.04, 168.144.13.51)"]
-    nginx["nginx (bare metal)<br/>:443 SSL term<br/>:80 to 443 redirect"]
+**Port chain:** `nginx :443 (SSL) -> 127.0.0.1:8080 (compose publish) -> container:8080 (uvicorn)`.
 
-    subgraph container["Docker: exec-fn-api-1 (TZ=America/New_York)"]
-      direction TB
-      entry["entrypoint.sh"]
-      cron["cron daemon<br/>4:30 AM to morning_cron.sh"]
-      uvicorn["uvicorn main:app<br/>0.0.0.0:8080 --reload"]
-      entry --> cron
-      entry --> uvicorn
-      cron -->|"POST /api/morning<br/>localhost:8080"| uvicorn
-    end
+**Image:** `python:3.12-slim`, single stage (`api/Dockerfile`). No `EXPOSE`; the port
+is published in compose only. `apt`: `curl` (morning_cron's POST), `git`
+(`tarot/scripts/download_cards.py`), `fonts-dejavu-core`, `cron`.
 
-    subgraph vols["Volumes"]
-      data["./api/data to /app/data<br/>rd.json profile.json chat.json<br/>activity logs, tarot_readings"]
-      tmpl["./api/templates to /app/templates<br/>(hot-reload)"]
-      web["./web to /app/static<br/>(hot-reload)"]
-      mtgd["./mtg/data to /app/mtg/data"]
-      night["./nightfall-incident to /app/nightfall"]
-      gcal["gcal-auth to /root/.config/gcal"]
-      rmapi["rmapi-auth to /root/.config/rmapi<br/>(token only -- binary removed)"]
-      nfsrc["tmpfs MASK over /app/nightfall/nightfall-src"]
-    end
+**Python deps are locked, in two files.** `api/requirements.in` holds the ~19
+DIRECT dependencies and the explanatory comments; `api/requirements.txt` is a
+**generated** full lock (72 packages, pinned `==`). The Dockerfile installs the
+lock, never the `.in`. Regenerate with `bash scripts/lock-requirements.sh`
+(fresh-resolves in a throwaway `python:3.12-slim`, refuses an empty result,
+prints the rebuild command) — **a resolve verifies nothing: rebuild and hit a
+route.** Rule: anything `api/` imports by name gets its own `.in` line, whoever
+else pulls it in. `httpx` and `httpx2` are both in the lock on purpose.
 
-    uvicorn --- data
-    uvicorn --- tmpl
-    uvicorn --- web
-    uvicorn --- mtgd
-    uvicorn --- night
-    uvicorn --- gcal
-    uvicorn --- rmapi
-    night -.masked by.-> nfsrc
-  end
-
-  browser -->|HTTPS 443| nginx
-  nginx -->|"proxy to localhost:8080"| uvicorn
-```
-
-**Port chain:** `nginx :443 (SSL) -> localhost:8080 -> container:8080 (uvicorn)`
-
-**Image:** `python:3.12-slim`, single stage. No `EXPOSE`; port bound at compose
-level only.
-
-
-**Python deps are locked, in two files.** `api/requirements.in` holds the ~18
-DIRECT dependencies and all the explanatory comments; `api/requirements.txt` is a
-**generated** full lock — every package including transitives, pinned `==`, 72 of
-them. The Dockerfile installs the lock and never the `.in`. Regenerate with
-`bash scripts/lock-requirements.sh`, which fresh-resolves inside a throwaway
-`python:3.12-slim` (the same base the image uses, so the pins match what the
-image will actually get rather than what the host happens to have), refuses to
-write an empty result, and prints the rebuild command — because **a resolve
-verifies nothing**.
-
-
-**The rule that falls out of it:** anything `api/` imports by name gets its own
-line in `requirements.in`, no matter who else happens to pull it in. An audit of
-every direct import against the declared set at the time found three such gaps —
-`httpx`, `pydantic` and `starlette`. (`fontTools` also showed as missing, but it
-belongs to `api/scripts/subset_cv_fonts.py`, a one-off font-subsetting script the
-app never imports — not a runtime dep.)
-
-**`rmapi-auth` is deliberately still mounted.** It holds a real authenticated
-reMarkable device token (`rmapi.conf`, 1.5KB, last written 2026-04-28), and
-re-pairing a device is a manual physical act. A declared-but-unmounted compose
-volume counts as unused, so `docker volume prune` would eat it — hence mounted,
-not merely declared. `RMAPI_FORCE_SCHEMA_VERSION` survives in `.env` as a no-op;
-it was dropped from the Dockerfile `ENV` and from `entrypoint.sh`'s `cron_env`
-filter.
+**`rmapi-auth` is deliberately still mounted** (holds a real reMarkable device
+token; a declared-but-unmounted compose volume counts as unused and
+`docker volume prune` would eat it). The rmapi binary itself is gone.
 
 **Secrets** (`.env`): `API_KEY`, `ANTHROPIC_API_KEY`, `TURNSTILE_SITE_KEY`,
-`TURNSTILE_SECRET` (the guest gate is a Cloudflare Turnstile challenge, not a
-shared key — `GUEST_KEY` retired).
-cron reads them via `/run/cron_env`.
+`TURNSTILE_SECRET` (the guest gate is a Turnstile challenge; `GUEST_KEY` is
+retired). Cron cannot see the container env: `entrypoint.sh` writes only
+`API_KEY` and `ANTHROPIC_API_KEY` to `/run/cron_env`.
+
+**Cron:** `api/exec-fn.cron` is baked to `/etc/cron.d/exec-fn` — one job,
+`30 4 * * *` `/app/morning_cron.sh` (`curl POST localhost:8080/api/morning`).
+The other jobs are HOST crons or in-process loops (CLAUDE.md, Cron).
+
+**uvicorn flags** (`entrypoint.sh`): `--reload`, `--timeout-graceful-shutdown 5`
+(caps the SSE drain so a reload cannot hang the site), and `--reload-exclude`
+file globs `apps/*/tests/*.py`, `apps/*/scripts/*.py`, `apps/*/scripts/*/*.py`
+(§1e).
+
+History: [ARCHAEOLOGY.md §1](ARCHAEOLOGY.md).
 
 ---
 
 ### 1d. nginx — the `--reload` 502, and the body-size 413
 
-nginx does HTTP 80 → HTTPS redirect and HTTPS 443 → the `execfn_app` upstream (`127.0.0.1:8080`). The live config is `/etc/nginx/sites-enabled/default`; **backups live in `/etc/nginx/backups/`, NOT in `sites-enabled/`**, whose include is an unfiltered `*` that would load a `.bak` as a duplicate server block. `bootstrap.sh` carries the same block for a fresh box. The `/ws/` location is untouched.
+nginx: HTTP 80 → HTTPS redirect; HTTPS 443 → the `execfn_app` upstream
+(`127.0.0.1:8080`). Live config `/etc/nginx/sites-enabled/default`; **backups go
+in `/etc/nginx/backups/`, never `sites-enabled/`** (its include is an unfiltered
+`*` and would load a `.bak` as a duplicate server). `bootstrap.sh` carries the
+same block. The `/ws/` location is untouched.
 
-**Access log masks noodle links** (2026-10-14, security audit): both server blocks log with `access_log /var/log/nginx/access.log masked;`, the format defined in `/etc/nginx/conf.d/noodle-log-mask.conf` (two `map`s over `$request`: `/noodle/<22>` and `/api/noodle/<22>` -> `<slug>`, any `t=` query value -> `<token>`; otherwise nginx's `combined`, so `scripts/security/refresh.py` parses it unchanged). A poll's slug opens its sealed file and a draft token mints its poll, so neither may sit in a 14-day log. uvicorn's access log gets the same treatment (`api/log_masking.py`, a filter on `uvicorn.access`), the docker log is capped at 3 x 10MB (`docker-compose.yml` `logging:`), and `/security`'s stats collapse noodle paths to `<slug>`. `bootstrap.sh` writes the same conf.d file. Logs written before the change age out (nginx keeps 14 days); the uncapped docker log went with the container recreate that applied the cap.
+- **Double upstream.** A `--reload` worker swap closes in-flight connections with
+  no response, which nginx reports as 502. The upstream lists the server
+  **TWICE** (one try per peer, so a single-server upstream can never retry),
+  `max_fails=0`, and `location /` sets `proxy_next_upstream error timeout http_502`,
+  `_tries 3`, `_timeout 20s`, `proxy_connect_timeout 3s`.
+- **`non_idempotent` is NOT set** — a retried POST/PATCH would apply twice.
+- **`http_503` is NOT retried** — the app returns a real 503 when the home box
+  or printer is down; retrying only delays an honest answer.
+- **`client_max_body_size 25m`** on the 443 block (default 1m 413'd pasted
+  screenshots with nginx's own HTML). The app's caps are the real ones and answer
+  in JSON: `routes_cc.py` allows 4 images x 5MB base64, 6MB per file, 20MB of
+  attachments, inside the sidecar's 24MB body. Printer uploads share the limit.
+- **Access log masks noodle links.** Both server blocks log with
+  `access_log ... masked;` — a format defined in
+  `/etc/nginx/conf.d/noodle-log-mask.conf` (`/noodle/<22>` and `/api/noodle/<22>`
+  -> `<slug>`, any `t=` value -> `<token>`; otherwise `combined`, so
+  `scripts/security/refresh.py` parses it unchanged). uvicorn's access log gets
+  the same filter (`api/log_masking.py` on `uvicorn.access`), the docker log is
+  capped at 3 x 10MB (`docker-compose.yml` `logging:`), `/security` collapses
+  noodle paths to `<slug>`, and `bootstrap.sh` writes the same conf.d file.
 
-**A `--reload` worker swap would otherwise surface as a 502.** The reloader holds the listen socket in the parent and swaps the worker underneath, so a new connection is never refused — but a request landing on the OLD worker while it drains gets its connection closed with no response, which nginx reports as 502.
-
-The fix is an explicit `upstream` block listing the server **TWICE** — nginx allows one try per peer, so a single-server upstream can never retry — with `max_fails=0`, plus `proxy_next_upstream error timeout http_502` / `_tries 3` / `_timeout 20s` / `proxy_connect_timeout 3s` on `location /`. Same probe after: **220/220 200s**, worst request ~7s (the swap is slow, not broken).
-
-**Two deliberate omissions:**
-- **`non_idempotent` is NOT set** — a retried POST/PATCH would apply a mutation twice — so retries cover the GETs that serve pages and assets.
-- **`http_503` is NOT retried** — this app returns a real 503 when the home box or the printer is unreachable, and retrying would only delay an honest answer.
-
-**`client_max_body_size 25m`** is set on the 443 server block (2026-09-13). nginx's default is **1m**, and a screenshot pasted into `/cc` arrives as base64 in a JSON body, so a normal phone screenshot was rejected with nginx's own HTML 413 before the app ever saw it — reported as `[ request failed (413) ] when uploading image`.
-
-**The app's caps are meant to be the real ones** (4 images, 5MB base64 each, 24MB body) because they answer in JSON the page can render; nginx only has to be wide enough to let them do the refusing. Verified live: a 2MB body now reaches the app (401 unauthenticated, not 413), and an over-cap 7MB image returns the app's `{"error":"image too large"}` 413. Printer firmware/model uploads pass through the same limit.
-
-History — the incidents behind the rules above: [ARCHAEOLOGY.md §1](ARCHAEOLOGY.md).
+History: [ARCHAEOLOGY.md §1](ARCHAEOLOGY.md).
 
 ---
 
-### 1e. App submodules — `apps/<name>` (plumbing landed 2026-10-14)
+### 1e. App submodules — `apps/<name>`
 
-Self-contained apps live in their own repos, consumed as git submodules under `apps/`: **spire** (`wai-lau/spire`) and **noodle** (`wai-lau/noodle`), both moved 2026-10-14. Phase 0 built the parent side first; nightfall-incident and claude-box follow as submodules at their CURRENT paths (they are not laid out like the parent and are not under `apps/`).
+Self-contained apps are their own repos, consumed as submodules (`.gitmodules`):
 
-**An app mirrors the parent layout** (`apps/README.md`): `apps/<name>/api` (python), `api/templates`, `web`, `tests`, `scripts`. That one rule is why nothing else had to change: history extracts with a path filter and no renames, the pre-commit's staged-path patterns (`^web/`, `^api/templates/`) match verbatim inside the submodule, and every asset URL + `?v=` stays byte-identical.
+| Submodule | Path | Repo |
+|-----------|------|------|
+| spire | `apps/spire` | `wai-lau/spire` |
+| noodle | `apps/noodle` | `wai-lau/noodle` |
+| nightfall | `nightfall-incident` (`ignore = dirty`) | `wai-lau/nightfall` |
+| claude-box | `claude-box` | `wai-lau/cc-sidecar` |
 
-**How the parent finds an app's pieces — each searches the PARENT FIRST, then `apps/*/` in name order:**
-- **python** — `api/app_paths.py`, imported first by `main.py` and `routers.py`, APPENDS each `apps/*/api` to `sys.path`, so `import noodle` / `import routes_aspira` resolve unchanged. The apps dir is `/app/apps` in the container (compose mounts `./apps` beside the `./api` bind) and `<repo>/apps` on the host; the first NON-EMPTY one wins, because the compose bind leaves an empty `api/apps` mount point on the host. An uninitialised (empty) submodule is skipped.
-- **static** — the one `"/"` `StaticFiles` mount in `main.py` gets the app `web/` dirs appended to its `all_directories`; Starlette's `lookup_path` walks that list (html mode and 404.html included), so asset URLs stay flat.
-- **templates** — `pages._tmpl` resolves through `_tmpl_path` (parent `api/templates`, then `apps/*/api/templates`); the cache is keyed by resolved path. `/api/ui/usage` scans the same dirs.
+nightfall and claude-box sit at their old paths, not under `apps/`, and are not
+laid out like the parent.
 
-**App tests and scripts do not reload the live worker** (2026-10-14): `./apps` sits inside `/app`, which uvicorn's `--reload` watches, so saving an app's test (or aspira-sim's `applyfit.py`) used to restart production. `entrypoint.sh` passes `--reload-exclude 'apps/*/tests/*.py'` plus `apps/*/scripts/*.py` and `apps/*/scripts/*/*.py`. They must be FILE globs: uvicorn 0.53's `FileFilter` treats a non-directory exclude as a pattern matched against each changed file with `Path.match` (right-anchored, no `**`), so the first attempt, `apps/*/tests`, matched nothing and cost a wasted rebuild — test a pattern against `uvicorn.supervisors.watchfilesreload.FileFilter` inside the container BEFORE rebuilding. Changing them is an image rebuild (`entrypoint.sh` is copied in), ~6s of nginx's loading page.
+**An app mirrors the parent layout** (`apps/README.md`): `api/`, `api/templates`,
+`web`, `tests`, `scripts`. That one rule is why nothing else had to change —
+path-filtered history, the pre-commit's `^web/` / `^api/templates/` patterns, and
+every asset URL stay identical.
 
-A clash would be decided silently by that order, so **`tests/test_app_paths.py` pins uniqueness** (file names across `web/` and `api/templates/`, top-level module names across `api/`) and **no `node_modules` under `apps/`** — uvicorn's reload poller walks `/app/apps` too (§17e).
+**How the parent finds an app's pieces** (each searches the PARENT FIRST, then
+`apps/*/` in name order):
+- **python** — `api/app_paths.py`, imported first by `main.py` and `routers.py`,
+  APPENDS each `apps/*/api` to `sys.path`. Apps dir: `/app/apps` in the container
+  (`./apps` bind), `<repo>/apps` on the host; the first NON-EMPTY wins (the
+  compose bind leaves an empty `api/apps` mount point on the host — untracked,
+  leave it). An uninitialised submodule is skipped.
+- **static** — the one `"/"` `StaticFiles` mount in `main.py` gets the apps' `web/`
+  appended to `all_directories`; asset URLs stay flat.
+- **templates** — `pages._tmpl` resolves through `_tmpl_path`; `/api/ui/usage`
+  scans the same dirs.
 
-**exec-fn owns every lint, hook and check; a sub repo pulls only what it needs (2026-10-14, the owner's call).** The operating methodology lives HERE — lints, baselines, configs, the pre-commit gates, the Claude Code guards, the test harness. A sub repo (spire, noodle, cc-sidecar) holds its code, its own test files, and ONE tracked file of tooling: the shim `scripts/pre-commit`, a verbatim copy of `scripts/subrepo-pre-commit` (pinned by `tests/test_subrepo_shims.py`). git runs it via `core.hooksPath=scripts` (`session-context.sh` sets it; a standalone clone sets it once by hand). The shim:
-- **checked out as a submodule here** → `exec`s this repo's `scripts/pre-commit` — nothing pulled, the working tree's tooling;
-- **cloned on its own** → sparse-pulls ONLY the files in `scripts/tooling-paths.txt` (the lints, `lintkit.py`, baselines, `app_paths.py`, `web/chrome.css`, the ruff/stylelint/eslint configs — never the tree) into the sub repo's gitignored `.exec-fn/`, refreshes it at most hourly (`--depth 1 --filter=blob:none`, `--ff-only`), and runs that copy. It clears `GIT_DIR`/`GIT_INDEX_FILE` for every git call on the copy (git runs hooks with them pointing at the committing repo). A tooling-only copy runs the lints; tests and eslint (which needs this repo's `node_modules`) are skipped with a note.
+`all_directories` and the `sys.path` append are computed at IMPORT, so adding an
+app needs a `--reload` swap (any `api/*.py` change in the same commit does it;
+the double upstream covers it). Do that swap ON the droplet tree.
 
-`scripts/pre-commit` finds its own tree from its own path (`HOST` = the script's repo, `readlink -f`), names the committing repo from its origin URL (`REPO_NAME`), and passes the sub repo's files to the lints via `LINT_APP_ROOT` (lintkit adds them when they are not already among the served dirs). **Repo-specific gates live in it too**, keyed by `REPO_NAME`: spire → the game smoke (`node scripts/spire-smoke/smoke.mjs`, the sub repo's own script) when a game file is staged; cc-sidecar → `node --check` on staged `.mjs` + every `*.test.mjs`. The sidecar's suites also run in this repo's pytest via `tests/test_cc_node_suites.py`. The nightfall guards are back in `.claude/hooks/`. **nightfall is the one exception**: its own long-standing eslint/stylelint `scripts/pre-commit` (TypeScript, its own `node_modules`) predates this and is left as is — no shim.
-- `pytest.ini` `testpaths = tests apps/*/tests`; the parent hook runs all of them.
+**Uniqueness is pinned.** A name clash would be decided silently by search
+order, so `tests/test_app_paths.py` pins unique file names across `web/` and
+`api/templates/`, unique top-level module names across `api/`, and **no
+`node_modules` under `apps/`** (the reload poller walks `/app/apps` too, §17e).
+**Any test that finds code by walking `api/` must also walk `apps/*/api`**
+(`tests/test_admin_only.py` does).
+
+**App tests and scripts must not reload the live worker** — `entrypoint.sh`'s
+`--reload-exclude` globs (§1). They must be FILE globs (uvicorn matches a
+non-directory exclude per changed file with `Path.match`, right-anchored, no
+`**`); test a pattern against `uvicorn.supervisors.watchfilesreload.FileFilter`
+in the container before rebuilding. `entrypoint.sh` is an image input.
+
+**exec-fn owns every lint, hook and check.** A sub repo (spire, noodle,
+cc-sidecar) holds its code, its tests and ONE tracked tooling file: the shim
+`scripts/pre-commit`, a verbatim copy of `scripts/subrepo-pre-commit` (pinned by
+`tests/test_subrepo_shims.py`), run via `core.hooksPath=scripts`. The shim:
+- **as a submodule here** -> `exec`s this repo's `scripts/pre-commit`;
+- **cloned alone** -> sparse-pulls ONLY `scripts/tooling-paths.txt` into the
+  gitignored `.exec-fn/` (at most hourly, `--depth 1 --filter=blob:none`,
+  `--ff-only`), clearing `GIT_DIR`/`GIT_INDEX_FILE` for its git calls. A
+  tooling-only copy runs the lints; tests and eslint (needs this repo's
+  `node_modules`) are skipped with a note.
+
+`scripts/pre-commit` finds its tree from its own path, names the committing repo
+from its origin URL (`REPO_NAME`), and passes the sub repo's files to the lints
+via `LINT_APP_ROOT`. **Repo-specific gates are keyed by `REPO_NAME`**: spire ->
+`scripts/spire-smoke/smoke.mjs` when a game file is staged; cc-sidecar ->
+`node --check` on staged `.mjs` plus every `*.test.mjs` (also run in pytest via
+`tests/test_cc_node_suites.py`, which FAILS, not skips, if the sandbox-gate or
+sign-in suite goes missing). **nightfall is the exception**: its own TypeScript
+`scripts/pre-commit`, no shim. `pytest.ini`: `testpaths = tests apps/*/tests`.
 
 **Tooling follows the commit into the submodule:**
-- `session-context.sh` sets `core.hooksPath=scripts` on every sub repo whose `scripts/pre-commit` is the canonical shim, and re-attaches a submodule left on a detached HEAD (only when HEAD == origin/master and local master is absent or at the same commit).
-- `lint-colors.py` / `lint-scale.py` glob `apps/*/` alongside the root, so one baseline covers parent + apps; `eslint.config.mjs`'s script-scope override covers `apps/*/web/**`.
-- The commit hooks resolve WHICH repo a commit ran in (`.claude/hooks/commit_repo.py`: `git -C <dir> commit`, a leading `cd <dir> &&`, the payload `cwd`). `docs-commit-guard.sh` judges that repo's index and docs (its `if` filter was dropped — `Bash(git commit*)` cannot see the `-C` form). `push-after-commit.sh` pushes the submodule FIRST, then commits ONLY the parent's gitlink (`git commit -- <path>`, other sessions' staged files untouched) and pushes the parent. It bumps forward only: if the recorded SHA is not an ancestor of the checkout's HEAD (the parent moved ahead after a rebase), it refuses and says so rather than rolling the app back.
-- `push.recurseSubmodules=check` (repo-local config, set on the droplet): a parent push that points at an unpushed submodule commit is refused.
+- `session-context.sh` sets `core.hooksPath=scripts` on every sub repo whose
+  `scripts/pre-commit` is the canonical shim, and re-attaches a detached-HEAD
+  submodule (only when HEAD == origin/master and local master is absent or equal).
+- `lint-colors.py` / `lint-scale.py` glob `apps/*/`, so one baseline covers
+  parent + apps; `eslint.config.mjs`'s script-scope override covers `apps/*/web/**`.
+- Commit hooks resolve WHICH repo a commit ran in (`.claude/hooks/commit_repo.py`:
+  `git -C <dir> commit`, a leading `cd <dir> &&`, the payload `cwd`).
+  `docs-commit-guard.sh` judges that repo's index and docs.
+  `push-after-commit.sh` pushes the submodule FIRST, then commits ONLY the
+  parent's gitlink (`git commit -- <path>`) and pushes the parent. It bumps
+  forward only: a recorded SHA that is not an ancestor of the checkout's HEAD is
+  refused with a message, never rolled back.
+- `push.recurseSubmodules=check` (repo-local on the droplet): a parent push that
+  points at an unpushed submodule commit is refused.
 
-**`nightfall-incident` is a submodule too (2026-10-14)** — at its old path, not under `apps/`: it was already its own repo (`wai-lau/nightfall`, public), so `git submodule add` adopted the existing checkout and the `./nightfall-incident:/app/nightfall` bind (and its tmpfs mask) never moved. `.gitmodules` sets `ignore = dirty` (31k files under `nightfall-src/` would slow every `git status`) and `branch = master`. Its `graphify-out/` was untracked in the same change (generated; the post-commit hook rebuilds it). **The deploy gains `git submodule update --init`** after the reset — without it the parent's pointer moves and the served game does not. That update leaves the submodule on a DETACHED HEAD; `session-context.sh` re-attaches it to master. `bootstrap.sh` clones with `--recurse-submodules`, rewriting the ssh submodule URL to https for that one command (a fresh box has no GitHub key).
+**Submodule traps:**
+- **A rebase cannot cross a folder->submodule commit** (checkout of origin/master
+  sees plain files where the tree has a submodule). Fix: `mv <path> <scratch>` ->
+  `git pull --rebase` -> `rmdir <path>` -> `mv <scratch> <path>` -> `git push`;
+  `git fetch` right before such a swap commit.
+- **A fresh mirror gets EMPTY submodule dirs** until `git submodule update --init`;
+  `deploy.sh` does it, an interactive `git pull` does not. `bootstrap.sh` clones
+  with `--recurse-submodules`.
+- **Tests that guard by import graph** (`test_noodle_isolation.py` derives its
+  forbidden-module list from `api/` + every other app) must fail on an empty list.
+- **Cost:** an app change is two commits (app + pointer bump; the hook makes the
+  second). Two sessions bumping one pointer conflict on the gitlink — take the
+  newer SHA.
 
-**`claude-box` is a submodule too (2026-10-14)** — `wai-lau/cc-sidecar` (public), split out of this repo with `git subtree split -P claude-box` so its 34 commits of history came along, and re-added at the SAME path: `setup.sh`'s `/exec-fn/claude-box/...` install list and `scripts/cc-probe-daily.sh` needed no change. Its node suites run in exec-fn's pytest through ONE discovering wrapper, `tests/test_cc_node_suites.py` (replaced the two per-file wrappers — `uploads.test.mjs` had none and never ran). The live sidecar runs from `/srv/cc-agent/`, not from the checkout, so swapping the directory touched nothing running. The wrapper FAILS (not skips) when the sandbox-gate or sign-in suite is missing: those tests must never disappear quietly.
+### Deploy — `scripts/deploy.sh`
 
-**Deploys restart nothing unless they must (`scripts/deploy.sh`, 2026-10-14).** The old one-liner ended in `docker compose up -d --force-recreate api` on EVERY deploy — a container restart and the nginx loading page each time — though `api/` hot-reloads and `web/` + templates are read per request. The script does fetch → `reset --hard origin/master` → `submodule update --init`, then picks the smallest action: image inputs (`api/Dockerfile`, `requirements.txt`, `entrypoint.sh`, `exec-fn.cron`) changed → `up -d --build api`; `docker-compose.yml` changed → `up -d api`; api not running → start it; `/app/nightfall/index.html` or `/app/apps/README.md` missing inside the container (a stale bind) → `--force-recreate`; else nothing. The force-recreate used to be unconditional because an untracked `nightfall-incident` could be REPLACED by a pull and stale its bind; a submodule is updated in place, so that is now the exception the bind probe catches. It **refuses over uncommitted tracked changes** (a droplet session's live work, or a submodule commit the parent has not recorded — the update would rewind it); `--discard` overrides. The body is one function invoked on ONE line, because the reset rewrites the running script and bash reads scripts as it goes.
+Run over ssh after a push: `ssh wai-root@wai-lau.net 'bash /exec-fn/scripts/deploy.sh'`.
+It picks the smallest action; most deploys restart nothing.
 
-**Spire moved 2026-10-14** (`wai-lau/spire` → `apps/spire`, 110 files, 1,172 commits via `git filter-repo --path …`, every file byte-identical). Done live with no restart: submodule added → `touch api/app_paths.py` (a reload, so the static mount's `all_directories` picked up `apps/spire/web` while the parent copies still won) → originals `git rm`'d (a second reload; `routes_aspira` now imports from `/app/apps/spire/api`). `tests/conftest.py` became the root `conftest.py` (+ `pytest.ini`, `testpaths = tests apps/*/tests`), which puts `api/` + `apps/*/api` on `sys.path` and gives app suites the shared fixtures; pre-commit runs every `apps/*/tests` from the parent too.
+![deploy.sh decision flow](docs/arch/01-deploy-flow.svg)
 
-**Noodle moved the same way, the same day** (`wai-lau/noodle`, 87 files, 163 commits): its templates' hard-coded `?v=` on parent assets (`/chrome.css`, `/qc-holidays.js`) stopped mattering once cache-busting moved to serve time (§13c); `tests/test_noodle_isolation.py` now derives its forbidden-module list from this repo's `api/` + every other app (it would otherwise FAIL on an empty list, not pass); the glyph and holiday tests read the parent's Iosevka and `qc-holidays.js` from the superproject; `tests/test_app_paths.py` compares served FILE paths (both repos have `fonts/` and `vendor/`). **Any test that finds code by walking `api/` must also walk `apps/*/api`**: `tests/test_admin_only.py` enumerates owner routes from main.py's import graph, and while it looked in `api/` only, spire's owner-only `GET /api/spire/perflog` (and noodle's `/api/noodle-polls`, `/created`) silently left the guard — caught by diffing collected test ids before/after the move (fixed `8f7fd456`). A stale `api/noodle/` holding only the container's root-owned `__pycache__` was left by `git rm` and needed `sudo rm` (Python already ignored it: a regular package later on `sys.path` beats a namespace dir earlier).
+Rules: it **refuses over uncommitted tracked changes** (another session's work, or
+a submodule commit the parent has not recorded; `--discard` overrides); the body
+is one function invoked on ONE line because the reset rewrites the running
+script; **no `sudo` on the git half** (only docker needs it — `sudo git reset`
+makes root-owned sources); **never `git stash`** (blocked by
+`.claude/hooks/git-stash-guard.sh`; it staled bind mounts and 502'd the site —
+clear a rebase blocker with `git checkout -- graphify-out/`); never `git pull` on
+the droplet tree. `routes_nightfall` reads its `/app/nightfall` assets lazily in
+`build_nightfall_html()`, so a stale mount degrades `/nightfall` alone.
 
-**Phases 3–4 (spire, noodle) need no container restart:** `./apps` is already bind-mounted and every loader re-scans per request (`_tmpl`, `/api/ui/usage`) — except the static mount's `all_directories` and `app_paths`' `sys.path`, which are computed at IMPORT. A `--reload` worker swap re-imports them, and adding an app touches `api/` in the same commit, so the swap happens; the nginx double-upstream retries cover it (§1d). Order inside the one commit: submodule added (parent copies still served first) → originals removed. Do the swap ON the droplet tree: a local deploy of it would `reset` the originals away a moment BEFORE `submodule update` clones the app in, and a reload in that gap fails its import (the next reload, triggered by the clone's `.py` files, recovers).
-
-**Traps hit doing it (2026-10-14):**
-- **A rebase cannot cross a folder→submodule commit.** The `claude-box` swap commit was rejected on push (a spire commit from another clone landed meanwhile), and `push-after-commit.sh`'s `pull --rebase` aborted with `untracked working tree files would be overwritten by checkout: claude-box/...` / `could not detach HEAD`: the rebase first checks out origin/master, where those paths are plain files, while the working tree holds them as a submodule checkout. No rebase is left in progress. Fix: `mv claude-box <scratch>` → `git pull --rebase` → `rmdir claude-box` (the rebase recreates it empty) → `mv <scratch> claude-box` → `git push`. The `.git` FILE inside the checkout points at `.git/modules/<name>`, so the moved dir stays valid. For the spire / noodle swaps: `git fetch` immediately before the swap commit, and expect to do this by hand if it races anyway.
-- **The commit-hook `if` filter missed `git -C <dir> commit`** — `Bash(git commit*)` is a prefix match, so the docs guard never saw a submodule commit made from the parent. The filter is gone; the script's own regex narrows.
-- **`api/apps` appears on the host as an empty dir** (the mount point for the nested `./apps` bind). Pre-created as `wai-root` so docker would not make it root-owned; `app_paths` skips it because it is empty. Untracked (git ignores empty dirs) — leave it.
-- **A mirror that pulls the conversion** (`~/src/exec-fn`, a fresh deploy) gets EMPTY submodule dirs until `git submodule update --init` runs once; the deploy command now does it, an interactive `git pull` does not.
-
-**The cost:** an app change is two commits (app + pointer bump); the hook makes the second. Two sessions bumping the same pointer conflict on the gitlink — take the newer SHA.
+History: [ARCHAEOLOGY.md §1](ARCHAEOLOGY.md) (submodule migration, deploy.sh, the
+sudo-git ownership mess, the httpx2 502).
 
 ---
-### 1-notes. From CLAUDE.md (moved 2026-09-27)
-
-Moved verbatim from CLAUDE.md on 2026-09-27 when CLAUDE.md was thinned to an index. Unedited; may overlap the subsections above.
-
-**[RULES → Local-claude deploy]**
-
-**Local-claude deploy — push, then deterministic reset over SSH (NOT `git pull`/`git stash`).** `/exec-fn` always carries local drift (regenerated `graphify-out`) + a rebase-pull config; with the bind-mounted dirs (`./nightfall-incident` → `/app/nightfall`, a submodule since 2026-10-14; the untracked `./graphify-out`), `pull`/`stash` are fragile — a mangled stash-pop or a staled mount can wedge a request that reads the mount. Both `stash -u` and plain `stash` have caused outages, so **`git stash` is now blocked through Claude Code** by a PreToolUse hook (`.claude/hooks/git-stash-guard.sh`; read-only `stash list`/`show` still allowed) — clear a rebase blocker with `git checkout -- graphify-out/` instead. (`routes_nightfall` USED to read `nightfall-incident/wai-head.js` at *import*, so a staled `/app/nightfall` killed startup → 502 across every route; it now reads its `/app/nightfall` assets **lazily per-request** inside `build_nightfall_html()`, so a staled mount degrades `/nightfall` alone and self-heals once the mount is healthy — no restart, no whole-site 502.) After `git push` from `~/src/exec-fn`:
-
-**[RULES → No sudo on the git half]**
-
-**NO `sudo` on the git half** — only docker needs it (the socket is root-owned). `sudo git reset --hard` rewrites every file the push changed AS ROOT, and those files then need `sudo` to edit, which is how the tree accumulated root-owned sources over weeks: `tests/*.py`, `docker-compose.yml`, `bootstrap.sh`, `printer-box/*`, `scripts/pre-commit`, `api/*.py`, `web/mtg.js`. The auth log has it plainly — twelve `git reset --hard origin/master` under sudo, plus a couple of `sudo tee web/printer.js` that the root ownership had forced. The whole tree and `.git` were chowned back to `wai-root` on 2026-09-12, so a plain `git reset --hard` writes fine; keep it that way. `reset --hard` discards the droplet's `graphify-out` drift (re-run `/graphify` after, or commit it first); `nightfall-incident` — untracked until 2026-10-14, a submodule since (§1e) — is moved to the recorded commit by the deploy's `git submodule update --init`; `--force-recreate` rebuilds the mount namespace so a churned untracked dir can't stale and crash startup.
-
-**[RULES → Python deps are locked]**
-
-**PYTHON DEPS ARE LOCKED.** `api/requirements.in` = the ~18 DIRECT deps, hand-edited, comments live here. `api/requirements.txt` = a **GENERATED full lock**, all 72 packages incl. transitives pinned `==`; the Dockerfile installs the lock and never the `.in`. Add or bump a dep by editing the `.in`, then `bash scripts/lock-requirements.sh` (fresh-resolves in a throwaway `python:3.12-slim`, same base as the image), then **rebuild and check a route** — a resolve verifies nothing. Why: unpinned, every rebuild re-resolved the whole tree, and on 2026-09-17 that moved `anthropic` + `mcp` onto **`httpx2`**, evaporating the transitive `httpx` that `api/auth.py` imports by name → `ModuleNotFoundError` at import → **502 on every route**. Both `httpx` and `httpx2` are in the lock on purpose. Anything `api/` imports by name gets its own line in the `.in` regardless of who else pulls it. **ARCHITECTURE.md §1**.
-
-**[Droplet → nginx]**
-
-- nginx: HTTP 80 → HTTPS redirect, HTTPS 443 → the `execfn_app` upstream (127.0.0.1:8080). The `upstream` block lists the server **TWICE** — nginx allows one try per peer, so a single-server upstream can never retry — which is what stopped a `--reload` worker swap surfacing as a 502 (measured: 20 of 220 requests, then 220/220 after). `non_idempotent` is deliberately NOT set (a retried POST would apply a mutation twice) and `http_503` is deliberately NOT retried (this app returns real 503s when the home box or printer is down). `client_max_body_size 25m` — nginx's 1m default was 413ing pasted `/cc` screenshots before the app could apply its own caps. Live config is `/etc/nginx/sites-enabled/default`; **backups go in `/etc/nginx/backups/`, never in `sites-enabled/`**, whose include is an unfiltered `*` that would load a `.bak` as a duplicate server block. `bootstrap.sh` carries the same block. See **ARCHITECTURE.md §1d** (history: **ARCHAEOLOGY.md §1**).
 
 ## 2. Module graph
 
-Intra-project imports only (stdlib / fastapi / anthropic omitted), **regenerated
-2026-10-14 from an `ast` walk of `api/**/*.py`** (every drawn edge is a real
-import; the script lived in the session scratchpad, rerun it after structural
-changes). Solid arrow = top-level import; **dashed = late (in-function)
-import** — the usual way a cycle is avoided (`chat`, `nudge`, `scheduler` all
-reach each other this way).
+Intra-project imports only (stdlib / fastapi / anthropic omitted), checked
+2026-10-15 against an `ast` walk of `api/**/*.py`; rerun a walk after structural
+changes. Solid arrow = top-level import; **dashed = late (in-function) import**,
+the usual way a cycle is avoided (`chat`, `nudge`, `scheduler` all reach each
+other this way).
 
-**`main.py` is the composition root, but it imports few routers directly**:
-`routers.py` builds the three auth tiers (`public` / `protected` /
-`guest_protected`) and mounts `routes_chat`, `routes_nightfall`, `tarot.routes`,
-`mtg.routes` and the noodle app's routers; every other `routes_*` module
-imports `routers` for its tier and is imported by `main`. The **app submodules**
-(`apps/spire/api`, `apps/noodle/api`) sit outside `api/`; `app_paths` (imported
-first) puts them on `sys.path`, `main` imports `routes_aspira` and `routers`
-imports `noodle.*`. They are not drawn (§1e); `noodle` imports no other app
-module.
+![Module graph](docs/arch/02-module-graph.svg)
 
-**The shared base is not drawn** (its edges would bury the graph):
-`helpers.py` has **25 inbound edges** (23 top-level, plus late imports from
-`gcal` and `nudge_loop`) and imports no project module itself; `auth.py` has 8
-(`routers`, `routes_views`, `routes_nightfall`, `routes_graph`, `routes_printer`,
-`routes_tts`, `tarot.routes`, `mtg.routes`); `pages.py` has 7 (`routers`
-late, `routes_views`, `routes_graph`, `routes_printer`, `routes_tts`,
-`routes_zombo`, and the unlinked `routes_emet`); `app_paths.py` has 5.
-Two self-contained subsystems, collapsed to one node each: `tarot/*` (12
-modules: `routes → agent → tools → lookup → cards`, plus `prompt`, `spreads`,
-`state_echo`, `openings*`, `voice_synth`) and `mtg/*` (5:
-`routes → agent → prompt/tools → lookup`). `LEAF` stands for four route
-modules (and their own leaves: `graph_*`, `printer_*`, `tts_routing`,
-`gpu_mode_client`) that each import `routers` and are each imported by `main`.
-`chat` is NOT imported by `routes_chat` (it goes through `chat_passes`).
-
-```mermaid
-flowchart LR
-  main["main.py<br/>(composition root)"]
-  routers["routers.py<br/>(tiers + mounts)"]
-  routes_api["routes_api.py"]
-  routes_views["routes_views.py"]
-  routes_chat["routes_chat.py"]
-  routes_nightfall["routes_nightfall.py"]
-  routes_cc["routes_cc.py"]
-  routes_exec["routes_exec.py"]
-  gamesave_store["gamesave_store.py"]
-  LEAF["routes_graph · routes_printer · routes_tts · routes_zombo<br/>(+ their leaf modules)"]
-  subgraph chatc["Exec chat + monitor"]
-    chat["chat"]
-    chat_actions["chat_actions"]
-    chat_passes["chat_passes"]
-    chat_store["chat_store"]
-    chat_tools["chat_tools"]
-    exec_tools["exec_tools"]
-    exec_board["exec_board"]
-    exec_context["exec_context"]
-    exec_panel["exec_panel"]
-    cc_client["cc_client"]
-    cc_title["cc_title"]
-    monitor["monitor"]
-    monitor_sse["monitor_sse"]
-    discord_bot["discord_bot"]
-  end
-  subgraph nudgec["Nudge, scheduling, morning"]
-    nudge["nudge"]
-    nudge_deadlines["nudge_deadlines"]
-    nudge_llm["nudge_llm"]
-    nudge_loop["nudge_loop"]
-    recalibration["recalibration"]
-    scheduler["scheduler"]
-    hq["hq"]
-    card_schedule["card_schedule"]
-    card_llm["card_llm"]
-    morning["morning"]
-    gcal["gcal"]
-  end
-  TAROT["tarot/ package<br/>(12 modules)"]
-  MTG["mtg/ package<br/>(5 modules)"]
-  card_schedule -.-> scheduler
-  cc_title -.-> cc_client
-  chat --> chat_actions
-  chat --> exec_board
-  chat -.-> nudge
-  chat -.-> scheduler
-  chat_passes --> chat
-  chat_passes --> chat_store
-  chat_passes --> exec_tools
-  chat_passes --> monitor_sse
-  chat_tools --> card_schedule
-  chat_tools -.-> nudge
-  chat_tools -.-> nudge_deadlines
-  chat_tools -.-> nudge_llm
-  discord_bot -.-> chat_passes
-  discord_bot -.-> chat_store
-  discord_bot -.-> monitor_sse
-  discord_bot -.-> nudge
-  exec_context --> chat
-  exec_context --> exec_panel
-  exec_panel --> cc_client
-  exec_panel --> chat_store
-  exec_tools --> chat_tools
-  hq --> scheduler
-  main --> discord_bot
-  main --> nudge_loop
-  main --> routers
-  main --> routes_api
-  main --> routes_cc
-  main --> routes_exec
-  main --> LEAF
-  main --> routes_views
-  main --> TAROT
-  monitor --> chat
-  monitor --> chat_store
-  monitor --> monitor_sse
-  morning --> chat
-  morning -.-> nudge_deadlines
-  morning -.-> scheduler
-  nudge -.-> recalibration
-  nudge -.-> scheduler
-  nudge_deadlines --> nudge
-  nudge_llm --> chat
-  nudge_llm --> nudge
-  nudge_loop --> chat_store
-  nudge_loop --> monitor_sse
-  nudge_loop -.-> nudge
-  nudge_loop -.-> nudge_deadlines
-  nudge_loop --> nudge_llm
-  nudge_loop -.-> scheduler
-  routers --> MTG
-  routers --> routes_chat
-  routers --> routes_nightfall
-  routers --> TAROT
-  routes_api --> card_llm
-  routes_api -.-> card_schedule
-  routes_api --> cc_client
-  routes_api --> chat_store
-  routes_api --> gcal
-  routes_api -.-> hq
-  routes_api --> monitor
-  routes_api --> monitor_sse
-  routes_api --> morning
-  routes_api -.-> nudge
-  routes_api -.-> nudge_deadlines
-  routes_api --> nudge_llm
-  routes_api --> nudge_loop
-  routes_api --> routers
-  routes_api -.-> scheduler
-  routes_cc --> cc_client
-  routes_cc --> cc_title
-  routes_cc --> exec_context
-  routes_cc --> exec_panel
-  routes_cc --> routers
-  routes_chat --> chat_passes
-  routes_chat --> chat_store
-  routes_chat -.-> nudge
-  routes_exec --> chat
-  routes_exec --> exec_context
-  routes_exec --> exec_tools
-  routes_exec --> monitor_sse
-  routes_exec --> routers
-  LEAF --> routers
-  routes_nightfall --> gamesave_store
-  routes_views --> routers
-  routes_views --> routes_nightfall
-```
-
-37 nodes, 86 edges. Dashed edges are late imports, so `scheduler` is reached at
-runtime from `card_schedule`, `morning`, `chat` and `nudge` without a static
-edge — the runtime call path is shown in view 3.
+- **`main.py` is the composition root.** `routers.py` builds the three auth tiers
+  (`public` / `protected` / `guest_protected`) and mounts `routes_chat`,
+  `routes_nightfall`, `tarot.routes`, `mtg.routes` and the noodle app's routers;
+  every other `routes_*` module imports `routers` for its tier and is imported by
+  `main` (which also imports `routes_aspira` from the spire app,
+  `security_headers`, `asset_version` and `log_masking`, undrawn).
+- **App submodules** (`apps/spire/api`, `apps/noodle/api`) sit outside `api/`;
+  `app_paths` puts them on `sys.path`. Not drawn (§1e); `noodle` imports no other
+  app module.
+- **Shared base, not drawn** (edges would bury the graph): `helpers.py` has 23
+  inbound edges (21 top-level, late ones from `gcal` and `nudge_loop`) and imports
+  no project module; `auth.py` 8 (`routers`, `routes_views`, `routes_nightfall`,
+  `routes_graph`, `routes_printer`, `routes_tts`, `tarot.routes`, `mtg.routes`);
+  `pages.py` 7 (`routers` late, `routes_views`, `routes_graph`, `routes_printer`,
+  `routes_tts`, `routes_zombo`, the unlinked `routes_emet`); `app_paths.py` 5.
+- **Collapsed subsystems:** `tarot/*` (12 modules: `routes -> agent -> tools ->
+  lookup -> cards`, plus `prompt`, `spreads`, `state_echo`, `openings`,
+  `openings_gen`, `openings_loop`, `voice_synth`) and `mtg/*` (5: `routes -> agent
+  -> prompt/tools -> lookup`). `LEAF` = four route modules (`routes_graph`,
+  `routes_printer`, `routes_tts`, `routes_zombo`) and their own leaves
+  (`graph_*`, `printer_*`, `tts_routing`, `gpu_mode_client`), each importing
+  `routers` and imported by `main`.
+- `chat` is NOT imported by `routes_chat` (it goes through `chat_passes`).
+- `scheduler` is reached at runtime from `card_schedule`, `morning`, `chat` and
+  `nudge` only by late import, so no static edge; the runtime path is in §3.
 
 ---
-
 ## 3. Morning pipeline + scheduling
 
 ### 3a. Morning cron sequence
 
-`POST /api/morning` (4:30 AM ET) runs `build_morning()` in `morning.py`.
+`morning_cron.sh` (in-container cron, 4:30 AM ET) POSTs `/api/morning` with `Bearer API_KEY`; the route runs `morning.build_morning()` on a thread, then ends the Exec panel's sidecar thread.
 
-```mermaid
-sequenceDiagram
-  participant cron
-  participant API as main.POST /api/morning
-  participant P as morning.build_morning
-  participant LLM as Claude (opus-4-8)
-  participant GC as gcal.import_gcal_cards
-  participant S as scheduler
-  participant FS as data/*.json
-  participant CC as cc sidecar
+![Morning pipeline sequence](docs/arch/03-morning.svg)
 
-  cron->>API: POST /api/morning (Bearer API_KEY)
-  API->>P: build_morning()
-  P->>FS: read activity_log.json
-  P->>LLM: _morning_retrospective (extract durable facts)
-  LLM-->>P: facts
-  P->>FS: append to profile.json
-  P->>LLM: _purge_stale_notes
-  P->>FS: rewrite profile.json
-  P->>GC: import_gcal_cards(days_ahead=14)
-  GC->>FS: add events to rd.json
-  P->>FS: archive activity_log to _YYYYMMDD, reset to []
-  P->>FS: archive moltbook-heartbeat to _YYYYMMDD, reset to ""
-  P->>FS: read rd.json
-  P->>S: _roll_and_schedule (roll past scheduled_day, rd->hq in window)
-  P->>S: layout_day(anchor=10AM, only_ids=restack)
-  S-->>P: cards mutated (dir_start_min assigned)
-  P->>FS: write rd.json
-  P->>FS: delete chat.json
-  P->>LLM: _dedupe_context
-  P->>FS: rewrite profile.json
-  P-->>API: summary
-  API->>CC: cc_client.new_conversation() (sidecar POST /new)
-  CC-->>API: archive current thread, drop session pointer
-```
-
-The Exec panel's thread lives in the cc sidecar since phase 3 (§7f), not in
-`chat.json`, so deleting `chat.json` alone left the panel on yesterday's
-conversation forever. The route ends the sidecar thread after
-`build_morning()`; the sidecar archives before it drops the pointer and
-refuses (500) if the archive fails, which surfaces as `errors.cc_new`.
-
-Any entry in `errors` — a step's failure, `cc_new`, or a crash of
-`build_morning()` itself — is then posted to the Exec chat by
-`routes_api._post_morning_errors`: written to the fresh `chat.json` as a
-`monitor` message and pushed as `{comment}`, so the panel replays it and the
-Discord bridge DMs it. A clean morning posts nothing. Before this, a failing
-step (gcal `invalid_grant`, 2026-10-06) was visible only in `/debug`'s cron log.
+- **Each step is isolated** (`_run_step`): a failure lands in `errors[<step>]`, the rest still run. Steps: `retrospective`, `recalibrate`, `purge_stale`, `gcal_import`, `prune_cron` (drops `data/cron/*.log` older than 30 days).
+- **Sidecar thread**: the panel's thread lives in the cc sidecar (§7f), not `chat.json`, so deleting `chat.json` alone left the panel on yesterday's conversation. The route calls `cc_client.new_conversation()` after `build_morning()`; the sidecar archives before dropping its pointer and refuses (500) if the archive fails, surfacing as `errors.cc_new`.
+- **Errors are posted, not buried**: any entry in `errors`, or a crash of `build_morning()`, goes through `routes_api._post_morning_errors` — a `monitor` message in the fresh `chat.json` plus a `{comment}` push (panel replays it, Discord DMs it). A clean morning posts nothing. The route also pushes `{cards_changed}`.
+- **Roll/layout block** runs under `_RD_LOCK`: `_roll_and_schedule` (past `scheduled_day` on rd/hq cards -> today, except `no_rollover`; dated rd cards inside the window -> hq via `schedule_to_day`, a past-due `no_rollover` card is left alone), restack of carryover + unpositioned today cards, `layout_day` from `AUTOSTACK_ANCHOR` (10:00), then `nudge_deadlines.morning_reconcile`.
 
 ### rd.json concurrency — `helpers._RD_LOCK`
 
-rd.json writers run on genuinely parallel OS threads: the nudge loop's scans
-(`asyncio.to_thread`), chat-tool dispatch (`routes_chat` → `to_thread`),
-sync-`def` routes on Starlette's thread pool (gcal import), and the event loop
-itself (`PATCH /api/rd`). Three guards in `helpers.py` make that safe:
+rd.json writers run on genuinely parallel OS threads: the nudge loop's scans (`asyncio.to_thread`), chat-tool dispatch (`to_thread`), sync-`def` routes on Starlette's thread pool (gcal import), and the event loop (`PATCH /api/rd`). Three guards in `helpers.py`:
 
-- **`_RD_LOCK`** (`threading.RLock`) — every read-modify-write cycle holds it
-  around the WHOLE load→mutate→save sequence (`with _RD_LOCK:`), so one
-  thread's save can never silently drop another's changes. LLM/network calls
-  are NEVER made under the lock — callers release, call the model, then
-  re-lock + reload + apply (`_fire_nudge`, `_build_graph`, `_run_triage`,
-  `api_rd_recalc`, `_tool_decompose_task`, `import_gcal_cards`).
-- **`_load_rd()` returns a private deep copy** — the `_load_json` mtime cache
-  holds one shared object; handing it out mutable would leak one thread's
-  in-progress edits into another's snapshot.
-- **`_save_rd()` is an atomic replace** (tmp + rename), so a concurrent
-  reader never sees a truncated file. It also **pops rd.json out of the
-  `_load_json` mtime cache**: mtime granularity on this box is 1ms, so a save
-  landing in the same millisecond as the read that seeded the cache would
-  otherwise leave the stale PRE-save board being handed to the next load.
+- **`_RD_LOCK`** (`threading.RLock`): every read-modify-write holds it around the WHOLE load→mutate→save (`with _RD_LOCK:`). LLM/network calls are NEVER made under it — release, call the model, re-lock + reload + apply (`_fire_nudge`, `_build_graph`, `_run_triage`, `api_rd_recalc`, `_tool_decompose_task`, `import_gcal_cards`). **Any new rd.json writer follows this.**
+- **`_load_rd()` returns a private deep copy** — the `_load_json` mtime cache holds one shared object.
+- **`_save_rd()` is an atomic tmp+rename** and **pops rd.json out of the `_load_json` mtime cache** (1ms mtime granularity: a save in the same millisecond as the read that seeded the cache would serve the stale pre-save board).
 
-Single-process invariant: uvicorn runs ONE worker (`--reload`), so a
-process-wide lock is sufficient; nothing outside the container writes rd.json.
-Read-only loads (`monitor`, `get_week_data`, scans) don't take the lock — the
-deep copy + atomic replace make unlocked reads safe.
+Single-process invariant: uvicorn runs ONE worker (`--reload`), so a process-wide lock suffices; nothing outside the container writes rd.json. Read-only loads (`monitor`, `get_week_data`, scans) skip the lock — deep copy + atomic replace make that safe.
 
 ### 3b. scheduler.py — the time model
 
-All `dir_start_min` / `scheduled_day` logic lives here. Window =
-`SCHED_WINDOW_DAYS=6` (today + 6 = 7-day span).
+All `dir_start_min` / `scheduled_day` logic lives here. Window = `SCHED_WINDOW_DAYS = 6` (today + 6 = 7-day span).
 
-```mermaid
-flowchart TB
-  subgraph entry["Callers"]
-    morning["morning cron<br/>(_roll_and_schedule)"]
-    execchat["exec chat tools<br/>create_card / schedule_card"]
-    hq["HQ drag"]
-  end
+![schedule_to_day decision flow](docs/arch/03-scheduler.svg)
 
-  subgraph sched["scheduler.py"]
-    s2d["schedule_to_day(card, ...)<br/>canonical rd to hq promoter"]
-    place["place_card_today()<br/>next free slot >= now"]
-    layout["layout_day(anchor, only_ids)<br/>autostack from anchor"]
-  end
+- **`schedule_to_day`** is the one rd→hq promoter (no I/O, mutates the card). Beyond the window: stays in `rd` with `due_date` only (`scheduled_day` cleared) — unless `clamp_to_window=True` (the `PATCH /api/hq` manual move), which clamps to the last window day. An overdue target clamps to today. `dir_start_min` is set only when the target is today; any other day clears it.
+- **Callers**: morning `_roll_and_schedule`; exec chat tools (`create_card` / `schedule_card` / reschedule → `exec_tools.run_tool` → `chat_tools._handle_tool` → `card_schedule.apply_schedule`); `POST /api/rd/{id}/schedule` (`card_schedule.drop_on_day`); `PATCH /api/hq`.
+- **`dir_start_min`**: minutes from midnight, the card BLOCK's start (= prep start) for a card scheduled today. Block = `[dir_start_min, +estimated_time]`; the event block is its final `work` minutes. A **timed** `due_date` pins it: `dir_start_min = event_time - prep` (`timed_start_min`), so prep finishes at the event time. Timeless cards stack forward (`place_card_today`: next free slot >= now, snapped to 15 min, after the last placed card; morning `layout_day` from 10:00). An explicit `dir_start_min` argument wins.
+- **Dragging the master block** (hq today column, `saveStartTime` in `web/hq-board.js`) retimes the due TIME to `block_start + prep`, keeping the due DATE; cards with no due_date just move. Between-column drags (`/api/hq`) only touch `scheduled_day`, never the due date.
+- **`prep_time`**: of `estimated_time`, the decomposed **prep** minutes; `work = estimated_time - prep_time` is the atomic **event** (class, concert, appointment) — **only when `prep_time > 0`**. With `prep_time = 0` the whole time is decomposed and `ensure_event_block` (`nudge_deadlines.py`) adds no event node. Auto-filled at creation (exec `create_card`, `_card_brief`); edited as `cd-prep` + `cd-dur` in the card dialog (`fmtDuration` `35m`/`6h`, `parseDuration` also accepts `90`, `1h30m`); "recalculate" rebuilds the graph to that split. null for reminders.
 
-  morning --> s2d
-  morning --> layout
-  execchat -->|"apply_schedule()"| s2d
-  hq --> s2d
-
-  s2d --> decide{"target in<br/>7-day window?"}
-  decide -->|"no"| outwin["stay in rd<br/>set due_date only<br/>(clamp_to_window: clamp to edge)"]
-  decide -->|"yes"| inwin["column = hq<br/>scheduled_day = target<br/>(overdue: clamp to today)"]
-  inwin --> istoday{"target ==<br/>today?"}
-  istoday -->|"yes"| setmin["dir_start_min =<br/>param or place_card_today()"]
-  istoday -->|"no"| clearmin["dir_start_min = null"]
-```
-
-**rd to hq promotion** (`schedule_to_day`): a card moves out of the `rd`
-column into `hq` only when its target day falls inside the 7-day window.
-`dir_start_min` (timeline position) is set only when the target is today —
-either an explicit value or the next free slot from `place_card_today()`.
-Outside the window the card stays in `rd` with just a `due_date`.
-
-**Exec chat call chain:**
-`exec_tools.run_tool -> chat_tools._handle_tool -> _TOOL_HANDLERS[name]`
-`-> card_schedule.apply_schedule -> scheduler.schedule_to_day`.
-
-History — the incidents behind the rules above: [ARCHAEOLOGY.md §3](ARCHAEOLOGY.md).
-
----
-### 3-notes. From CLAUDE.md (moved 2026-09-27)
-
-Moved verbatim from CLAUDE.md on 2026-09-27 when CLAUDE.md was thinned to an index. Unedited; may overlap the subsections above.
-
-**[Card schema → dir_start_min]**
-
-- `dir_start_min`: minutes from midnight — the card BLOCK's start (= prep start) for a card scheduled today. The block runs `[dir_start_min, dir_start_min + estimated_time]`; the event block is its final `work` minutes. A card with a **timed** due_date is pinned: `dir_start_min = event_time - prep` (`scheduler.timed_start_min`), so prep back-schedules to finish exactly at the event time. Timeless cards stack forward (`place_card_today` / morning `layout_day` from 10 AM). All scheduling lives in `scheduler.py`. Edited via the hq today-column timeline (drag a block) and drives nudge anchoring. Dragging the master block also retimes the card's due (event) TIME to `block_start + prep` (`saveStartTime`), keeping the due DATE — so the event time follows the drag and a later prep/time edit re-pins to where it was dragged; cards with no due_date just move (no due fabricated). Between-column drags (`/api/hq`) only touch `scheduled_day`, never the due date.
-
-**[Card schema → prep_time]**
-
-- `prep_time`: of `estimated_time`, the **prep** minutes — the hands-on lead-up steps that get decomposed (the part Wai stalls on). The remainder (`estimated_time - prep_time` = `work`) is the **event**: an atomic external occurrence you simply attend (class, concert, appointment, show, meeting) and never split — **but only when `prep_time > 0`**. A self-directed task has `work = 0` (all prep, no event block). And a card with **`prep_time = 0` is now fully decomposed**: the whole `estimated_time` is broken into work steps with NO atomic event block (`ensure_event_block` suppresses the event node whenever prep is 0). So the protected event block exists only for a card reached *through* prep. Auto-filled at creation (exec chat `create_card`, `_card_brief` budgets prep-vs-event in decompose). Editable in the card dialog as two equal-size boxes on the **date line** (`cd-prep` + `cd-dur`, top-labelled prep + **duration** — the field UI-labelled "event" was renamed "duration"), shown in compact single-unit form (`fmtDuration`: `35m` / `6h`; `parseDuration` accepts those plus `90`, `1h30m`); the **recalculate** button stays in the breakdown row and rebuilds the graph to that split. null for reminders.
-
-**[Card schema → rd.json concurrency]**
-
-**rd.json concurrency**: `_save_rd()` **pops rd.json out of the `_load_json` mtime cache** (1ms mtime granularity — a save in the same millisecond as the read that seeded the cache otherwise serves the stale pre-save board to the next load). Writers run on parallel OS threads (nudge-loop `to_thread` scans, chat-tool dispatch, sync-`def` routes, event loop), so every read-modify-write cycle holds `helpers._RD_LOCK` (RLock) around the WHOLE load→mutate→save — never across an LLM/network call (release, call, re-lock + reload + apply, see `_fire_nudge`). `_load_rd()` returns a private deep copy (the `_load_json` mtime cache holds one shared object) and `_save_rd()` is an atomic tmp+rename. Any NEW rd.json writer must follow this pattern. Details in ARCHITECTURE.md § rd.json concurrency (history: ARCHAEOLOGY.md §3).
-
+History: [ARCHAEOLOGY.md §3](ARCHAEOLOGY.md).
 ## 4. TTS (text-to-speech)
 
-Every voice in the app — the `/hosaka` SPEAK page, the `/tarot` reader
-narration, and the Exec bubble — streams from a **single home GPU box**
-through a **same-origin reverse proxy**. No TTS models run on the droplet;
-the container only proxies. The browser always talks same-origin, so the
-session/guest cookie carries auth on the WebSocket handshake (HTTP basic
-auth does not ride a WS upgrade reliably on mobile).
+Every voice in the app — the `/hosaka` SPEAK page, the `/tarot` reader, and the Exec panel — streams through **one same-origin proxy** (`routes_tts.py`) to one of **two upstreams**: the **home GPU box** (kokoro, chatterbox + RVC; SSH reverse tunnel) or **`hosaka-piper`**, an always-on CPU container on this droplet (`glados`). The browser only talks same-origin, so the session/guest cookie carries auth on the WebSocket handshake (HTTP basic auth does not ride a WS upgrade reliably on mobile).
 
 ### 4a. Topology
 
-The model server (Kokoro / Chatterbox / Piper) runs on Wai's home box and
-is reached only over an SSH reverse tunnel bound to the Docker bridge
-gateway (`TTS_UPSTREAM`, default `172.17.0.1:8123`). `tts-box/` (systemd
-user service + port watchdog, installed on the home box) keeps that
-upstream alive.
+![TTS topology](docs/arch/04-tts-path.svg)
 
-```mermaid
-flowchart LR
-  browser["Browser<br/>(/hosaka · /tarot · Exec bubble)"]
+- **Home upstream**: `TTS_UPSTREAM` (default `172.17.0.1:8123`), the Docker bridge gateway → host loopback → SSH tunnel to the home box. `tts-box/` (systemd user service, tunnel unit, port watchdog) lives on the home box and keeps it alive; see `tts-box/README.md`.
+- **Piper upstream**: `TTS_PIPER_UPSTREAM` (default `hosaka-piper:8123`), a compose service (`docker-compose.yml`, image `hosaka-piper:latest`, no published ports, pronunciation lexicon bind-mounted read-only). `tts_routing.pick_upstream` sends an utterance with `backend == "piper"` there, everything else to the home box.
+- **Voices**: `/api/hosaka/voices` queries both upstreams concurrently and merges (`merge_voices`: piper voices from piper, the rest from home; an upstream error yields `[]`).
+- **Health**: `/api/hosaka/health` → `{ok, home, piper}`, 200 if EITHER answers (glados alone is still ok), else 503. Liveness (`_live`) is a real `/v1/voices` response, **never a bound port** — the tunnel listener stays bound with the home box off. `/hosaka` shows "Wai's GPU offline -- glados only" when `home` is false (`applyHealth` in `tts.js`).
 
-  subgraph droplet["droplet container — routes_tts.py"]
-    page["GET /hosaka<br/>(guest_protected)"]
-    voices["GET /api/hosaka/voices<br/>GET /api/hosaka/health<br/>(guest_protected)"]
-    ws["WS /ws/hosaka<br/>(public route, cookie-gated)"]
-  end
+**Every utterance ends in a terminal frame.** Normally the upstream's own `{"type":"end"}`/`{"type":"error"}` clears `busy[url]`. If the upstream stream just ends mid-utterance (home box crash, tunnel drop, server restart), `_pump_to_client`'s `finally` synthesizes `{"type":"error","detail":"tts upstream closed mid-utterance"}` and evicts the dead connection so the next utterance reconnects. Load-bearing for `/tarot`: its typewriter paces off the audio clock and waits on a terminal frame. The guard is the pure `tts_routing.died_mid_utterance` (unit-tested), which fires **only** for the live connection on that url — a stale socket `_ws_dispatch` cut on purpose to start a new utterance must not error the one that replaced it. A failed send/connect answers `{"type":"error","detail":"tts upstream unreachable"}` for that utterance only and evicts the connection; a live glados connection survives a home-box death.
 
-  tunnel(["SSH reverse tunnel<br/>172.17.0.1:8123"])
+Client-side belts (a frame can also be lost browser↔droplet): `hosaka-audio.js`'s `ws.onclose` delivers a synthetic `{type:"error"}` to the in-flight utterance (guarded on the socket still being the live one), and the stall watchdog in `typewriter.js` (`twAudio`) caps `elapsed()` at the buffered duration in its progress signal so a dead stream can fire it.
 
-  subgraph home["home GPU box (RTX) — tts-box keepalive"]
-    upstream["TTS upstream<br/>WS /v1/audio/stream<br/>GET /v1/voices<br/>Kokoro · Chatterbox · Piper"]
-  end
+### 4b. Auth — guest-or-full
 
-  browser -->|HTTPS page load| page
-  browser -->|"GET (httpx proxy)"| voices
-  browser <-->|"WS audio (bidi pump)"| ws
-  voices -->|http| tunnel
-  ws -->|"websockets.connect"| tunnel
-  tunnel --- upstream
-```
-
-`_pump_to_upstream` / `_pump_to_client` shuttle text + binary frames both
-directions; `/api/hosaka/health` probes the upstream for a *real* response
-(the reverse-tunnel listener stays bound on the droplet even when the model
-server is down — a bound port is **not** liveness), letting `/hosaka` show
-"TTS server offline" before SPEAK.
-
-**Every utterance ends in a terminal frame** — the proxy guarantees it even
-when the backend doesn't. An utterance normally ends with the upstream's own
-`{"type":"end"}` / `{"type":"error"}`, which clears `busy[url]`; if the
-upstream stream instead just *ends* (home box crashed, tunnel dropped, GPU
-server restarted mid-sentence) `_pump_to_client`'s `finally` synthesizes
-`{"type":"error","detail":"tts upstream closed mid-utterance"}` and evicts the
-dead connection so the next utterance reconnects. This is load-bearing for
-`/tarot`: the reader's typewriter paces off the audio clock and waits on a
-terminal frame, so a silently-dead upstream left the reveal spinning forever
-with the text stuck part-revealed. The guard is the pure predicate
-`tts_routing.died_mid_utterance` (unit-tested — `routes_tts` can't be imported
-by the dev venv), which fires **only** for the live connection on that `url`:
-a stale socket `_ws_dispatch` deliberately cut to start a new utterance is
-superseded, and its error would abort the utterance that replaced it.
-
-Client-side belts for the same failure, since a frame can also be lost between
-browser and droplet: `hosaka-audio.js`'s `ws.onclose` delivers a synthetic
-`{type:"error"}` to the in-flight utterance (guarded on the socket still being
-the live one), and `tarot-stream.js`'s stall watchdog caps `elapsed()` at the
-buffered duration in its progress signal — the raw `el + dur` never stopped
-rising (the ctx clock keeps running after the buffer drains), so the watchdog
-could never fire on a dead stream.
-
-### 4b. Auth — now guest-or-full
-
-`/hosaka` and `/api/hosaka/*` moved from the full-auth `protected` router to
-**`guest_protected`** — a guest session now reaches the SPEAK page. The WS
-`/ws/hosaka` is declared on the `public` router but rejects (close `1008`)
-unless a `session` **or** `guest_session` cookie matches before `accept()`.
-The guest tier is what lets the `/tarot` reader voice work for guests.
+`/hosaka` and `/api/hosaka/{voices,health}` are on **`guest_protected`**. `WS /ws/hosaka` and `WS /ws/hosaka/presence` are on the `public` router but close `1008` before `accept()` unless a `session` **or** `guest_session` cookie matches (this is what lets guests hear the `/tarot` reader).
 
 | Endpoint | Router | Reachable by |
 |----------|--------|--------------|
-| `GET /hosaka` | `guest_protected` | full + guest (nav renders guest-tier for non-admins) |
-| `GET /api/hosaka/voices`, `/health` | `guest_protected` | full + guest |
-| `WS /ws/hosaka` | `public` + cookie check | full + guest (else `1008`) |
+| `GET /hosaka`, `GET /api/hosaka/voices`, `/health` | `guest_protected` | full + guest |
+| `WS /ws/hosaka`, `/ws/hosaka/presence` | `public` + cookie check | full + guest (else `1008`) |
 
 ### 4b-ii. GPU-mode owner control
 
-`GET /api/hosaka/mode` and `POST /api/hosaka/mode` sit on the **`protected`**
-router (owner-only -- guests must never flip the GPU). They proxy the home-box
-`gpu-mode` service over the SSH tunnel at `172.17.0.1:8124` (env:
-`GPU_MODE_UPSTREAM`, default `172.17.0.1:8124`) using `Authorization: Bearer
-$GPU_MODE_TOKEN` (the token must match the value on the home box;
-provisioned in the droplet `.env` -- operator step). The GET returns the
-current mode; the POST body `{"action": "homo"|"emo"|"idle", "force"?: bool}`
-transitions it.
-`emo` and `idle` stop hosaka-server and therefore disconnect active remote
-users; the route confirms against `_audio_conns` (the live `/ws/hosaka` audio
-socket set in `routes_tts.py` — the real listeners, incl. /tarot narration and
-Exec voice, not just `/hosaka`-page `_presence`) and returns `409` if any users
-are connected and the caller has not sent `{"force": true}`. `homo` never needs
-confirmation.
+`GET`/`POST /api/hosaka/mode` and `GET /api/hosaka/mode/stream` are on **`protected`** (owner-only; guests must never flip the GPU). They proxy the home-box `gpu-mode` service at `GPU_MODE_UPSTREAM` (default `172.17.0.1:8124`, over the same tunnel) with `Authorization: Bearer $GPU_MODE_TOKEN` (must match the home box; set in the droplet `.env`). GET returns `homo`/`emo`/`idle`/`gone` (`gone` = box unreachable). POST `{"action": "homo"|"emo"|"idle", "force"?: bool}` (else 400).
 
-**The reported mode is corrected against reality.** `/mode` reports the box's
-*intent*, and that outlives the truth: when hosaka-server dies or wedges the
-box goes on answering `homo` while nothing synthesizes, and the strip lights
-the homo segment over a dead backend. `_current_mode()` probes `/mode` and TTS
-liveness concurrently and passes both to the pure
-`gpu_mode_client.effective_mode`, which reports `idle` for a claimed `homo`
-whose TTS is not answering. Only `homo` is second-guessed — under `emo`/`idle`
-a failing probe is the *expected* state, not a contradiction, and `gone` (box
-unreachable) already says everything. Liveness is the same `_live()` rule the
-health route uses: only a real `/v1/voices` response, never a bound tunnel
-port. A `homo` switch sets a 90s grace (`_HOMO_GRACE_S`) during which liveness
-is assumed, because the box has to load models before `/v1/voices` answers and
-the next poll would otherwise read "homo but no TTS" and flip the strip to
-idle and back.
-
-**Mode changes reach open pages two ways.** A POST here pushes instantly to
-`_mode_subscribers`. Everything else — a switch made at the home box, a
-watchdog restart, hosaka-server dying under a mode still claiming homo — never
-touches that queue, so `/api/hosaka/mode/stream`'s keepalive tick doubles as a
-poll of the real mode (`_MODE_POLL_S`, 15s) and emits on change. This is what
-fixes drift for pages that are already open; `gpu-mode.js`'s recheck-on-load
-and refresh-on-refocus only ever covered pages that got touched, and its own
-comment said so ("No interval -- a long-open foreground tab drifts until
-touched"). An unchanged poll falls through to a `: keepalive` comment, so an
-idle stream still costs one line per tick.
-
-
-| Endpoint | Router | Reachable by |
-|----------|--------|--------------|
-| `GET /api/hosaka/mode` | `protected` | owner only |
-| `POST /api/hosaka/mode` | `protected` | owner only |
-| `GET /api/hosaka/mode/stream` | `protected` | owner only |
+- **Kill-switch guard**: `emo` and `idle` stop hosaka-server and cut active listeners. `needs_user_confirm` checks `_audio_conns` (every open `/ws/hosaka` socket — incl. `/tarot` and Exec voice, not just `/hosaka`-page `_presence`) and returns `409 {detail:"active_users", count}` unless `force`. `homo` never needs confirmation.
+- **Reported mode is corrected against reality**: the box's `/mode` is its *intent* and outlives the truth (hosaka-server dies, box still says `homo`). `_current_mode()` probes `/mode` and `_live(TTS_UPSTREAM)` concurrently and `gpu_mode_client.effective_mode` reports `idle` for a claimed `homo` with no live TTS. Only `homo` is second-guessed (under `emo`/`idle` a failing probe is expected; `gone` says it all). A `homo` switch sets a 90s grace (`_HOMO_GRACE_S`) assuming live, since models must load before `/v1/voices` answers.
+- **Live sync**: a POST pushes instantly to `_mode_subscribers`; changes made at the home box (watchdog restart, another device) never touch that queue, so the SSE stream's keepalive tick doubles as a poll of the real mode (`_MODE_POLL_S` = 15s) and emits on change; unchanged → a `: keepalive` comment.
+- **UI**: owner-only `#gpu-mode` strip on `/hosaka` (`web/gpu-mode.{css,js}`): emo / **down** / homo. The middle button is LABELLED `down` but its `data-mode` is still `idle` (the action the box accepts). `idle`/`down` (hosaka-server deliberately stopped) differs from `gone` (box unreachable). Guests get 401, strip hidden.
 
 ### 4c. Three consumers of one audio core — and one narrator above it
 
-All three share `web/hosaka-audio.js` (`HosakaAudio.createPlayer()`) — it
-owns the `AudioContext`, the iOS unlock dance, the `/ws/hosaka` socket, and
-playback of streamed **24 kHz float32 PCM** via scheduled
-`AudioBufferSourceNode`s. The upstream emits only `{start}` / coarse PCM
-blobs / `{end}` (no per-word timestamps), so any visual syncs to the
-*measured* audio duration.
+All share `web/hosaka-audio.js` (`HosakaAudio.createPlayer()`): `AudioContext`, the iOS unlock, the `/ws/hosaka` socket, and playback of streamed **24 kHz float32 PCM** via scheduled `AudioBufferSourceNode`s. The upstream emits only `{start}` / coarse PCM blobs / `{end}` (no per-word timestamps), so visuals sync to the *measured* audio duration.
 
-| Surface | Script | Voice | Backend | Where that backend runs |
-|---------|--------|-------|---------|-------------------------|
+| Surface | Script | Voice | Backend | Runs on |
+|---------|--------|-------|---------|---------|
 | `/hosaka` SPEAK UI | `tts.js` | `charlie` (default) + full list | chatterbox + RVC | home GPU box |
 | `/tarot` reader | `tarot-voice.js` | `nicole` | kokoro | **home GPU box** |
 | Exec panel + bubble | `exec-voice.js` / `exec-voice-listener.js` | `glados` | piper | **this droplet** |
 
-**That last column is the difference that matters.** `pick_upstream` routes
-backend `piper` to the always-on container beside the app, so Exec
-keeps its voice with the home machine asleep; only `/tarot` speaks from the
-tunnel, and only `/tarot` can lose its voice (§14d).
+**The last column is the difference that matters.** Exec keeps its voice with the home machine asleep; only `/tarot` speaks from the tunnel and can lose its voice (§14d).
 
-Above the player sits **`web/voice-narrator.js`**, shared by the two
-narrating surfaces (`/tarot`, the Exec panel): player lifecycle, the persisted on/off, the unlock dance,
-the utterance queue, and the CONTROLLER (`elapsed()`, `duration()`, `ended`,
-`ok`) a typewriter paces to. `exec-voice.js` and `tarot-voice.js` are thin
-bindings over it — configuration plus what is genuinely theirs (the replay
-glyph and the toggle both surfaces mount; the home-box probe and the canned
-opening). The control itself is **`web/voice-ui.js` + `voice-ui.css`**: one
-`.voice-mute` element, one `data-on` contract, three placements.
-
-
-Iosevka has this glyph and its advance IS the mono cell, so in `--font-mono` the
-star occupies exactly one character: three cells for `[✦]`, three for `[x]`,
-29.28px each, and the line box is a character's. The font supplies the geometry
-and `transform: scale(1.25)` only says how much of the cell the star fills — at
-the font's own size it read thin beside the bracket strokes (ink 6.67px →
-8.67px), and that is about as far as it goes: the gap to each bracket is down to
-1px against the `[x]`'s 2.33px. Layout is untouched at any factor, which is the
-whole reason the size lives in a transform. Both bars measure 24.61 and both
-controls 29.28. The nav's glyph label is sized the same way, for the same reason
-(§12).
-
-**`/tarot` overrides both the factor and the size**, in `tarot.css`
-(`.voice-mute.spread-btn .voice-glyph`). One mono cell is the right size next to
-an `[x]`; that page has no `[x]` — the star sits in a column of glyph buttons,
-`[↺]` at 1.7em and `[♪]` at 1.3em, both with real side margins — so the
-cell-sized star read tiny and touched its own brackets (ink 5.67px against the
-note's 10.67, 1px gaps against 4px). It takes the reset glyph's metrics plus the
-factor that brings a star's ink up to a note's: 10.33px, 3.33px gaps, and the
-same button height as `[↺]` by construction, since the box is the font-size.
-
-**OFF means off.** With the narrator off nothing is synthesized, no socket opens, `speak()` returns a DEAD controller, and every caller reads that as *reveal at your own pace, now*. One flag, no second state to keep in sync.
-
-Each narrating surface paces its typewriter to the audio clock and bails to the
-guessed pace on any failure (§18). `exec-voice-listener.js` (nudges and monitor
-comments on non-planning pages) is still fire-and-forget: there is no typewriter
-on those pages to pace.
-
-**A fourth path plays audio that was never synthesized here.** The
-pre-generated `/tarot` openings (§14d) are already-rendered WAVs, and
-`player.speakBuffer({data})` schedules one through the SAME `scheduleBuffer`
-the streamed chunks use — same playhead, same gain node (so the ♪ mute still
-works), same iOS unlock and silent-switch session, same `elapsed()` /
-`audioDuration()` clock, so the typewriter cannot tell which one it got. No
-socket is opened: there is nothing to synthesize. `{end}` fires the moment it
-is scheduled, because a file is fully buffered by definition. One trap:
-`decodeAudioData` **detaches** the ArrayBuffer it is handed, so it decodes a
-copy and the caller's clip survives a replay.
-
-**The other direction — synthesizing with no browser in the loop —** is
-`api/tarot/voice_synth.py`: it speaks the upstream's protocol directly
-(`ws://TTS_UPSTREAM/v1/audio/stream`, one JSON utterance in, `{start}` →
-float32 frames → `{end}` back) rather than going through `/ws/hosaka`, because
-there is no cookie to carry and no client to fan out to. Three callers: the
-opening generator, the nightly voice probe (§14e), and `POST /api/tarot/warm`.
+- **`web/voice-narrator.js`** sits above the player for the two narrating surfaces (`/tarot`, Exec panel): player lifecycle, persisted on/off, unlock, utterance queue, and the CONTROLLER (`elapsed()`, `duration()`, `ended`, `ok`) a typewriter paces to. `exec-voice.js` / `tarot-voice.js` are thin bindings (config + what is theirs: replay glyph, home-box probe, canned opening). The control is **`web/voice-ui.js` + `voice-ui.css`**: one `.voice-mute` element, one `data-on` contract. `/tarot` overrides the star glyph's size/factor in `tarot.css` (`.voice-mute.spread-btn .voice-glyph`) because that page has no `[x]` beside it.
+- **OFF means off**: nothing synthesized, no socket opens, `speak()` returns a DEAD controller, every caller reveals at its own pace now. One flag.
+- Each narrating surface paces its typewriter to the audio clock and falls back to the guessed pace on any failure (§18). `exec-voice-listener.js` (nudges/monitor comments on non-planning pages) is fire-and-forget — no typewriter to pace.
+- **Fourth path — pre-rendered audio**: the `/tarot` openings (§14d) are already-rendered WAVs; `player.speakBuffer({data})` schedules one through the same `scheduleBuffer` (same playhead, gain node, iOS unlock, `elapsed()`/`audioDuration()` clock). No socket; `{end}` fires on scheduling. Trap: `decodeAudioData` **detaches** its ArrayBuffer, so it decodes a copy and a replay survives.
+- **No browser in the loop**: `api/tarot/voice_synth.py` speaks the upstream protocol directly (`ws://TTS_UPSTREAM/v1/audio/stream`, bypassing `/ws/hosaka` — no cookie, no client). Callers: the opening generator (`openings_gen`), the nightly voice probe (`openings_loop`, §14e), and `POST /api/tarot/warm`.
+- **Mic**: `voice-input.js` is the mic engine + `bindComposer`; `exec-mic.js` / `tarot-mic.js` are thin bindings. A final result ARMS the send `SEND_DELAY_MS` (1s) out rather than sending; anything heard in the window cancels and joins the text. The mic drops everything heard while a reply streams **or** the narrator `isSpeaking()` (true through the playout tail; `exec:voice-idle` re-lights the dot) — else the page transcribes its own narration.
 
 ### 4d. One utterance
 
-```mermaid
-sequenceDiagram
-  participant B as Browser (HosakaAudio)
-  participant WS as /ws/hosaka (proxy)
-  participant U as home upstream
+![One utterance through the proxy](docs/arch/04-utterance.svg)
 
-  B->>WS: WS upgrade (cookie)
-  WS->>WS: session|guest_session? else close 1008
-  WS->>U: websockets.connect /v1/audio/stream
-  B->>WS: speak(text)
-  WS->>U: text frame
-  U-->>WS: {start}
-  WS-->>B: {start} (onStatus)
-  loop PCM blobs
-    U-->>WS: 24kHz float32 PCM
-    WS-->>B: bytes -> schedule AudioBufferSourceNode
-  end
-  U-->>WS: {end}
-  WS-->>B: {end} (playback drains to completion)
-```
+`_ws_dispatch` routes each JSON utterance by `pick_upstream`, caches one upstream WS per url (`_ws_connect`), and pumps frames both ways (`_pump_to_client`). If the previous utterance on that url is still `busy` (the client flushed playback for a new one), the stale connection is cut and reopened so trailing frames cannot interleave.
 
-History — the incidents behind the rules above: [ARCHAEOLOGY.md §4](ARCHAEOLOGY.md).
+### 4e. Presence
 
----
-### 4-notes. From CLAUDE.md (moved 2026-09-27)
+`WS /ws/hosaka/presence` (same cookie gate): every open `/hosaka` **and `/tarot`** tab holds one socket (`web/hosaka-presence.js`); the server tracks `_presence` and broadcasts the TOTAL `{count}` on each join/leave (serialized by `_presence_lock`); each client subtracts its own socket to render `N other people speaking` (`#tts-presence`, only `/hosaka` renders it). Separate from `/ws/hosaka` (opens only on Speak) and from `_audio_conns`, which is what the GPU-mode guard counts.
 
-Moved verbatim from CLAUDE.md on 2026-09-27 when CLAUDE.md was thinned to an index. Unedited; may overlap the subsections above.
-
-**[The voice → Voice goes both ways]**
-
-**Voice goes both ways on both.** `voice-input.js` is the mic engine AND the composer wiring (`bindComposer`: prompt + box + an OR'd list of "don't listen now" predicates); `exec-mic.js` / `tarot-mic.js` are two short bindings (`cc-mic.js` went with the `/cc` page) that name only their own predicates. The `$` prompt IS the control, one tap opens a continuous session, each finished utterance sends itself. **A final result ARMS the send 1s out (`SEND_DELAY_MS`), it does not send** — the engine calls an utterance final on a short silence and thinking mid-sentence sounds the same, so a pause used to send half a thought and let the rest arrive as a second message; anything heard inside the window cancels the arm and joins what is already there. The finalized text is held on the session (`pending`), not read back off the composer, because iOS ends the recognizer on silence and the rebuild resets `base` to 0; an EMPTY result event never cancels the arm (or nothing would ever send); tapping the mic off mid-window deliberately does not send. **The mic and the speaker must never meet** — it drops everything it hears while a reply is streaming **or** while the surface's narrator `isSpeaking()` — otherwise the page transcribes its own narration and sends it back as the next message. `isSpeaking()` stays true through the playout TAIL, which is exactly the window a microphone can hear, and the `exec:voice-idle` event re-lights the dot.
-
-**[Pages → /hosaka]**
-
-`/hosaka` — **Guest-or-full** TTS page (`guest_protected` — guests welcome). Default voice `charlie`. SPEAK UI streaming audio from a home GPU box (Kokoro/Chatterbox) via a same-origin WS reverse-proxy (`routes_tts.py`); browser only ever talks same-origin so the session/guest cookie carries auth on the WS handshake. A live count of **other** people on the voice backend sits at the top-**left** (`#tts-presence`, `N other people speaking` — defaults to `0 other people speaking` so the count landing never shifts the layout) over a dedicated presence WS (`/ws/hosaka/presence`, socket + backoff in the shared `web/hosaka-presence.js`); the server broadcasts the TOTAL and the client subtracts its own socket, and **/tarot readers count** (tarot.html loads the same module and `tarot-voice.js` holds a socket, rendering no count of its own); the diagnostic status text (`#tts-status` — offline reason / "Wai's GPU offline -- glados only", set in `tts.js applyHealth`) sits to its right on the same row (`.tts-presence-row`, flex; status collapses when empty). An owner-only **GPU-mode** segmented strip (`#gpu-mode`, emo/**down**/homo — the middle button is LABELLED `down` but its `data-mode` is still `idle`: that string is the action the home box accepts and the value it reports back, so only the button text was renamed (2026-09-10). Note `idle`/`down` and `gone` are different states that both read as unavailable — `down` is hosaka-server deliberately stopped, `gone` is the box unreachable.) sits flush **right** (the connected-users count is on the left) — the control (`web/gpu-mode.{css,js}`, wired against `/api/hosaka/mode`); guests get 401 → strip stays hidden. The strip **live-syncs across pages**: each page subscribes to `/api/hosaka/mode/stream` (SSE), and a switch broadcasts the new mode to every open `/hosaka`, so they update without a reload.
-
-**[API → /api/hosaka/mode]**
-
-GET/POST `/api/hosaka/mode` — **Owner-only.** GET → current GPU mode (`homo`/`emo`/`idle`, or `gone` if the home box is unreachable) — **corrected against reality** by `gpu_mode_client.effective_mode`: `/mode` reports the box's INTENT, which outlives the truth (hosaka-server dies and the box goes on saying `homo`), so a claimed `homo` whose TTS isn't answering is reported `idle`. Only `homo` is second-guessed — under `emo`/`idle` a failing probe is the expected state, and `gone` already says everything. Liveness is the `_live()` rule (a real `/v1/voices` response; a bound tunnel port is NOT liveness). A `homo` switch gets a **90s grace** (`_HOMO_GRACE_S`) since the box must load models before `/v1/voices` answers — without it the next poll reads "homo but no TTS" and the strip flips idle→homo. POST `{action, force?}` switches it (409 if it would cut off connected users and `force` absent); the shared `#gpu-mode` strip on `/hosaka` drives it.
-
-**[API → /api/hosaka/mode/stream]**
-
-GET `/api/hosaka/mode/stream` — **Owner-only** SSE. Emits `{mode}` on every switch (via POST above) so the `#gpu-mode` strip live-syncs across all open `/hosaka` pages, AND **polls the real mode every `_MODE_POLL_S` (15s)**, emitting on any change — the subscriber queue only carries switches made through this app, so a mode moved at the home box (watchdog restart, another device) used to leave every open page stale until reload/refocus. Unchanged poll → a `: keepalive` comment, so an idle stream still costs one line per tick; a freshly-connected stale page self-corrects one tick in.
-
-**[API → WS /ws/hosaka]**
-
-WS `/ws/hosaka` — TTS audio stream reverse-proxy. Public route, but closes (1008) unless a `session` OR `guest_session` cookie matches (guests get the /tarot reader voice); pumps text/bytes both ways between browser and the home GPU upstream. **Every utterance is guaranteed a terminal frame**: if the upstream stream ends without its own `{end}`/`{error}` (home box died / tunnel dropped mid-sentence), `_pump_to_client`'s `finally` synthesizes `{"type":"error","detail":"tts upstream closed mid-utterance"}` and evicts the dead conn — `/tarot` paces its typewriter off the audio clock and waits on that frame, so without it the reveal spun forever with the text stuck part-revealed. Gated by the pure `tts_routing.died_mid_utterance` so a socket deliberately cut to start a NEW utterance can't error the one that replaced it.
-
-**[API → WS /ws/hosaka/presence]**
-
-WS `/ws/hosaka/presence` — Live count of people on the voice backend. Same cookie gate (1008 otherwise). Every open `/hosaka` **and `/tarot`** tab holds one socket (`web/hosaka-presence.js`); server tracks them in `_presence` and broadcasts the TOTAL `{count}` to all on each join/leave — each client subtracts its own socket to render `N other people speaking` (only `/hosaka` renders it; `/tarot` just contributes). Separate from `/ws/hosaka` (the audio socket only opens on Speak).
-
+History: [ARCHAEOLOGY.md §4](ARCHAEOLOGY.md).
 ## 5. LLM call sites + prompt caching
 
 Every Claude call goes through the `anthropic` SDK with a pay-per-token
 `ANTHROPIC_API_KEY` (no subscription). Where a large, byte-stable system
 prefix is **reused across turns**, a `cache_control: {type: ephemeral}`
-marker (5-min TTL) lets repeat requests read that prefix at ~0.1x instead
-of full price.
+marker (5-min TTL) lets repeat requests read that prefix at ~0.1x.
+Models: `claude-opus-4-8` everywhere except `card_llm.parse_date_natural` and `gcal._haiku_classify_batch` (`claude-haiku-4-5`).
 
 ### The one invariant
 
 Render order is `tools -> system -> messages`. A marker on the **last
-system block** caches `tools + system` together as the prefix. Caching is
-a pure prefix match: any byte that changes inside the cached span (a
-timestamp, per-request card data) invalidates everything after it. So the
-static text must physically precede the volatile text, and the marker sits
-at the end of the static part. **Opus min cacheable prefix = 4096 tokens**
-— a shorter prefix silently caches nothing (`cache_creation_input_tokens`
-stays 0), so anything under that is left uncached.
+system block** caches `tools + system` together. Caching is a pure prefix
+match: any changed byte inside the cached span (timestamp, per-request card
+data) invalidates everything after it. So static text precedes volatile
+text and the marker sits at the end of the static part. **Opus min cacheable
+prefix = 4096 tokens** — shorter silently caches nothing
+(`cache_creation_input_tokens` stays 0).
 
 ### Cached sites
 
-```mermaid
-flowchart LR
-  subgraph tarot["tarot/agent.py — stream_chat"]
-    tsys["system = [build_system(spread_type)]<br/>+ cache_control"]
-    ttools["tools = TOOLS"]
-    tmsg["messages<br/>(spread context lives HERE)"]
-    ttools --> tsys --> tmsg
-  end
-
-  subgraph mtg["mtg/agent.py — _SYSTEM_CACHED"]
-    msys["system = [SYSTEM] + cache_control"]
-    p1["pass 1: + TOOLS<br/>(research loop)"]
-    p2["pass 2: no tools<br/>(summarize)"]
-    msys --> p1
-    msys --> p2
-  end
-
-  subgraph exec["chat._build_chat_system_prompt"]
-    estatic["block 1: _CHAT_STATIC_PREFIX<br/>(identity + EXEC_VOICE + rules)<br/>+ cache_control"]
-    evol["block 2: volatile tail<br/>(TODAY, log, cards, schedule,<br/>context, nudge) — NO marker"]
-    etools["tools = _chat_tools()"]
-    etools --> estatic --> evol
-  end
-```
+![Cached prompt layouts: tarot, MTG, Exec](docs/arch/05-llm-calls.svg)
 
 | Call site | Model | Cached prefix | Tokens | Reuse pattern |
 |-----------|-------|---------------|-------:|---------------|
 | `tarot/agent.py` `stream_chat` | opus-4-8 | `build_system(spread_type)` + `TOOLS` | 8,797 (no spread) / 13,514 (three-card) | every turn of a reading |
 | `mtg/agent.py` pass 1 | opus-4-8 | `SYSTEM` + `TOOLS` | 7,223 | across research tool-loop iterations + cross-question |
 | `mtg/agent.py` pass 2 | opus-4-8 | `SYSTEM` (no tools) | 6,381 | cross-question only (separate prefix from pass 1) |
-| `chat_passes.run_turn` (act + reply passes) | opus-4-8 | `_CHAT_STATIC_PREFIX` + `_chat_tools()` | 6,494 | every exec pass; each pass reads what the first wrote |
+| `chat_passes.run_turn` (act + reply) | opus-4-8 | `_CHAT_STATIC_PREFIX` + `_chat_tools()` | 6,494 | every exec pass; each reads what the first wrote |
 
-*Measured 2026-10-14* with the free `client.messages.count_tokens` endpoint
-(model `claude-opus-4-8`, run inside the container against the real modules; the
-bare one-word user message, 8 tokens, is subtracted). Counts only — no
-`messages.create`. **All four cached prefixes clear the 4096 floor** (smallest:
-MTG pass 2 at 6,381). Earlier figures (~8.7K/13.4K, ~6.6K, ~5.9K, ~5.2K) had
-drifted as prompts grew; re-measure after any prompt or tool-schema edit.
+Counts measured 2026-10-14 with the free `client.messages.count_tokens`
+endpoint (not re-checkable from source). All four clear the 4096 floor;
+**re-measure after any prompt or tool-schema edit.**
 
-**Exec restructure:** the tools alone (3,749 tokens, 2026-10-14) are under 4096,
-so the static text (2,745) is what lifts the prefix over the floor. `_build_chat_system_prompt`
-returns a **two-block** system list — a marked static block (identity +
-`EXEC_VOICE` + global rules) and an unmarked volatile tail. `TODAY` was at
-the top of the old single-string prompt and silently invalidated the cache
-every request; it now lives in the volatile tail. `routes_chat` and `discord_bot` both reach it through `chat_passes.run_turn`, which builds the identical static block.
+**Exec:** `_build_chat_system_prompt(stage, actions=…)` (chat.py) returns a
+**two-block** system list — marked static block (identity + `EXEC_VOICE` +
+global rules) and an unmarked volatile tail (`_turn_context`: TODAY, stage,
+activity log, boards, 7-day schedule, context, active-nudge block, ACTIONS
+YOU JUST TOOK). `TODAY` must stay in the tail. The tools alone are under
+4096, so the static text lifts the prefix over the floor. `run_turn` is used by
+`routes_chat` (legacy `/api/chat`) and `discord_bot`; the Exec panel itself runs on the sidecar (§7).
 
-**Follow-up action diff:** after a tool round, the follow-up turn rebuilds the
-system prompt — so its board lists now include any card the turn just created.
-`_build_chat_system_prompt(stage, actions=…)` appends an **ACTIONS YOU JUST
-TOOK** block (rendered by `chat_actions._actions_taken_block` from the dispatched
-`{name, input, result}` list) to the **volatile tail**, so the model reads the
-refreshed board as the result of its own action rather than reporting a phantom
-duplicate. Marked only in the volatile tail → the cached static prefix stays
-byte-stable. `chat_passes._dispatch` collects the actions; every act round and
-the reply pass rebuild the system prompt with them.
-
-**An Exec turn is TWO PASSES — ACT, then REPLY** (`api/chat_passes.py`, 2026-09-24;
-shared by `routes_chat` and `discord_bot`, which only stream or collect its events).
-It replaced a single pass that acted and talked in one response, and learned to
-talk INSTEAD of acting: history reaches the model flattened (see §16 —
-`sanitize_history_for_api` strips every past `tool_use`), so it reads dozens of its
-own turns saying "Added X" with no tool call beside them. Observed: "hang out with
-Nick" / "hang out with Jesse" answered "Added ... to the ideas pool", no tool
-called, and an invented `card=` id in the answer row — past a static-prefix rule
-already saying, in capitals, never to describe an action without the tool.
-
-- **Pass 1, ACT** — tools on, `messages.create` (not streamed), and **its text is
-  discarded**; only its `tool_use` blocks are kept in the conversation. Tool
-  rounds loop until it stops calling tools (`_MAX_ACT_ROUNDS` 4), the action diff
-  rebuilt each round. A message needing no action gets no tool and no text.
-- **Pass 2, REPLY** — the same tools but **`tool_choice: none`**, so it can only
-  describe; it sees every tool_result plus ACTIONS YOU JUST TOOK, and it is the
-  only pass streamed to Wai. If Wai asked for something that is MISSING it
-  answers `[redo: <the action>]` instead, which is **held back, never shown**
-  (the opening is buffered only until it can no longer be the start of `[redo:`),
-  attached to the closing user message as an `[auto-check, not from Wai]` text
-  block, and pass 1 runs again. `_MAX_REDOS` 2; the last reply pass is not offered
-  the redo and must say plainly what was not done. `strip_notes` removes the
-  auto-check blocks before `_save_chat`, or they replay as Wai's words.
-- **Cost**: an action turn is now one extra non-streamed call before any text —
-  measured live **8.6-9.3s to first text** on a create, against **2.3s** on a
-  question (act pass calls nothing and returns at once); both are one-off live
-  measurements from 2026-09-24, not re-run since. Both passes carry the same
-  tools + static block, so the second reads the cache the first wrote.
-
-`chat_store.assistant_content_blocks` still converts an API message to storable
-text + `tool_use` dicts. Pinned by `tests/test_chat_passes.py` (fake client:
-act text never shown, redo hidden and re-run, bounded, notes not saved).
+**ACTIONS YOU JUST TOOK:** after a tool round the system prompt is rebuilt
+with this block (`chat_actions._actions_taken_block`, from the dispatched
+`{name,input,result}` list) so the model reads the refreshed board as the
+result of its own action, not as a phantom duplicate. Volatile tail only —
+the cached prefix stays byte-stable.
 
 **Activity-log entries carry the card `id`** (`_log_entries_for_patch`:
-created/moved/updated/deleted, plus `revived`), and `_build_chat_system_prompt`
-renders it as a trailing `[id:…]` on each log line. One `create_card` WITH a
-due_date emits both a `created` and an `updated` entry — by title alone that
-reads as two cards, which is what produced the phantom "there was already one in
-the pool from earlier this turn". The actions block says so explicitly: entries
-sharing an id are one card. Legacy entries with no id render unchanged.
-Regression properties pinned in `tests/test_exec_tool_rounds.py`.
+created/moved/updated/deleted/revived) and the prompt renders a trailing
+`[id:…]` per log line; entries sharing an id are one card (a `create_card`
+with a due_date logs both `created` and `updated`). Pinned in
+`tests/test_exec_tool_rounds.py`.
+
+### Exec turn: ACT then REPLY (`api/chat_passes.py`)
+
+![Exec turn state machine: act, reply, redo](docs/arch/05-exec-turn.svg)
+
+History reaches the model flattened (`sanitize_history_for_api` strips past
+`tool_use`, §16), so a single pass learns to SAY "Added X" without calling a tool. Hence two passes:
+
+- **Pass 1, ACT** — tools on, `messages.create` (not streamed), **text discarded**; only `tool_use` blocks are kept. Loops until no tool calls (`_MAX_ACT_ROUNDS` 4), the action diff rebuilt each round. No action needed → no tool, no text.
+- **Pass 2, REPLY** — same tools, **`tool_choice: none`**; sees every tool_result plus ACTIONS YOU JUST TOOK; the only streamed pass. If a requested action is MISSING it answers `[redo: <action>]`, which is buffered and **never shown**, attached to the closing user message as an `[auto-check, not from Wai]` block, and pass 1 re-runs. `_MAX_REDOS` 2; the last reply pass is not offered the redo and must say plainly what was not done. `strip_notes` removes auto-check blocks before `_save_chat`.
+- Cost: an action turn adds one non-streamed call before any text (~9s to first text vs ~2.3s on a question; one-off 2026-09-24 measurements). Both passes share tools + static block, so the second reads the cache the first wrote.
+
+`chat_store.assistant_content_blocks` converts an API message to storable text + `tool_use` dicts. Pinned by `tests/test_chat_passes.py`.
 
 ### Uncached (measured, left alone)
 
@@ -913,330 +437,147 @@ Regression properties pinned in `tests/test_exec_tool_rounds.py`.
 |-----------|-----|
 | `monitor.py` | static slice ~1.3K (no tools) < 4096; debounced bursts = low reuse |
 | `nudge_llm` `_TONE` | ~1.4K (no tools) < 4096; per-card one-shot |
-| `card_llm` classify / parse-date | one-shot per card; no system / ~80-token volatile system |
+| `card_llm` classify / parse-date | one-shot per card; no system / tiny volatile system |
 | `morning.py`, `chat._dedupe_context` | daily one-shot; prompt lives in the user message |
 | `gcal._haiku_classify_batch` | no system block; tiny instructions in the user message |
 | `tarot/openings_gen.generate_texts` | `voice_preamble()` ~1.5K < 4096; 24 calls, one per hour, minutes apart |
 
-**Verifying:** the response `usage` reports `cache_creation_input_tokens`
-(written this request, ~1.25x) and `cache_read_input_tokens` (served from
-cache, ~0.1x). First request creates, second identical-prefix request
-reads. `cache_read` staying 0 across two identical requests means a silent
-invalidator is back in the prefix.
+**Verifying:** response `usage` reports `cache_creation_input_tokens` (~1.25x) and `cache_read_input_tokens` (~0.1x). Two identical requests with `cache_read` still 0 means a silent invalidator is back in the prefix.
 
 ---
 
 ### 5d. Where the marker goes
 
-Anthropic prompt caching is `cache_control: ephemeral`, 5-min TTL, wired on the large STATIC system prefixes reused across turns, so repeat turns read the prefix at ~0.1x. **Opus's minimum cacheable prefix is 4096 tokens; anything below that will not cache, silently**, and is left alone.
+The marker always goes on a byte-stable block; the volatile part lives elsewhere.
 
-The marker always goes on a byte-stable block, and the volatile part must live somewhere else:
-
-- **Tarot** (`tarot/agent.py`) — the marker sits on the single system block, `system=build_system(spread_type)` (8,797 no-spread / 13,514 three-card tokens, measured 2026-10-14) + `TOOLS`. Fully static per reading; **the per-turn spread context rides in `messages`, never `system`**. A reading is many turns reusing one prefix.
-- **MTG** (`mtg/agent.py`, `_SYSTEM_CACHED`) — `SYSTEM` (6,381 tokens) marked once, used at both call sites. Pass 1 (research tool-loop, with `TOOLS`) caches the 7,223-token tools+system prefix across its own iterations; pass 2 (summarize, NO tools) is a separate system-only prefix. Both cache cross-question; only pass 1 caches within a single question.
-- **Exec chat** (`chat._build_chat_system_prompt`) returns a **TWO-block** system list: block 1 is `_CHAT_STATIC_PREFIX` (identity + `EXEC_VOICE` + global rules) carrying the marker, block 2 the volatile tail (TODAY, activity log, card lists, schedule, context, active-nudge block) carrying none. With the exec tools the cached prefix is 6,494 tokens (measured 2026-10-14).
-
-
-  Every pass of `chat_passes.run_turn` (act rounds and the reply) builds the identical static block, so each reads the cache the first wrote. Every pass after the first tool round passes `_build_chat_system_prompt(stage, actions=…)` — an **ACTIONS YOU JUST TOOK** block (built by `chat_actions._actions_taken_block` from the turn's dispatched `{name,input,result}` list) appended to the volatile tail, **with the marker staying on block 1 so the cached prefix is byte-stable**.
+- **Tarot** (`tarot/agent.py`) — marker on the single system block `build_system(spread_type)`; **the per-turn spread context rides in `messages`, never `system`**.
+- **MTG** (`mtg/agent.py`, `_SYSTEM_CACHED`) — `SYSTEM` marked once, used at both call sites. Pass 1 (research loop, with `TOOLS`) caches within its own iterations; pass 2 (summarize, no tools) is a separate system-only prefix. Both cache cross-question; only pass 1 caches within a question.
+- **Exec chat** — two-block list as above; marker on block 1 only. Every pass of `run_turn` builds the identical static block.
 
 History — the incidents behind the rules above: [ARCHAEOLOGY.md §5](ARCHAEOLOGY.md).
 
 ---
 ### 5-notes. From CLAUDE.md (moved 2026-09-27)
 
-Moved verbatim from CLAUDE.md on 2026-09-27 when CLAUDE.md was thinned to an index. Unedited; may overlap the subsections above.
-
-**[System overview → Prompt caching]**
-
-**Prompt caching** (Anthropic `cache_control: ephemeral`, 5-min TTL) is wired on the large STATIC system prefixes reused across turns, so repeat turns read the prefix at ~0.1x. **Opus's minimum cacheable prefix is 4096 tokens — below that it silently will not cache.** Cached: **Tarot** (`tarot/agent.py`, marker on the one system block; the per-turn spread context rides in `messages`, never `system`), **MTG** (`mtg/agent.py`, `_SYSTEM_CACHED`), and **Exec chat** (`chat._build_chat_system_prompt`, a TWO-block system list — static prefix marked, volatile tail unmarked). **The rule when editing any of these: the marker goes on a byte-stable block and anything per-turn goes elsewhere.** TODAY was the silent invalidator until it moved into Exec's volatile tail, and the follow-up turn's ACTIONS YOU JUST TOOK block appends to that tail for the same reason. Uncached by measurement (under 4096 and/or low reuse): `monitor.py` static slice 1342, `nudge_llm._TONE` 1442, `card_llm` classify/parse, `morning.py` + `chat._dedupe_context`, `gcal._haiku_classify_batch`. Call sites and token counts: **ARCHITECTURE.md §5**.
+CLAUDE.md's prompt-caching paragraph is now an index into this section; its content is folded into §5 above.
 
 ## 6. Printer (ELEGOO Centauri Carbon) — two-tier reverse proxy
 
 `/printer` serves the printer's **own** web UI (an Angular SPA with a live
-MJPEG camera and SDCP websocket controls) from wai-lau.net, without the SPA
-ever knowing it left the LAN. Same-origin everywhere: the browser talks only
-to the droplet, so the full `session` cookie rides every sub-request incl.
-the websocket handshake, and nothing weaker than the owner reaches a machine
-that can heat a nozzle.
+MJPEG camera and SDCP websocket controls) from wai-lau.net. Same-origin
+everywhere: the browser talks only to the droplet, so the full `session`
+cookie rides every sub-request incl. the websocket handshake, and nothing
+weaker than the owner reaches a machine that can heat a nozzle.
 
-Since 2026-08-30 the page also has a **guest tier — read-only, by routing**
-(it is linked from the public landing; guests pass Turnstile). The rule is not
-"filter what a guest may send", it is "a guest has no route that carries their
-bytes to the LAN":
+The page also has a **guest tier — read-only, by routing** (Turnstile guests; linked from the public landing). The rule is not "filter what a guest may send", it is "a guest has no route that carries their bytes to the LAN":
 
 | Route | Owner | Guest | Why |
 |-------|-------|-------|-----|
 | `GET /printer` | SPA wrapper | camera + job strip | same template, `data-readonly="1"` for guests |
-| `ANY /printer/{path}` | full proxy | **401 → admin login** | the SPA, its file endpoints, uploads — every browser→printer HTTP path |
+| `ANY /printer/{path}` | full proxy | **401 → admin login** | the SPA, file endpoints, uploads — every browser→printer HTTP path |
 | `WS /ws/printer` | SDCP relay | **1008** | the only browser→printer socket; it drives the machine |
-| `GET /printer/video` | ~10fps | ~10fps | one-way read, off the shared hub (the vendor SPA's `<img>`) |
-| `GET /printer/frame` | ✓ | ~10fps | ONE JPEG per request — the guest view's pull loop (§6g) |
+| `GET /printer/video` | MJPEG | MJPEG | one-way read off the shared hub (the vendor SPA's `<img>`) |
+| `GET /printer/frame` | ✓ | ~10fps | ONE JPEG per request — the guest pull loop (§6g) |
 | `GET /api/printer/status` | ✓ | ✓ | one-way read; the printer pushes it unasked |
 | `GET /api/printer/health` | ✓ | ✓ | one-way liveness GET |
 
-The two guest-reachable readers are **server-opened singletons**, not relays
-of anything a viewer said: `printer_camera.py` holds ONE upstream MJPEG
-stream (demuxed to whole JPEG frames, re-muxed per viewer — the printer only
-allows ~4 streams, so a public page can't be 1:1) and `printer_status.py`
-holds ONE SDCP socket that **sends no frame, ever** — the printer pushes
-`sdcp/status/<id>` about once a second on its own, and `public_status()`
-whitelists it (no `MainboardID`/`TaskId`/`Filename`).
+Routers (`routes_printer.py`): `/printer`, health, status on `guest_protected`; `/printer/video`, `/printer/frame` on `public` with the tier checked in-handler (`_has_view_access`); `/printer/{path}` on `protected`; `/ws/printer` on `public` with a `session`-cookie `hmac.compare_digest` check (closes `1008` before `accept()`).
+
+The two guest-reachable readers are **server-opened singletons**, not relays of anything a viewer said: `printer_camera.py` holds ONE upstream MJPEG stream (the printer allows ~4), and `printer_status.py` holds ONE SDCP socket that **sends no frame, ever** — the printer pushes status on its own and `public_status()` whitelists it (no `MainboardID`/`TaskId`/`Filename`).
 
 ### 6a. Topology
 
 The printer sits on Wai's home LAN (`192.168.2.25`). Its three ports are
 reverse-tunnelled from the home box to the droplet's docker bridge by
-`printer-box/printer-tunnel.service` — the hosaka/emet pattern (§4a), with
-the `-R` forwards pointing straight at the printer's LAN address (nothing
-listens on the home box).
+`printer-box/printer-tunnel.service` (the hosaka/emet pattern, §4a; `-R`
+forwards point straight at the printer's LAN address; install in `printer-box/README.md`).
 
-```mermaid
-flowchart LR
-  browser["Browser<br/>(/printer wrapper + iframe)"]
-
-  subgraph droplet["droplet container — routes_printer.py"]
-    page["GET /printer<br/>(guest or owner)"]
-    health["GET /api/printer/health<br/>(guest or owner)"]
-    status["GET /api/printer/status<br/>(guest or owner, read-only)"]
-    http["ANY /printer/{path}<br/>(OWNER ONLY, rewrites HTML+JS)"]
-    video["GET /printer/video<br/>(guest or owner, shared MJPEG hub)"]
-    ws["WS /ws/printer<br/>(OWNER ONLY, session-cookie gated)"]
-  end
-
-  tunnel(["SSH reverse tunnel<br/>172.17.0.1:8126 / 8127 / 8128"])
-
-  subgraph lan["home LAN — ELEGOO Centauri Carbon"]
-    p80[":80 SPA + files"]
-    p3030[":3030 /websocket (SDCP)"]
-    p3031[":3031 /video (MJPEG)"]
-  end
-
-  browser -->|HTTPS| page
-  browser -->|15s poll| health
-  browser -->|iframe src + assets| http
-  browser -->|"<img src>"| video
-  browser -->|3s poll, guest view| status
-  browser <-->|SDCP JSON frames| ws
-  health --> tunnel
-  status --> tunnel
-  http --> tunnel
-  video --> tunnel
-  ws --> tunnel
-  tunnel --- p80
-  tunnel --- p3030
-  tunnel --- p3031
-```
-
-### 6b. Why rewrites, and which
-
-The SPA assumes it is the origin. Served under a path prefix on a different
-host over https, four things break; each is patched in flight by the pure
-helpers in `printer_proxy.py` (no I/O — unit-tested in
-`tests/test_printer_proxy.py` against verbatim slices of firmware V1.4.49):
-
-| Upstream shape | Breaks because | Rewrite |
-|----------------|----------------|---------|
-| `<base href="/">`, `href="/assets/…"` (index HTML) | assets + Angular routes resolve against the site root | `rewrite_html`: root-absolute `href`/`src` → `/printer/…` (protocol-relative `//` untouched) |
-| `` `ws://${this.hostName}:3030/websocket` `` (main.js) | wrong host, wrong port, `ws://` on an https page | `rewrite_js`: → `` `${location.protocol==="https:"?"wss":"ws"}://${location.host}/ws/printer` `` |
-| `"http://"+(…VideoUrl)` on the camera `<img>` (25.\<hash\>.js) | mixed content | `rewrite_js`: scheme dropped, the (rewritten) `VideoUrl` used verbatim |
-| `` `http://${…hostName}:80` `` (file download href, upload POST) | wrong origin | `rewrite_js`: → `` `${location.origin}/printer` `` |
-| `"/assets/images/network/*.png"` string literals in the compiled Angular templates (all bundles) | root-absolute → 404 against the site root (blank icons) | `rewrite_js`: quoted `/assets/` → `/printer/assets/` |
-| `"VideoUrl":"192.168.2.25:3031/video"` in the SDCP reply to *enable video stream* (cmd 386) | LAN address | `rewrite_ws_text` on printer→browser text frames → `/printer/video` |
-| `</head>` of the index | the SPA's own top bar (logo · language · store link) is noise inside the site shell | `rewrite_html` injects `<link href="/printer-frame.css">` (site-side overrides for the *proxied* document: hides `app-header`); injected after the re-root pass so the absolute href stays |
-| `"Thumbnail":"http://192.168.2.25/board-resource/history_image/<task>.png"` (task detail, cmd 321; timelapse `TimeLapseVideoUrl` likewise) | LAN address, bound straight onto `<img src>` | `rewrite_ws_text`: any `http://<lan-ip>[:80]/` → `/printer/` (served off the printer's :80 by the proxy; other ports left alone) |
-
-Relative URLs (hashed CSS/JS, webpack lazy chunks with `publicPath ""`,
-`assets/i18n/…`, `iconfont.ttf`) resolve against the rewritten base href and
-need nothing. **Deliberately not rewritten:** the WebRTC signalling socket
-(`ws://<host>:8883`, reached only when the printer advertises
-`VIDEO_WEBRTC` — this unit reports FILE_TRANSFER / PRINT_CONTROL /
-VIDEO_STREAM only); a regression test pins it as untouched, so wiring it
-(a fourth tunnel port + relay) is a conscious change.
-
-Headers are **allowlists** in both directions (`upstream_request_headers` /
-`client_response_headers`): the session cookie and admin bearer never reach
-the printer; `accept-encoding` is pinned to `identity` so rewritable bodies
-arrive uncompressed; `content-length` / `content-encoding` are dropped on
-the way back (bodies change) but a request `content-length` is forwarded (a
-streamed upload keeps its known length — the printer's tiny HTTP server is
-not trusted to speak chunked); every response is stamped
-`Cache-Control: private, no-cache` (auth-gated, never a shared-cache
-candidate) and `main.py`'s `CacheControlMiddleware` skips the `/printer/`
-prefix so its public/immutable stamp for static-looking suffixes never
-applies. Conditional requests are answered by the **proxy**, never the
-printer: `If-None-Match` is not forwarded, and a rewritten body's ETag is
-the printer's tag + `-rw<REWRITE_VERSION>` (bump the constant whenever
-`rewrite_html`/`rewrite_js` change), so the hashed bundles still 304 while a
-browser copy patched by older rules misses and refetches — otherwise the
-printer's unchanged ETag would 304 a stale rewrite back into service; only a
-root-relative `Location` survives, re-rooted under the prefix — an absolute
-or protocol-relative redirect target is dropped rather than sent to the
-owner's browser.
-
-### 6c. Runtime shape
-
-- **`/printer/{path}`** streams every non-HTML/JS body straight through in
-  BOTH directions (`StreamingResponse` over `httpx` `aiter_raw` down; the
-  request body as `request.stream()` up, write timeout unbounded so a gcode
-  upload runs at whatever the home uplink allows) — nothing is buffered;
-  HTML/JS are read whole, rewritten, re-served.
-- **`/printer/video`** relays the camera's `multipart/x-mixed-replace` with
-  `X-Accel-Buffering: no` (nginx's `location /` buffers by default) and the
-  content type excluded from `GZipMiddleware` (gzip would hold frames inside
-  zlib). Newer starlette binds the exclusion list as a constructor-kwarg
-  default at import time, so `main.py` passes the patched list explicitly
-  when the signature accepts it (older starlette keeps reading the module
-  global), and the tuple carries both the prefix and `type/*` spellings —
-  without that, the MJPEG frames (and the fonts/images the list already
-  named) were being gzipped after all. It is served off the shared camera
-  hub (§6g, `printer_camera.py`), which **reconnects instead of
-  ending**: the SPA's `<img>` never re-requests a dead MJPEG stream, so when
-  the upstream ends or stalls past the 30s read timeout (camera pause,
-  tunnel restart) the hub's `_run` re-dials with 1→15s backoff and keeps
-  feeding the SAME open viewer responses (they are the hub's own re-mux, so
-  an upstream boundary change no longer matters). The upstream closes 10s
-  after the last viewer leaves, releasing one of the printer's 4 streams.
-- **`/ws/printer`** accepts first, then dials the printer (like
-  `/ws/hosaka`) — a browser that vanishes mid-handshake never strands an
-  open upstream socket, and a down printer surfaces as a clean `1011` close
-  the SPA retries on. Two pump tasks (`_pump_to_client` rewrites text
-  frames; `_pump_to_upstream` forwards text + bytes) under
-  `asyncio.wait(FIRST_COMPLETED)`; whichever side closes tears down both.
-  Declared on the `public` router like `/ws/hosaka` (a router-level
-  `Depends` can't gate a websocket the same way) and checks the `session`
-  cookie itself with `hmac.compare_digest` — guests are refused (`1008`
-  before `accept()`, which the browser sees as a 403 handshake).
-- **Liveness** (`/api/printer/health`): the tunnel ports stay bound while the
-  printer is off and a connect *accepts then resets* — so only a real HTTP
-  answer from the SPA shell counts as online (the `/api/hosaka/health`
-  rule), probed with its own fail-fast 2s-connect / 3s timeout. Every
-  upstream call has a short connect timeout and degrades to a 503 or a
-  closed socket, never a 500.
-- **The wrapper** (`templates/printer.html` + `web/printer.{css,js}`): a
-  status row over an `<iframe>` of `/printer/network-device-manager/network/control`.
-  The iframe isolates the SPA's global antd CSS from chrome.css and scopes
-  its `<base href>` to its own document. `printer.js` polls health every 15s
-  (+ on tab focus; polls are sequence-numbered so a slow, older answer can
-  never overwrite a fresher one) and mounts the iframe only while online;
-  offline swaps in a "printer offline" note and sets the frame to
-  `about:blank` so the SPA's reconnect loop dies with it. Online again →
-  remounts by itself. The page keeps the site's Exec link-bubble; because
-  `window` mouse events stop firing once the cursor crosses into a
-  cross-document frame, `exec-bubble-drag.js` flags a live mouse drag as
-  `html.exec-drag` and `printer.css` drops the iframe's `pointer-events`
-  for its duration, so the bubble can be dragged across the SPA.
-
-
-| Endpoint | Router | Reachable by |
-|----------|--------|--------------|
-| `GET /printer`, `GET /api/printer/health`, `GET /api/printer/status` | `guest_protected` | guest or owner |
-| `GET /printer/video`, `GET /printer/frame` | `public` + in-handler tier check (`_has_view_access`) | guest or owner |
-| `ANY /printer/{path}` | `protected` | owner only |
-| `WS /ws/printer` | `public` + `session` cookie check | owner only (else `1008`) |
-
-### 6d. The tunnel and its env
-
-The printer's three ports are `ssh -R`-tunnelled from the home box to the docker bridge exactly like hosaka/emet (install steps in `printer-box/README.md`):
+![Printer proxy topology: browser, routes, tunnel, printer ports](docs/arch/06-printer-proxy.svg)
 
 | Printer port | Bridge | Env var |
 |---|---|---|
 | `:80` SPA + files | `172.17.0.1:8126` | `PRINTER_UPSTREAM` |
-| `:3030` SDCP websocket | `:8127` | `PRINTER_WS_UPSTREAM` |
-| `:3031` MJPEG camera | `:8128` | `PRINTER_VIDEO_UPSTREAM` |
+| `:3030` SDCP websocket | `172.17.0.1:8127` | `PRINTER_WS_UPSTREAM` |
+| `:3031` MJPEG camera | `172.17.0.1:8128` | `PRINTER_VIDEO_UPSTREAM` |
 
-`routes_printer.py` serves every route; the pure rewrite helpers live in `printer_proxy.py`, unit-tested against verbatim slices of firmware V1.4.49 in `tests/test_printer_proxy.py`.
+### 6b. Why rewrites, and which
+
+The SPA assumes it is the origin. Pure helpers in `printer_proxy.py` (no I/O; `tests/test_printer_proxy.py` pins them against verbatim slices of firmware V1.4.49) patch it in flight:
+
+| Upstream shape | Rewrite |
+|----------------|---------|
+| `<base href="/">`, root-absolute `href`/`src` (index HTML) | `rewrite_html`: → `/printer/…` (protocol-relative `//` untouched) |
+| `</head>` of the index | `rewrite_html` injects `<link href="/printer-frame.css?v=3">` AFTER the re-root pass (site overrides for the proxied doc: hides `app-header`) |
+| `` `ws://${…}:3030/websocket` `` (main.js) | `rewrite_js`: → `` `${location.protocol==="https:"?"wss":"ws"}://${location.host}/ws/printer` `` |
+| `"http://"+(…VideoUrl)` on the camera `<img>` | `rewrite_js`: scheme dropped (mixed content) |
+| `` `http://${…hostName}:80` `` (file download href, upload POST) | `rewrite_js`: → `` `${location.origin}/printer` `` |
+| quoted `"/assets/…"` literals in compiled templates (all bundles) | `rewrite_js`: → `/printer/assets/…` |
+| `"VideoUrl":"<ip>:3031/video"` in the SDCP reply (cmd 386) | `rewrite_ws_text` (printer→browser text frames) → `/printer/video` |
+| any `http://<lan-ip>[:80]/` in a frame (task `Thumbnail` cmd 321, `TimeLapseVideoUrl`) | `rewrite_ws_text` → `/printer/` (other ports untouched) |
+
+Relative URLs (hashed CSS/JS, lazy chunks, `assets/i18n/…`, fonts) resolve against the rewritten base and need nothing. **Deliberately not rewritten:** the WebRTC signalling socket (`ws://<host>:8883`, only when the printer advertises `VIDEO_WEBRTC`; this unit does not) — pinned by a regression test; wiring it means a fourth tunnel port + relay.
+
+**Headers are allowlists both ways** (`upstream_request_headers` / `client_response_headers`): the session cookie and bearer never reach the printer; `accept-encoding: identity` so bodies arrive rewritable; `content-length`/`content-encoding` dropped on the way back, a request `content-length` forwarded (the printer's HTTP server is not trusted with chunked). Every response is `Cache-Control: private, no-cache` and `CacheControlMiddleware` (main.py) skips `/printer/`. Only a root-relative `Location` survives, re-rooted; any other redirect target is dropped.
+
+**Conditional requests are answered by the proxy**: `If-None-Match` is not forwarded; a rewritten body's ETag is the printer's tag + `-rw<REWRITE_VERSION>` (now `"5"`). **Bump `REWRITE_VERSION` whenever `rewrite_html`/`rewrite_js` change**, or browsers 304 stale rewrites.
+
+### 6c. Runtime shape
+
+- **`/printer/{path}`** streams non-HTML/JS bodies both directions (`StreamingResponse` over `httpx` down, `request.stream()` up, write timeout unbounded for gcode uploads); HTML/JS are read whole, rewritten, re-served. Timeouts: connect 4s, read 60s (`_HTTP_TIMEOUT`).
+- **`/printer/video`** relays `multipart/x-mixed-replace` with `X-Accel-Buffering: no`; the content type is excluded from `GZipMiddleware`. `main.py` passes the exclusion list to `GZipMiddleware` explicitly (newer starlette binds the kwarg default at import time) and lists both prefix and `type/*` spellings.
+- **`/ws/printer`** accepts first, then dials the printer (like `/ws/hosaka`), so a vanished browser never strands an upstream socket and a down printer is a clean `1011` the SPA retries. Two pumps (`_pump_to_client` rewrites text; `_pump_to_upstream` forwards text + bytes) under `asyncio.wait(FIRST_COMPLETED)`; either side closing tears down both.
+- **Liveness** (`/api/printer/health`): tunnel ports stay bound while the printer is off (accept-then-reset), so only a real HTTP answer from the SPA shell counts (the `/api/hosaka/health` rule); own timeout 2s connect / 3s total (`_HEALTH_TIMEOUT`). Upstream failures degrade to 503 or a closed socket, never 500.
+
+### 6d. The tunnel and its env
+
+See the port/env table in §6a. `routes_printer.py` serves every route; the pure rewrite helpers live in `printer_proxy.py`.
 
 ### 6e. The wrapper page
 
-**`GET /printer`** serves `templates/printer.html` through `printer_page()` — the standard shell + full nav, `full_height`: a lede and an online/offline status row over an **`<iframe>`** of the proxied SPA at `/printer/network-device-manager/network/control`.
+**`GET /printer`** serves `templates/printer.html` via `printer_page()` — shell + nav, `full_height`: a lede and online/offline row over an **`<iframe>`** of `/printer/network-device-manager/network/control`.
 
-The iframe is **isolated on purpose**: the SPA's global antd CSS never touches chrome.css, and its `<base href>` only applies inside its own document.
-
-`web/printer.js` polls `/api/printer/health` every 15s (+ on tab focus; polls are sequence-numbered so a slow older answer never overwrites a fresher one) and mounts the iframe ONLY while the printer answers. Offline (printer off, home box asleep) shows a quiet "printer offline" note instead of the SPA's endless reconnect loop (frame set to `about:blank`), and it remounts by itself when the printer is back.
-
-**The iframe fades in only on its `load` event** (`.printer-frame` is `opacity:0` until `printer.js` adds `.ready`) — the vendor SPA paints a white document before its app renders, so revealing it the instant `src` is set flashed white; now the page shows its own dark bg during the boot and the SPA fades in once painted.
-
-**The guest render is a different page, not a filtered one.** `printer_page()` marks it `data-readonly="1"` on `.printer` and `printer.js` then never mounts the SPA frame at all — belt to the route tiering's braces — showing `#printer-view` instead: the camera `<img>` plus ONE job strip (`#printer-job`) polled from `/api/printer/status` every 3s.
-
-**The guest page is the picture and the job, nothing else** (2026-09-19). The strip carries the same information as the vendor SPA's own print-job row — state chip, percent, elapsed/remaining, layer progress — and none of its controls: there is no pause/stop here, and no route a guest could reach with one (`/printer/{path}` and `WS /ws/printer` are owner-only, so the buttons would be decoration over a 401). Dropped with the same cut: the page chrome (`.printer-head`, hidden by `.printer[data-readonly="1"]`) — the lede and the online/offline chip were the wrapper talking about a machine the guest does not drive, and `#printer-offline` already says when it is down — and the nozzle/bed/chamber temps, which are telemetry rather than "what is it printing". Filename and thumbnail are absent for a different reason and stay absent: `public_status` never sends them (§6, tier matrix).
-
-**The job strip is a CARD, centred under the feed** (2026-09-19). It was a full-width grid with the state chip hard left and the percent hard right, which on a phone put the two numbers a whole screen-width apart with the picture's own edges between them. As a card it is one object under another object, sized to its own content, and the eye travels down rather than across: same surface as the document theme's `.doc-card` (green `0.12` over the page, matching border), one step down on the radius and padding because it holds four values where `.doc-card` holds a page. `.pj-rows` stacks ONE PAIR PER LINE for the same reason — side by side, elapsed + remaining + layer are wider than the feed itself, and a card as wide as the picture above it stops reading as a card and starts reading as its caption bar. An idle printer renders the state chip alone, and `.printer-job:not(:has(.pj-pct))` drops the card surface for it: no card around one word.
-
-**`printer.css` does NOT drop the CRT stack to `z-index:-1`** the way `/rd` and `/hq` do. It stays at `--z-modal` IN FRONT for BOTH tiers, so the printer's picture reads as a feed on a CRT (phosphor + scanlines + glass blur), the proxied vendor SPA included; the layers are `pointer-events:none` so the SPA stays clickable underneath.
-
-**The Exec link-bubble is draggable ACROSS the iframe**: window mouse events stop at a cross-document frame, so `exec-bubble-drag.js` flags a live mouse drag as `html.exec-drag` and `printer.css` drops the frame's `pointer-events` meanwhile.
-
+- The iframe isolates the SPA's global antd CSS from chrome.css and scopes its `<base href>`.
+- `web/printer.js` polls `/api/printer/health` every 15s (`POLL_MS`; + tab focus; sequence-numbered so an older answer never overwrites a fresher one) and mounts the iframe only while online. Offline: "printer offline" note, frame set to `about:blank` (kills the SPA's reconnect loop); remounts itself.
+- **The iframe fades in only on `load`** (`.printer-frame` is `opacity:0` until `.ready`) — the vendor SPA paints white before its app renders.
+- **Guest render is a different page, not a filtered one.** `printer_page()` sets `data-readonly="1"`; `printer.js` never mounts the SPA, showing `#printer-view`: the camera `<img>` plus ONE job strip (`#printer-job`: state chip, percent, elapsed/remaining, layer progress) polled from `/api/printer/status` every 3s (`STATUS_MS`). No controls, no temps, no filename/thumbnail (`public_status` never sends them); `.printer-head` is hidden for guests. Idle printer = state chip alone (`.printer-job:not(:has(.pj-pct))` drops the card).
+- The job strip is a centred CARD under the feed (`.doc-card` surface one step smaller), `.pj-rows` one pair per line.
+- **`printer.css` keeps the CRT stack at `--z-modal` IN FRONT** for both tiers (not `z-index:-1` like `/rd`); layers are `pointer-events:none` so the SPA stays clickable.
+- **The Exec link-bubble drags across the iframe**: `exec-bubble-drag.js` flags a live mouse drag `html.exec-drag`; `printer.css` drops the frame's `pointer-events` meanwhile.
+- **Scrollbar**: `web/printer-frame.css` re-declares `--green-hsl`/`--radius-pill` in its own `:root` and writes the rules as `html ::-webkit-scrollbar` with `!important` on every declaration (the SPA ships its own grey bar under that selector, inline copy lands after our `<link>`). chrome.css is deliberately not injected (globals fight antd). Wrapper styles stay in `printer.css`; `printer-frame.css` is only for the proxied document.
 
 ### 6f. What gets rewritten, exactly
 
-`text/html` and JS bodies are rewritten in flight; everything else streams through untouched, both ways (an upload body is `request.stream()`ed with its `content-length` forwarded, write timeout unbounded).
-
-| In the vendor bundle | Becomes | Why |
-|---|---|---|
-| `<base href="/">` + root-absolute `href/src` | under `/printer/` | the SPA thinks it is at the site root |
-| *(injected into `<head>`)* | a `<link>` to `web/printer-frame.css` | site-side overrides for the VENDOR UI — currently just hiding its `app-header` (logo/language/store) |
-| `ws://${hostName}:3030/websocket` | `wss://<host>/ws/printer` | same-origin socket |
-| `"http://"+VideoUrl` | scheme dropped | mixed content otherwise |
-| `http://${hostName}:80` | `${location.origin}/printer` | file download/upload host |
-| quoted `"/assets/images/…"` | `/printer/assets/…` | baked into compiled templates; 404ed as blank icons against the site root |
-
-The WebRTC signalling socket (`ws://<host>:8883`, needs `VIDEO_WEBRTC`, which this unit lacks) is deliberately **NOT** rewritten — pinned by a regression test.
-
-The wrapper's own styles stay in `printer.css`; `web/printer-frame.css` is only ever for the proxied document.
-
-**The scrollbar is the site's, and taking it cost two hammers** (2026-09-19). The vendor document scrolls and painted the browser's grey system bar — a bright strip down the right edge of an otherwise green page, and the one piece of foreign chrome left on `/printer`. chrome.css cannot simply be injected to fix it: its globals would fight the SPA's antd styles on every element, which is the whole reason the iframe is isolated. So printer-frame.css re-declares the two tokens the pill needs (`--green-hsl`, `--radius-pill`) in its own `:root` and repeats chrome.css's scrollbar rules — **as `html ::-webkit-scrollbar` and with `!important` on every declaration**. Both are required: the SPA ships its own grey scrollbar under exactly that selector, so a bare `::-webkit-scrollbar` (what chrome.css uses) loses on specificity to `styles.<hash>.css`, and an Angular-injected inline copy of the same rules lands AFTER our `<link>`, so it would also lose on source order at equal specificity. Verified by pixel: the thumb reads phosphor green at the gutter, 4px of fill inside a 12px bar.
-
-**Headers are an ALLOWLIST both ways.** Requests forward accept / content-type / content-length / if-none-match / range / … plus `accept-encoding: identity`, so the session cookie or bearer NEVER reaches the printer. Responses are likewise filtered and every one is stamped `Cache-Control: private, no-cache` — auth-gated, so never shared-cacheable. `CacheControlMiddleware` skips `/printer/` so its public/immutable stamp for `.js/.css/.ttf` suffixes cannot apply here.
-
-**Conditional requests are answered by the PROXY, never the printer.** `If-None-Match` is not forwarded, and a rewritten body's ETag is the printer's tag + `-rw<REWRITE_VERSION>` — **bump that constant whenever the rewrite rules change**. The hashed bundles still 304, but a browser copy patched by older rules misses and refetches instead of reusing stale rewrites off the printer's unchanged ETag. (`last-modified` survives only on pass-through bodies.) Only a root-relative `Location` survives, re-rooted under the prefix; any other redirect shape is dropped.
-
-On the socket, printer→browser text frames pass `rewrite_ws_text`, which turns `"VideoUrl":"<ip>:3031/video"` (the enable-video-stream reply, cmd 386) into `/printer/video`, and any other `http://<lan-ip>[:80]/…` URL — the print-task `Thumbnail` from cmd 321, the timelapse `TimeLapseVideoUrl` — into `/printer/…`. The SPA binds those straight onto `<img src>`.
-
-`WS /ws/printer` **accepts first, THEN dials the printer**, so a vanished browser never strands an upstream socket and a down printer is a clean 1011 the SPA retries.
+The table in §6b is the full rule set. Only `text/html` and JS bodies are rewritten; everything else streams untouched. Socket frames printer→browser pass `rewrite_ws_text`. Header allowlists, ETag/`REWRITE_VERSION` and redirect handling: §6b.
 
 ### 6g. The camera hub
 
-`GET /printer/video` is declared on the **`public`** router with the tier checked by hand (`_has_view_access`). The routers mount public → protected → guest_protected, so a `guest_protected` declaration would never be reached — the owner-only `/printer/{path}` catch-all would match `/printer/video` first.
+`GET /printer/video` and `/printer/frame` are on the **`public`** router with the tier checked by hand (`_has_view_access`): routers mount public → protected → guest_protected, so on `guest_protected` the owner-only `/printer/{path}` catch-all would match `/printer/video` first.
 
-The printer accepts only ~4 concurrent streams, so a 1:1 relay stopped scaling the moment the page went public. The hub holds **ONE** upstream stream however many browsers watch: it demuxes the upstream parts into whole JPEG frames (`Content-Length`-framed), keeps the latest, and re-muxes a fresh multipart body per viewer (own boundary `--printerframe`) starting from that frame, so a joiner paints instantly instead of catching half a frame.
+`printer_camera.py` holds **ONE** upstream stream however many watch: it demuxes into whole JPEG frames, keeps the latest, and re-muxes per viewer (boundary `--printerframe`) starting from that frame. Each viewer has a one-frame queue and drops what it cannot keep up with. Constants:
 
-Each viewer has a one-frame queue and drops what it cannot keep up with, so a slow viewer never stalls the upstream. Guests get the full ~10fps too (`GUEST_FRAME_INTERVAL` **0.1s, a ceiling** — ~340KB/s a viewer; it was a 0.2s throttle until 2026-09-26, below), viewers cap at `MAX_VIEWERS` 16 (503 past that), and the upstream is dropped 10s after the last viewer leaves.
+| Constant | Value | Meaning |
+|---|---|---|
+| `MAX_VIEWERS` | 16 | 503 past it; a pipelined guest counts once (`can_admit` divides pullers by `PULL_DEPTH`) |
+| `GUEST_FRAME_INTERVAL` | 0.1s | a ceiling on the guest sample (`_promote`); owner unthrottled |
+| `_SLACK` | 0.75 | a frame is accepted from 75% of the interval on |
+| `PULL_WAIT_S` | 5s | `/printer/frame` long-poll; 204 = ask again |
+| `PULL_DEPTH` | 2 | pulls in flight in `printer.js` |
+| `_IDLE_STOP_S` | 10s | upstream dropped after the last viewer/puller (`_wanted()`) |
+| `_BACKOFF_MAX` | 15s | reconnect backoff 1→15s; upstream read timeout 30s |
 
-**The guest view PULLS; it is not pushed to** (2026-09-26, reported as "the printer page is super laggy"). Two measured causes. **(1)** A strict `gap < interval` throttle against a ~100ms upstream skipped the frame landing at 199ms, so "5fps" was **3.3fps** of 300ms gaps; both throttles now accept a frame from `_SLACK` 0.75 of the interval on. **(2)** A pushed MJPEG body is only as fresh as the slowest buffer between the hub and the screen. The one-frame queue bounds OUR side; once written, a frame sits in uvicorn's transport, nginx and two kernel socket buffers, none of which drop anything — so on a link a little slower than the stream latency grew **without bound** (client reading at 100KB/s: 3.5s median, **7s and climbing** after 25s). `GET /printer/frame?after=<seq>` returns ONE JPEG newer than `seq` (long-poll up to `PULL_WAIT_S` 5s, 204 = ask again, seq in `X-Frame-Seq`), and `printer.js` asks for the next only once the last has landed and decoded (`img.decode()` before the swap, or the `<img>` flickers). Nothing can queue, so a slow link gets fewer frames, never older ones: same 100KB/s client, **~380ms flat**; a fast one **4.99fps** at ~7ms. Guests share ONE server-side sample (`_promote`), so polling faster than the page does buys nothing. Pullers count against `MAX_VIEWERS`, and the upstream stays up while anyone pulled within `_IDLE_STOP_S` (`_wanted()`). **Still laggy on an iPhone, Safari and Chrome both (same day), and two more causes.** Guests were capped at 5fps (`GUEST_FRAME_INTERVAL` 0.2) against the owner's 10 — half the frames is half the motion of the fastest thing in shot — so the interval is now 0.1, a CEILING that only bites if the camera ever pushes faster; the home uplink carries one stream regardless, so a guest costs droplet egress only (~340KB/s, 16 viewers max). And one pull at a time caps a phone at `1/(RTT + transfer)`: measured as a guest over the public edge, 150ms of added round trip took one-in-flight to **6.4fps**. `printer.js` keeps `PULL_DEPTH` 2 pulls in flight, each asking for the frame after the one the previous pull asked for (`asked`), dropping any frame that decodes after a newer one (`shown`) — **9.9fps** at the same 150ms, and the real guest page in WebKit with 150ms injected on every frame request measured **9.5fps**, max gap 168ms. A pipelined guest counts ONCE against `MAX_VIEWERS` (`can_admit` divides pullers by `PULL_DEPTH`). The MJPEG body stays for the owner's vendor SPA. Pinned by `tests/test_printer_camera.py` (pacing under jitter, the pull contract, and a live 5s pull AS A GUEST with 150ms of added round trip asserting ≥8fps with no hole).
+**The guest view PULLS.** A pushed MJPEG body is only as fresh as the slowest buffer on the path (uvicorn, nginx, kernel), which never drop — latency grows unbounded on a slow link. `GET /printer/frame?after=<seq>` returns ONE JPEG newer than `seq` (seq in `X-Frame-Seq`); `printer.js` keeps `PULL_DEPTH` pulls in flight, each asking for the frame after the previous pull's (`asked`), swaps only a decoded frame (`img.decode()`), and never goes back to an older one (`shown`). Nothing queues: a slow link gets fewer frames, never older. Guests share ONE server-side sample. The MJPEG body stays for the owner's SPA. Pinned by `tests/test_printer_camera.py`.
 
-
-**The hub RECONNECTS instead of ending.** An `<img>` never re-requests a dead MJPEG stream, so on upstream end/stall (>30s silence, tunnel restart) it re-dials with 1→15s backoff and keeps feeding the SAME open viewer responses — the viewer bodies are ours, so a changed upstream boundary no longer matters.
-
-`StreamingResponse` with `X-Accel-Buffering: no` for nginx, and the content type is excluded from gzip in `main.py` — which now passes the exclusion list to `GZipMiddleware` **EXPLICITLY**, since newer starlette binds the kwarg default at import time and silently ignored the module-global patch. The tuple lists both the prefix and `type/*` spellings so old and new starlette both honour it.
-
-`GET /api/printer/health` is `{ok}` 200/503 with its own fail-fast 2s-connect/3s timeout. **Liveness = the SPA shell actually answers**: the tunnel port stays bound while the printer is off and accepts-then-resets, and a bound port is NOT online — the same rule as `/api/hosaka/health`. Every upstream call has a short connect timeout and degrades to 503 or a closed socket, never a 500.
-
-Verified end-to-end against the live printer with the real app under uvicorn: auth tiers, rewrites, etag→304, un-gzipped MJPEG, WS relay + cmd 386 rewrite, reconnect splice.
+**The hub RECONNECTS instead of ending**: an `<img>` never re-requests a dead MJPEG stream, so on upstream end/stall `_run` re-dials with backoff and keeps feeding the SAME open viewer responses.
 
 History — the incidents behind the rules above: [ARCHAEOLOGY.md §6](ARCHAEOLOGY.md).
 
 ---
 ### 6-notes. From CLAUDE.md (moved 2026-09-27)
 
-Moved verbatim from CLAUDE.md on 2026-09-27 when CLAUDE.md was thinned to an index. Unedited; may overlap the subsections above.
-
-**[Pages → /printer]**
-
-`/printer` — Wai's **ELEGOO Centauri Carbon** — the printer's own Angular SPA (live MJPEG camera + SDCP control socket) on the home LAN at `192.168.2.25`, reverse-proxied through the droplet by `routes_printer.py` (+ the pure rewrite helpers in `printer_proxy.py`, the camera hub in `printer_camera.py`, the status singleton in `printer_status.py`). **TWO TIERS, split on what can reach the home LAN.** *Owner* (`session` cookie / API_KEY bearer): the full SPA — moves axes, heats the nozzle, starts/stops prints. *Guest* (Turnstile, since 2026-08-30): a **READ-ONLY** view — the camera plus one job strip (`#printer-job`: state, percent, elapsed/remaining, layer progress), nothing else. **No controls, no page chrome, no temps** (2026-09-19): the strip mirrors the vendor SPA's print-job row minus its pause/stop buttons (a guest has no route to drive the machine, so the buttons would be decoration over a 401), `.printer-head` is hidden for them, and filename/thumbnail were never in the payload. **The strip is a CARD centred under the feed** and `.pj-rows` stacks one pair per line — full width, the state chip and the percent sat a screen apart on a phone, and a card as wide as the picture reads as its caption bar, not a card; an idle printer renders the state chip alone with no card around it (`.printer-job:not(:has(.pj-pct))`). **Guests watch at the camera's full ~10fps, PULLED one frame per request with 2 in flight** (`GET /printer/frame`, `PULL_DEPTH`, 2026-09-26 — a pushed MJPEG body queued in socket buffers on any link slower than the stream and fell 7s+ behind; the 5fps guest cap still read as laggy on an iPhone; one pull at a time capped a phone at 1/(RTT+transfer); **ARCHITECTURE.md §6g**) (`GUEST_FRAME_INTERVAL` now 0.1 = a ceiling; was 0.2, before that 0.5/~2fps — at 2fps a moving print head reads as a slideshow of unrelated stills, which is broken, not thrifty; ~340KB/s a guest at the full ~10fps (§6g), and `MAX_VIEWERS` 16 caps the page). **Read-only is enforced by which routes a tier can reach, not by filtering payloads**: `/printer/{path}` (the SPA + its file/upload endpoints) and `WS /ws/printer` (the only browser→printer channel) stay owner-only, so a guest has no route that carries a byte of theirs onto the LAN; what they do reach (`/printer/video`, `/api/printer/status`, `/api/printer/health`) are one-way readers the SERVER opens. Three ports `ssh -R`-tunnelled from the home box to the docker bridge like hosaka/emet (`PRINTER_UPSTREAM` / `_WS_` / `_VIDEO_`; install steps in `printer-box/README.md`). Page = `templates/printer.html` + `web/printer.js` (owner: an `<iframe>` of the proxied SPA, mounted only while `/api/printer/health` answers; guest: `#printer-view`, camera + stats), vendor-side overrides in `web/printer-frame.css`. The proxied document's **scrollbar** is the site's pill, which printer-frame.css has to take twice over: chrome.css is deliberately not injected there (its globals would fight antd), so the file re-declares `--green-hsl`/`--radius-pill` locally and writes the rules as `html ::-webkit-scrollbar` **with `!important`** — the SPA ships its own grey bar under that exact selector from a stylesheet AND an inline copy injected after our `<link>`, so a bare pseudo loses on specificity and an equal-specificity one loses on source order. Two rules to know before touching it: **bump `REWRITE_VERSION` whenever a rewrite rule changes** (the proxy answers conditional requests itself, so a stale browser copy would otherwise never refetch), and `/printer/video` must stay declared on the **`public`** router with the tier checked in-handler — on `guest_protected` the owner-only `/printer/{path}` catch-all shadows it. Nav label `3DP`; route, icon and internal key stay `printer`. Topology, the full rewrite table, the camera hub and the tier matrix: **ARCHITECTURE.md §6** (history: **ARCHAEOLOGY.md §6**).
-
-**[API → ANY /printer/{path}]**
-
-ANY `/printer/{path}` — **Owner-only** (the LAN-reaching route: guests get the admin-login bounce, never the SPA) HTTP reverse proxy to the printer's `:80` (SPA shell, hashed assets, i18n, `uploadFile/upload`, file downloads). HTML + JS bodies rewritten by `printer_proxy.py` (base href, ws/video/file-host URLs → same-origin routes); other bodies streamed. Allowlisted headers both ways — the session cookie never reaches the printer. 503 `{ok:false}` when unreachable.
-
-**[API → GET /printer/video]**
-
-GET `/printer/video` — Guest-or-full relay of the camera's MJPEG (`multipart/x-mixed-replace`) stream from the printer's `:3031`, off the shared one-upstream hub (`printer_camera.py`; now only the owner SPA's `<img>` uses it, 16 viewers max). On the `public` router with the tier checked in-handler so the owner-only `/printer/{path}` catch-all can't shadow it. No-cache, `X-Accel-Buffering: no`, gzip-excluded. 401 unauthenticated, 503 when unreachable / full.
-
+CLAUDE.md's `/printer` page row and the `ANY /printer/{path}` / `GET /printer/video` API rows are now indexes into §6; their content is folded into the tier table, §6b, §6c and §6g above. Nav label `3DP`; route, icon and internal key stay `printer`.
 ## 7. `/cc` — the Exec panel's agent (Claude Code, host-side sidecar)
 
-Owner-only. The `/cc` PAGE is gone (folded into the Exec panel 2026-09-29, §7g); `/api/cc/*` and the sidecar behind them remain, and the panel on `/rd` + `/hq` is their client. This section is the **exec-fn side**: routes, transport, the panel UI. Summary + invariants live in CLAUDE.md's `/cc` row; the incident history is [ARCHAEOLOGY.md §7](ARCHAEOLOGY.md).
-
-**The sidecar itself moved to its own repo on 2026-10-14**: `claude-box/` is a git submodule (`wai-lau/cc-sidecar`) with its own `ARCHITECTURE.md` / `ARCHAEOLOGY.md` / `CLAUDE.md`. Its sections are cited here as `claude-box S-N`. The agent's `cwd` is a private scratch sandbox and **not** a checkout of exec-fn.
+Owner-only. The `/cc` PAGE is gone (folded into the Exec panel 2026-09-29, §7g); `/api/cc/*` and the sidecar behind them remain, and the panel on `/rd` + `/hq` is their client. This section is the **exec-fn side**: routes, transport, the panel UI. Summary + invariants: CLAUDE.md's `/cc` row. The sidecar itself (`claude-box/`, submodule `wai-lau/cc-sidecar`) has its own `ARCHITECTURE.md`, cited here as `claude-box S-N`; the agent's `cwd` is a private scratch sandbox, **not** a checkout of exec-fn.
 
 | Old id | Now |
 |---|---|
@@ -1254,76 +595,67 @@ Owner-only. The `/cc` PAGE is gone (folded into the Exec panel 2026-09-29, §7g)
 
 ### 7a. Topology (exec-fn side)
 
-Claude Code cannot run in the app container (`python:3.12-slim` — no node, no `claude` binary, no credentials), so it runs on the droplet HOST as `cc-agent` and the container reaches it over the docker bridge at `172.17.0.1:8129` (`CC_SIDECAR_URL`). Same idiom as hosaka/printer minus the SSH tunnel.
+Claude Code cannot run in the app container (`python:3.12-slim`: no node, no `claude` binary, no credentials), so it runs on the droplet HOST as `cc-agent`; the container reaches it over the docker bridge at `172.17.0.1:8129` (`CC_SIDECAR_URL`, `cc_client._CC_URL`). Same idiom as hosaka/printer minus the SSH tunnel.
 
-```mermaid
-flowchart LR
-  B[browser: Exec panel] -->|SSE over POST| API[FastAPI routes_cc.py]
-  API --> CL[cc_client.py]
-  CL -->|172.17.0.1:8129 x-cc-token| SC[claude-box/server.mjs<br/>cc-sidecar.service]
-  SC -->|/api/exec/tool, /prompt, /tools| RE[routes_exec.py]
-```
+![Exec panel to sidecar topology](docs/arch/07-sidecar.svg)
 
-Container side: `cc_client.py` (transport, `x-cc-token` = `CC_SIDECAR_TOKEN`) + `routes_cc.py` (routes) + `routes_exec.py` (the reverse path, §7c-bis). The sidecar's endpoints, install and limits: claude-box S-1. A logged-out sidecar answers a clean per-request `Not logged in` text frame; on load the panel states the sidecar's state once as a `.msg.sys.warn` line (`execAnnounceState` in `web/exec-term.js`: `sidecar offline` / `cc-agent not logged in`) because the bare failure reads as a broken panel. Signing back in from the panel is the sidecar's job (claude-box S-2); the panel needs no code for it — the link arrives as markdown in an ordinary `text` frame.
+Container side: `cc_client.py` (transport, `x-cc-token` = `CC_SIDECAR_TOKEN`) + `routes_cc.py` + `routes_exec.py` (the reverse path, §7c-bis). Sidecar endpoints, install, limits: claude-box S-1. A logged-out sidecar answers a per-request `Not logged in` text frame; on load the panel states the sidecar's state once as a `.msg.sys.warn` line (`execAnnounceState`, `web/exec-term.js`: `sidecar offline` / `cc-agent not logged in`). Signing back in is the sidecar's job (claude-box S-2); the link arrives as markdown in an ordinary `text` frame.
 
-**Routes** (`routes_cc.py`, all on `protected`): `GET /api/cc/health`, `/sessions`, `/title`, `/limits`, `/history`, `/exec-history`; `POST /api/cc/resume`, `/new`, `/interrupt`, `/query`. `/query` validates (400 empty prompt+images+files, 413 over 32K text / 4 images / 5MB base64 each / 4 files / 6MB each / 20MB attachments), prepends `exec_context.wrap()`, and returns `cc_client.stream_query` as SSE with `X-Accel-Buffering: no`. Failures are injected as an `error` FRAME, never raised (the response has begun streaming). `/api/cc/sessions` prefers the cached rolling title over the SDK's summary, read-only (a list of forty rows must not fire forty haiku calls).
+**Routes** (`routes_cc.py`, all on `protected`): `GET /api/cc/health`, `/sessions`, `/title`, `/limits`, `/history`, `/exec-history`; `POST /api/cc/resume`, `/new`, `/interrupt`, `/query`. `/query` validates (400 empty prompt+images+files; 413 over 32K chars of text / 4 images / 5MB base64 each / 4 files / 6MB each / 20MB attachments), prepends `exec_context.wrap()`, and returns `cc_client.stream_query` as SSE with `X-Accel-Buffering: no`. Failures are injected as an `error` FRAME, never raised (the response has begun streaming). `/api/cc/sessions` prefers the cached rolling title over the SDK's summary, read-only (forty rows must not fire forty haiku calls).
 
-**A busy sidecar waits instead of failing** (`cc_client.stream_query`, 2026-09-29): the sidecar runs one turn at a time; a 429 now polls every `_BUSY_POLL_S` (0.5s) for up to `CC_BUSY_WAIT` (300s), emitting one `{"type":"waiting"}` frame (the panel ignores it and keeps its cursor up). Only a slot held past that answers `busy`. Measured: two sends 1s apart → first done in 14.1s, second `waiting` then done at 20.0s.
+**A busy sidecar waits instead of failing** (`cc_client.stream_query`): the sidecar runs one turn at a time; a 429 polls every `_BUSY_POLL_S` (0.5s) for up to `CC_BUSY_WAIT` (300s, `_BUSY_WAIT_S`), emitting one `{"type":"waiting"}` frame (the panel ignores it and keeps its cursor up). Only a slot held past that answers `busy`.
 
 ### 7b. The tier
 
-`/api/cc/*` hands whoever reaches it a shell on the droplet as `cc-agent` (sandbox contents in claude-box S-3 to S-5), so **admin-only is the whole of the access story**: `protected` (full `session` cookie), **never `guest_protected`** — there is no per-caller scoping that would make a guest tier safe. Pinned by `tests/test_cc_admin_only.py`, which enumerates the routes from `routes_cc.py` (never a hand-written list) and checks the tier structurally and over HTTP, anonymous and guest. `/api/cc/exec-history` and `/api/cc/interrupt` are covered by the same scan; the interrupt route is structural-only there because firing it would stop Wai's live run.
+`/api/cc/*` hands whoever reaches it a shell on the droplet as `cc-agent` (sandbox: claude-box S-3 to S-5), so **admin-only is the whole of the access story**: `protected` (full `session` cookie), **never `guest_protected`** — no per-caller scoping would make a guest tier safe. Pinned by `tests/test_cc_admin_only.py`, which enumerates the routes from `routes_cc.py` (never a hand-written list) and checks the tier structurally and over HTTP, anonymous and guest. The interrupt route is structural-only there (firing it would stop Wai's live run).
 
 ### 7c. Tool lines in the panel (the sidecar's tool set: claude-box S-6)
 
-The agent's tools are the sidecar's business (24 allowed names, an allowlist; cold probe lists 22). What the panel does with them:
+- **A tool call is ONE line, its output folds under it** (`web/exec-toolout.js`). The line clips with an ellipsis; tapping the WHOLE row (not just the marker) reveals the result and flips the gutter `+` → `-`. Open, the block is capped at `max-height: 20lh` and scrolls inside itself (`exec-term.css`). Summaries come from `execSummarize()` (`exec-term.js`): `query`/`url` FIRST, then `command`, `file_path`, `pattern`, `path`, `prompt` (WebFetch's `prompt` is the instruction, not the thing fetched).
+- **Pairing is FIFO, not by id**: `tool` / `tool_result` frames carry no `tool_use_id`; results arrive in call order. A call is consumed from the queue even when its result is empty; the queue is emptied at the top of each turn; a result with no waiting call becomes a standalone open block. The cursor parks on the TOOL line while folded.
+- **Every tool line expands to something**: empty result → `[ no output ]`; a call still waiting at end of turn / on interrupt → `[ no result returned ]`.
+- **Text that resumes after a tool call opens its OWN bubble**: the open bubble is settled (markdown + SVG) and closed, the reveal state replaced with a fresh object (a cancelled typer never calls `onDone`, so a stale `typing` promise would hang the settle pass); the receipt hangs on the last settled body when a turn ends on a tool.
+- **An Exec card tool (`mcp__exec__*`) is not a tool line**: it queues `{cardTool, input}` and renders a one-line receipt (`execCardReceipt`): `[ card added: … ]`, `[ … failed: … ]` on an `{error}` result.
+- **The turn receipt** (`execAppendReceipt`, `exec-stream.js`) prints only when something happened (a wait ≥15s, `[ 32.7s ]`), hung on the END of the reply. It is STASHED at the `done` frame and rendered at settle (`done` can arrive mid-reveal, and the settle pass rebuilds `innerHTML`).
+- **Closing/dropping a bubble must be idempotent** within one turn (consecutive tool frames call it repeatedly).
 
-- **A tool call is ONE line, its output folds under it** (`web/exec-toolout.js`). The line clips with an ellipsis; the result renders collapsed, tapping the line reveals it and flips the gutter marker `+` → `-`. **The whole row is the hit target, not the marker glyph** (phone). Open, the block is capped at `max-height: 20lh` (20 of the block's OWN lines) and scrolls inside itself (`exec-term.css`). Summaries come from `execSummarize()` (`web/exec-term.js`), which puts `query`/`url` FIRST (then `command`, `file_path`, `pattern`, `path`, `prompt`) — WebFetch's `prompt` is the instruction to the fetcher, not the thing fetched.
-- **Pairing is FIFO, not by id**: the sidecar's `tool` / `tool_result` frames carry no `tool_use_id`, and a turn's results arrive in call order. A call is consumed from the queue even when its result is empty (else it would swallow the NEXT result); the queue is emptied at the top of each turn so an aborted run cannot pair across turns; a result with no waiting call becomes a standalone open block. The cursor parks on the TOOL line while it is folded (a blinking cursor inside a hidden element reads as a page that stopped).
-- **Every tool line expands to something**: empty result → `[ no output ]`; a call still waiting at end of turn / on interrupt → `[ no result returned ]` folded under it.
-- **Text that resumes after a tool call opens its OWN bubble**: the open bubble is settled (markdown + SVG) and closed, the reveal state replaced with a fresh object (a cancelled typer never calls `onDone`, so a stale `typing` promise would hang the settle pass), and the receipt hangs on the last settled body when a turn ends on a tool.
-- **An Exec card tool (`mcp__exec__*`) is not a tool line**: it queues `{cardTool, input}` and renders a one-line receipt (`execCardReceipt`), e.g. `[ card added: … ]`, `[ … failed: … ]` on an `{error}` result.
-- **The turn receipt** (`execAppendReceipt`, `web/exec-stream.js`) prints only when something happened (a wait ≥15s, `[ 32.7s ]`), hung on the END of the reply (inline in the final `<p>`, a trailing element after a code block / diagram / list; a sys line only when there is no reply to hang it on). It is STASHED at the `done` frame and rendered at settle, because `done` can arrive while the typer is revealing and the settle pass rebuilds `innerHTML`.
-- **`dropIfEmpty`-style idempotence**: closing/dropping a bubble must tolerate being called repeatedly in one turn (consecutive tool frames) — a second call on an already-gone bubble once killed the turn with `null.remove()` (ARCHAEOLOGY §7).
+### 7c-bis. Exec's card tools — the container side of the relay
 
-### 7c-bis. Exec's card tools — the container side of the relay (2026-09-27)
+The agent gets Exec's card tools as `mcp__exec__*`; the sidecar relays (claude-box S-7). The tools stay in Python next to `rd.json` and `_RD_LOCK`.
 
-The agent gets Exec's ten card tools as `mcp__exec__*`; the sidecar relays (claude-box S-7). The tools stay in Python next to `rd.json` and `_RD_LOCK`.
-
-- **`GET /api/exec/tools`** returns `chat._chat_tools()` (schemas); **`GET /api/exec/prompt`** returns Exec's static system prompt; **`POST /api/exec/tool/{name}`** → `exec_tools.run_tool`, the ONE place a tool call's side effects are decided (monitor debounce, board-changed verdict), shared with `chat_passes._dispatch` so the two paths cannot drift. The route pushes `{cards_changed}` so an open board moves mid-reply. A failure returns `{error: …}`, never an exception.
-- **Auth is the sidecar token, and only it.** All three routes are on `public` with an in-handler `hmac.compare_digest` against `CC_SIDECAR_TOKEN` — the caller has no cookie. Deliberately NOT the admin `API_KEY` (the agent has Bash). Admin and guest credentials are refused (pinned by `tests/test_routes_exec.py`).
-- `scripts/cc-probe-daily.sh` (exec-fn repo, 5:20 host cron `/etc/cron.d/exec-fn-ccprobe`, installed from `claude-box/exec-fn-ccprobe.cron` by the submodule's `setup.sh`) sources `/etc/cc-sidecar.env` and passes the token with `sudo --preserve-env`; mechanism: claude-box S-6.
+- **`GET /api/exec/tools`** → `chat._chat_tools()`; **`GET /api/exec/prompt`** → Exec's static system prompt; **`POST /api/exec/tool/{name}`** → `exec_tools.run_tool`, the ONE place a tool call's side effects are decided (monitor debounce, board-changed verdict), shared with `chat_passes._dispatch`. The route pushes `{cards_changed}`; a failure returns `{error: …}`, never an exception.
+- **Auth is the sidecar token, and only it.** All three routes are on `public` with an in-handler `hmac.compare_digest` of `x-cc-token` against `CC_SIDECAR_TOKEN` (`routes_exec.py`). Deliberately NOT the admin `API_KEY` (the agent has Bash). Admin and guest credentials are refused (`tests/test_routes_exec.py`).
+- `scripts/cc-probe-daily.sh` (5:20 host cron `/etc/cron.d/exec-fn-ccprobe`, installed from `claude-box/exec-fn-ccprobe.cron` by the submodule's `setup.sh`) sources `/etc/cc-sidecar.env` and passes the token with `sudo --preserve-env`; mechanism: claude-box S-6.
 
 ### 7e. Persona and the board (container side)
 
-The agent IS Exec (since phase 2, 2026-09-28). The sidecar assembles the system prompt (claude-box S-9: Exec's prompt + the sidecar's operating rules + `cc-context.md`); this side owns the pieces that come from the container:
+The agent IS Exec. The sidecar assembles the system prompt (claude-box S-9: Exec's prompt + operating rules + `cc-context.md`); this side owns the container pieces:
 
-1. **Exec's static prompt** — `chat._CHAT_STATIC_PREFIX`, served at `/api/exec/prompt` (`api/exec_context.py`). One source, so the panel and the old `/cc` could never drift. (Its length rule, `LENGTH`, 2026-09-29: a confirmation, yes/no or single fact gets one line; one action gets one line; only an open question earns more. Measured: a yes/no in 41 words, "what should I focus on" in 66.)
-2. **The board rides in the message, not the prompt**, so the system prompt stays byte-stable (cacheable). `/api/cc/query` prepends `exec_context.wrap()`: an `<exec-context>…</exec-context>` block holding `chat._turn_context("planning")` — TODAY, activity log, selected tasks, ideas pool, 7-day schedule, known context, open nudges — plus the last `RECENT_PUSHES` = 5 nudges/monitor comments (`exec_panel.recent_pushes`; they are written to chat.json only, which the agent never reads, so without it Wai answering a comment answers something Exec never said). The sidecar tells the agent the block on the LATEST message overrides older ones and strips it from history/title/archive. **The tag is a contract**: `exec_context.OPEN/CLOSE` ↔ `CONTEXT_BLOCK` in `claude-box/exec-tools.mjs`, pinned by `tests/test_exec_context.py`.
-3. **Board scope** (`api/exec_board.py`, 2026-09-28, both paths): EVERY rd + hq card, plus archives/exile cards whose latest logged move there is within 7 days and which are still in that column. Cards carry no move time, so the window is read from `activity_log.json` + the dated `activity_log_YYYYMMDD.json` rotations, matched by id (title fallback). Cost measured 2026-09-28: the block is ~17.2K chars (~4.3K tokens), board 8.2K (80 ideas = 6.2K), the rest mostly KNOWN CONTEXT; it is re-sent every user turn and accumulates until the 4:30 new-chat or compaction.
+1. **Exec's static prompt** — `chat._CHAT_STATIC_PREFIX`, served at `/api/exec/prompt`. One source for every surface. Its `LENGTH` rule: a confirmation, yes/no or single fact gets one line; one action gets one line; only an open question earns more.
+2. **The board rides in the message, not the prompt**, so the system prompt stays byte-stable (cacheable). `/api/cc/query` prepends `exec_context.wrap()`: an `<exec-context>…</exec-context>` block holding `chat._turn_context("planning")` (today, activity log, selected tasks, ideas pool, 7-day schedule, known context, open nudges) plus the last `RECENT_PUSHES` = 5 nudges/monitor comments (`exec_panel.recent_pushes`; they live only in chat.json, which the agent never reads, so without it a reply to a comment answers something Exec never said). The sidecar treats the block on the LATEST message as authoritative and strips it from history/title/archive. **The tag is a contract**: `exec_context.OPEN/CLOSE` ↔ `CONTEXT_BLOCK` in `claude-box/exec-tools.mjs`, pinned by `tests/test_exec_context.py`. The block is re-sent every user turn (~4K tokens) and accumulates until the 4:30 new-chat or compaction.
+3. **Board scope** (`api/exec_board.py`, both paths): EVERY rd + hq card, plus archives/exile cards whose latest logged move there is within 7 days and which are still in that column. Cards carry no move time, so the window is read from `activity_log.json` + the dated `activity_log_YYYYMMDD.json` rotations, matched by id (title fallback).
 
-### 7f. The Exec panel on the sidecar (2026-09-28)
+### 7f. The Exec panel on the sidecar
 
-Phase 3 of the merge. The panel on `/rd` + `/hq` (`web/exec-bubble.js`) POSTs `{prompt}` — Wai's words only — to `/api/cc/query`, which adds the `<exec-context>` block (§7e) and relays the sidecar's frames. The sidecar runs one turn at a time; a panel send while a run is in flight waits (§7a) and only a slot held past `CC_BUSY_WAIT` shows a `busy` sys line.
+The panel on `/rd` + `/hq` (`web/exec-bubble.js`) POSTs `{prompt}` — Wai's words only — to `/api/cc/query`, which adds the `<exec-context>` block (§7e) and relays the sidecar's frames. A send while a run is in flight waits (§7a); only a slot held past `CC_BUSY_WAIT` shows a `busy` sys line.
 
-- **Frames.** `text` blocks are whole assistant messages; a reply that resumes after a tool call is a second block of the SAME answer (joined with a blank line). `tool` → `tool_result` pairs arrive in call order (FIFO, §7c). Only `mcp__exec__*` calls leave a receipt (`execCardReceipt`); a web search or Bash call leaves a tool line, not a card receipt. Board refresh needs nothing client-side: `/api/exec/tool/*` pushes `{cards_changed}` over the monitor SSE.
-- **Replay** is `GET /api/cc/exec-history` (`api/exec_panel.py`, `merged_history`): the sidecar transcript (text, plus one `action` row per tool call, paired by id sidecar-side, claude-box S-10) plus chat.json's `monitor` rows, sorted by time (sidecar stamps end in `Z`, chat.json's in `+00:00`; `_when` normalises both). User turns get their `[dd/mm HH:MM ET]` chip from the stored ts (`execFmtTs`, `web/exec-bubble-msg.js`), so nothing time-shaped is sent in the prompt. Replay keeps images and actions (`execReplayAction` renders them exactly as live).
-- **The two-pass guard is NOT on this path.** It existed because chat.json flattened tool calls out of history and a single pass learned to say "Added X" without calling anything. The SDK transcript keeps real tool_use/tool_result pairs; probed 2026-09-28 (two action turns made 1 and 3 real `mcp__exec__*` calls, the board matched). `chat_passes.py` stays for Discord inbound until phase 4.
-- **Gone from the panel:** the client-held `messages`/`stage`, and `?exec=open` re-sending a trailing user message. `/api/chat` still exists for Discord.
-- Pinned in WebKit: `tests/test_exec_panel_stream_browser.py` (receipts vs tool lines, joined blocks, prompt = words only, busy, the §7k resync paths); the older panel suites mock `/api/cc/exec-history` + `/api/cc/query`. The fixture turns voice OFF (the audio stub's clock never advances, so a reveal paced to it never ends) and mocks `/api/cc/interrupt` (unmocked, a test's interrupt would stop Wai's live run).
+- **Frames.** `text` blocks are whole assistant messages; a reply that resumes after a tool call is a second block of the SAME answer (joined with a blank line). `tool` → `tool_result` pairs arrive FIFO (§7c). Only `mcp__exec__*` calls leave a card receipt; web search / Bash leave a tool line. Board refresh needs nothing client-side: `/api/exec/tool/*` pushes `{cards_changed}` over the monitor SSE.
+- **Replay** is `GET /api/cc/exec-history` (`api/exec_panel.py`, `merged_history`): the sidecar transcript (text, one `action` row per tool call, claude-box S-10) plus chat.json's `monitor` rows, sorted by time (`_when` normalises the sidecar's `Z` stamps and chat.json's `+00:00`). User turns get their `[dd/mm HH:MM ET]` chip from the stored ts (`execFmtTs`, `web/exec-bubble-msg.js`), so nothing time-shaped goes in the prompt. Replay keeps images and actions (`execReplayAction`).
+- **The two-pass guard is NOT on this path.** The SDK transcript keeps real tool_use/tool_result pairs; `chat_passes.py` stays for Discord inbound (CLAUDE.md § Exec chat tools). `/api/chat` still exists for Discord.
+- Pinned in WebKit: `tests/test_exec_panel_stream_browser.py` (receipts vs tool lines, joined blocks, prompt = words only, busy, the §7k resync paths). The fixture turns voice OFF (the audio stub's clock never advances) and mocks `/api/cc/interrupt` (unmocked, a test would stop Wai's live run).
 
 ### 7g. /cc folded into the Exec panel (2026-09-29)
 
-Once the panel ran on the sidecar the two were one agent behind two doors, and Wai asked for one door. `/cc` (page, template, nav `✦`, `web/cc*.{js,css}`, `tests/test_cc_stream_browser.py`) is gone and returns 404; the `/api/cc/*` routes stay. The NDL nav entry took `/cc`'s `seeker` icon. **Everything the page did, the panel now does**, by the same code renamed into the panel's family (shared global scope, loaded in this order by `pages.py`): `exec-svg` · `exec-zoom` · `exec-attach` · `exec-toolout` · `exec-status` · `exec-sessions` · `exec-commands` · `exec-interrupt` · `exec-term` (renderer `execAddMsg`, history replay, send path) · `exec-resync` · `exec-stream` (the typer and the turn: a bubble per prose block, closed by any tool/thought, cursor parked on the last line); `exec-bubble.js` is only the shell (bubble, panel, todos, badge, composer, monitor feed). CSS: `exec-term.css`, injected by `loadStyles` between `chat-msg.css` and `exec-bubble.css`.
+`/cc` (page, template, nav `✦`, `web/cc*.{js,css}`) is gone and 404s; `/api/cc/*` stays. The NDL nav entry took `/cc`'s `seeker` icon. The page's code lives on as the panel's family, shared global scope, loaded in this order by `pages.py`: `exec-svg` · `exec-zoom` · `exec-attach` · `exec-toolout` · `exec-status` · `exec-sessions` · `exec-commands` · `exec-interrupt` · `exec-term` (renderer `execAddMsg`, history replay, send path) · `exec-resync` · `exec-stream` (the typer and the turn: a bubble per prose block, closed by any tool/thought); `exec-bubble.js` is only the shell (bubble, panel, todos, badge, composer, monitor feed). CSS: `exec-term.css`, injected by `loadStyles` (`exec-bubble-assets.js`) after `chat-msg.css` + `voice-ui.css` and before `exec-bubble.css`.
 
-- **Dropped files** (`exec-attach`, was `exec-images`): paste OR drag-and-drop anywhere on the page (bound on `window`, so a dropped file never navigates away) opens the panel and queues it: a picture is shrunk to 1568px and sent as an image block; ANY OTHER FILE, up to 4 x ~4.5MB, is sent as `{name, data}` and written by the sidecar into the sandbox (claude-box S-13) with `[attached: uploads/…]` appended to the prompt. The panel parses that tail back into name chips, so a sent message and its replay look alike. Container caps in §7a; verified live 2026-10-01.
+- **Dropped files** (`exec-attach`): paste OR drag-and-drop anywhere on the page (bound on `window`) opens the panel and queues it: a picture is shrunk to 1568px and sent as an image block; ANY OTHER FILE (≤4, container caps in §7a) is sent as `{name, data}` and written by the sidecar into the sandbox (claude-box S-13) with `[attached: uploads/…]` appended to the prompt. The panel parses that tail back into name chips so a sent message and its replay look alike.
 - **One cursor per turn**: `execBubbles().open()` and `execSettle` drop the old cursor wherever it is.
-- **Every action is its own line** (`.msg.act`: card receipts + tool lines; `margin-bottom:0`, `--lh-none`, nowrap+ellipsis). The `[ N turns ]` footnote was dropped 2026-10-07.
+- **Every action is its own line** (`.msg.act`: card receipts + tool lines; `margin-bottom:0`, `--lh-none`, nowrap+ellipsis).
 - **Known, inherited:** a multi-call turn's `done.ctxTokens` is the SUM across its API calls (claude-box S-14), so ctx% can read 100% after a tool-using turn.
 
 ### 7g-bis. Commands (`web/exec-commands.js`, `web/exec-sessions.js`)
 
-What a leading slash means before anything is sent (`execRunCommand`). Every leading slash goes through it, including one typed with a picture attached.
+What a leading slash means before anything is sent (`execRunCommand`), including one typed with a picture attached.
 
 | Command | What |
 |---|---|
@@ -1332,1055 +664,478 @@ What a leading slash means before anything is sent (`execRunCommand`). Every lea
 | `/list` | The 20 most recent conversations (`EXEC_LIST_LIMIT`) |
 | `/listall` | Every one |
 | `/back` | The most recently touched conversation that is not the current one |
-| `/context` `/cost` `/usage` `/compact` `/model` | The SDK's own, passed through (`EXEC_SDK_COMMANDS`): zero turns, never reach the model; `/model <name>` really switches it. Probed 2026-09-11 |
+| `/context` `/cost` `/usage` `/compact` `/model` | The SDK's own, passed through (`EXEC_SDK_COMMANDS`): zero turns, never reach the model; `/model <name>` really switches it |
 
-`/clear` is deliberately NOT passed through: the SDK honours it SILENTLY, dropping the conversation without the archive `/new` writes first. Unknown commands print `[ unknown: /x — /help lists them ]`.
+`/clear` is deliberately NOT passed through: the SDK honours it SILENTLY, without the archive `/new` writes first. Unknown commands print `[ unknown: /x — /help lists them ]`.
 
-The list renders **oldest first, so the most recent sits at the BOTTOM**, nearest the composer; the sidecar returns newest-first and the page reverses. Each row carries its age right-aligned (`<1m` / `45m` / `2h 20m` / `3d 14h 3m`: minutes the floor, days the ceiling, leading/trailing zero units dropped, interior zero kept). Rows are **tappable, not numbered** (the keyboard covers a list you type an index from); the current row is not a destination. The sidecar scopes the list to the sandbox cwd and `/resume` re-checks the id (claude-box S-10). Titles prefer the cached haiku title. **Rows are hued from the same FNV hash as the old status band** (`execHue`, `exec-status.js`, `--cs-hue`) — TEXT, not a filled band per row; an untitled row is not hued. **A clear ends with `/list`**: the empty terminal is the one moment the past is worth showing; no row is `current`, the pointer was just dropped.
+The list renders **oldest first, most recent at the BOTTOM** (the sidecar returns newest-first, the page reverses). Each row carries its age right-aligned (`<1m` / `45m` / `2h 20m` / `3d 14h 3m`). Rows are **tappable, not numbered**; the current row is not a destination. The sidecar scopes the list to the sandbox cwd and `/resume` re-checks the id (claude-box S-10). Titles prefer the cached haiku title; rows are hued from an FNV hash (`execHue`, `exec-status.js`, `--cs-hue`) — TEXT, not a band; an untitled row is not hued. **A clear ends with `/list`** (no row is `current`; the pointer was just dropped).
 
 ### 7h. The status bar (`web/exec-status.js`, `web/exec-term.css`)
 
-Mounted at the TOP of the panel by `execStatusMount`, **in the panel's own flow** (not fixed — it slides with the panel). Metrics only since 2026-09-30: the conversation-title band was dropped, but `execTitleRefresh` still hits `/api/cc/title` after each `exec:reply-done`, because that request is what generates the cached title `/list` names rows by (without it a row falls back to the SDK summary, i.e. the `<exec-context>` block). The model is tracked (it decides ctx's window: 1M for a `[1m]` model else 200K) but not shown.
+Mounted at the TOP of the panel by `execStatusMount`, in the panel's own flow (slides with it). Metrics only: the conversation-title band was dropped, but `execTitleRefresh` still hits `/api/cc/title` after each `exec:reply-done`, because that request generates the cached title `/list` names rows by. The model is tracked (it decides ctx's window: 1M for a `[1m]` model else 200K) but not shown.
 
-**Five equal columns, always all five** (`grid-template-columns: repeat(5, 1fr)`, missing values render 0 — a slot that appears only with a value makes the row jump): `ctx:N%` (white) · `(base:N%)` (grey) · `5h:N%` (pink) · its reset (mint, e.g. `(2h02m)`) · `7d:N%` (cyan). Each carries a gauge (`.cs-bar`): ONE pill that extends on a darker full-width track (5px, `--radius-pill`, like `/rd`'s calendar dots) in the segment's `currentColor`; `min-width: 5px` and **no fill element at all for zero**; side margins so five gauges do not read as one rule. The reset box gauges how much of the 5h window has BURNED (`execBurned`) so all five mean "more filled = less left"; no reset time = empty, never full. (The five colours are grandfathered in `raw-color-baseline.json`.)
+**Five equal columns, always all five** (`grid-template-columns: repeat(5, 1fr)`, missing values render 0 so the row never jumps): `ctx:N%` (white) · `(base:N%)` (grey) · `5h:N%` (pink) · its reset (mint, e.g. `(2h02m)`) · `7d:N%` (cyan). Each has a gauge (`.cs-bar`): ONE pill that extends on a darker full-width track (5px, `--radius-pill`) in `currentColor`; `min-width: 5px`, **no fill element at all for zero**. The reset box gauges how much of the 5h window has BURNED (`execBurned`) so all five mean "more filled = less left"; no reset time = empty. (The five colours are grandfathered in `raw-color-baseline.json`.)
 
-**Every figure is REPORTED, never estimated**: model from the SDK `init` frame, context from `done.ctxTokens`, windows from `GET /api/cc/limits` (sidecar `usage.mjs`, claude-box S-14; fetched on load and each `exec:reply-done`, not polled). `base` is the smallest total input ever seen, persisted in `localStorage` (`exec.ctxbase`); the whole state is cached under `exec.status` as a first paint (12h TTL, a window already past its reset is dropped). `/new` zeroes ctx (`exec:conversation-new`); base and windows survive (account-wide). The reset countdown re-renders every 60s.
+**Every figure is REPORTED, never estimated**: model from the SDK `init` frame, context from `done.ctxTokens`, windows from `GET /api/cc/limits` (sidecar `usage.mjs`, claude-box S-14; fetched on load and each `exec:reply-done`, not polled). `base` is the smallest total input ever seen (`localStorage` `exec.ctxbase`); the whole state is cached under `exec.status` as a first paint (12h TTL; a window already past its reset is dropped). `/new` zeroes ctx (`exec:conversation-new`); base and windows survive. The reset countdown re-renders every 60s.
 
-**`[x]` in the panel header closes the panel; it does NOT end the conversation** (`#exec-ph-close` → `closePanel`). Ending a conversation is `/new` (or `/clear`).
+**`[x]` in the panel header closes the panel; it does NOT end the conversation** (`#exec-ph-close` → `closePanel`). Ending one is `/new` or `/clear`.
 
 ### 7i. The rolling title (`api/cc_title.py`, `GET /api/cc/title`)
 
-Cached in `data/cc_titles.json` per session and regenerated every `_EVERY` = 4 messages, weighted to the latest 12 messages at 400 chars each. **Generation runs in the SIDECAR on the subscription** (`cc_client.generate_title` → `POST /title-gen`, 180s timeout; writer + judge, deterministic floor — claude-box S-12); a refusal (`title: null`, busy / a chat turn in flight) means "keep the cached one". The SDK's value is the fallback, for a deliberate rename or when generation is unavailable; it never raises. **The route handler is deliberately not named `cc_title`** — a function with the module's name rebinds it at module scope. The Python side of the loop is mirrored by Wai's terminal recap hook and by `title-gen.mjs` (change all three together).
+Cached in `data/cc_titles.json` per session, regenerated every `_EVERY` = 4 messages over the latest 12 messages (400 chars each). **Generation runs in the SIDECAR on the subscription** (`cc_client.generate_title` → `POST /title-gen`, 180s timeout; claude-box S-12); a refusal (`title: null`: busy / a chat turn in flight) means "keep the cached one". The SDK's summary is the fallback; the route never raises. **The route handler is deliberately not named `cc_title`** (`cc_conversation_title`): a function with the module's name rebinds it at module scope. The Python loop is mirrored by Wai's terminal recap hook and by `title-gen.mjs` (change all three together).
 
 ### 7j. Transport and interrupt (`web/exec-interrupt.js`)
 
-**SSE over POST** — `EventSource` is unusable (GET only), so frames are parsed off a fetch body reader with a streaming `TextDecoder` (a chunk boundary can split a frame mid-UTF-8). The transcript only chases the tail when the reader is already at the bottom.
+**SSE over POST** — `EventSource` is GET-only, so frames are parsed off a fetch body reader with a streaming `TextDecoder` (a chunk boundary can split a frame mid-UTF-8). The transcript only chases the tail when the reader is already at the bottom.
 
-**Sending while a run is in flight INTERRUPTS it.** Interrupting is an explicit request since 2026-10-14: `POST /api/cc/interrupt` → the sidecar's `/interrupt`. (Before that the page's interrupt WAS the hangup; a run now outlives its caller, §7k.) The page still aborts its own fetch so the old turn's handler unwinds and its partial reply stands. Details the implementation turns on: the slot frees when the sidecar's handler unwinds, so `execInterrupt()` waits for its own handler and then **polls `/api/cc/health` until the sidecar reports itself free** (4s cap; past that the send proceeds and a real `busy` renders); the user's line lands in the transcript BEFORE the interrupt (a few hundred ms of round trips with text that appears nowhere reads as a dropped keystroke); an abort is not an error — it renders `[ interrupted ]`, cancels the reveal, leaves the partial standing; `_sending` guards only the interrupt window. **Voice deliberately does NOT interrupt** (speech heard while a reply streams is dropped, §7k-bis).
+**Sending while a run is in flight INTERRUPTS it**: `POST /api/cc/interrupt` → the sidecar's `/interrupt` (a hangup no longer stops a run, §7k). The page also aborts its own fetch so the old handler unwinds and its partial reply stands. `execInterrupt()` waits for its own handler, then **polls `/api/cc/health` until the sidecar reports itself free** (4s cap; past that the send proceeds and a real `busy` renders); the user's line lands in the transcript BEFORE the interrupt; an abort renders `[ interrupted ]` and cancels the reveal; `_sending` guards only the interrupt window. **Voice deliberately does NOT interrupt** (§7k-bis).
 
-### 7k. A run outlives its caller — the page side (2026-10-14)
+### 7k. A run outlives its caller — the page side
 
-Wai: "don't stop generating responses when I minimize or close the exec chat" — "audio can stop". The sidecar half (no hangup abort) is claude-box S-11. The page picks the reply back up **from the transcript** (`web/exec-resync.js`), text only: the voice stops with the stream, the agreed trade. `execResync()` posts a `still answering` line, waits until the sidecar is free AND no turn of the page's own is streaming, then `execLoadHistory(true)` replaces the transcript — only once the replay is in hand (a failed fetch leaves the screen alone). Capped at 15 minutes (`EXEC_RESYNC_MAX_MS`).
+Hanging up (minimize, close, lock the phone) never aborts a run; the sidecar half is claude-box S-11. The page picks the reply back up **from the transcript** (`web/exec-resync.js`), text only: the voice stops with the stream. `execResync()` posts a `still answering` line, waits until the sidecar is free AND no turn of the page's own is streaming, then `execLoadHistory(true)` replaces the transcript — only once the replay is in hand (a failed fetch leaves the screen alone). Capped at `EXEC_RESYNC_MAX_MS` (15 min).
 
-Three ways in: (1) the stream errors, or ends with no closing frame (`done`/`error`/`busy`), AFTER the sidecar took the turn (any frame but `waiting`). Cut BEFORE that (still queued) nothing runs: an error line, `send again`, the user line stays. (2) **The watchdog**: iOS can suspend a page without the socket ever erroring. On `visibilitychange` → visible with a turn streaming it polls `/api/cc/health`; free twice, `EXEC_RESYNC_GRACE_MS` (3s) apart, with the stream still open = dead (`execRunLose`). Twice because a queued turn sees the slot free for up to `_BUSY_POLL_S` before taking it. (3) **Reopened mid-answer**: `exec-bubble.js`'s `loadHistory` ends with `execFollowRun()`. Pinned by `tests/test_exec_panel_stream_browser.py`. **Not verified end to end against a live subscription run** (needs a message in Wai's real thread); the route was probed live (anonymous 401, owner `{ok, stopped:false}`).
+![How the page resyncs a cut turn](docs/arch/07-resync.svg)
+
+Three ways in: (1) the stream errors or ends with no closing frame (`done`/`error`/`busy`) AFTER the sidecar took the turn (any frame but `waiting`); cut BEFORE that nothing runs: error line, `send again`. (2) **The watchdog**: iOS can suspend a page without the socket erroring; on `visibilitychange` → visible with a turn streaming it polls `/api/cc/health`; free twice, `EXEC_RESYNC_GRACE_MS` (3s) apart, stream still open = dead (`execRunLose`). Twice because a queued turn sees the slot free for up to `_BUSY_POLL_S` before taking it. (3) **Reopened mid-answer**: `loadHistory` in `exec-bubble.js` ends with `execFollowRun()`. Pinned by `tests/test_exec_panel_stream_browser.py`. **Not verified end to end against a live subscription run.**
 
 ### 7k-bis. Hands-free input (`web/voice-input.js`)
 
-*(Was a second "§7k"; references to "§7k" for voice input mean this section.)* Wires the browser's `webkitSpeechRecognition` — tap, talk, and the message sends itself when you stop; the recognizer is **never stopped between turns** (`continuous = true`). **ONE engine, THREE bindings**: `voice-input.js` owns the session; `web/exec-mic.js` binds it to the Exec panel's composer and `web/tarot-mic.js` to the reading table's (the `/cc` binding `cc-mic.js` went with the page). A binding supplies four callbacks — `fill`, `send`, `busy`, `blur`. `tests/test_voice_input_browser.py` drives the surfaces against a fake array-like recognizer. Every rule below is a bug paid for:
+*(Was a second "§7k"; references to "§7k" for voice input mean this section.)* Wraps `webkitSpeechRecognition`: tap, talk, the message sends itself when you stop; the recognizer is **never stopped between turns** (`continuous = true`). **ONE engine, TWO bindings**: `voice-input.js` owns the session; `web/exec-mic.js` binds it to the Exec composer and `web/tarot-mic.js` to the reading table's. A binding supplies `fill`, `send`, `busy`, `blur`. `tests/test_voice_input_browser.py` drives both against a fake array-like recognizer. Rules:
 
-- **A final result does NOT send — it ARMS the send, `SEND_DELAY_MS` (1000ms) out.** A short silence is also what thinking mid-sentence sounds like. Anything heard in the window cancels the armed send and joins what is there; an EMPTY result event must not cancel the arm; the finalized text is held as `pending` (iOS ends the recognizer on silence and the rebuild resets `base`); tapping the mic off inside the window does not send. Pinned by `test_a_pause_mid_sentence_does_not_send_half_of_it`.
-- **The panel's `busy()`** = a reply streaming **or `execVoice.isSpeaking()`** — the panel narrates every turn, so without it the mic transcribes Exec reading its reply aloud. `speaking` stays true through the playout tail; `exec-voice.js` fires `exec:voice-idle` when it clears. Closing the panel ends the session (`execMicStop`).
-- **A `.mic` prompt is a `<span>`**, and the first-gesture keyboard arm in `exec-bubble.js` (`preventDefault` on pointerdown for anything not `button, a, input, textarea, [contenteditable], .mic`) used to eat the first tap; `.mic` is in the selector.
-- iOS `start()` needs a user gesture and `stop()` does not, so pausing is one-way: **one tap has to cover the whole session**. A session ends when tapped off — silence and recognizer errors do not (`onerror` is empty by design: `no-speech`/`audio-capture`/`network` are weather).
-- **No `getUserMedia` track is held** (Safari gates it and speech recognition as separate permissions: two prompts). Every restart builds a **fresh recognizer**; `kill()` detaches handlers first. A refused `start()` retries quietly (300ms x10) then stops silently.
-- Speech heard **while busy is DROPPED** (marked consumed via the `base` floor; prompt dims to `data-drop`). A turn you TYPED never opens the mic.
-- **During a session the composer is never focused** (the keyboard shrinks the viewport and takes the nav bar down).
-- **The control IS the `$` prompt** (`#exec-prompt`; rules in `chat-msg.css`), becoming a lit `●`. It does **NOT** pulse — an animated element under `.cyber-blur`/`.cyber-crt` re-fires both full-viewport backdrop readbacks every frame (shipped once; reported as the page freezing).
-- Absent API (Firefox, flaky iOS standalone) → a plain `$`, nothing wired.
-- First-cut bugs: `onresult` iterated `e.results` with `for...of` but Safari's `SpeechRecognitionResultList` is array-LIKE with no iterator (index loops now; the test stubs it array-like on purpose); a 180s watchdog stops a recognizer that never fires `end`; `visibilitychange` aborts one left open.
+- **A final result ARMS the send, `SEND_DELAY_MS` (1000ms) out** — a short silence is also what thinking mid-sentence sounds like. Anything heard in the window cancels the arm and joins what is there; an EMPTY result event must not cancel it; finalized text is held as `pending` (iOS ends the recognizer on silence and the rebuild resets `base`); tapping the mic off inside the window does not send.
+- **The panel's `busy()`** = a reply streaming **or `execVoice.isSpeaking()`** — else the mic transcribes Exec reading its reply aloud. `exec-voice.js` fires `exec:voice-idle` when speaking clears. Closing the panel ends the session (`execMicStop`).
+- **A `.mic` prompt is a `<span>`**; the first-gesture keyboard arm in `exec-bubble.js` (`preventDefault` on pointerdown for anything not `button, a, input, textarea, [contenteditable], .mic`) must keep `.mic` in that selector.
+- iOS `start()` needs a user gesture and `stop()` does not, so pausing is one-way: **one tap covers the whole session**. A session ends only when tapped off — silence and recognizer errors do not (`onerror` is empty by design).
+- **No `getUserMedia` track is held** (Safari gates it and speech as separate permissions). Every restart builds a **fresh recognizer**; `kill()` detaches handlers first. A refused `start()` retries quietly (300ms x10) then stops silently. A 180s watchdog stops a recognizer that never fires `end`; `visibilitychange` aborts one left open.
+- Speech heard **while busy is DROPPED** (consumed via the `base` floor; prompt dims to `data-drop`). A turn you TYPED never opens the mic. **During a session the composer is never focused** (the keyboard shrinks the viewport).
+- **The control IS the `$` prompt** (`#exec-prompt`; rules in `chat-msg.css`), becoming a lit `●`. It must NOT pulse: an animated element under `.cyber-blur`/`.cyber-crt` re-fires both backdrop readbacks every frame (§10a).
+- Index loops, never `for...of`, over `e.results` (Safari's result list is array-LIKE; the test stubs it that way). Absent API → a plain `$`, nothing wired.
 
 ### 7l. Pictures — SVG out, screenshots in, zoom for both
 
-**SVG out** (`web/exec-svg.js`): a fenced ` ```svg ` block is the one route a picture takes back from the model; it is swapped for the rendered diagram with the markup in a collapsed `<details>`. **The sanitiser is load-bearing** (the markdown path uses `innerHTML`; "the model wrote it" is not a safety argument, since output is steered by whatever Wai pastes in): an ALLOWLIST of elements and attributes, `href` only when it starts with `#`, no `url(`/`expression(`/`javascript:`, returning null (code block stays visible) rather than rendering something it could not clean; authored `width`/`height` stripped and a `viewBox` synthesised. Pinned by an in-browser attack suite. The sidecar's system prompt tells the model it can draw and that the canvas is a DARK terminal. **A diagram appears the moment its block CLOSES**, not when the reply settles: the typer renders at most `execClosedSvgCount(shown)` blocks (only those whose closing fence has arrived; a half-written block sanitises to nothing or a partial drawing) and sanitised results are cached by source text.
+**SVG out** (`web/exec-svg.js`): a fenced ` ```svg ` block is swapped for the rendered diagram with the markup in a collapsed `<details>`. **The sanitiser is load-bearing** (the markdown path uses `innerHTML`; output is steered by whatever Wai pastes in): an ALLOWLIST of elements and attributes, `href` only when it starts with `#`, no `url(`/`expression(`/`javascript:`; it returns null (code block stays visible) rather than render something it could not clean; authored `width`/`height` stripped, `viewBox` synthesised. Pinned by an in-browser attack suite. The sidecar's prompt says the canvas is a DARK terminal. **A diagram appears the moment its block CLOSES**: the typer renders at most `execClosedSvgCount(shown)` blocks; sanitised results are cached by source text.
 
-**Images in** (`web/exec-attach.js`): a screenshot paste's image FILE is taken from `clipboardData.files` and **downscaled to ~1568px** in the browser (canvas; Claude downsamples above that, and full-res costs everything on a 1967MB box). Thumbnails stack in the composer. Server-side handling (≤4 images, async-iterable user message, an image with no text is valid, malformed block dropped): claude-box S-13. History replays images too.
+**Images in** (`web/exec-attach.js`): a screenshot paste's FILE is taken from `clipboardData.files` and **downscaled to ~1568px** in the browser. Thumbnails stack in the composer; history replays images. Server side: claude-box S-13.
 
-**Tap-to-zoom** (`web/exec-zoom.js`, delegated off `#exec-term`): the overlay sits at `--z-bubble`, UNDER the `cyber-*` layers; pinch zoom clamped **0.5–8x** (`EXEC_ZOOM_MIN/MAX`), drag to pan, double-tap toggles 2.5x at the tap point, single tap closes only at fit. Below-fit zoom is deliberate with `overflow: visible` on the svg (a model routinely draws a label past its declared box). The svg is fitted `width:100%; height:auto; max-height:100%`. Same three gesture rules as the landing wheel and the /rd calendar: `touch-action:none`, the PREFIXED `-webkit-user-select:none`, pointermove/up on WINDOW with no `setPointerCapture`.
+**Tap-to-zoom** (`web/exec-zoom.js`, delegated off `#exec-term`): overlay at `--z-bubble`, UNDER the `cyber-*` layers; pinch clamped `EXEC_ZOOM_MIN`/`MAX` = 0.5–8x, drag to pan, double-tap toggles 2.5x at the tap point, single tap closes only at fit. Below-fit zoom is deliberate (`overflow: visible` on the svg). Same three gesture rules as the landing wheel and the /rd calendar: `touch-action:none`, the PREFIXED `-webkit-user-select:none`, pointermove/up on WINDOW with no `setPointerCapture`.
 
-History — the incidents behind the rules above: [ARCHAEOLOGY.md §7](ARCHAEOLOGY.md) and `claude-box/ARCHAEOLOGY.md`.
+History: [ARCHAEOLOGY.md §7](ARCHAEOLOGY.md) and `claude-box/ARCHAEOLOGY.md`.
 
 ---
 
 ## 8. `/rd` — the board and its month calendar
 
-The board itself is `rd.json` rendered into four columns (see CLAUDE.md § *Terminology*). This section is the **month calendar** that sits under the reminders/books bars — `#rd-calendar`, built by `web/rd-calendar.js` (split out of rd.js for the 500-line cap; same global scope, loaded before it).
+The board is `rd.json` in four columns (CLAUDE.md § *Terminology*). This section is the **month calendar** under the reminders/books bars — `#rd-calendar`, built by `web/rd-calendar.js` (split from rd.js for the 500-line cap; same global scope, loaded before it). Dot colour/size helpers (`dotColor`, `dotUnits`) are in `web/card-style.js`.
 
 ### 8a. The grid
 
-Full-width Sunday-first grid of the CURRENT MONTH only, no weekday guide row, 4-6 rows emitted to fit exactly the weeks the month spans (never a spare row). Out-of-month cells are blank but keep their weekend class.
+Full-width Sunday-first grid of the CURRENT MONTH only, no weekday row, 4-6 rows (exactly the weeks the month spans). Out-of-month cells are blank but keep their weekend class.
 
-**The last column's missing right rule is keyed off a `.cal-eow` class the builder sets from the day, never `:nth-child(7n)`** — nth-child counts every child of `#rd-calendar`, so a new first child silently shifts the rule off the last column.
-
-Grid lines are 5px at `0.12` (per-cell right+bottom; at 1px they were lost against the scanlines), with `background-clip: padding-box` on `.cal-d` so a cell's wash never tints its OWN rules — a cell draws only its right+bottom, so under the default border-box clip a lit week ended up lit down one side and dark down the other. **`.cal-d.cw` must therefore set `background-color`, NOT the `background` shorthand**, which resets every `background-*` longhand and silently undoes that clip.
-
-`.cal-d` needs **`min-width: 0`** or the `1fr` track's `auto` minimum lets a busy day WIDEN its own column and knock the grid out of square.
+- **The last column's missing right rule is keyed off a `.cal-eow` class** the builder sets from the day, never `:nth-child(7n)` (nth-child counts every child of `#rd-calendar`; a new first child shifts it).
+- Grid lines are 5px at `0.12` (per-cell right+bottom). `background-clip: padding-box` on `.cal-d` keeps a cell's wash off its own rules, so **`.cal-d.cw` must set `background-image`/`background-color`, NOT the `background` shorthand** (it resets every longhand and undoes the clip).
+- `.cal-d` needs **`min-width: 0`** or a busy day widens its `1fr` column.
 
 ### 8b. Dots — one per card, sized by importance
 
-Each day is the zero-padded day number (`calc(var(--fs-sm) * 1.5)` bold) over a centered row of up to 5 dots, one per card landing on that day (`scheduled_day`, else the `due_date`'s date part).
+Each day is the zero-padded day number over a centred row of dots, one per card landing on that day (`scheduled_day`, else the `due_date` date part). Every dot is rendered, then `fitCalDots` decides how many fit.
 
-**Books and EXILED cards are excluded; archived cards still count** — they happened on their day, and erasing finished work makes a month read emptier than it was. But **only on days that have already happened**: a card finished EARLY kept dotting a day nothing would happen on, and a recurring card double-booked the future, since archiving clones the next occurrence as its own card.
-
-**Archiving now PRESERVES `scheduled_day`** (`_apply_patch_schedule`). Leaving hq clears it, except into archives, where the move means *done* and that field is the only record of the day it actually happened; clearing it fell back to `due_date`, which is a different day for anything completed early or rescheduled. Inert elsewhere: `get_week_data` takes `column == "hq"`, the morning rollover takes `("rd", "hq")`, nudges need `decomposable()` → hq. 33 already-archived cards were backfilled from the activity log.
-
-Each dot is painted its card's category hue (`dotColor()` in card-style.js) at full opacity — except for the two adjacent warms a 4px dot cannot separate under the phosphor wash: **Interfacing is Marigold @ 1 and Hobby is Ember @ 0.8** (`_DOT_COLOR`), splitting them by VALUE as well as hue. Both pairs were already in the palette baseline, so it adds no colour; the CARDS keep Coral.
-
-**A dot is as wide as the card is important.** `dotUnits()` (card-style.js) maps `size` to circle-widths — wisp 1 · idea 2 · plan 3 · commitment 4, unknown/missing → idea — so a day shows its WEIGHT, not just its count. A **reminder is forced to wisp** whatever its `size` says, the same override `cardStyle` applies: it is a note that a day exists, not work, and gcal imports (`size: null`) would otherwise take the `idea` default.
-
-A multi-unit dot is a **stadium** (two semicircles joined by a rectangle, no seam) via `--radius-pill`; `--radius-round`'s 50% is per-axis and would draw a long dot as an ellipse.
-
-Dots never shrink (`flex: 0 0 auto`) since a squashed dot would misreport its size. A day with more dots than fit shows as many WHOLE dots as the cell holds plus a trailing **hollow silver dot** (`.cal-more` — a ring at the one-unit diameter, `--gray-hsl / 0.45`, inheriting `--cal-dot` so it tracks the dot size). It was a `+` glyph, which sat on its own baseline and broke the row's rhythm; being hued like nothing in the palette it names no card — which is the point, since it stands for the ones it cannot show.
-
-`fitCalDots` runs after every build, and **the fit test measures the visible children's SPAN, not `scrollWidth`** — the row is `justify-content:center`, so overflow spills out both sides and `scrollWidth` reports none of it.
-
-**A recurring card is projected forward two months** (`_RECUR_HORIZON_MONTHS`, `_advanceRecur` mirroring the server's `helpers._advance_recurrence` step-for-step incl. the month-end clamp). Only one occurrence is ever live — archiving it is what clones the next — so without projection the months ahead read empty even though a weekly series lands in them every week. Projections dot exactly like the real card; archived cards are never projected, since the past occurrences already exist as their own cards.
+- **Books and EXILED cards are excluded; archived cards count, but only on days already past** (a card finished EARLY would dot a day nothing happened on; a recurring card would double-book the future, since archiving clones the next occurrence).
+- **Archiving PRESERVES `scheduled_day`** (`_apply_patch_schedule`, `routes_api.py`): leaving hq clears it, except into archives, where the field is the only record of the day it happened. Inert elsewhere (`get_week_data` takes `column == "hq"`, the rollover takes `("rd", "hq")`, nudges need hq).
+- Colour = the card's category hue (`dotColor()`) at full opacity, except **Interfacing and Hobby**, two adjacent warms a 4px dot cannot separate: `_DOT_COLOR` gives Interfacing `--orange-hsl @1` and Hobby `--orange-glow-hsl @0.8` (split by VALUE as well as hue; both already in the palette baseline). The CARDS keep Coral.
+- **A dot is as wide as the card is important**: `dotUnits()` wisp 1 · idea 2 · plan 3 · commitment 4 (unknown → idea). A **reminder is forced to wisp** (same override as `cardStyle`; also catches gcal imports with `size: null`). A multi-unit dot is a stadium via `--radius-pill` (`--radius-round`'s 50% would draw an ellipse). Dots never shrink (`flex: 0 0 auto`).
+- A day with more dots than fit shows as many WHOLE dots as fit plus a trailing **hollow silver ring** (`.cal-more`, `--gray-hsl / 0.45`, one-unit diameter) — hued like nothing in the palette because it names no card. **`fitCalDots` measures the visible children's SPAN, not `scrollWidth`** (the row is `justify-content:center`, so overflow spills both sides).
+- **A recurring card is projected forward two months** (`_RECUR_HORIZON_MONTHS`, `_advanceRecur` mirroring `helpers._advance_recurrence` incl. the month-end clamp). Only one occurrence is live (archiving clones the next). Archived cards are never projected.
 
 ### 8c. Three date markers, one weight
 
-A weekend colours its **DATE** cyan `0.8` (`.cal-d.we .cal-n` — exactly what HQ does, tinting the day name; the cell background is untouched, so an out-of-month weekend cell shows nothing, having no date to colour). A **Québec statutory holiday** colours its date **pink** `0.8` (`.cal-d.hol`, source-ordered after the weekend rule so a holiday landing on a weekend wins).
+Every date sits at alpha `0.8` so only the HUE carries meaning: green weekday, **cyan weekend** (`.cal-d.we .cal-n`), **pink Québec statutory holiday** (`.cal-d.hol .cal-n`, source-ordered after the weekend rule so a holiday on a weekend wins).
 
-Every date sits at alpha `0.8` — green weekday, cyan weekend, pink holiday — so the three read as one row of equal weight and only the HUE carries the meaning.
-
-One of the 7 days from today washes the cell green as TWO stacked `0.12` `linear-gradient`s (~0.23 composite). **Green's scale jumps 0.12→0.45**, and 0.45 turned the week into a solid block the dark numbers were lost on, so the stack buys a middle step with both declared alphas still on-scale. This week LIGHTENS — it is the live part of the month, lit not shadowed. The markers never composite, so a weekend inside this week just shows both.
-
-**Today draws a bright `0.8` 1px box as a `::after` overlay** (`position:absolute; inset:0`), NOT as a border: a border override would replace that one cell's 5px grid rules, thinning the grid there and leaving the bright line riding the outer edge of a 5px band so it read as shifted ~4px right and down. At `inset:0` the overlay lays out against the PADDING box, landing exactly on the cell's visual interior. It stays **1px** while the grid rules are 5px, because today reads as today by being bright, not thick.
+The 7 days from today (`.cal-d.cw`) wash the cell green as TWO stacked `0.12` `linear-gradient`s (~0.23 composite): green's scale jumps 0.12→0.45, which was a solid block, so the stack buys a middle step with both alphas on-scale. **Today** draws a bright 1px box as a `::after` overlay (`position:absolute; inset:0`), NOT a border (a border override would replace that cell's 5px rules and shift the line).
 
 ### 8d. Holidays are computed, not tabulated
 
-`web/qc-holidays.js` — a computus for Easter, nth-weekday for Labour Day/Thanksgiving, "Monday strictly before May 25" for the Patriotes — so it answers for any year with no table to expire.
-
-It carries the eight that bind a Québec-regulated worker (LNT s. 60 + the Fête nationale's own statute) and deliberately EXCLUDES Family Day, the August Civic Holiday, Boxing Day, Remembrance Day, and Sep 30 Truth & Reconciliation (federally regulated employers only — Québec has not adopted it). Victoria Day's Monday IS marked, as the Journée nationale des patriotes. **Good Friday is the Easter entry** — the statute lets the EMPLOYER choose Good Friday *or* Easter Monday, so no calendar is right for everyone.
-
-Dates pinned in `tests/test_qc_holidays.py`.
+`web/qc-holidays.js` — a computus for Easter, nth-weekday for Labour Day/Thanksgiving, "Monday strictly before May 25" for the Patriotes — answers for any year. It carries the eight that bind a Québec-regulated worker (LNT s. 60 + the Fête nationale's statute) and EXCLUDES Family Day, the August Civic Holiday, Boxing Day, Remembrance Day and Sep 30 (federal only). Victoria Day's Monday IS marked (Journée nationale des patriotes). **Good Friday is the Easter entry** (the employer may choose Good Friday or Easter Monday). Pinned in `tests/test_qc_holidays.py`.
 
 ### 8e. Drag a card onto a day to schedule it
 
-`wireCalendarDrops`: every in-month cell carries a `data-day` and is a Sortable list in the board's own `rd` group, so dropping a card on a date is the same gesture as dropping it in a column — it just lands on a day.
+`wireCalendarDrops`: every in-month cell carries a `data-day` and is a Sortable list in the board's own `rd` group. The dropped day IS the due date (an existing clock time survives): `POST /api/rd/{card_id}/schedule {date}` → `card_schedule.drop_on_day`; inside the 7-day window the card also goes rd→hq via `schedule_to_day`; beyond it only the due date lands and the card waits in r&d (a toast says so). Reminders + books are dated but never scheduled; a card dragged out of archives/exile returns to rd first. 409 when an active nudge loop would be deferred (consequences first), 400 bad date, 404 unknown card. Pushes `{cards_changed}` so an open /hq refetches.
 
-The dropped day IS the due date (`POST /api/rd/{id}/schedule` → `card_schedule.drop_on_day`), and inside the 7-day window the card also goes rd→hq through `schedule_to_day`; beyond it, the due date lands alone and the card waits in r&d (a toast says so, since nothing visibly moved).
+![Calendar drop sequence](docs/arch/08-calendar-drop.svg)
 
-Sortable really does insert the dragged card into the cell it hovers, and a full-size card in a ~40px grid cell would grow the calendar — which moves the board under the finger mid-drag — so `#rd-calendar .cal-d > .card` is `display:none` and the cell answers with a `:has(> .card)` green `0.45` wash instead: **the lit cell IS the feedback**.
-
-Two rules the drop leans on:
-- The POST fires only AFTER the board's own `save()` resolves (`rd.js` chains `flushCalDrop` onto it). `save()` sends every card's `{column, order}` from the local array, where the dropped card still reads as the column it left, so fired concurrently it could land last and undo the promotion to hq.
-- The reminders bar is excluded from the drop group (`put:` accepts only `#col-*`), because the bar's `onRemove` reads any exit as *no longer a reminder* and a chip dropped on a date would silently clear the flag too.
+- Sortable inserts the dragged card into the hovered cell; a full card would grow the calendar mid-drag, so `#rd-calendar .cal-d > .card` is `display:none` and the cell answers with a `:has(> .card)` green `0.45` wash: **the lit cell IS the feedback**.
+- The POST fires only AFTER the board's `save()` resolves (`rd.js` chains `flushCalDrop`); concurrently the save (stale `column`) could land last and undo the hq promotion.
+- The reminders bar is excluded from the drop group (`put:` accepts only `#col-*`): its `onRemove` reads any exit as "no longer a reminder".
 
 ### 8f. Paging months, and the watermark
 
-**Drag (mouse) or swipe (touch) sideways to page months** (`wireCalendarSwipe`, one month per gesture past a 45px threshold; drag right = previous). `calOffset` is a plain module variable, never persisted, so a page load ALWAYS opens on the present month.
+**Drag (mouse) or swipe (touch) sideways to page months** (`wireCalendarSwipe`; one month per gesture past a 45px threshold; drag right = previous). `calOffset` is never persisted, so a load ALWAYS opens on the present month. The watermark text: past month `08 >>`, future `<< 10`, present `> 09 <`. today/this-week classes key off the REAL today.
 
-Arrows point the way BACK to the present month: a past month reads `08 >>`, a future one `<< 10`, and the present month points INWARD as `> 09 <` (you are here). No year — a month is only ambiguous 12+ away, further than this is meant to be dragged. today/this-week classes key off the REAL today, so another month simply has none.
+The month shows as a big glowing number behind the grid (`#cal-mark`, class `.cal-mark`: `0.12` fill + `text-shadow` glow, `filter: blur(var(--blur-xs))`, sized `min(var(--cal-h), 26vw)`). **It is a fixed SIBLING of `#rd-calendar` at `z-index:-2`, load-bearing**: `#rd-calendar` is `position:fixed` with a z-index (its own stacking context), so a negative-z child could only sink behind its own content, never behind the page's layers; as a sibling it sits under the CRT stack and above the page background. Fixed, it takes no row and cannot change `--cal-h`, so sizing it from `--cal-h` has no feedback loop.
 
-The month shows as a big glowing zero-padded NUMBER behind the grid (`#cal-mark`, green `0.12` fill + a `0.12` `text-shadow` glow, sized `min(var(--cal-h), 26vw)`).
-
-**It is a SIBLING of `#rd-calendar`, not a child, and that is load-bearing.** `#rd-calendar` is `position:fixed` WITH a z-index, so it opens its own stacking context and a negative-z child of it can only sink behind its own content, never behind the page's `cyber-*` layers (which `/rd` pins at `-1`). As a **fixed sibling at `z-index:-2`** it lands UNDER the CRT stack — scanlines and phosphor run across it, so it reads as part of the screen — and above the page background; it tracks the calendar's band by reading the same bar-height vars. Being fixed it costs no row and cannot change `--cal-h`, which is why sizing it FROM `--cal-h` has no feedback loop.
-
-**Three gesture rules, all load-bearing** (the same three the landing wheel and the Exec panel's zoom overlay, `exec-zoom.js`, need):
-- `user-select: none` — dragging across dates selected them, and a drag off a text selection fires the native `dragstart`, which SWALLOWS the rest of the pointer stream; the gesture died mid-swipe.
-- `touch-action: none`.
-- pointermove/up bound to **window** with NO `setPointerCapture` — stepping rebuilds the calendar's children mid-gesture, and capturing to an element whose subtree is then replaced killed event delivery the same way.
-
-A month with a different row count changes `--cal-h`, and `.rd-board`'s top inset is computed from it, so the board re-anchors — verified 5-row↔6-row in WebKit. Cells are otherwise inert: nothing on hover or click.
+**Gesture rules** (same as the landing wheel and `exec-zoom.js`): `user-select: none` (a drag off a text selection fires native `dragstart`, which swallows the pointer stream), `touch-action: none`, pointermove/up on **window** with NO `setPointerCapture` (stepping rebuilds the children mid-gesture). A month with a different row count changes `--cal-h`, and `.rd-board`'s top inset follows. Cells are otherwise inert.
 
 ### 8g. Bar heights are observed, not measured once
 
-The calendar's measured height rides in `--cal-h`, which `.rd-board`'s top inset adds to the bars' height. The bar heights it anchors to (`--rem-bar-h`/`--books-bar-h`) are kept live by a **`ResizeObserver`** on both bars.
-
-Measured only at build time and on `resize`, they held a stale height after the bit webfont landed and reflowed the chips (88px for an 82px bar), leaving a dead 6px gap between the reminders and the calendar — **no resize event fires for a reflow**. Same idiom the nav uses for `--nav-h`.
-
-`/rd`'s `.card.plain` opaque `color-mix` fill stays (matching `/hq`) — not to keep scanlines off the cards any more (they cross them now, at reduced strength, which is the point) but so nothing behind the board bleeds up through a card.
+`--cal-h` rides in `.rd-board`'s top inset with `--rem-bar-h`/`--books-bar-h`; a **`ResizeObserver`** (`rd.js`) keeps all three live, because no resize event fires when the bit webfont reflows the chips (same idiom as `--nav-h`). `/rd`'s `.card.plain` opaque `color-mix` fill stays (matching `/hq`) so nothing behind the board bleeds through a card.
 
 ### 8h. The `+N` overflow needs a host, and the bar can be empty
 
-The reminders bar shows what is inside a 30-day window (plus any `pinned_reminder`); the rest is counted into a `position:absolute` `+N` button that opens the full list. **A bar's `+N` must never be parented to content that may not exist**: when nothing is visible, `buildReminders()` (like `buildBooks()`) creates an empty chip to host it — otherwise a board whose reminders all lie past the cutoff (the normal state, birthdays run months ahead) renders a blank bar with no way in. History: **ARCHAEOLOGY.md §8**.
+The reminders bar shows what is within a 30-day window (plus any `pinned_reminder`); the rest is counted into a `position:absolute` `+N` button that opens the full list. **A bar's `+N` must never be parented to content that may not exist**: when nothing is visible, `buildReminders()` (like `buildBooks()`) creates an empty chip to host it. The two halves of the partition must agree: `showRemOverflow()` must keep `buildReminders()`'s `!c.pinned_reminder` term.
 
-The two halves of the partition must also agree: `showRemOverflow()` recomputes it to fill the modal and was missing `buildReminders()`'s `!c.pinned_reminder` term, so a pinned far-future reminder would have been shown on the bar AND counted in the `+N` beside it.
-
-History — the incidents behind the rules above: [ARCHAEOLOGY.md §8](ARCHAEOLOGY.md).
+History: [ARCHAEOLOGY.md §8](ARCHAEOLOGY.md).
 
 ---
-### 8-notes. From CLAUDE.md (moved 2026-09-27)
-
-Moved verbatim from CLAUDE.md on 2026-09-27 when CLAUDE.md was thinned to an index. Unedited; may overlap the subsections above.
-
-**[Pages → /rd]**
-
-`/rd` — R&D board from `rd.json` — the four columns, the reminders + books bars, and under them a minimal **month calendar** (`#rd-calendar`, built by **`web/rd-calendar.js`**, split out of rd.js for the 500-line cap; same global scope, loaded before it). The calendar is the current month only, each day showing the zero-padded date over up to 5 dots — one per card landing on that day, hued by category and **as wide as the card is important** (`dotUnits()`: wisp 1 → commitment 4), with a hollow silver `.cal-more` ring standing for any that don't fit. Books + exiled are excluded; **archived cards still count, but only on days already past**, and archiving PRESERVES `scheduled_day` (`_apply_patch_schedule`) since that is the only record of the day the work actually happened. Recurring cards are projected 2 months forward (`_advanceRecur`), because only one occurrence is ever live. Weekends tint their date cyan, Québec statutory holidays pink (`web/qc-holidays.js` — **computed, not tabulated**, so it answers for any year), this week washes green, today draws a bright 1px `::after` box. **Drag a card onto a day to schedule it** (`wireCalendarDrops` → `POST /api/rd/{id}/schedule`); drag/swipe sideways to page months (`wireCalendarSwipe`). Three things bite anyone touching this: any gesture surface here needs `touch-action:none` + `user-select:none` + pointermove/up on **window** with NO `setPointerCapture` (a native `dragstart` or a rebuilt subtree otherwise eats the gesture mid-swipe); bar heights (`--rem-bar-h`/`--books-bar-h`/`--cal-h`) are kept live by **`ResizeObserver`**, since no resize event fires for a webfont reflow; and `#cal-mark` must stay a fixed SIBLING of `#rd-calendar` at `z-index:-2` to sit under the CRT stack. Calendar mechanics, the dot rules, and the incidents behind each: **ARCHITECTURE.md §8** (history: **ARCHAEOLOGY.md §8**).
-
-**[API → POST /api/rd/{card_id}/schedule]**
-
-POST `/api/rd/{card_id}/schedule` — Drop a card on a /rd calendar day. Body `{date}`. The day becomes the `due_date` (an existing clock time survives — a 7pm concert dragged to another day stays 7pm, so `scheduler.timed_start_min` still pins its block); in-window it also goes rd→hq via `schedule_to_day`, beyond the window the due date lands alone. Reminders + books are dated but never scheduled; a card dragged out of archives/exile returns to rd first. 409 when an active nudge loop would be deferred (consequences first), 400 on a bad date, 404 unknown card. Pushes `{cards_changed}` so an open /hq refetches.
 
 ## 9. The landing page — a ferris wheel, not a list
 
-`/` is public: no auth, no exec bubble. `_landing_html()` in `routes_views.py`, styles in `web/landing.css`, driven by `web/landing-wheel.js`. Logged-in admins (valid `session` cookie) skip it and 302 to `/rd`; clicking a section follows the 401 redirect to the right login. An `admin` link sits bottom-right → `/login`.
+`/` is public: no auth, no exec bubble. `_landing_html()` in `routes_views.py`, styles `web/landing.css`, driven by `web/landing-wheel.js`. Logged-in admins (valid `session` cookie) 302 to `/rd`; clicking a section follows the 401 redirect to the right login. An `admin` link sits bottom-right → `/login`.
 
-Sections are ordered by icon hue (`_LANDING_HUE_ORDER`): recruiter · security · hosaka · aspira (`/spire`) · graph · nightfall · noodle · printer · ui · mtg · tarot (eleven). Recruiter and security share hue 36°, security second because its blue secondary leans toward what follows. Each shows its **nav code** (`_NAV_LABELS` — the same code as the bottom nav, so nightfall reads `12AM` in both), then the thing's own **title** (`_LANDING_BLURBS`) and one plain line saying what it is (`_LANDING_DESCS`).
-
+Eleven sections ordered by icon hue (`_LANDING_HUE_ORDER`): recruiter · security · hosaka · aspira (`/spire`) · graph · nightfall · noodle · printer · ui · mtg · tarot. Each shows its **nav code** (`_NAV_LABELS`, same as the bottom nav, so nightfall reads `12AM` in both), its **title** (`_LANDING_BLURBS`) and one plain line (`_LANDING_DESCS`). Nav parity is pinned by `tests/test_landing_nav_parity.py`.
 
 ### 9a. One angle drives everything
 
-It is a real wheel, not a styled list: the sections are **spokes `DTH` radians apart on a ring of radius R, seen EDGE-ON**.
+A real wheel: the sections are **spokes `DTH` radians apart on a ring of radius R, seen EDGE-ON**.
 
-| Quantity | Formula | Meaning |
-|---|---|---|
-| position | `y = R·sin θ` | where the item sits |
-| depth | `1 − cos θ` | how far it has swung into the screen |
-| scale | `scale = P/(P + 1 − cos θ)` | perspective shrink (`P` = 0.55, focal length over radius) |
-| opacity | `opacity = cos^1.6 θ` | how square-on the spoke is |
-| blur | a depth-of-field `filter: blur()` rising with `1 − cos θ` | `WHEEL_BLUR_PX` 8 at the seam |
+![Wheel geometry](docs/arch/09-wheel.svg)
 
-Items stay **upright** as they travel (gondolas hang level), so the copy stays readable and the arc shows itself in the SPACING instead — slots bunch toward the rim the way seats on a turning wheel do.
+| Quantity | Formula |
+|---|---|
+| position | `y = R·sin θ` |
+| depth | `1 − cos θ` |
+| scale | `P/(P + 1 − cos θ)`, `P` = `WHEEL_PERSPECTIVE` 0.55 |
+| opacity | `cos^1.6 θ` (`WHEEL_FADE_POW`) |
+| blur | depth-of-field rising with `1 − cos θ`, `WHEEL_BLUR_PX` 8 at the seam |
+
+Items stay **upright** (gondolas hang level); the arc shows in the SPACING instead.
 
 ### 9b. `DTH = (π/2)/K` is the load-bearing choice
 
-`K` is how many slots it takes to reach the **seam** — where an item wraps from the bottom of the ring back round to the top. Putting the seam at exactly 90° means a spoke there is edge-on and `cos θ` is 0, so **an item is already fully transparent at the instant it teleports**: the ring closes with no pop, whatever `K` turns out to be.
+`K` is how many slots reach the **seam** (where an item wraps from the bottom back to the top). A seam at exactly 90° means `cos θ` = 0: **an item is fully transparent at the instant it teleports**, so the ring closes with no pop for any `K`. (A stale header comment in `landing-wheel.js` still says `DTH = PI / n`; the code is `(π/2)/K`.)
 
-**`K` is solved for, not baked in** (`wheelGeometry`, re-run on resize and by a `ResizeObserver` on every item). It walks `K` down from `ceil(n/2)` and takes the largest that neither collides the front pair nor pushes the outermost lit item's centre past `vh/2 · WHEEL_REACH` — so up to `2K−1` items are lit (capped by `n`), and "as many as will fit" is something the page works out at the size it is actually being viewed at.
-
-**`K` may reach `n/2` but never pass it**, or two offsets would name the same item. On an EVEN `n` that lands a spoke exactly on the seam where `cos` is 0 and it is already invisible; on an ODD `n` the seam falls BETWEEN two slots, so `K` rounds UP — nothing ever rests there and an item only crosses it at a few hundredths of opacity behind ~6px of blur. **Rounding up pays twice**: it lights every item, and it narrows `DTH`, which tightens the front spacing (`R·sin DTH`) at the same time.
-
-Measured 2026-10-14 at 11 sections, headless WebKit, read from the live globals (`wheelDth`, `wheelR`): `K`=6 (`ceil(11/2)`, the odd-`n` round-up), `DTH`=15°, **all 11 lit at every resting position**, at 430×932 (R 317px), 382×700 (R 394px) and 1280×800 (R 274px) alike. (History: at 9 sections it was `K`=5, `DTH`=18°, all 9 lit.)
+**`K` is solved for** (`wheelGeometry`, re-run on resize and by a `ResizeObserver` on every item): it walks `K` down from `ceil(n/2)` and takes the largest that neither collides the front pair nor pushes the outermost lit item's centre past `vh/2 · WHEEL_REACH` (1.12) — up to `2K−1` items lit. **`K` never passes `n/2`** (two offsets would name the same item). Even `n`: a spoke sits on the seam, already invisible. Odd `n`: the seam falls BETWEEN slots so `K` rounds UP — it lights every item AND narrows `DTH`, tightening the front spacing. At 11 sections `K`=6, `DTH`=15°, all 11 lit at every resting position on phone and desktop viewports.
 
 ### 9c. Spacing
 
-Only the FRONT pair can collide (furthest apart in `y`, both near full size), so clearance is measured over the pairs that really sit together, taller one unshrunk, plus `WHEEL_MIN_GAP`. The rim is allowed to bleed off both edges (`WHEEL_REACH` 1.12) because a real wheel is bigger than what you can see of it, and those items are the blurriest and faintest, so the bleed reads as depth rather than as clipping.
-
-`R = max(vh/2 · WHEEL_FILL, need/sin DTH)`. **`WHEEL_FILL` (0.68) is the spacing knob**, but the tallest adjacent PAIR is usually what actually sets the pitch — which is why the item is `96vw` wide with a 48px icon column and the title runs at `--lh-none`: every wrapped line saved off the tallest item tightens the gaps for all the others.
-
-Verified 2026-10-14 at 11 sections, at every one of the 11 resting positions (front gap = the focused item to each neighbour): 430×932 all 11 lit, front gaps a constant 22px; 382×700 all 11 lit, front gaps 4–45px (4px only where the two tallest blurbs sit together); 1280×800 all 11 lit, front gaps 4px (`WHEEL_MIN_GAP` — the pitch is tight at desktop). No lit item's centre is past the viewport except the faint rim bleed `WHEEL_REACH` allows (2 at 382×700). Rim pairs overlap by up to ~9px — they are the blurriest and faintest, and only the FRONT pair is guarded. (At 9 sections, 430×932 / 390×844 / 1440×900 / 1280×700: all lit, front gaps 7–45px.)
+Only the FRONT pair can collide, so clearance is measured over the pairs that really sit together (taller one unshrunk) plus `WHEEL_MIN_GAP` (4px). The rim may bleed off both edges (`WHEEL_REACH`) — those items are the blurriest and faintest, so it reads as depth. `R = max(vh/2 · WHEEL_FILL, need/sin DTH)`; **`WHEEL_FILL` (0.68) is the spacing knob**, but the tallest adjacent PAIR usually sets the pitch — hence the item is `96vw` wide with a 48px icon column and a `--lh-none` title (each wrapped line saved tightens all gaps). Rim pairs may overlap by up to ~9px; only the front pair is guarded.
 
 ### 9d. The wheel genuinely turns
 
-**Position is a float animated by `requestAnimationFrame`** (exponential settle, `TAU` 95ms, off real elapsed time so the settle takes the same wall-clock at any frame rate). The wheel turns THROUGH the arc, scale, opacity and blur sweeping the same functions on the way.
-
-**A CSS transition would tween in a straight line between two states and flatten the arc back out** — which is why nothing here is transitioned and the script writes `transform`/`opacity`/`filter`/`visibility`/`pointer-events` inline per frame.
-
-The blur is quantised to a **half-pixel and dropped under 1px**: a radius that changes every frame is a fresh rasterisation every frame, so a spin hands the compositor two distinct radii across four elements instead of a new value on six. WebKit at 430×932 holds a **17ms median frame through a spin, blur on or off**.
-
-Only the RESTING position is a whole slot, so a gesture always ends snapped to an item.
+**Position is a float animated by `requestAnimationFrame`** (exponential settle, `WHEEL_TAU` 95ms off real elapsed time). **Nothing is CSS-transitioned** — a transition tweens in a straight line and flattens the arc — so the script writes `transform`/`opacity`/`filter`/`visibility`/`pointer-events` inline per frame. Blur is quantised to a half-pixel and dropped under 1px (a radius that changes every frame is a fresh rasterisation). Only the RESTING position is a whole slot, so a gesture always ends snapped.
 
 | Input | Behaviour |
 |---|---|
-| scroll (`wheel` on window) | 60px per slot, leftover pixels kept within a gesture and dropped after 220ms idle; a hard flick carries up to 3 slots per event |
-| drag / swipe (vertical) | turns the wheel **continuously at 1:1** under the finger (`wheelPitch` = `R·DTH`), snaps on release |
+| scroll (`wheel` on window) | `WHEEL_STEP_DELTA` 60px per slot, leftover kept within a gesture and dropped after `WHEEL_GESTURE_MS` 220ms idle; a flick carries up to `WHEEL_MAX_BURST` 3 slots per event |
+| drag / swipe (vertical) | turns the wheel **continuously at 1:1** (`wheelPitch` = `R·DTH`), snaps on release |
 | arrow keys | step it |
-| tap a lit item | turns the wheel to that slot FIRST, then follows the link once it lands |
+| tap a lit item | turns the wheel to that slot FIRST, then follows the link |
 
-The front item goes straight through; a press that travelled >8px is a drag, not a tap; and a `WHEEL_NAV_MAX_MS` timeout means a stalled rAF in a backgrounded tab can never strand the tap.
+The front item goes straight through; a press that travelled >`WHEEL_TAP_SLOP` 8px is a drag; `WHEEL_NAV_MAX_MS` (900ms) means a stalled rAF can never strand a tap. The `ResizeObserver` matters because R derives from item heights and the webfont re-wraps the blurbs with no resize event.
 
-The `ResizeObserver` matters because R is derived from item heights, and the bit webfont landing re-wraps the blurbs with **no resize event firing** (same idiom as `--nav-h`).
+### 9e. Gesture details
 
-### 9e. Three gesture details, all learned by failing
+- `body` is `touch-action: pinch-zoom` (a vertical pan would otherwise be swallowed by scroll).
+- The wheel needs the **prefixed** `-webkit-user-select: none` (WebKit computes the unprefixed one to `text`; a drag off a selection fires native `dragstart` — same trap as §8f).
+- pointermove/up bind to **window**, no `setPointerCapture`. The `.landing-wheel` box is `pointer-events: none` (only lit items take taps, so the `admin` link stays clickable), which is why listeners live on `window`.
+- **Items scale about their LEFT edge** (`transform-origin: 0% 50%`) so the icons hold one vertical column as the wheel turns. Icons `--radius-4`; titles `--fw-bold`.
 
-- `body` is `touch-action: pinch-zoom` — a vertical pan would otherwise be swallowed by scroll and the pointer stream would die mid-swipe.
-- The wheel needs the **prefixed** `-webkit-user-select: none`. WebKit computes the unprefixed one to `text` (measured), and a drag off a text selection fires the native `dragstart`, which eats the rest of the gesture — the same trap the `/rd` calendar's month swipe hit (§8f).
-- pointermove/up bind to **window** with no `setPointerCapture`.
-
-The `.landing-wheel` box itself is `pointer-events: none` (only the lit items take taps, so the `admin` link underneath stays clickable) — which is why the gesture listeners live on `window`, not on it.
-
-**Items scale about their LEFT edge** (`transform-origin: 0% 50%`), not their centre: every item then shares one left margin so the icons hold a clean vertical column as the wheel turns. Centre-origin is the truer projection but cascades the icon column rightward as items recede, reading as a vanishing point off to the side rather than as a wheel.
-
-Icons are rounded (`--radius-4`); titles are `--fw-bold`.
-
-History — the incidents behind the rules above: [ARCHAEOLOGY.md §9](ARCHAEOLOGY.md).
+History: [ARCHAEOLOGY.md §9](ARCHAEOLOGY.md).
 
 ---
-### 9-notes. From CLAUDE.md (moved 2026-09-27)
-
-Moved verbatim from CLAUDE.md on 2026-09-27 when CLAUDE.md was thinned to an index. Unedited; may overlap the subsections above.
-
-**[Web app → Landing page]**
-
-`/` is a public landing page (`_landing_html()` in routes_views, styles in `web/landing.css`, driven by `web/landing-wheel.js`) — no auth, no exec bubble. It is a **ferris wheel**: eleven sections as spokes on a ring seen edge-on, ordered by icon hue (`_LANDING_HUE_ORDER`), each showing its nav code (`_NAV_LABELS`), its own title (`_LANDING_BLURBS`) and one line saying what it is (`_LANDING_DESCS`). Scroll, drag/swipe, or arrow-key it; tapping a lit item turns the wheel to that slot first, then follows the link. Logged-in admins (valid `session` cookie) skip the landing and 302 to `/rd`; an `admin` link sits bottom-right → `/login`; clicking a section follows the 401 redirect to the right login. The geometry solves itself at the viewport it is being viewed at (`wheelGeometry`) — do not hard-code slot counts. Derivation, the gesture rules, and the measurements: **ARCHITECTURE.md §9** (history: **ARCHAEOLOGY.md §9**).
 
 ## 10. The CRT effect stack (`_CRT_FX`)
 
-
-**Who gets it.** `_render_page`, the landing and `/graph`, plus — since 2026-09-21 — both login screens. `/login` reads the raw static shell (it needs the real form, which `_index_pages()` strips) and `/guest` builds from the bare one, so neither was picking the stack up from anywhere. The layers are `position:fixed`, `pointer-events:none` and painted at `--z-modal`, so they sit over a form without taking a click off it.
-
-Five fixed, `pointer-events:none` layers injected by `_render_page` (and by the landing and graph pages), all at `--z-modal`. Defined in chrome.css.
+**Who gets it.** `_render_page`, the landing, `/graph`, and both login screens (`/login` reads the raw static shell, `/guest` the bare one; neither picks the stack up from anywhere else). `_CRT_FX` (`pages.py`) is five divs plus `web/crt-zoom.js`. Layers are `position:fixed`, `pointer-events:none`, at `--z-modal`, so they sit over a form without taking a click. Defined in `chrome.css`.
 
 **Paint order = DOM order, and it is load-bearing:**
 
-```
-.cyber-bg  →  .cyber-lines  →  .cyber-blur  →  .cyber-crt  →  .cyber-scan
-   static        static          cached         cached        ANIMATED
-```
+![CRT layer paint order](docs/arch/10-crt-layers.svg)
 
 | Layer | What it is |
 |---|---|
-| `.cyber-bg` | phosphor overlay — **chatsubo** hue `--cat-social-*` filling the lit rows between the black lines @ 0.45, plus a weak centre glow @ 0.06. Static. |
-| `.cyber-lines` | **static black scanlines** @ 0.45, `hard-light` — the ONE blend layer. A **thin triangle ramp** (0.75px shoulder either side of the peak, fading to transparent, NOT a hard stop), near single-frequency so it does not alias into a moiré band on zoom. Painted AFTER bg so the darkening blend **re-blacks the line rows** the green tinted. |
-| `.cyber-blur` | **CRT glass** — `backdrop-filter: blur(var(--blur-2xs))` = 0.5px frost over the static bg+lines+content composite. |
-| `.cyber-crt` | **CRT phosphor punch** — `backdrop-filter: brightness(0.85) contrast(1.5)` over that SAME static composite, painted right after the glass and UNDER the sweep. |
-| `.cyber-scan` | sweep beam, 480px tall, same chatsubo hue @ 0.06, plain alpha. The **ONE animated layer**, painted LAST = above the glass. |
+| `.cyber-bg` | phosphor tint — `--cat-social` dialled TOWARDS WHITE (`calc()` on its channels: saturation −40, lightness +25; no new literal) as 4px-period stripes peaking in the gaps between the black lines @ 0.45, plus a centre glow @ 0.06. Static. |
+| `.cyber-lines` | **static black scanlines** (`--bg-hsl` @ 0.45), `hard-light` — the ONE blend layer. A thin triangle ramp (0.75px shoulder, NOT a hard stop), near single-frequency so it does not alias into moiré on zoom. After bg so it re-blacks the line rows the tint lit. |
+| `.cyber-blur` | **CRT glass** — `backdrop-filter: blur(var(--blur-2xs))` (0.5px) over the static composite. |
+| `.cyber-crt` | **phosphor punch** — `backdrop-filter: brightness(0.85) contrast(1.5)` over the same composite, under the sweep. |
+| `.cyber-scan` | sweep beam, 480px tall, same whitened hue @ 0.06, plain alpha, `cyber-sweep` 7s linear. The **ONE animated layer**, painted LAST. |
+
+Hue and opacity are different knobs: dropping a stripe's alpha makes scanlines fainter, not less green.
 
 ### 10a. The invariant
 
-> A `backdrop-filter` / `mix-blend-mode` layer is a full-viewport readback with **no partial invalidation**. It is cheap ONLY when nothing under it animates (blurs/blends once, compositor caches the texture), and ruinous when it sits OVER an animated layer (re-fires every frame, forever).
+> A `backdrop-filter` / `mix-blend-mode` layer is a full-viewport readback with **no partial invalidation**. Cheap ONLY when nothing under it animates (the compositor caches the texture); ruinous when it sits OVER an animated layer (re-fires every frame, forever).
 
-So the glass caches — its backdrop is bg+lines+static content, which never animates — and the sweep is kept ABOVE it. `.cyber-scan` stays plain-alpha, because a blend mode on the animated layer is the same trap.
-
+So the glass and punch cache (their backdrop is bg+lines+static content) and the sweep stays ABOVE them. `.cyber-scan` stays plain-alpha (a blend mode on the animated layer is the same trap). Never animate anything beneath the glass. `prefers-reduced-motion` stops the animations.
 
 ### 10b. Zoom-lock
 
-The scanline geometry is sized in `calc(N * var(--crt-u))` where `--crt-u = 1px * var(--crt-scale)`. `web/crt-zoom.js` (loaded via `_CRT_FX`) sets `--crt-scale = baseDPR/currentDPR` on resize, so the pattern holds a constant on-screen size across browser (ctrl/cmd) zoom. Pinch-zoom does not change DPR, so it is uncompensated.
+Scanline geometry is `calc(N * var(--crt-u))`, `--crt-u = 1px * var(--crt-scale)`. `web/crt-zoom.js` (loaded via `_CRT_FX`) sets `--crt-scale = baseDPR/currentDPR` on resize, holding a constant on-screen size across browser zoom (not written on load; pinch-zoom does not change DPR, so it is uncompensated).
 
 ### 10b-bis. CRT lite (measured, per machine)
 
-**The "backdrop caches its static composite" argument in §10 holds only on a GPU.** With software compositing both backdrop-filter panes re-run on the CPU every frame anything on screen moves, and the sweep moves every frame forever. Measured on `/` (Chromium, `--disable-gpu`, 4x CPU throttle, 2026-10-06): 1440x900 baseline **5fps idle / 6fps spinning**, 430x932 15fps; without the panes + sweep **60fps** both, both widths. The blend layer and the wheel's per-item blur/text-shadow were each measured and are NOT the cost.
+**The cached-composite argument holds only on a GPU.** With software compositing both backdrop panes re-run on the CPU every frame anything moves, and the sweep moves every frame. Without the panes + sweep the landing goes from ~5fps to 60fps on a throttled software renderer; the blend layer and the wheel's blur were measured and are NOT the cost.
 
-`web/crt-lite.js` (loaded on `/` only, via `_LANDING_SCRIPT`) times up to 30 frames or 1.2s, starting 500ms after `load`; a median over 25ms adds `html.crt-lite`, and chrome.css then hides `.cyber-blur`, `.cyber-crt` and `.cyber-scan`. The static scanlines + tint stay. The verdict is kept in localStorage (`crt.lite`, a timestamp) for 7 days so the next visit starts light. A GPU machine measures ~16ms and keeps the full stack. Headless WebKit/Chromium on the droplet are software-composited and go lite — screenshot with `localStorage['crt.lite']` cleared and the check pre-empted if the full stack is what is under test.
+`web/crt-lite.js` (loaded on `/` only, via `_LANDING_SCRIPT`) times up to `SAMPLES` 30 frames or `WINDOW_MS` 1.2s, starting 500ms after `load`; a median over `SLOW_MS` 25ms adds `html.crt-lite`, and chrome.css hides `.cyber-blur`, `.cyber-crt`, `.cyber-scan` (static scanlines + tint stay). The verdict is kept in localStorage `crt.lite` (a timestamp) for 7 days. Headless WebKit/Chromium on the droplet are software-composited and go lite — clear `localStorage['crt.lite']` and pre-empt the check when the full stack is under test.
 
 ### 10c. Dimming on the dense pages
 
-`/rd`, `/hq`, and since 2026-09-11 `/mtg` (the `/cc` page it also covered was folded into the Exec panel 2026-09-29), keep all five layers ON TOP at `--z-modal` like every other page, but **dimmed to 0.75 of full strength** via the shared `web/crt-dim.css` (2026-09-07, restoring the in-the-CRT look the old `z-index:-1` push had taken off the boards; the three lines lived in both rd.css and hq.css until the chat pages needed them too). It was 0.5 from 2026-09-07 until 2026-09-11.
+`/rd`, `/hq` and `/mtg` keep all five layers ON TOP at `--z-modal`, **dimmed to 0.75** via the shared `web/crt-dim.css` (linked from `rd.html`, `hq.html`, `mtg.html`): `.cyber-bg`/`.cyber-lines`/`.cyber-scan` at `opacity: .75`; glass `blur(calc(var(--blur-2xs) * 0.75))`; punch `brightness(0.8875) contrast(1.375)`. (The header comment in `crt-dim.css` still describes the older 0.5 values.) `/tarot` stays at full strength — its CRT is the mood.
 
-`/tarot` deliberately stays at full strength — its CRT is the mood, and it is looked at rather than scanned.
+**Dim with `opacity`, never by rewriting gradient alphas** — a scaled alpha lands off the palette snap scale and the lint rejects it. Paint order is untouched, so the backdrop panes still cache; a card DRAG is the one thing that dirties them per frame.
 
-The halving is `.cyber-bg`/`.cyber-lines`/`.cyber-scan` at `opacity: .75`, and both backdrop-filter panes pulled a quarter of the way back toward identity: glass `blur(calc(var(--blur-2xs) * 0.75))` = 0.375px, punch `brightness(0.8875) contrast(1.375)`.
+`.exec-nav` sits at `--z-top`, above the fx; the `/graph` nav override (`graph-overlay.css`) matches it.
 
-**Dimmed with `opacity` rather than by rewriting the gradient alphas, because a scaled alpha lands off the palette snap scale** (half of 0.45 is 0.225, three quarters 0.3375) — the palette lint would reject it, and `opacity` is governed by neither lint.
-
-Paint order is untouched, so the two backdrop-filters still sit UNDER the one animated layer and cache their static backdrop. A card DRAG is the one thing that dirties them per frame.
-
-`.exec-nav` sits at `--z-top`, above the fx; the `/graph` nav override (`graph-overlay.css`) matches it. Icons scale on hover, and there is a boot-in stagger that honors `prefers-reduced-motion`.
-
-History — the incidents behind the rules above: [ARCHAEOLOGY.md §10](ARCHAEOLOGY.md).
-
----
-### 10-notes. From CLAUDE.md (moved 2026-09-27)
-
-Moved verbatim from CLAUDE.md on 2026-09-27 when CLAUDE.md was thinned to an index. Unedited; may overlap the subsections above.
-
-**[Web app → CRT stack]**
-
-Cyberpunk fx — the shared CRT stack `_CRT_FX`, **five** fixed `pointer-events:none` layers injected by `_render_page`/landing/graph, all at `--z-modal`: `.cyber-bg` (phosphor) · `.cyber-lines` (static black scanlines, `hard-light`, the ONE blend layer) · `.cyber-blur` (glass, `backdrop-filter: blur()`) · `.cyber-crt` (phosphor punch, `backdrop-filter: brightness/contrast`) · `.cyber-scan` (the sweep beam, the ONE animated layer). **Paint order = DOM order — `bg → lines → blur → crt → scan` — is load-bearing.** The invariant, and the most expensive rule in this repo to rediscover: **a `backdrop-filter`/`mix-blend-mode` layer is a full-viewport readback with no partial invalidation — cheap ONLY when nothing under it animates (the compositor caches the texture), ruinous when it sits OVER an animated layer (it re-fires every frame, forever).** So: do NOT put a `backdrop-filter`/`mix-blend-mode` layer UNDER an animated one, do NOT give `.cyber-scan` a blend mode, and do not animate anything that sits beneath the glass (that is what froze the old `/cc` page in voice mode). The dense text-heavy pages (`/rd`, `/hq`, `/mtg`) keep all five on top but **dimmed to 0.75** via the shared `web/crt-dim.css` — dimmed with `opacity`, never by rescaling the gradient alphas, which would land off the palette snap scale and be lint-rejected. `/tarot` stays at full strength. **The phosphor was dialled TOWARDS WHITE 2026-09-21** — saturation −40 and lightness +25 off `--cat-social` (125 55% 68% → ~125 15% 93%), via the same `calc()`-on-channels idiom `--card-social-plan` uses, so it stays on the palette with no new literal and no baseline to regenerate. **Opacity and hue are different knobs**: the first attempt dropped the stripe's alpha to 0.25 instead, which makes the scanlines fainter while leaving them exactly as green. Alphas are back at `0.45`/`0.06` where they belong. **Both login screens now carry the stack too**: `/login` builds from the raw static shell and `/guest` from the bare one, so neither was picking up `_CRT_FX`; the layers are fixed, `pointer-events:none` and at `--z-modal`, so they sit over the form without taking a click off it. `.exec-nav` sits at `--z-top`, above the fx. Zoom-lock lives in `web/crt-zoom.js` (`--crt-scale`). Layer table, tuning history and frame measurements: **ARCHITECTURE.md §10** (history: **ARCHAEOLOGY.md §10**).
-
+History: [ARCHAEOLOGY.md §10](ARCHAEOLOGY.md).
 ## 11. `/graph` — serve-time transforms over a generated artifact
 
-Guest-gated (Turnstile; it was public until 2026-07-03). A self-contained graphify codebase visualisation served from the `./graphify-out` volume, which `/graphify` regenerates (nightly at 05:00 — see CLAUDE.md § *Cron*).
+Guest-gated (Turnstile). A graphify codebase visualisation served from the `./graphify-out` volume, which graphify rebuilds nightly at 05:00 (host cron, §11e / CLAUDE.md § *Cron*).
 
-**Everything below is a string transform applied at SERVE time, on graphify's emitted HTML/JS — never a change to the generated file.** That is the whole design: a rebuild overwrites `graph.html` wholesale, so any edit made to it would be lost the next morning. Serve-time patches survive.
+**Everything below is a string transform applied at SERVE time to graphify's emitted HTML/JS — never an edit to the generated file** (a rebuild overwrites it wholesale).
 
-`graph_page()` lives in **`routes_graph.py`** (split out of routes_views 2026-08-30 for the 500-line cap). The transforms split four ways:
+`graph_page()` lives in `routes_graph.py`. The transforms split four ways:
 
 - **`graph_scrub.py`** — privacy scrubs + node/edge drops (what survives)
-- **`graph_style.py`** — communities/colours, node colour objects, tooltips, labels, unlit edges, the stats fixup (how what survives LOOKS)
-- **`graph_geometry.py`** — per-type shape, size by degree, the occlusion percentile (how a node is FORMED)
-- **`graph_layout.py`** — the physics tune and the baked layout (where nodes SIT; see 11e)
+- **`graph_style.py`** — communities/colours, node colour objects, tooltips, labels, unlit edges, stats header (how it LOOKS)
+- **`graph_geometry.py`** — per-type shape, size by degree, occlusion percentile (how a node is FORMED)
+- **`graph_layout.py`** — physics tune + baked layout (where nodes SIT, §11e)
 
-chrome.css, the cyber-fx bg, the bottom nav and the `web/graph-*.js` stack (order fixed by `_GRAPH_OVERLAY_JS`) + `web/graph-overlay.css` are all injected at serve time for the same reason. Non-admins get the guest nav (the full nav links to login-gated pages); admins keep the full nav. Content-hash ETag + `no-cache`.
+chrome.css, the cyber-fx bg, the nav (guest nav for non-admins, full nav for admins), `web/graph-overlay.css` and the `web/graph-*.js` stack (order fixed by `_GRAPH_OVERLAY_JS`) are injected the same way. Content-hash ETag + `no-cache`.
+
+![/graph serve pipeline, in `_render` order](docs/arch/11-serve-pipeline.svg)
 
 ### 11a. Applied per request, COMPUTED once per artifact
 
-The pipeline chews a 3.6MB string through ten json round-trips. Measured on the droplet, that was **2.5–2.9s of CPU on every single page load** — the page's whole "slow to load" reputation, before a byte reached the browser (gzip takes the response to ~170KB, so the wire was never the problem).
+![/graph render cache and warm loop](docs/arch/11-serve-cache.svg)
 
-`_cached()` memoises the rendered bytes against the artifact's **`(st_mtime_ns, st_size)`** plus `graph-layout.json`'s (a re-bake invalidates it too), one entry per `(auth tier, lite)`, and clears the whole dict the moment that key changes. Warm TTFB is **0.13s**. The objection this answers — *"the graph is constantly regenerated, so it can't be cached"* — has the invalidation backwards: it is regenerated ONCE A DAY by the 05:00 cron, and an mtime key is correct at any rebuild frequency because the next request after a write misses. A stale render cannot outlive its source.
+- **`_cached()`** memoises rendered bytes against `(graph.html st_mtime_ns, st_size, graph-layout.json (mtime_ns, size) or None)` — a re-bake invalidates too. One entry per `(guest, lite)`; the whole dict clears when the key changes. Warm TTFB 0.13s vs 2.5–2.9s of CPU per cold render.
+- **`_render()` is pure** (same bytes in, same bytes out): the community cap breaks ties by NAME (`_ranked`) so the ETag survives a restart.
+- **Cold render runs off the event loop** (`asyncio.to_thread` under `_CACHE_LOCK`) — a blocking body would stall SSE and the nudge loop.
+- **`run_graph_warm_loop`** (lifespan) re-renders all four `(guest, lite)` variants whenever graph.html's `(mtime_ns, size)` changes, polling every 600s. Failure is never fatal.
+- **`?relayout=1`** (the nightly bake) renders WITHOUT a baked layout, never cached.
 
+**`_externalise_boot` lifts every inline `<body>` script into one external payload**, served by `GET /graph/boot.js?v=<md5 16>` (guest tier, `immutable`, `X-Payload-Bytes` = decoded length). `_PAYLOADS` keeps the last `_PAYLOAD_MAX` (6) digests; an unknown hash renders both lite variants once and looks again. The payload is bracketed with `__GP_PAYLOAD_START`/`__GP_PAYLOAD_MS` and carries `window.GRAPH_LAYOUT_TALL`. The shell gets `window.GRAPH_BOOT_URL` instead of a `<script src>`: **`web/graph-cover.js` fetches the payload itself** so the bar tracks real bytes (it falls back to injecting the tag; graph-overlay.js injects it if the loader never ran). `_defer_scripts` then defers every same-origin `src` script **except graph-cover.js** (the one script that must be live while the payload is on the wire); deferred scripts run in document order, so vis → payload → overlay stack keeps its old order.
 
-`_externalise_boot` lifts every inline `<body>` script into ONE external file, served by the `/graph/boot.js` route on the same guest tier with the content hash in `?v=` (so the middleware stamps it `immutable`: 2.1MB of JS that changes once a day is the one part of /graph worth caching hard, and a repeat visit re-fetches none of it). `_defer_scripts` then marks every same-origin src tag `defer`, vis-network included — deferred scripts run in document order, so vis → payload → crt-zoom → pulse → overlay is exactly the order they ran in as inline tags. The fetch the parser now waits on is the rendering opportunity the cover needed. **FCP 1304ms → 387ms**, page shell 2.21MB → 9.3KB.
+**TRAP: `_externalise_boot` MUST run last in `_render`** (after the node-JSON edits and after the head/body injection step reads the body scripts). Every scrub/drop/merge is a string edit on the inline node JSON, and `graph_layout_key` hashes that same text; run first, they all no-op on a 9KB shell, the key comes back empty, and the served payload is the RAW unredacted artifact. Check the served PAYLOAD, not the page.
 
-**It runs LAST in `_render`, and that is not a style preference.** Every scrub, drop, merge, restyle and stats rewrite above it is a string edit on the inline node JSON, and `graph_layout_key` is a hash of that same text. Extracting first — the version this was written as — left all of them operating on a 9KB shell: they silently did nothing, the layout key came back EMPTY (so every visit fell back to the ~30s browser stabilisation the bake exists to avoid), and the payload served to the browser was the raw artifact with **no redaction**. Caught by checking the served payload rather than the served page: 2,722 nodes / 3,582 edges / 14 communities with x/y baked, and zero occurrences of the dropped prefixes.
+**Loading cover** (`web/graph-cover.js`, `gpCover`): static markup `_GRAPH_BOOT` first in `<body>` with an indeterminate `.gp-indet` marquee; milestones `FETCHED` 0.35 → `BUILT` 0.6 → `PLACED` 0.75 → `DRAWN` 0.9 → 1.0 at reveal, eased by `transition: width 280ms` (never a timed creep). `LOAD_CAP` 180s failsafe; `READY_CAP` 3s / `DRAWN_CAP` 0.8s in graph-overlay.js lift the cover unconditionally. `#gp-pulse` backing store caps at DPR 2 (`graph-surface.js`).
 
-**The bar moves from the first frame.** Until vis can report a real fraction there is nothing to report, so the track is served with `.gp-indet` — an indeterminate marquee — and `graph-overlay.js` adopts the existing element and drops that class on its first progress call or at reveal. A sliding segment claims only "working"; the fixed 3s fill this file replaced claimed a fraction it did not have.
+**Opt-in variants** (a phone gets the FULL graph by default):
 
+- **`?lite=1`** — `_prune_for_lite` keeps the busiest `_LITE_NODES` (600) by degree plus edges among them, via `_prune_graph_nodes`. Runs AFTER `_apply_graph_layout` (survivors keep baked x/y; the layout key still hashes the full graph) and `_fix_graph_stats` re-runs. `?full=1` is not read by the server today — lite is opt-in only. The bake never renders lite.
+- **`?pack=1`** (client, `graph-lattice.js`) — shelf-packs the communities as rigid tiles to the viewport aspect; the stretch is skipped while it runs. Off by default.
 
-The cover is now its own file, **`web/graph-cover.js`** (`gpCover`, split from graph-overlay.js at the 500-line cap, same global scope, loaded first). It is the one script on the page that is **not** deferred, and that is deliberate: deferred, it ran after the payload it exists to report on, and the phase line's first words were `drawing` — after the slow part had already happened. Parsed inline, it is live while the payload is still on the wire.
+**Client geometry order** (`snapToGrid` in `graph-lattice.js`): `__GP_PRESNAP` is captured FIRST (the bake reads it), then `packCommunities` (opt-in) → `useBakedAspect` (picks the nearer of the wide/tall bake by log distance, all-or-nothing) → `stretchToViewport` (different x/y factors, area preserved) → quantise onto a lattice with ONE `cell` on both axes (`cell` from node count and the pre-pack cloud). `cols/rows` is therefore the cloud's bbox aspect; `nodeBounds` pads by the largest node radius. The opening view is `contain * FIT_MARGIN` (0.8), the same expression the outward zoom wall uses. Tapping a node centres it beside the info panel (`centreBesidePanel`, measured correction, no animation). Cascade and overlay: §11f.
 
-What it reports:
-- **The phase**, named: `fetching graph data` -> `building the graph` -> `drawing`, with seconds once there are at least three of them (a counter that opens at 0s makes a fast load look like a stopwatch).
-- **The split the payload measures on itself.** `_externalise_boot` brackets the payload with `__GP_PAYLOAD_START`/`__GP_PAYLOAD_MS`, so the line reads `· data 0.9s · build 1.0s`. The marks are written BY the payload, which is the whole point: through the build the main thread is blocked solid and a ticking clock measures nothing, while two timestamps taken either side survive it.
-- **`(slower than usual)`** past 20s, and on a thrown error, or a payload that never arrives, `[ <reason> — reload to retry ]` with the cover lifted so the nav underneath is reachable. A global `error` listener and a `try/catch` around `go()` both land there, because opacity 0 is forever otherwise.
-- The hard cap is **180s** and only calls it failure when `network` never appeared; otherwise it lifts the cover on whatever there is. A cap that fires while the page is genuinely working replaces a slow graph with a broken-looking one.
+**Shape carries TYPE, colour carries community** (`_TYPE_SHAPES`, `graph_geometry.py`): `code` → `triangle`, `rationale` → `hexagon`, `document` → `triangleDown`. No `circle`/`ellipse`/`box`/`text` in the set — vis draws those with the label inside and ignores `size`, which would discard the degree encoding. The per-node `shape` must be named in graphify's DataSet mapper (same explicit-field trap as baked x/y); the global `nodes: { shape }` is `_TYPE_SHAPES["code"]` as fallback. The overlay glyph (`web/graph-glyph.js`) mirrors vis's own triangle offset (1.15x radius, y shifted 0.275): change shapes in `_TYPE_SHAPES` alone.
 
-`#gp-pulse` caps its backing store at **DPR 2** in the same pass: on a DPR-3 phone it was a 1290x2628 buffer (12.9MB) composited under the CRT stack every frame, against 5.7MB for a picture that is a glow, not text. Measured warm after all of it, at 430x932 DPR 3: FCP **384ms**, revealed **2318ms**, no page errors.
+**Any change to drop/merge code changes `graph_layout_key` and misses the bake** → every visitor pays the ~30s browser stabilisation until `scripts/graph-layout.py` is re-run by hand (takes ~20s). The nightly covers graphify rebuilds only.
 
-
-**Tapping a node fires a cascade seeded on it** (`graphPulse.seed(id)`, wired to vis's `click`; graph.html's own handler still opens the node panel, vis takes both listeners). It is the ordinary iteration with its seed chosen instead of drawn — same burst, same stagger, same outward walk — because what is interesting about a node is what it reaches, and the cascade is the thing that draws what it reaches. Only the SEEDING clock is ever gated, never the rAF loop — an idle frame paints nothing, so nothing under the glass changes and the backdrop-filter readback never re-fires.
-
-**Both gates are gone as of the lite revert — `auto` is never set false today.** The second one read: `auto` is false only when a coarse pointer draws more than `AMBIENT_MAX_NODES` (1200) — which stopped meaning anything once phones were served the full graph again, so it went with the constant. The first read `(pointer: coarse)` alone, and that was wrong twice over. The cost was never the finger: it was 2,722 nodes lighting every frame under two backdrop-filter layers, and the lite variant already removed that. More to the point, **the cascade is what this page is**. Turning it off to protect the phone produced the report it was meant to fix — "page still freezes on safari mobile", which on asking meant *no animations*, not an unresponsive page. A still graph reads as a dead one.
-
-
-`openView` now waits for both: vis's own `afterDrawing` (the camera-correct frame is on screen), then the pulse's first PAINTED frame, reported through `graphPulse.init(onReady)` — fired from inside the draw call, because init returning only means the model exists. `network.redraw()` is called explicitly after `moveTo` in case the camera did not change and vis had nothing queued. `READY_CAP` (3s) is armed BEFORE either wait and lifts unconditionally: both are events that can be missed, and a cover that never lifts is the failure this whole section exists to prevent. Where nothing will ever paint by itself (`auto` off), `onReady` fires at once rather than waiting for a frame that is not coming.
-
-
-**A tap guarantees its first hop.** `advance()` lights a neighbour only on `Math.random() < catchOdds(id)`, and `fireEdge` sits inside that branch — so tapping a hub, whose neighbours are mostly degree-1 leaves at `TERMINAL_ODDS` 0.15, lit the node and almost nothing else, with the edges reported as missing. A `force` flag on the queued hop lights it without rolling, set only on the first ring out of a tapped node and never passed on, so past that ring the cascade is ordinary and still dies out by itself. A tap also seeds none of the extra `SEEDS_PER_ITER` draws: those make an ambient iteration read as a REGION waking up, and on a tap they would bury the answer under eight unrelated nodes. Measured on a degree-157 hub: lit pixels 896 ambient, **1842** after the tap.
-
-**Community packing is opt-in at `?pack=1`.** Each of the 14 communities moves as a RIGID tile — translation only, never scaling — shelf-packed into a box of the viewport's aspect, because vis's physics runs in world coordinates and ignores the viewport entirely (baking in a tall window changes nothing) and scaling an axis is the squish. Measured at 430x932: **117 columns x 218 rows**, step 350 on both axes, cloud aspect 0.53 against a 0.50 viewport. Off by default: nothing inside a community moves by a pixel, but where the communities sit relative to each other is dealt out again, and it reads as a different graph. `cell` is sized from the cloud BEFORE packing — the gaps between tiles are empty space, and letting them coarsen the grid took the step from 97 to 350, which is exactly what makes nodes collide and clump.
-
-
-**Shape carries a node's TYPE, colour carries its community.** Reassigned on
-2026-09-23: `code` (2,078, 74%) is an **upward** triangle, `rationale` (462, 16%)
-a **hexagon**, and `document` (262, 9%) a **downward** triangle (`_TYPE_SHAPES`
-and `_shape_graph_nodes_by_type` in graph_geometry.py). It got there in two steps —
-rotated one place (hexagon -> triangleDown -> triangle -> hexagon), then the two
-triangle directions swapped back — so the net effect against the previous table
-is that `code` and `rationale` traded shapes while `document` kept its downward
-triangle. The two triangle directions still read as a related pair against the
-one hexagon, which is the argument the table was built on and the reason `dot`
-is not in it.
-
-**There is no `circle` in the set, and that is a constraint rather than a taste.**
-vis splits its shapes into two families: `circle`, `ellipse`, `box` and `text`
-draw the label INSIDE and size themselves to it, ignoring `size` entirely, while
-`dot`, `hexagon`, `triangle`, `triangleDown`, `diamond`, `square` and `star` draw
-the label outside and take their size from `size`. Node size here is geometric in
-degree, which is the graph's primary encoding, so a shape from the first family
-would discard it for every node of that type and relocate its label in the same
-move.
-
-The per-node `shape` must be named in graphify's DataSet mapper or it is dropped
-on the way in — the same explicit-field trap as the baked x/y — and the global
-`nodes: { shape: ... }` stays as the fallback for a type this misses. That global
-tracks the MAJORITY type (`triangle` now, `hexagon` before the rotation), so
-an unknown type has always drawn like `code`.
-
-The cascade's lit glyph follows the shape too (`web/graph-glyph.js`, which
-graph-pulse-draw.js binds its context to), since lighting everything as one shape made a cascade
-misdescribe what it was crossing. Both triangle directions draw at 1.15x radius
-and shifted off the node point, because **that is what vis itself does**
-(`triangle: y += 0.275 * (size *= 1.15)`, `triangleDown: y -= 0.275 * …`): the
-overlay has to agree with the renderer it paints over, not with the geometry it
-would choose. The mapping lives in graph_geometry.py alone; the client
-draws whatever shape a node arrives with, so a future rotation touches one table.
-
-**`api/graph_layout.py` is the physics and the bake**, split from graph_style.py at the 500-line cap along a real seam: what is left there (and in `graph_geometry.py`) decides how the graph LOOKS, and what moved decides where its nodes SIT. The pairing is the point — `_tune_graph_physics` is the sim that computes a layout and `_apply_graph_layout` is what makes that sim unnecessary for every visitor after the first.
-
-**Two bakes, one per shape, because vis has no per-axis gravity.** Checked in the vendored 9.1.9 bundle: the only knobs are `centralGravity` (a single scalar toward one point) and `gravitationalConstant` (repulsion), both isotropic, with no hook for a custom per-tick force. So a stabilisation settles at whatever aspect the forces produce, once, for every visitor. `scripts/graph-layout.py` imposes a shape on the SIM instead: on every `stabilizationProgress` it squeezes the cloud a few percent toward a target aspect (`_SHAPE_RATE` 0.2, split evenly across the axes so area is preserved) and lets the next interval's springs relax against it. What comes out is a layout the forces agreed to at that shape — edges re-balance instead of being multiplied — which is a different object from the same layout scaled afterwards.
-
-It undershoots, and that is the springs doing their job: **wide targets 1.60 and reaches 1.25, tall targets 0.50 and reaches 0.74**. Still worth it — a 0.49 phone picks the tall bake and `stretchToViewport` covers 0.72 -> 0.49 rather than 1.6 -> 0.49, roughly a third of the distortion. `_SHAPE_RATE` is the knob if it should push harder against the forces.
-
-The wide set is baked into RAW_NODES as `pos`; the tall set rides in the **payload** as `GRAPH_LAYOUT_TALL`, not in the shell — the shell is 9KB and `no-cache`, so ~50KB of coordinates there would be paid on every load, while the payload is immutable against its own content hash. `useBakedAspect` picks the nearer bake on log distance (so 0.5 and 2.0 sit equally far from 1) and applies it all-or-nothing: a half-applied layout leaves the rest of the graph at coordinates from the other shape, which draws as two clouds overlapping.
-
-**`__GP_PRESNAP` moved to the top of `snapToGrid`**, before packing or stretching. It was captured after the stretch, so the file held a cloud already pulled to the bake window's 1.6 and every client stretched that AGAIN to its own aspect. The served ratio still came out right — the stretch recomputes from whatever bbox it is handed — but the distortion compounded silently, which is the same class of bug as the moire and was found while wiring the second bake.
-
-**A tapped node centres in the space beside the panel** (`centreBesidePanel`). The node info panel covers the right, so centring on the canvas centre puts the node underneath the thing that just opened to describe it; the camera moves so the node lands at `(W - panel) / 2`. The correction is MEASURED — where the node is on screen against where it should be — because computing it open-loop assumes the node starts at the canvas centre and it does not: that version landed 156px out. It runs on the next frame, so it moves with the panel's `transform 0.2s`, and it moves **without animation**: every animated frame is a full vis redraw of 2,581 nodes at ~100ms, so a 200ms animated pan was still travelling 2.1s after the click with the hub's cascade competing for the thread. One redraw, inside the panel's own slide. The camera is moved before the cascade is seeded, for the same reason.
-
-**The bar eases between milestones, and does not creep through them.** The steps are real events and therefore discrete — 0.35 when the payload is down, 0.6 when it has executed, 0.75 with the camera set, 0.9 on vis's first painted frame, 1.0 at reveal — so the fill was snapping from one to the next. `transition: width 280ms ease-out` smooths how each step is drawn while leaving what it claims untouched: the bar still only moves when something has actually finished. Filling the gaps with a timed creep was the obvious alternative and is the thing this file already removed once, when a flat 3s fill sat full while the layout kept settling — slowing a lie down does not make it true. The indeterminate marquee sets `transition: none`, because its segment is moved by a transform and easing the width at the same time makes entering and leaving that state stutter. Measured: `transition-duration` 0.28s on the fill, with intermediate widths (89, 92, 152, 228px) sampled at 30ms through what used to be instant jumps.
-
-**Islands smaller than five nodes are dropped.** `_drop_graph_small_islands` walks the surviving graph's connected components and cuts every one under `min_size` (5). A component of two or three is a pair of files that reference each other and nothing else in the codebase: accurate, and not architecture — at the opening zoom they are specks scattered around the rim, and each one costs a payload entry, a DataSet row and a lattice cell. It must run after `_drop_graph_inferred_edges` and `_drop_graph_orphan_nodes`, because dropping edges is what splits components: an island measured before those passes is not the island that gets served. Orphans are components of size 1, so this subsumes them; it still runs second, since the cheaper pass shrinks the graph this one walks. Served: **2,722 -> 2,581 nodes, 3,582 -> 3,482 edges**, 137 components, smallest exactly 5, and all 14 communities intact (424 down to 69).
-
-**It also invalidates the bake, and that is a manual step.** `graph_layout_key` hashes the surviving node ids and edge pairs, so any change to the drop or merge code changes the key, the baked layout misses, `GRAPH_LAYOUT_CACHED` comes back false and every visitor pays the ~30s browser stabilisation the bake exists to remove. Observed directly here: the page reported key `fd0e2d07…` against a file holding `d43d7ddd…`. Re-running `scripts/graph-layout.py` took 20.7s and restored it. The nightly covers the graphify rebuild; a hand edit to the scrubs does not wait for the nightly.
-
-The opening view was `OPEN_ZOOM` **1.2** (a fifth IN of cover, cropping roughly a sixth off each axis); `OPEN_ZOOM` is gone: it now opens at `contain * FIT_MARGIN` (0.8), the identical expression `setupZoomLimits` clamps the outward wall to, so the opening view and the wall cannot drift apart. The 1.2 measurement (430x867: graph drew 513x1032) is history.
-
-**The positions are stretched to the viewport, and then snapped.** `stretchToViewport` scales x and y by different factors so the cloud takes the window's shape, preserving area (`boxW*boxH == w*h`) so that `cell` and the lattice's density come out unchanged; `snapToGrid` then quantises with one `cell` on both axes. Measured: **98 columns x 199 rows at 430x932**, ratio 0.49 against a 0.49 viewport, and **183 x 106 at 1280x800**, 1.73 against 1.72 — step 112 on both axes in both cases.
-
-Two different things have been called squished here and only one of them is. The POSITIONS are reshaped: x and y scale by different factors, so distance in the drawing no longer means quite what the force layout meant by it. The LATTICE is not: the step between adjacent points is identical horizontally and vertically, which is what allows the grid to gain rows and lose columns without its spacing changing. Conflating the two is what sent this round-trip through a removal and a restoration.
-
-The ordering is forced. With one cell size, `cols = W/cell` and `rows = H/cell`, so **`cols/rows` is exactly the node cloud's bounding-box aspect** — matching the viewport is therefore a property of the cloud, not of the grid, and the cloud has to be reshaped before the snap runs. `?pack=1` is the other way to reshape it: centroids stretched, each community translated rigidly so nothing inside one moves, overlaps pushed apart, and the achieved aspect fed back into the target four times (0.51 against a 0.49 phone). It keeps every distance inside a community exact and changes where the regions sit; the stretch is skipped while it runs, since shaping the cloud twice would undo it.
-
-**The lattice keeps equal spacing on both axes.** The map is uniform — a single `k` applied to x and y — so the step between adjacent lattice points is identical horizontally and vertically (measured 97 and 97). The consequence is geometry rather than a bug: with a uniform scale `cols/rows` IS the node cloud's bounding-box aspect, so matching the viewport is a property of the CLOUD and not of the grid, which is exactly why `stretchToViewport` reshapes the cloud BEFORE the snap runs. `nodeBounds` pads the box by the largest node radius, because the bbox is built from node CENTRES and filling the window against an unpadded box clips the outermost nodes down the middle.
-
-Cover and contain converge once the cloud matches the window, which retires the tension the old comment described. `OPEN_ZOOM_OUT` went from **0.75 to 1**: a quarter out was how you got the shape back when cover cropped hard on the long axis, and with nothing left to overflow it was only a border of empty black. `nodeBounds` pads the box by the largest node radius (`pw`/`ph`) to pay for that, because the bbox is built from node CENTRES — filling the window against an unpadded box clips the outermost nodes down the middle.
-
-**It distorts distances, knowingly.** This is a force layout: a stretched axis stretches what the layout meant by distance. The trade is against a phone seeing less than half the picture, and it is the same trade the snap itself already makes by quantising positions onto a lattice at all.
-
-**The snap is not cached, and does not need to be.** It runs client-side on every load, and the nightly bake records positions from AFTER it (the bake waits for `gp-loaded`, which now comes later still), so a desktop re-snaps an already-snapped layout while a phone re-lays its 600 survivors onto a lattice whose `cell` is **2.13x** coarser — `cell` derives from node COUNT, and the lite variant changes the count. Both measured **0.0-0.1s**, which is also what corrected the bar: the snap was the suspect for the pause a phone reported after the bar filled, and it is not the cost. The gap is vis's first full draw at the new camera plus `graphPulse.index()`. The weights follow the measurement — `FETCHED` 0.35, `BUILT` 0.6, `PLACED` 0.75, `DRAWN` 0.9 on vis's `afterDrawing`, 1.0 at reveal — and `openView` yields a macrotask after naming its phase, since setting text and then blocking in the same turn paints neither.
-
-
-**A smaller graph exists, opt-in at `?lite=1`, and is NOT what a phone gets.** It was, by user-agent, for a few hours on 2026-09-22, and the owner reverted it: the whole graph is the point of the page. What follows is why it was built and why it stayed in the tree.
-
-
-`_prune_for_lite` keeps the busiest **600** (`_LITE_NODES`) by degree plus the edges among them, and drops the rest through `graph_scrub._prune_graph_nodes`, which already handles the dangling edges, the emptied community rows and the hyperedges. Degree is the right ranking here because this graph's shape IS its hubs — the tail is leaves hanging off a single parent, and at the opening zoom they are the halo around the structure rather than the structure. It is a different picture and says so: `?full=1` serves the whole thing to a phone that wants it.
-
-**The ordering is the trick, and it is the same trap `_externalise_boot` fell into.** The prune runs AFTER `_apply_graph_layout`: positions are stored per node id, so the 600 survivors keep the coordinates the nightly bake gave them, and `graph_layout_key` still hashes the full graph — identical for both variants. Pruning first would change that key, miss the bake entirely, and hand the weakest device the ~30s browser stabilisation the bake exists to prevent. `_fix_graph_stats` re-runs afterwards so the header describes what is actually drawn.
-
-Selection is a `_MOBILE_UA` match (`iPhone|iPod|Android.+Mobile`). iPad is deliberately NOT matched: it reports a desktop Safari UA and has the memory to go with it. `_CACHE` is keyed `(guest, lite)` — four entries, all four kept warm by `run_graph_warm_loop` — and `/graph/boot.js` looks in both variants for a hash it does not recognise, since a phone and a laptop no longer share a payload. The nightly `?relayout=1` render is never lite, because the bake has to place every node including the ones a phone will never be sent.
-
-Measured, iPhone UA at 430x932 DPR 3: **0.49MB / 600 nodes / 929 edges**, against 2.10MB / 2,722 / 3,582 on `?full=1`, all 14 communities and every baked x/y intact, no page errors either way. On the droplet the two load within 300ms of each other (1978ms against 2273ms) — which is the point: this box was never the device that froze, and the difference this makes cannot be measured from here.
-
-Two properties make the memo sound, and both are load-bearing:
-
-- **`_render()` is pure.** Same artifact bytes in, same page bytes out. The community cap breaks size ties by NAME (`_ranked`) for exactly this reason — a tie resolved by dict order would change the ETag across a restart for no reason.
-- **The cold render runs off the event loop**, via `asyncio.to_thread` under an `asyncio.Lock`. A 3s blocking route body would stall every SSE stream and the nudge loop with it, and the lock means a reload landing two requests at once pays for one render.
+History: [ARCHAEOLOGY.md §11](ARCHAEOLOGY.md#11-graph)
 
 ### 11b. Drops, in order
 
+Order in `_render` (all in `graph_scrub.py`):
+
 | Function | Drops | Why |
 |---|---|---|
-| `_redact_graph_nodes()` | node summaries in `_GRAPH_REDACT_IDS` → `[redacted]` | a few leak internals (the bearer-auth scheme, the `EXEC_SAY_KEY` name) |
-| `_drop_graph_prefixed_nodes()` | whole source trees under `_GRAPH_DROP_PREFIXES` | see below |
-| `_drop_graph_moltbook_nodes()` | the moltbook heartbeat plumbing (one read-only route node) | substring match on id/label/source |
-| `_drop_graph_library_nodes()` | external library/framework symbols | a code node with NO `source_file` (no in-repo definition) OR a label in `_GRAPH_LIB_LABELS` — `BaseModel`, `Request`, `WebSocket`, `FastAPI`, `Path`, `datetime`, … |
-| `_drop_graph_inferred_edges()` | the dashed INFERRED edges (~16% of edges, opacity 0.35) | keeps only solid EXTRACTED relationships; also recomputes every node's baked `degree` against what survives |
-| `_drop_graph_orphan_nodes()` | every node no surviving edge touches | the overlay used to `hidden`-flag these client-side, which still parsed them, still built them into the DataSet and still walked them on every redraw |
-| `_drop_graph_small_islands()` | connected components under 5 nodes | see the island note in 11a; runs after the orphan pass |
+| `_redact_graph_nodes()` | label+title of ids in `_GRAPH_REDACT_IDS` → `[redacted]` | a few docstring summaries leak internals (bearer-auth scheme, `EXEC_SAY_KEY` name) |
+| `_drop_graph_prefixed_nodes()` | `source_file` under `_GRAPH_DROP_PREFIXES` | table below |
+| `_drop_graph_moltbook_nodes()` | substring `moltbook` in id+label+source_file | heartbeat plumbing rides inside routes_views.py |
+| `_drop_graph_library_nodes()` | `file_type == code` AND (no `source_file` OR label in `_GRAPH_LIB_LABELS`) | external symbols: `BaseModel`, `Request`, `WebSocket`, `FastAPI`, `Path`, `datetime`, … |
+| `_drop_graph_inferred_edges()` | edges with `dashes` (INFERRED) | keeps EXTRACTED only; **recomputes every node's `degree`** from what survives |
+| `_drop_graph_orphan_nodes()` | nodes no surviving edge touches | would otherwise still be parsed, built and walked per redraw |
+| `_drop_graph_small_islands()` | connected components under `min_size` 5 | pairs of files referencing only each other read as rim specks |
 
-`_GRAPH_DROP_PREFIXES` is one tuple rather than three near-identical passes, because the argument is the same every time — graphify indexes what is on disk, and some of what is on disk is somebody else's code or a reference text:
+Every drop goes through `_prune_graph_nodes`, which also removes dangling `RAW_EDGES`, emptied `LEGEND` rows and any `hyperedges` referencing a removed node.
 
-| Prefix | Nodes | Why |
-|---|---|---|
-| `api/tarot/book/` | ~110 | the Pollack tarot reference — card meanings, numerology, frameworks. The tarot ENGINE stays; only the book goes |
-| `web/vendor/` | ~150 | the vendored vis-network bundle, one node per mangled minified name (`Kv()`, `_f()`, `Le()`). The `<script>` that loads the lib stays; only its parsed nodes go |
-| `nightfall-incident/nightfall-src/` | 1054 | the nightfall game's own React/TS source — a quarter of the whole graph and the single biggest community in it, for a game that is a guest PAGE rather than a part of exec-fn's architecture. Its BUILT output is what the site serves |
-| `api/data/` | 786 | the RUNTIME data dir — the JSON **key structure** of `rd.json`, the gamesaves, the cron logs, `cc_titles.json`: `numCredits`, `netmapStatus`, `at`, bare uuids. Keys only, never values, so it was never a leak — it is simply not architecture, and a graph is a picture of architecture. Data files are read BY the code the graph is about; they have no structure of their own worth drawing |
+**Ordering rule:** inferred edges → orphans → islands. Dropping edges splits components and orphans nodes, so each later pass must measure the graph the previous one left. `_fix_graph_stats` (the `#stats` header) runs after all of it.
 
-The prefix drop also prunes `RAW_EDGES` touching those nodes, drops their now-empty `LEGEND` rows, and drops the `hyperedges` (shaded narrative clusters off the book, e.g. "First-row forces gathered into the Chariot's ego") that reference any removed node.
+`_GRAPH_DROP_PREFIXES` (one tuple, mirrored in the repo-root `.graphifyignore` so these never count against `GRAPHIFY_VIZ_NODE_LIMIT` — keep the two in step; `.graphifyignore` also ignores `**/vendor/`, `*.min.js` etc. at extraction):
 
-The vendored bundle is ALSO excluded at ingestion by the repo-root `.graphifyignore` (`**/vendor/`, `*.min.js`, … — graphify reads it each build), so fresh graphs never carry vendor nodes; the prefix is the serve-time backstop for a stale/cached `graph.html` built before that landed.
+| Prefix | Why |
+|---|---|
+| `api/tarot/book/` | the Pollack tarot reference text; the tarot ENGINE stays |
+| `web/vendor/` | vendored vis-network, one node per mangled name |
+| `nightfall-incident/nightfall-src/` | the game's own React/TS source (a guest page, not exec-fn architecture; its BUILT output is what is served) |
+| `api/data/` | runtime data dir (JSON key structure, not values) — not architecture. Root-only prefix |
 
-Order matters twice: `_drop_graph_inferred_edges()` runs **before** the stats rewrite so the edge count is honest, and **before** `_drop_graph_orphan_nodes()` — an edge dropped later would orphan a node the orphan pass had already kept.
+Submodules (`apps/spire`, `apps/noodle`, `claude-box`) are NOT dropped; `_logical_key` folds each `apps/<name>/…` into one community named for it.
 
-Submodules (`apps/spire`, `apps/noodle`, `claude-box`) are NOT dropped: graphify walks them on disk, so after 2026-10-14 their files index as `apps/<name>/…` and `_logical_key` folds each app into one community named for it (the nightly of 2026-10-14 05:00 predates the move; its `graph.json` still holds `web/aspira*`, `api/noodle/`, `tests/test_{spire,noodle}*`). `api/data/` is a root-only prefix; nothing under `apps/*/` needs it today.
-
-Net (2026-09 measurement; the 2026-10-12 bake holds 4,949 nodes as the repo grew): 4843 nodes / 7154 edges / 610 communities as emitted → **2722 / 3582 / 14** as served — 56% of the nodes and half the edges are somebody else's code, a reference text, a data file's key names, or a relationship graphify was only guessing at.
+History (node counts, bake-key observation, what each drop removed): [ARCHAEOLOGY.md §11](ARCHAEOLOGY.md#11-graph)
 
 ### 11c. Communities are re-derived by FEATURE, then CAPPED
 
-**vis cycles only a 10-colour palette**, so graphify's dozens of fine-grained communities share colours and the clusters become indistinguishable colour-noise.
+vis cycles a 10-colour palette, so graphify's fine-grained communities collide into colour-noise. `_merge_graph_communities()` regroups nodes by `_logical_key` (subdir module, else the filename family: `api/tarot/*` + `web/tarot-*.js` → "Tarot"), gives each its own colour from `_COMMUNITY_COLORS` (Tableau-20 + Dark2 = 28 hues, biggest = index 0), reassigns `community`/`community_name`/`color`, and rebuilds `LEGEND` biggest-first. `/graph`-page-only; `graph.json` / `GRAPH_REPORT.md` keep graphify's full set.
 
-`_merge_graph_communities()` regroups nodes into logically-named, FEATURE-based communities (`_logical_key`: `api/tarot/*` + `web/tarot-*.js` → "Tarot", `api/nudge*.py` → "Nudge", `api/graph_scrub` + `web/graph-overlay` → "Graph", …), giving each module its OWN distinct colour from `_COMMUNITY_COLORS` (Tableau-20 + Dark2 = 28 hues) and rebuilding `LEGEND` biggest-first, reassigning every node's `community`/`community_name`/`color`.
+![Community fold and cap](docs/arch/11-communities.svg)
 
-A feature with fewer than `_MIN_COMMUNITY` (10) nodes folds into its top-level dir bucket ("API"/"Web") so the legend is not littered with 2-node modules.
+- A feature under `_MIN_COMMUNITY` (10) nodes folds into its top-level dir bucket (`_node_group_key`, e.g. API/Web/`(root)`).
+- That fold does not bound the count (and raising the threshold plateaus ~20), so `_cap_communities()` caps at `_MAX_COMMUNITIES` (**14**): tail → top-level dir, still over → a single `(other)` bucket.
 
-**That fold does not bound the count, and tuning the threshold does not either** — this repo yielded 54 buckets at `_MIN_COMMUNITY`, and raising the threshold plateaus around 20 because the long tail is made of whole top-level dirs, not small modules. So the count is **capped** instead: `_cap_communities()` keeps the `_MAX_COMMUNITIES` (14) biggest keys, folds the tail into its top-level source dir, and if that is still over the cap folds what remains into a single `(other)` bucket. Colour is only a legible encoding while a reader can hold the legend in their head; 28 shades past that point encode nothing.
-
-This is `/graph`-page-only: the raw `graph.json` / `GRAPH_REPORT.md` keep graphify's full community set.
+History: [ARCHAEOLOGY.md §11](ARCHAEOLOGY.md#11-graph)
 
 ### 11d. Size, labels, shape, physics, stats
 
-`_size_graph_by_degree()` (graph_geometry.py) sizes each node **geometrically in its edge count** — `min(88, 12 × 1.14^(degree−1))`, doubled from `min(44, 6 × …)` on 2026-09-21 because at the opening whole-graph fit the hexagons were specks, and a node you cannot see is a node nobody will hover — so each extra edge multiplies rather than adds and a hub reads as a hub. It replaced `_size_graph_by_loc()` (sqrt of line count, ~10..40), which compressed the interesting end flat. The growth factor is picked against this graph's own distribution (median degree 1, p90 5, p99 21, max 171): the whole range is spent on degrees 1–17, where 97% of the nodes are, and the long tail saturates at the cap. The ratio is what encodes degree, so doubling both ends changes only how much screen the encoding spends. It reads the `degree` field **after** `_drop_graph_inferred_edges()` has recomputed it, or hubs would be sized off edges the page no longer draws.
+- **Size** (`_size_graph_by_degree`): `min(_SIZE_MAX, _SIZE_MIN × _SIZE_GROWTH^(degree−1))` = `min(88, 12 × 1.14^(d−1))`, degree floored at 1. Reads `degree` AFTER `_drop_graph_inferred_edges` recomputed it. **Both ends scale together** — the ratio encodes degree; the ceiling must stay below the lattice step so hubs don't sit on neighbours (x1.25 was tried and reverted).
+- **Occlusion** (`_unocclude_small_nodes`, after sizing): nodes at or under the `_OCCLUDE_PCTL` (0.90) size get `transparent` backgrounds (normal/highlight/hover), so only big nodes stop edges. Nearest-rank `_pctl` (never interpolated). Ships `GRAPH_OCCLUDE_MIN` and `GRAPH_WAVE_MIN` (`_WAVE_PCTL`, also 0.90 — kept separate on purpose) so the overlay gates on the same numbers; percentiles are never recomputed in JS.
+- **Edges** (`_hide_graph_edges`; the name is historical): every edge `color.opacity = _EDGE_OPACITY` (= `_NODE_OPACITY`, **0.2**), `width = _EDGE_WIDTH` **3**. Written PER EDGE — graphify's per-edge `color` object outranks any global option. Colour is left alone (inherited from the from-node). The cascade's lit edges are on the overlay canvas.
+- **Nodes** (`_node_color`): fill `_GRAPH_BG` `#000000` (keep equal to `--bg-hsl`), border = community colour at `_NODE_OPACITY` alpha; highlight border `#ffffff`; hover keeps the full-strength colour (read by the info-panel stripe). The unlit baseline is the BORDER alpha, never the node `opacity` option (that would make the fill translucent, killing occlusion). `_restyle_graph_nodes` also sets global `borderWidth: 2` and repoints `nb.color.background` → `nb.color.border` in `showInfo()`.
+- **Labels** (`_label_graph_nodes`): site mono font (`_NODE_FONT`, size 12), any label over `_LABEL_MAX` (20) chars → `[ redacted ]` (graph-overlay.js `isRedacted` matches it and the server's `[redacted]`).
+- **Tooltips** (`_drop_graph_tooltips`): strips the unquoted `title: x.title,` from both DataSet mappers (`_TOOLTIP_FIELD_RE`); the data arrays keep their JSON-quoted `title`, and the click panel reads `label`/`_*` fields.
+- **Physics** (`_tune_graph_physics`, graph_layout.py): replaces graphify's `physics:` block (matched whole, anchored on the following `interaction:` key) with one-shot `forceAtlas2Based` — `theta 0.8`, `gravitationalConstant -628`, `centralGravity 0.025`, `springLength 30`, `springConstant 0.22`, `damping 0.9`, `avoidOverlap 1`, `maxVelocity 50`, `minVelocity 4`, `stabilization { iterations 300, updateInterval 20, fit true }`. Edges become `smooth: false` (`selectionWidth: 3` kept). graph.html's `stabilizationIterationsDone` handler then turns physics off. `_render` also sets `layout: { improvedLayout: false }`. Iteration count 300 was walked 270→370→300→325→300; nothing above 300 shows in the picture. Raising it does NOT invalidate the bake (the key hashes ids and edges, not coordinates).
+- **Stats** (`_fix_graph_stats`): rewrites the `#stats` header (graphify bakes PRE-scrub counts) after the drops and again after the lite prune.
+- All array transforms use a **per-line anchored** array regex (`_array_re`): a non-greedy `[.*?]` truncates at a `];` inside a node title.
 
-`_hide_graph_edges()` (name kept from when it wrote 0; its inner helper is still `_brighten`) sets every edge to opacity `_EDGE_OPACITY` (= `_NODE_OPACITY`, **0.2**) and width `_EDGE_WIDTH` **3**, from graphify's 0.7 / 2. It was 1.0 for a while; the unlit graph now sits a fifth back so the cascade is what reads (see "The unlit baseline" in 11f). Colour is deliberately left alone: vis inherits each edge's colour from its from-node, which is what keeps the edge set reading as community-coloured rather than grey. This is the UNLIT state only; the cascade paints its own lit edges on the overlay canvas and never touches these values.
-
-`_label_graph_nodes()` gives every node the site label font and blanks any label over 20 characters to `[ redacted ]`. Both used to be client-side walks of the whole DataSet at load; see 11e.
-
-`_restyle_graph_nodes()` sets the global default shape to `_TYPE_SHAPES["code"]` (vis default is `dot`) and calls `_shape_graph_nodes_by_type`. Node colour is a bg-filled interior + community-coloured border at `_NODE_OPACITY` alpha — the /emet look, fill `_GRAPH_BG` **`#000000`** (it was `#0f0f1a`, graphify's own body colour, until that read as navy shapes on the real black page; keep it equal to `--bg-hsl`), set in `_node_color()`. Only the big nodes keep that opaque interior: `_unocclude_small_nodes` (graph_geometry.py, after sizing) sets every node at or under the `_OCCLUDE_PCTL` (0.90) size to `transparent`, and ships the cuts as `GRAPH_OCCLUDE_MIN`/`GRAPH_WAVE_MIN`. It also repoints `showInfo()`'s neighbour-stripe colour from `.color.background` (now the page bg, invisible) to `.color.border`.
-
-`_drop_graph_tooltips()` strips `title:` from BOTH DataSet mappers (node + edge) so **nothing pops up on hover** — graphify puts a whole docstring-derived summary in `title`. The same text/metadata still reaches the click-through node-info panel, which reads `nodesDS`'s `label`/`_*` fields, never `title`. The regex targets the unquoted `title: x.title,`; `RAW_NODES`/`RAW_EDGES` carry it JSON-quoted, so the data arrays are untouched.
-
-`_tune_graph_physics()` (graph_layout.py) replaces graphify's whole `physics:` block (matched as a unit, anchored on the `interaction:` key that follows, so it survives a value changing inside it) with a **one-shot** stabilisation: forceAtlas2 at `theta 0.8`, high damping, coarse `minVelocity`, 300 iterations, `fit: true`. graph.html's own `stabilizationIterationsDone` handler then switches physics **off for good**. It also straightens the edges (`smooth: false`) — a bezier per edge per frame was the most expensive thing on the canvas and says nothing a straight line doesn't.
-
-`_fix_graph_stats()` runs after the drops, merge and sizing (and again after the `?lite=1` prune), rewriting the `#stats` header — graphify bakes PRE-scrub node/edge/community counts — to the merged/dropped reality.
-
-All the array transforms use a **per-line anchored** array regex, because a non-greedy `[.*?]` truncates at a `];` inside a node title.
+History: [ARCHAEOLOGY.md §11](ARCHAEOLOGY.md#11-graph)
 
 ### 11e. The layout is baked, not stabilised in the browser
 
-Stabilising this graph is ~300 forceAtlas2 iterations over 2581 nodes. On a desktop that is a few seconds under the loading cover; **on a phone it measured around thirty seconds, on every single visit**, for a layout that comes out the same every time.
+Stabilising ~300 forceAtlas2 iterations takes seconds on a desktop and ~30s on a phone, per visit, for an identical result. So `scripts/graph-layout.py` computes it once, nightly, in a **real vis-network in headless WebKit** (Playwright) — the baked layout is exactly what vis would produce, including the client lattice snap's inputs. Output `graphify-out/graph-layout.json` = `{key, presnap, pos:{id:[x,y]}, tall:{…}}`, atomic write; `graphify-out` is gitignored (droplet disk only).
 
-So it is computed once, out of band, by **`scripts/graph-layout.py`** — run from the nightly graphify job right after the rebuild. It drives a **real vis-network in a headless browser** rather than reimplementing forceAtlas2 in Python, so the cached layout is exactly the layout vis would have produced, including `graph-overlay.js`'s own lattice snap (it reads positions at `gp-loaded`, the same moment a visitor is shown the graph). It fetches `/graph?relayout=1`, which renders **without** any baked layout, so it can never feed on its own output. Output is `graphify-out/graph-layout.json`, `{key, pos:{id:[x,y]}, tall:{…}}` (wide + tall bakes), written atomically, ~470KB at 4,949 nodes. `graphify-out` is gitignored (2026-10-12): the file lives on the droplet disk only and is regenerated nightly, never committed.
+![Nightly layout bake](docs/arch/11-nightly-bake.svg)
 
-**The cache key is a hash of the GRAPH, not of the file it came from**: sorted node ids plus sorted edge pairs (`_layout_key`). That is what actually determines a layout, so it changes when graphify rebuilds **and** when our own drop/merge code changes what survives — "or when we update the code" — while staying identical across the guest and admin renders, which differ only by their nav. The generator reads the key back off the rendered page (`window.GRAPH_LAYOUT_KEY`) so the writer and the reader cannot disagree about it.
+- **Key** = md5 of sorted node ids + sorted `from>to` edge pairs (`_layout_key`), read back off the rendered page (`window.GRAPH_LAYOUT_KEY`) so writer and reader can't disagree. Identical across guest/admin (they differ only by nav).
+- **Hit:** `_apply_graph_layout()` writes x/y into `RAW_NODES`, adds `x: n.x, y: n.y` to graphify's DataSet mapper (it lists fields explicitly), and replaces the physics block with `physics: { enabled: false }`. The overlay is told via `window.GRAPH_LAYOUT_CACHED` (no `stabilizationIterationsDone` fires with physics off, and that event reveals the page).
+- **Every failure is a no-op** (missing/unreadable file, key mismatch → `read_graph_layout` returns None) that falls back to browser stabilisation: a stale layout is worse than a slow one.
+- **Two bakes**, because vis has no per-axis gravity: `_BAKES` = `pos` target aspect **1.60** @ 1440x900 (baked into `RAW_NODES`), `tall` **0.50** @ 430x932 (rides in the PAYLOAD as `GRAPH_LAYOUT_TALL`, so the 9KB no-cache shell stays small). The script injects `_SHAPE_JS`: on each `stabilizationProgress` it squeezes the cloud toward the target by `(target/current)^_SHAPE_RATE`, `_SHAPE_RATE` **0.2**, split across x and y so area is preserved. It undershoots (springs pull back): wide reaches ~1.25, tall ~0.74. The client picks the nearer bake (`useBakedAspect`) and stretches the rest.
+- **Reads `window.__GP_PRESNAP`** (captured before any pack/stretch/quantise) rather than `network.getPositions()`, else the client snap is baked back in. It waits for body class `gp-loaded`, fetches with `Authorization: Bearer <API_KEY from .env>`, and both bakes must return the same key.
+- **Cron:** host `/etc/cron.d/exec-fn-graphify` → `0 5 * * *` `scripts/graphify-daily.sh` (as `wai-root`): graphify rebuild (600MB `RLIMIT_AS`, `GRAPHIFY_VIZ_NODE_LIMIT=8000`), a hard failure if no fresh `graph.html` was written (previous one restored from `.graph.html.prev`), then the bake. A bake failure is logged and NON-fatal. Log: `data/cron/…__graphify.log`.
+- **TRAP: cron has no session bus**, so `systemd-run --user` fails with "Failed to connect to bus" unless the job exports `XDG_RUNTIME_DIR=/run/user/$(id -u)`. The `MemoryMax=700M` scope is not optional (WebKit is 200–400MB; the OOM killer picks by badness, §17).
 
-On a hit, `_apply_graph_layout()` bakes x/y into `RAW_NODES`, patches graphify's DataSet mapper to carry those fields through (it lists its fields explicitly, so x/y would be dropped otherwise), and replaces the physics block with `physics: { enabled: false }` — no sim, no stabilisation, the positions **are** the layout. Measured at 430×932: **8.8s to ready, down from ~30s**, no node at the origin.
-
-**Every failure is a no-op that falls back to stabilising in the browser**, because a stale layout is worse than a slow one — it would place nodes by an edge set that no longer exists. A missing file, an unreadable one, or a key that does not match all land in the same place, and the nightly logs a bake failure rather than failing the job.
-
-The overlay has to be told which case it is in (`window.GRAPH_LAYOUT_CACHED`): with physics off there is no `stabilizationIterationsDone`, and that event is what reveals the page, so waiting for it would hold the loading cover up until `LOAD_CAP`.
-
-One environment trap, found by testing: **cron has no session bus**, so `systemd-run --user` fails with *"Failed to connect to bus: No medium found"* and the bake would have taken its failure branch every night while looking fine by hand. The runtime dir exists and is merely unexported, so the job names it (`XDG_RUNTIME_DIR=/run/user/$(id -u)`). The cap itself is not optional — a WebKit launch is 200-400MB against ~650MB free at rest, and the global OOM killer picks by badness score rather than by culprit (§17).
-
+History: [ARCHAEOLOGY.md §11](ARCHAEOLOGY.md#11-graph)
 ### 11f. The client-side overlay
 
-`graph-overlay.js` is now only what the server cannot decide. The label font, the long-label redaction and the orphan hiding all moved into 11b/11d — each had been a walk of all ~4.7k nodes plus a whole-DataSet update, spent on the page's slowest few seconds.
+The server decides everything it can (11b/11d); the client adds the firing animation, the audio drive, the loading cover and the viewport lattice. **No modules: 19 same-global-scope scripts, so LOAD ORDER IS THE CONTRACT** (`_GRAPH_OVERLAY_JS`, `api/routes_graph.py:75`, injected before `</body>`; every file has a `?v=` that `asset_version.py` fills at serve time).
 
-1. **The tour, which is now a firing simulation** — `web/graph-pulse.js`, on its own canvas. See below.
-2. `patchInfoPanel()` wraps graph.html's global `showInfo()` so a redacted node (server `[redacted]` or `[ redacted ]`) gets its Type + Source blanked to "redacted" and its neighbors section removed. Community + Degree stay. It also OPENS the panel, which is what makes a node click do something: `showInfo` filled it while the panel stayed collapsed behind its toggle, so the click read as having done nothing and the answer only appeared after a second click on the arrow. It moves the toggle's glyph with it — the toggle owns that glyph, so anything opening the panel from elsewhere has to move it too or the control lies about what it will do. And it RETRIES until `showInfo` exists: graph.html defines `network` before it, so a patch that ran the moment `network` appeared found no function and returned in silence.
-3. `addToggle()` builds the node-info panel's collapse button — the only panel left, though the wiring still reads like it expects the pair it had.
-4. `setupZoomLimits()` clamps zoom/pan with hard walls, clamping in place on each user zoom/drag so the camera stops AT the threshold (no snap-back).
-5. `watchWake()` repairs a wedged canvas on `visibilitychange` (tab visible again) and on a bfcache `pageshow`: re-measures the overlay's backing store (`graphPulseDraw.resize`) and has vis `redraw()`. It never reloads — a reload of /graph is a black page for the whole load (see 11g).
+![Overlay paint order](docs/arch/11-overlay-paint.svg)
 
-**The page opens on COVER — a wallpaper's fill mode — not on a fit.** The loading cover lifts on `stabilizationIterationsDone` (or at once with a baked layout; capped at `gpCover.CAP`, 180s) and sets the camera first, because graphify's own `fit: true` runs before the CSS has finished sizing the canvas.
+#### File set, in load order
 
-
-#### `graph-pulse.js` + `graph-pulse-draw.js` — the firing overlay
-
-**Two files, split at the 500-line cap**, on the honest seam: `graph-pulse.js` knows what a cascade is and nothing about pixels, `graph-pulse-draw.js` is the reverse — the canvas element, the world-to-screen transform, and the shapes. The model hands the draw half the state it should read **once** (`init(pos, litEdges, level)`); those objects are mutated in place and never reassigned, which is the contract that makes one handover enough. Load order is the whole wiring, since these are same-global-scope scripts and not modules: draw, then model, then `graph-overlay.js`, which starts it.
-
-**It draws on its own transparent canvas (`#gp-pulse`) over vis's, and vis never redraws for it.** That is the whole reason the animation is affordable: a warm full vis redraw of this graph measured ~1.5s at 4561 nodes on the droplet's headless WebKit, so anything that redrew vis per frame would be the camera tour's 0.4 fps again. The overlay draws **only what is currently lit** — a few dozen nodes and their edges — so cost per frame is O(lit), not O(graph).
-
-The **frozen layout is what makes that possible**: world positions never move, so they are read once with `getPositions()` and each frame is two multiplies per lit node. Pan and zoom still work, because the transform is recomputed from vis's public `getScale()` / `getViewPosition()` every frame (`screen = (world − view) × scale + half-canvas`, which is vis's own transform) and the glow stays welded to the nodes. `#gp-pulse` sits at `--z-raised` — above the graph, below every panel — is `pointer-events: none` (it covers the graph, and hover is what drives it), and JS keeps it sized and positioned to `#graph`'s own box across resizes.
-
-The model is a **spreading cascade**, not a region that lights up:
-
-| | |
+| File (global) | Owns |
 |---|---|
-| **Proximity** | extras are drawn from the **64 nearest nodes to the first seed** (`NEAR_POOL`, `graphSeed.near`), weighted by `seedWeight` AND by closeness. It is spatial rather than structural on purpose: neighbours that share no edge still belong to the same part of the picture, and that is what the eye follows. The falloff is measured against the POOL'S OWN radius (`NEAR_SOFT` 0.6), so it behaves the same in a dense community as on the sparse rim |
-| **Seed** | once every `ITER_MS` (1s) one node is picked at random, weighted by **size to the `SEED_POW`** (2) — a prefix-sum plus a binary search, so it is one lookup rather than a scan or a reject loop. Strictly proportional looked like nothing happening: 76% of nodes sit at the size floor with one edge, so 9 seeds in 10 landed on a leaf that lit itself, rolled its single neighbour and stopped |
-| **The burst** | the iteration lights `SEEDS_PER_ITER` (8) nodes by default — a caller may ask for more, bounded by `MAX_SEEDS` (20) — the rest drawn out of **the first seed's proximity pool** on the same weight. Seeds scattered anywhere in a hairball read as unrelated sparks; eight inside one square read as a region waking up. Draws are weighted and with replacement, so they will not all be distinct — `SEED_TRIES` (4 per wanted seed) bounds the retrying, because a pool that cannot yield another distinct node must not spin looking for one |
-| **Stagger** | the burst arrives one seed every `SEED_STAGGER_MS` (100ms), not all on one frame — eight hexagons on the same frame reads as a flashbulb, the same eight over 0.8s reads as a region coming awake, and the early seeds' own spread is already under way before the last one fires. A staggered seed is claimed in `seen` immediately (so the remaining draws cannot pick it again) but queued for later, flagged `seed: true`: when its turn comes it lights **unconditionally and lights no edge**, because it was chosen rather than caught and there is no edge it arrived along. `until` covers the stagger as well, or the last seeds would be dropped before firing |
-| **One event** | every seed shares the iteration's `seen` and queue, so the burst and everything spreading from it merge into a single cascade rather than re-rolling each other's nodes |
-| **Spread** | the activation walks outward hop by hop. Each neighbour is queued at `HOP_MS` (110ms ± `HOP_JITTER` 30%) and, when its turn comes, lights with a probability set by **its own** size: `P_MIN` 0.55 at the floor rising to `P_MAX` 1 at the ceiling. The floor was 0.18 and the chains were too short to read as travelling — a spark, not a cascade; at 0.55 a chain through degree-1 nodes carries about two hops and anything with real degree keeps going. Sizes are geometric in degree, so this is a degree rule wearing the units it is drawn at |
-| **Terminal nodes** | degree 1, nothing past them, and 76% of this graph — held at `TERMINAL_ODDS` (0.15), well under the floor, both for catching and (scaled) for being seeded. On the size curve they sit at the floor too, so at `P_MIN` every cascade dragged a halo of dead ends along with it: lights that go nowhere, drawn at the same weight as the chain they hang off. A cascade seeded on one can never be more than a single dot |
-| **Dying out** | a node that fails its roll is **spent** — it does not light and nothing walks past it. That is the whole reason a cascade ends by itself instead of eating the graph every second. Branching is `degree × p`, so a seed on a leaf is a spark of two or three nodes and a seed on a hub blooms across a neighbourhood |
-| **Tried once** | `seen` is per-iteration, so however many neighbours reach a node, it is rolled for once. Without it a dense region re-rolls itself forever |
-| **Overlap** | each iteration gets `ITER_LIFE` (2s) and a new one starts every `ITER_MS` (1s) — **seeding is on a clock and nothing else**, never waiting for the last cascade to finish or for the canvas to go dark. That is about two in flight, the next arriving as the one before it fades: the busyness comes from how many nodes one iteration lights, not from stacking several. `MAX_LIVE` (8) stays a safety bound well above that |
-| **Degree buys time** | `dur` = `DUR_MIN` 2500ms + `DUR_PER_DEG` 290ms per edge (capped at `DUR_DEG_CAP` 12), × a 0.6–1.4 random factor (`DUR_JITTER` 0.4; all in graph-lit.js; it was 1100 + 130, then 1650 + 195). Same argument as node size: the busy nodes are worth looking at longer |
-| **Fade, never blink** | `ATTACK_MS` 280ms rise (it was 90, a pop), then `(1 − t)^DECAY_POW` (**0.85**, concave: the node holds its brightness through the first half). At 1.8 the light was gone before the eye had followed the chain that lit it; 1.2 was the stop on the way |
-| **Edges** | the edge the activation **travelled along** lights as the far end catches, for `EDGE_DUR`. Both its ends are lit by construction — it is drawn because something crossed it |
-| **Ink** | two soft discs (`HALO_OUTER` 2.6 / `HALO_INNER` 1.5 x node radius) under an outline, all under `globalCompositeOperation: 'lighter'`, which stacks them into a bloom. It used to be a solid fill (`A_FILL` 1, clipping to white); that is gone, see "A lit node is an OUTLINE and a HALO" below — the interior stays black. Cheaper than `shadowBlur` and needs no per-node state. Alpha rides on `ctx.globalAlpha` over one flat white `fillStyle` — never a colour string built per call, which at 60fps per node is garbage for the collector to chase (and it keeps the palette lint happy with a single literal) |
-| **The saturated second layer** | a DUPLICATE of that whole pass — both halos, the glyph fill, the stroke, and the lit edge — drawn OVER the top in the node's own community colour with its saturation pushed up (`SAT_BOOST` 1.75, clamped at fully saturated), and living `SAT_MULT` (**3**) times as long. What you see is a white flash decaying into a long coloured afterglow |
+| `graph-cover` (`gpCover`) | loading cover + payload loader; **not deferred** (deferred, it sits behind the payload it reports on) |
+| `graph-ink` (`graphInk`) | colour arithmetic: `sat(hex)` = saturation x `SAT_BOOST` 1.75 (clamped), returns HEX; `WHITE` is the one literal on the canvas |
+| `graph-surface` (`graphSurface`) | `#gp-pulse` canvas + backing store (**DPR capped at 2**), resize/woken-tab repair, the real page bg (`bg()` = computed `body` background; `setBg` is only a fallback and rejects `transparent`) |
+| `graph-glyph` (`graphGlyph`) | node shapes exactly as vis draws them (`TRI_SCALE` 1.15, `TRI_SHIFT` 0.275; `triangle`/`triangleDown`/`dot`/else hexagon); `at()` takes an explicit centre so a front grows concentrically |
+| `graph-pulse-draw` (`graphPulseDraw`) | the canvas paint passes and their ORDER; `HALO_OUTER` 2.6 / `HALO_INNER` 1.5 x radius, `EDGE_W` 1.6, `EDGE_SWELL` 0.6 |
+| `graph-seed` (`graphSeed`) | WHERE a cascade starts: `any()` (size^`SEED_POW` 2, prefix-sum + binary search), `at(fx,fy)` (nearest `NEAR_AT` 24), `near(id, pool)` (`NEAR_POOL` 64, ceiling `NEAR_MAX` 320, falloff `NEAR_SOFT` 0.6 of the pool's own radius) |
+| `graph-bands` (`graphBands`) | spectrum: bass/mid/treble, rms, spectral flux, log centroid (60-8000Hz), pan |
+| `graph-norm` (`graphNorm`) | adaptive windows: `amp`, `loud`, `pitch`, `sharpness`, `hit`, `bloom`, `placeX/Y` |
+| `graph-source` (`graphSource`) | capture + device selection |
+| `graph-lit` (`graphLit`) | the flash envelopes (the model; its draw half is shared by several passes) |
+| `graph-bias` (`graphBias`) | how audio bends the cascade: `reach`, `pool`, `node`, `length`; every read guarded, neutral with no audio |
+| `graph-glow` (`graphGlow`) | the accumulated "charge" + its own two passes |
+| `graph-ring` (`graphRing`) | the beat wavefront, end to end incl. its pixels |
+| `graph-pulse` (`graphPulse`) | the cascade model: queue, hops, catch rolls |
+| `graph-tempo` (`graphTempo`) | tempo, phase grid, `onBeat`, `hopMs`, bar accent |
+| `graph-audio` (`graphAudio`) | AudioContext wiring, onset test, `fire()`, seed count |
+| `graph-audio-ui` (`graphAudioUI`) | the control, source picker, readout, file-drop |
+| `graph-lattice` (`gpLattice`) | viewport stretch + lattice snap; precedes the overlay because `openView` calls `snap()`/`bounds()` |
+| `graph-overlay` | what's left: see below |
 
-**The saturated layer only reads because it outlives the white one.** Under
-`'lighter'`, adding colour on top of a centre that has already clipped to white
-does nothing, so for its first third this layer is only a tint on the halo. Its
-point is the other two thirds: once the white envelope has run out the coloured
-pass is the only thing on the canvas. Drawing it UNDER the white instead would
-have been washed out for the whole overlap and identical afterwards, so over the
-top is both what was asked for and the only ordering that shows anything during
-the flash. Measured on the served page at 1000x800, nine seconds after seeding a
-hub — past the white pass's ~5.6s maximum — **31,924 of 33,072 lit pixels carry
-colour**, with a channel spread up to 235; before this layer the canvas drew one
-flat white and that count was zero.
+`graph-overlay.js`: `patchInfoPanel()` wraps graph.html's `showInfo()` (retries until it exists; redacted nodes get Type/Source blanked and neighbours removed; **opens** the panel and moves the toggle glyph; writes the label into the `<h3>` and removes the duplicate first `.field` by TEXT match, never position), `addToggle()` (the node-info collapse button), `setupZoomLimits()` (hard walls, clamps in place), `watchWake()` (on `visibilitychange` + `persisted` `pageshow`: `graphPulseDraw.resize()` + `network.redraw()`; **never reloads** — a /graph reload is a black page for the whole load), `centreBesidePanel()` (tap centres the node in the space beside the panel; next frame, no animation — animated pans are full vis redraws).
 
-Three things keep it cheap, and each is the same rule the white pass already
-followed:
+**Opening view**: `contain x FIT_MARGIN` (0.8) — the same expression `setupZoomLimits` clamps the outward wall to, so the page opens at the furthest zoom-out and the first gesture can only go inward. The cover lifts after vis's `afterDrawing`, then the pulse's first PAINTED frame (`graphPulse.init(onReady)`); `READY_CAP` 3s and `DRAWN_CAP` 800ms are floors. `snapToGrid` writes `network.body.nodes[id].x/y` directly and calls `network.redraw()` ONCE (`moveNode` per node queued one vis redraw per node: 160 draws/16s).
 
-- **The colour is computed ONCE per node**, at `index()` time, and cached on
-  `pos[id].c` (`graphPulseDraw.satInk`, hex -> HSL -> saturation x boost -> hex).
-  Per frame the draw half only ASSIGNS that cached string, so the file's ban on
-  building a colour per call still holds. A node with no colour falls back to the
-  white ink rather than vanishing.
-- **The envelope is the model's own `level`**, read against `dur * SAT_MULT`
-  through one reusable scratch record — never a second copy of `ATTACK_MS` and
-  `DECAY_POW`, which would be two fades to keep in sync, and no allocation per lit
-  node per frame.
-- **One geometry, two inks.** `drawNode` takes an alpha set, so the saturated pass
-  is the same path and the same shapes; there is no second copy of the halo maths
-  to drift.
+**Trap — palette lint**: it reads source with whitespace stripped, so any colour-function name followed by `(` (code OR comment) reads as a new raw colour. That is why the helper is `hueChan` and `sat()` returns hex. Rename or reword; never baseline.
 
-**What it costs, honestly.** A lit record now has to survive three times as long
-(`expire` asks `graphPulseDraw.totalLife(dur)` rather than holding the multiplier
-itself), so `hasAny(lit)` stays true roughly 3x longer and the canvas paints on
-about three times as many frames. On this page that matters more than the drawing
-does: the cascade is the one animated layer under the CRT stack's two
-`backdrop-filter` panes, which is the most expensive shape in this repo. The
-per-frame work is still O(lit) and still measured at ~0ms of canvas time; what
-went up is how much of the time the page is not idle.
+#### The firing overlay (`graph-pulse*.js`)
 
-**`graph-pulse.js` was exactly at the 500-line cap when this landed**, which is
-why the whole layer lives in `graph-pulse-draw.js` and the model file carries only
-in-place edits: the cached ink on `pos`, the `totalLife` call in `expire`, and
-`lit` added to the `init` handover. `lit` meets the same mutated-in-place contract
-`pos` and `litEdges` already did — declared once, only ever keyed and deleted.
+![Cascade flow](docs/arch/11-cascade.svg)
 
-**`graph-seed.js` is WHERE a cascade starts; `graph-pulse.js` is what happens
-next.** The seam is real rather than an accident of size: choosing the nodes that
-light first carries all the weighting and the spatial reasoning, while the
-cascade owns the queue, the hop timing, the catch rolls and the envelopes. It was
-split out when proximity seeding took graph-pulse.js past the 500-line cap —
-which is the cap working as intended, a signal that a file has come to hold too
-much, answered with a seam rather than with a smaller design or shorter comments.
+- **Own transparent canvas `#gp-pulse`** (`--z-raised`, `pointer-events:none`, sized to `#graph`) over vis's; **vis never redraws for it** (a warm vis redraw is ~1.5s). Cost per frame is O(lit): world positions are read once (`getPositions()`, layout is frozen), the camera transform is `(world - view) x scale + half-canvas` from `getScale()`/`getViewPosition()` each frame.
+- **Split**: `graph-pulse.js` knows cascades, nothing about pixels; `graph-pulse-draw.js` the reverse. The model hands `init(pos, lit, litEdges, level, satLevel, charge maps)` once; those objects are mutated in place, never reassigned. `TERMINAL_ODDS` is passed INTO `graphSeed.index()` (one definition). `SIZE_FLOOR`/`SIZE_CEIL` (12/88) mirror `graph_geometry._SIZE_MIN/_SIZE_MAX` — move together.
+- **Runs everywhere** (every size, every pointer; a tap always seeds). Under the CRT stack deliberately: 2 fps vs 18 with the stack hidden on the GPU-less droplet WebKit, our canvas ~0ms either way — the cost is compositing, not drawing. A frame with nothing lit/charged/ringing skips its draw (`graphGlow.charged()` and the ring are part of the idle check).
+- **Hover does nothing to the canvas.** A tap seeds a cascade at the node (`graphPulse.seed(id)` on vis `click`) and **guarantees its first hop** (every direct neighbour + edge lights, `force`); a tap draws none of the extra burst seeds.
 
-`TERMINAL_ODDS` is passed INTO `graphSeed.index()` rather than declared there,
-because the same number governs catching on the other side of the seam and one
-constant with two definitions is a constant waiting to disagree with itself.
+| Rule | Value |
+|---|---|
+| Ambient clock | one iteration per `ITER_MS` 1s, `ITER_LIFE` 2s; never gated on whether anything is lit; `MAX_LIVE` 8 (safety bound) |
+| Burst | `SEEDS_PER_ITER` 8 (caller may ask, `MAX_SEEDS` 20); extras drawn from the first seed's `near` pool, weighted, with replacement, `SEED_TRIES` 4/seed |
+| Stagger | one seed per `min(SEED_STAGGER_MS 100, SEED_WINDOW_MS 800 / want)`; a staggered seed is claimed in `seen` at once, queued `seed:true`, lights unconditionally and lights NO edge |
+| One event | all seeds share the iteration's `seen` + queue |
+| Spread | neighbour queued at `HOP_MS` 110 +/- `HOP_JITTER` 30% (audio locked: `hopMs()` = period/4); catch odds `P_MIN` 0.55 (size floor) .. `P_MAX` 1 (ceil), then `graphBias.reach`, x `graphBias.length`; terminal (degree 1) = `TERMINAL_ODDS` 0.15 |
+| Dying | a failed roll is SPENT (nothing walks past) — the only reason cascades end; `seen` is per-iteration (each node tried once) |
+| Node life | `DUR_MIN` 2500 + `DUR_PER_DEG` 290 per edge (cap `DUR_DEG_CAP` 12) x (1 +/- `DUR_JITTER` 0.4); timbre bends life (`DUR_SHARP` 0.55) and attack (`ATT_SHARP` 0.6) by treble share |
+| Envelope | `ATTACK_MS` 280 rise, then `(1-t)^DECAY_POW` 0.85 (concave); multiplied by the hit's strength |
+| Edges | the edge a cascade crossed lights for `EDGE_DUR` 900; an edge only ever varies in SATURATION, never hue (tinted from the from-node) |
+| Saturated layer | a duplicate pass (halos, outline, edge) in the node's community colour, `SAT_MULT` 3 x as long: white flash decaying into a coloured afterglow. Colour computed ONCE per node at `index()` (`pos[id].c`); envelope is the model's own `satLevel` |
+| Unlit baseline | `_NODE_OPACITY` 0.2 for nodes AND edges (`graph_style.py`); `opacity` keeps colours, `size` and hit-testing; edge opacity must be written PER EDGE (a global `edges.color.opacity` is outranked) |
 
-`SIZE_FLOOR`/`SIZE_CEIL` (12 / 88) mirror `graph_geometry._size_graph_by_degree`'s range rather than being derived from the data, so one enormous outlier cannot flatten every other node onto `P_MIN`. If that range moves, move these with it.
+**A lit node is an OUTLINE and a HALO, never a fill** — the interior stays black (`A_FILL` is retired). Paint order (diagram above) is the implementation; under `'lighter'` additive layers commute, so the order only decides where the non-additive passes land: halos -> `clearNodes` (`destination-out`: erases only the overlay's own pixels, NOT a bg fill, which would hide vis's unlit layer below) -> `punchNodes` (opaque bg fill on nodes at/above `GRAPH_OCCLUDE_MIN` only) -> outlines -> wavefront (`source-atop`: lands only on nodes) -> edges (`destination-over`: paint beneath, so a big node's opaque interior occludes them and a small node's cleared interior shows them). Cost: where an edge crosses a halo it reads slightly dimmer.
 
-**Hovering deliberately does nothing to the canvas.** A hover used to pin the hovered node's whole community lit and steady, on the argument that a hover asks *what is this module* and a flickering answer is a worse one. In practice the animation stopping dead under the pointer was worse than the question it answered, so the cascade now runs uninterrupted and `pin`/`unpin` are gone. Clicking a node still opens the node-info panel — that is graph.html's own handler and has nothing to do with the canvas.
+**The node fill must be the real page background**: `graphSurface.bg()` reads the computed body bg; `_GRAPH_BG` (`graph_style.py:195`) must equal `--bg-hsl` (`#000000`). A wrong or `transparent` bg shows as navy shapes / duplicated rotated nodes / bright hub centres (`setBg` is the single gate).
 
-**A frame with nothing lit skips its draw.** Cascades are sparse by design, so the page is idle a good part of the time, and a full-viewport canvas layer is not free even when it paints nothing — it is a composite of the whole viewport, and on this page that is five CRT layers, two of them `backdrop-filter`s. One clearing frame on the way into idle, then nothing until the next seed.
+**Occlusion** (11d): only the biggest tenth of nodes occlude — `_OCCLUDE_PCTL` 0.90, nearest-rank percentile of actual sizes, computed once server-side (`graph_geometry.py:113`) and shipped as `window.GRAPH_OCCLUDE_MIN` (three layers gate on it: unlit fill, lit punch, wavefront). The wavefront has its own cut `_WAVE_PCTL` 0.90 -> `window.GRAPH_WAVE_MIN`. `_unocclude_small_nodes` MUST run after `_size_graph_by_degree` and touches only the three `background` keys (`hover.border` keeps the full-strength colour the saturated ink reads). The client uses the WORLD size `pos[id].r`, never a drawn radius.
 
-**The canvas sits UNDER the CRT stack**, deliberately: the glow belongs behind the same glass and scanlines as the graph it is part of. That costs frames on a machine compositing in software — measured on the droplet's GPU-less headless WebKit at **2 fps under the stack against 18 with the stack hidden**, while *our own canvas work measured 0ms either way*. The cost is compositing full-viewport layers, not anything `graph-pulse.js` draws, so on hardware with a compositor it is a non-issue and looking right won the trade.
+#### Charge (`graph-glow.js`) vs lit
 
+Two separate mechanisms; conflating them is wrong both ways. **Lit** = the cascade flash, wall-clock timings (above). **Charge** = how OPAQUE a node has become: every hit adds `GAIN` 0.22 (never resets) and drains at a RATE set by the smoothed audio level (`graphAudio.loudness()`, follower 0.97/frame): `FADE_LOUD` 110s per full drain at peak, `FADE_SILENT` 1.6s, `FADE_AMBIENT` 2.0s with no audio. Edge charge drains at `EDGE_FADE` 0.45 of the node time. The charge draws UNDER the flash with no halos (cheap; it can cover much of the graph), `DT_CAP` 100ms. **Every `graphGlow` and `graphRing` call goes through a no-op shim** (`glow()`/`ring()` in `graph-pulse.js`; the tree is edited live, and an unguarded missing global THROWS inside the rAF and kills the whole cascade).
 
-The cap makes `(other)` the second-largest community (444 nodes — the long tail of 38 small modules folded together). That is the cost of a cap and it is the right one: raising it to 22 only takes `(other)` to 285 while pushing the legend past what anyone reads, because the tail is genuinely long (52 buckets before the fold), not a handful of stragglers.
+#### Wavefront (`graph-ring.js`)
 
-History — the incidents behind the rules above: [ARCHAEOLOGY.md §11](ARCHAEOLOGY.md).
+A big node that lights ON THE BEAT throws one growing, fading triangle. **Gates**: WHERE `p.r > GRAPH_WAVE_MIN` (fallback occlusion cut, then `MIN_R_FALLBACK` 20); WHEN `graphTempo.onBeat >= ON_BEAT_MIN` 0.6 (1 with no lock). **One front per beat across the graph** (`BEAT_GAP` 0.5 of a period; `BEAT_FALLBACK_MS` 840 unlocked); life clamped to one beat so fronts never nest; `MAX_LIVE` 4 (safety). Always an UPWARD triangle (shape = type, a front isn't a type claim), random quarter-turn from `TURNS`, `GROW` 300 x radius (x `1 + BLOOM_GROW` 0.6 x `bloom()` captured ONCE at release), linear (`GROW_EASE` 1), `FADE_POW` 1.1, `A_RING` 0.55, `DUR_BASE` 1600 + `DUR_PER_R` 12 per radius. **Stroke scales strictly with the shape** (`W_AT_NODE` 1.4 must equal `nodeStroke`'s lineWidth in `graph-pulse-draw.js` — move together) so it reads as zooming in on the node's outline. Pixels: stroked on a device-pixel scratch layer, masked `destination-in` against the main canvas, blended `'saturation'` (neutral ink; a hue-bearing stroke under `source-atop` rewrote community colours), then `'lighter'` restored. **Nodes do NOT rotate** (vis's static copy can't be re-oriented without a ~100ms full redraw per beat); only the front turns. Fired from `graphLit.fire` (the one place a node hit is announced).
 
----
-#### Two glows: the flash, and the opacity it leaves behind
+#### Audio drive (`graph-source`, `graph-bands`, `graph-norm`, `graph-tempo`, `graph-audio`, `graph-audio-ui`)
 
-**These are separate mechanisms on purpose**, and conflating them was wrong in
-both directions — the accumulation on the cascade's timings never accumulates,
-and the cascade on the accumulation's timings smears into a permanent wash and
-stops reading as movement.
+![Audio chain](docs/arch/11-audio-chain.svg)
 
-| | what it is | how it fades |
-|---|---|---|
-| **the lit effect** (`graph-pulse.js`) | the cascade: a white flash and a coloured afterglow | WALL CLOCK, unchanged — `DUR_MIN` 2500 + 290/edge (graph-lit.js), `SAT_MULT` 3 behind it |
-| **the charge** (`graph-glow.js`) | how OPAQUE a node has become | a RATE set by the audio level |
-
-**The charge is what makes a song build the picture.** Every hit adds `GAIN`
-(0.22, so about five hits to full) and never resets, and it drains exponentially
-at `FADE_LOUD` 110s per full drain at peak level, `FADE_SILENT` 1.6s at silence,
-`FADE_AMBIENT` 2.0s with no audio at all. Loud, it barely moves; in the two or
-three seconds of quiet between tracks it clears. A fixed half-life cannot express
-that — the same number is an eternity across a chorus and gone in a gap.
-
-The level it follows is **smoothed** (`graphAudio.loudness()`, an envelope
-follower at 0.97/frame). Instantaneous RMS is near zero between two kicks, so an
-unsmoothed level would drain the charge in the gaps INSIDE a bar and undo the
-accumulation entirely.
-
-**The charge pass draws UNDER both flash passes and carries no halos.** Late in a
-loud track it can cover a large part of the graph, so it is the one pass that has
-to stay cheap: a glyph fill and a stroke, where a lit node also pays for two soft
-discs. `dt` is capped at 100ms, because a backgrounded tab returns with a huge one
-and that gap was not silence, it was nobody looking.
-
-**AMPLITUDE AND RHYTHM ARE MULTIPLIED, not added.** The seed count is
-`(SEEDS_MIN + amp * range) * (1 + (BEAT_BOOST - 1) * amp * beat)`, where `amp` is
-loudness against the decaying peak and `beat` is `graphTempo.onBeat(now)` — 1 on
-a grid point, 0 exactly between two. Loud ON the beat is the moment worth
-spending the graph on, and neither term says that alone: a loud off-grid noise is
-a noise, and a quiet tick exactly on the grid is a tick. Their product is the only
-thing that means *the track just landed*.
-
-The boost is scaled BY the amplitude as well as by the beat, so an on-beat
-whisper gets none of it — otherwise every grid point would bloom regardless of
-what was played on it. With no tempo lock `onBeat` returns **1**, never 0: with no
-grid the page is firing on raw onsets, which are on the beat by construction, so
-an unlocked reading must not be a penalty.
-
-`MAX_SEEDS` went 24 -> **48** to leave the boost somewhere to go (cut again to 20 below), and the stagger
-became a WINDOW rather than a fixed gap (`SEED_WINDOW_MS` 800, so
-`stagger = min(SEED_STAGGER_MS, WINDOW / want)`). At 100ms each a 48-seed burst
-would take 4.8s to fire and span several beats; a big burst now packs tighter
-instead of lasting longer, so it stays ONE event however many nodes it lights.
-
-**An edge only ever varies in SATURATION, never in hue.** All three of its passes
-are tinted from the from-node. The white flash pass used to stroke `#ffffff` for
-edges, so an edge travelled white -> community colour as the flash faded under the
-coloured passes behind it — a hue change over time. Nodes keep their white core
-deliberately, because a lit node clipping to white IS the flash; an edge has no
-core to clip, only a line whose colour is which community it belongs to. Measured
-after: neutral (white/grey) ink is **1.7-8% of lit pixels** and is the node cores
-alone.
-
-**Every edge effect fades faster than a node's, both of them.** The lit edge is
-`EDGE_DUR` 900 against a node's 2790 at minimum and 5980 at the degree cap (before jitter), and
-the edge charge drains at `EDGE_FADE` 0.45 of the node fade time — about 2.2x
-faster.
-
-The reason is what each one MEANS. A node is a place and it stays a place; an edge
-is a crossing, an event with a direction, and once the activation has arrived the
-edge has already said what it had to say. Held as long as its endpoints, the
-picture becomes a wireframe that happens to have bright corners, instead of nodes
-lighting up with the paths between them flickering past — and over a long track
-an equally-accumulating edge set ends as a solid web with the nodes lost inside
-it. Measured, ambient: charged edges sit below charged nodes at every sample
-(72/97, 114/147, 137/178, 160/208, 221/275).
-
-**`graphGlow.charged()` is part of the idle check.** The accumulated opacity
-outlives every cascade by design, so without it an idle frame would clear the
-canvas and throw away the picture a whole track had built.
-
-**The unlit baseline is `_NODE_OPACITY` 0.2 for nodes AND edges.** `opacity`
-scales only the DRAWN alpha, which is why it beats a transparent colour or
-`hidden: true`: the colour objects stay intact so the node-info panel's neighbour
-stripe still has a community colour to read, the node keeps the `size` the
-cascade's glyph radius derives from, and vis still HIT-TESTS it, so a tap still
-opens the panel and seeds a cascade. It was **0 for an afternoon and that was too
-far** — with nothing drawn between cascades there was nothing for a lit node to be
-lit AGAINST, and the page read as empty rather than dark. Edge opacity has to be
-written PER EDGE, since graphify emits a `color` object on every `RAW_EDGES` entry
-and a global `edges: { color: { opacity } }` is outranked (measured: a runtime
-override moved the canvas ink by exactly zero). Unlit, at 1200x744: **121,177 ink
-pixels**.
-
-**`ATTACK_MS` went 90 -> 280.** The decay is the same as it ever was, but the RISE
-was a pop, and with a charge layer accumulating underneath it the rise is the only
-fast edge left on screen — so it was the whole of what read as flicker.
-
-**Every `graphGlow` call goes through a no-op shim** (`glow()` in graph-pulse.js).
-This tree is edited LIVE, so for a few seconds after a change a browser can be
-handed a new graph-pulse.js beside a page shell whose `<script>` tags predate its
-new dependency — which happened, and was reported as `graphGlow not defined`. The
-failure mode is what makes the guard worth having: an unguarded call does not cost
-the accumulation, it THROWS inside the rAF callback and takes the whole cascade
-with it, so the page goes still.
-
-Measured, ambient: lit pixels **25 -> 22,767** and charged nodes **1 -> 168** over
-7s, accumulating rather than sawtoothing.
-
-#### A lit node is an OUTLINE and a HALO, never a fill
-
-Its interior stays BLACK -- the page background, opaque -- however brightly it is
-lit. `A_FILL` was 1, so the centre clipped to white and the halos ringed it; that
-reads as a blob at any real brightness, it buries the SHAPE (which carries the
-node's type) under its own glow, and it throws away the thing that made the unlit
-graph legible in the first place.
-
-**That forces the pass order, and the order is the whole of the implementation.**
-Three groups, each forced by the one before it:
-
-1. **all edges** — charge, white, sat. They used to interleave with the node
-   passes, so a later edge pass drew over an earlier node pass and edges crossed
-   the very glyphs they were arriving at. Every edge pass is TINTED, never white:
-   an edge belongs to a community and its colour says which, so it varies in
-   saturation and never in hue.
-2. **all halos** — while the interiors are still open, because halos are additive
-   discs that spill inside the glyph.
-3. **one opaque black fill over every node**, which occludes both the edges behind
-   it and the halo that just spilled inside it.
-4. **all outlines**, on top of the black. This is what a lit node actually is.
-
-A fill after the halos erases them; an outline before the fill is erased by it.
-That is why `nodeHalos` and `nodeStroke` are two functions rather than one, and
-why `satNodes` is called twice a frame with a different one each time.
-
-The background colour is read off the page's real computed body background
-(`graphSurface`, graph-surface.js), falling back to what `graphPulseDraw.setBg`
-was handed from graphify's `color.background` at index time, rather than written
-here as a second literal.
-
-Verified on the served page: opaque background-coloured pixels appear on the
-overlay and grow with the cascade (97 -> 118 -> 139 over 3s), with no page errors.
-The count is small because at the opening zoom most glyphs are a few pixels
-across; the hubs are where an interior is visible.
-
-#### The client file set, in load order (`_GRAPH_OVERLAY_JS`, `api/routes_graph.py`)
-
-Same global scope, no modules, so ORDER IS THE CONTRACT. Nineteen files, injected before `</body>`: `graph-cover` (loading cover, §11f) → `graph-ink` → `graph-surface` → `graph-glyph` → `graph-pulse-draw` → `graph-seed` → `graph-bands` → `graph-norm` → `graph-source` → `graph-lit` → `graph-bias` → `graph-glow` → `graph-ring` → `graph-pulse` → `graph-tempo` → `graph-audio` → `graph-audio-ui` → `graph-lattice` (§11e/11f, viewport stretch; must precede the overlay because `openView` calls `gpLattice.snap()`/`bounds()`) → `graph-overlay`. The firing stack proper is the **audio chain** `source`→`bands`→`norm`→`audio`(+`tempo`,`audio-ui`) feeding the **cascade** `seed`/`lit`/`bias`/`glow`/`ring` → `pulse` → `pulse-draw` (which owns the canvas and the paint order). Subsections for the five files below were missing until 2026-10-14; `graph-lit`'s constants are in the cascade table above and `graph-source`/`graph-bias`/`graph-tempo`/`graph-audio*` are under "Audio".
-
-**`graph-ink.js` (`graphInk`) — colour arithmetic, no canvas.** `sat(hex)` = hex → HSL → saturation × `SAT_BOOST` (1.75, clamped at 1) → hex, hue and lightness preserved; `WHITE` is the one literal on the overlay canvas. Called once per node at `index()` time and cached on `pos[id].c`. **Trap: the palette lint reads source text with whitespace stripped, so any colour-function name followed by `(` reads as a new raw colour — in comments too.** That is why the helper is `hueChan` (not the conventional name) and `sat()` returns HEX; `--update` would have frozen phantom colours into the baseline. Rename or reword, never baseline.
-
-**`graph-surface.js` (`graphSurface`) — the canvas and the page background.** `create(sized)` makes `#gp-pulse`, appends it to `body`, wires `resize` (also the woken-tab repair — re-measuring the backing store replaced a `location.reload()`), and calls `sized(ctx, w, h)` on every resize so callers cache the three in locals. DPR is **capped at 2** (a DPR-3 phone's 12.9MB backing store vs 5.7MB, composited under the CRT stack every frame). `canvas()`/`dpr()` exist because `graph-ring.js` reads the pixels back. **`bg()` is the computed `body` background** (`getComputedStyle`), cached; `setBg(c)` is only the fallback and rejects `transparent` (a truthy string most nodes carry). `clearAlpha` decides fully-transparent by counting components, not by matching a `, 0)` tail, which a three-component opaque black also has. Two past bugs, same mistake (trusting a stale value; ARCHAEOLOGY.md §11): graphify's `color.background` was `transparent` on most nodes, then `#0f0f1a` was not the page (`--bg-hsl` is pure black), so filled interiors painted navy shapes and rotated nodes looked duplicated.
-
-**`graph-glyph.js` (`graphGlyph`) — shapes exactly as vis draws them.** `bind(ctx)`, `centre(y, r, shape)`, `path(...)` and `at(x, gy, r, shape, turn)`; builds a path and leaves it current (the caller strokes/fills). Constants are vis's own: `TRI_SCALE` 1.15, `TRI_SHIFT` 0.275 (an up triangle is shifted down by 0.275 × scaled radius, a down triangle up). Shapes: `triangle`, `triangleDown`, `dot`, anything else = hexagon (graph_geometry's default). **Rotation is applied to the vertices, never `ctx.rotate`** (a transform would leak out of a function whose contract is to leave a path current). `at` takes an explicit centre so `graph-ring.js` can grow a triangle concentrically — through `path` the offset scales with size and the front would drift off its node. `graph-ring.js` rebinds it to its scratch layer for the frame and back.
-
-**`graph-norm.js` (`graphNorm`) — what the numbers mean.** Every raw `graph-bands` measurement is meaningless in absolute terms, so four adaptive windows hand the visuals 0..1 values against their own history: `amp` (peak-held level vs a slowly decaying peak, `HOLD_FALL` 0.78, `PEAK_DECAY` 0.99995 — minutes, so a drop reads as a drop — `PEAK_FLOOR` 0.02; `loud` is the envelope follower, `LOUD_FALL` 0.97), `pitch` (centroid, `CENT_RELAX` 0.0008, `CENT_MIN_SPAN` 0.06; shared by the height mapping and the edge-length bias), `sharpness` (treble share, `SHARP_RELAX` 0.0008, `SHARP_MIN_SPAN` 0.08, stepped once per frame — per-read would collapse the window), and `hit` (flux / running MEDIAN of `HIST_N` 45 frames, mapped `HIT_FLOOR` 0.45 .. 1 over `HIT_SPAN` 2.6; the median, not a mean, which the transients drag up). `bloom() = amp × (1 − sharpness)` (the low end you feel; `graph-ring.js` scales front extent by it). `placeX()` is a reflecting random walk WITH momentum (`X_STEP` 0.09, `X_TURN` 0.45, speed clamped `X_SLOW` 0.55 .. `X_FAST` 2.0, starts at `X_HOME` 0.5); `placeY = 1 − pitch`. Windows expand instantly and contract slowly; the flux ratio is taken BEFORE the frame joins the history or the beat tests itself away. Allocation-free by design (typed-array ring, out-params `wLo`/`wHi`) — allocation at 60fps reads as audio jitter. Split from `graph-audio.js` at 521 lines.
-
-**`graph-ring.js` (`graphRing`) — the wavefront, which owns its effect end to end** (register, envelopes and its own pixels, unlike lit/glow whose draw half is shared by several passes; `graph-pulse-draw.js` only decides WHEN it draws). Three effects, split by timescale: lit = the flash on the node, glow = the charge, ring = the wave a big node throws off itself once. **Two gates**: WHERE — `p.r > minR`, the server's `window.GRAPH_WAVE_MIN` (the top tenth by size, higher than the occlusion cut `GRAPH_OCCLUDE_MIN`; falls back to the occlusion cut, then `MIN_R_FALLBACK` 20, so a missing global degrades to too many waves, not none); WHEN — `graphTempo.onBeat >= ON_BEAT_MIN` (0.6; 1 with no tempo lock, so ambient mode still throws). **One front per beat across the whole graph** (`BEAT_GAP` 0.5 of a beat; `BEAT_FALLBACK_MS` 840 when unlocked), and life is clamped to one beat so fronts never nest. **`MAX_LIVE` is 4 here (the cascade's is 8)** and is a pure safety bound — structurally the count is one. Shape: always an upward `triangle` (a front says the music landed, not the node's type), `GROW` 300 × radius (× `1 + BLOOM_GROW` 0.6 × `bloom()` captured ONCE at release), `DUR_BASE` 1600 + `DUR_PER_R` 12 per radius (bigger = slower, to keep apparent speed even), linear growth (`GROW_EASE` 1), `FADE_POW` 1.1, `A_RING` 0.55, a random quarter-turn from `TURNS`. **The stroke scales strictly with the shape** (`W_AT_NODE` 1.4 — must equal `nodeStroke`'s lineWidth in graph-pulse-draw.js, move them together) so it reads as zooming in on the node's own outline. Pixels: stroked on a device-pixel scratch layer, masked with `destination-in` against the main canvas (so it only lands on nodes), then blended with `'saturation'` — hence the neutral/community-ink stroke: a hue-bearing stroke under `source-atop` rewrote node colours, and `'luminosity'` is unavailable because the one composite slot is taken. After drawing it restores `'lighter'`. **The node itself no longer rotates** (written to `pos[id].t` once; removed because vis's static copy cannot be re-oriented without a ~100ms full redraw per beat; two cover-up attempts failed, ARCHAEOLOGY.md §11) — only the front turns. Fired from `graph-lit.js`'s `fire` through the same guarded shim as `graph-glow.js`.
-
-#### Audio: `graph-audio.js` + `graph-audio-ui.js` + `graph-tempo.js`
-
-**Desktop only, opt-in, three files on two real seams**: capture and analysis
-(`graph-audio.js`), the control and the source picker (`graph-audio-ui.js`), and
-the tempo arithmetic (`graph-tempo.js`, which is handed onset-energy samples and
-answers *how fast, and when is the next one* — it knows nothing about
-microphones or cascades). The UI half is reached through three guarded functions
-(`say` / `paint` / `flash`), so the analysis runs with no UI present at all,
-which is what a test harness wants.
-
-**Where the audio comes from, best signal first.** A page cannot read the
-device's audio OUTPUT directly: there is no system-audio capture on iOS at all,
-and Safari and Firefox put no audio on a `getDisplayMedia` stream either.
+**Desktop only, opt-in**: the control is not rendered without `getDisplayMedia` or on a coarse pointer; nothing is captured until tapped. The UI is reached through guarded `say`/`paint`/`flash`, so analysis runs with no UI. A page cannot read the device output (no iOS system capture; Safari/Firefox put no audio on a `getDisplayMedia` stream), so sources, best first:
 
 | Source | Prompt | Notes |
 |---|---|---|
-| a local **file**, dropped on the page | none at all | the page PLAYS it, so `createMediaElementSource` sees the exact signal. raVe's `Playlist.js` |
-| a **shared tab** (Chrome/Edge desktop) | share picker | the real output; works with headphones on |
-| a **loopback input** — "Monitor of …", Stereo Mix, BlackHole | mic permission | the speaker output wearing a microphone's clothes. There is no web API for it: it exists only where the machine was set up that way, so it is offered and never assumed |
-| the **microphone** | mic permission | hears the room. raVe's `Microphone.js` |
+| dropped local **file** | none | the page plays it (`createMediaElementSource`); raVe `Playlist.js` |
+| shared **tab** (Chrome/Edge) | share picker | real output, works with headphones; an unticked "share audio" returns video and NO audio (named, not silent) |
+| **loopback** input (Monitor of..., Stereo Mix, BlackHole) | mic | offered, never assumed (`LOOPBACK` regex) |
+| **microphone** | mic | hears the room |
 
-**The live source is named, and chosen from a picker.** Which input is running is
-not guessable from the outside — a monitor device, a headset mic and a shared tab
-look identical on screen and sound nothing alike to the analysis — so the note is
-sticky while capturing and says which one it got. Device LABELS are blank until a
-capture permission exists, which is why the menu offers `list inputs…` rather
-than a column of anonymous ids, and why `auto` opens a stream first and only then
-re-opens on a better device.
+`graphSource` resolves `{stream, el, label, audible}` and rejects with a `why` TAG (`denied`, `no-device`, `cancelled`, `no-share-audio`, `failed`), never a message. The live source is NAMED and chosen from a picker (labels are blank until a permission exists, hence `list inputs...`).
 
-**Nothing lights up when it is quiet.** `driving()` returns `on`; being enabled is
-the whole test. Handing back to the ambient self-seeding during a silent gap
-would look exactly like the audio still driving it, which is worse than a dark
-graph because it is a lie about what the page is doing. Verified by forcing the
-flag: 0 lit pixels for 24s straight.
+- **Bands** (`graph-bands`): 4096-point FFT, **no lowpass**, `smoothingTimeConstant` 0, dB window `MIN_DB` -90 / `MAX_DB` -10, noise `GATE` 0.02, per-band `ATTACK` 0.6 / `RELEASE` 0.08. Crossovers re-cut every `RECALC_MS` 2s at the equal-energy thirds of a ~5s average (`AVG_A` 0.003), clamped `SPLIT1` 80-400 / `SPLIT2` 1000-6000 and ordered after clamping. `bassRaw` is exported UNSMOOTHED (tempo autocorrelates it). Energy is summed over the band, never averaged across the spectrum.
+- **Norm** (`graph-norm`): every value is 0..1 against its own history, neutral with nothing listening (hit 1, sharpness 0.5, pitch 0.5, loud 0). `amp` = held level vs a decaying peak (`HOLD_FALL` 0.78, `PEAK_DECAY` 0.99995, `PEAK_FLOOR` 0.02); `loud` follower `LOUD_FALL` 0.97; `pitch` centroid window (`CENT_RELAX` 0.0008, `CENT_MIN_SPAN` 0.06); `sharpness` treble share (`SHARP_RELAX` 0.0008, stepped ONCE per frame by `graphNorm.step`); `hit` = flux / running MEDIAN of `HIST_N` 45 frames, `HIT_FLOOR` 0.45 .. 1 over `HIT_SPAN` 2.6 (median, not mean; ratio taken BEFORE the frame joins the history); `bloom = amp x (1 - sharpness)`. `placeX()` is a reflecting random walk with momentum (`X_STEP` 0.09, `X_TURN` 0.45, speed `X_SLOW` 0.55..`X_FAST` 2.0, `X_HOME` 0.5; reflection flips velocity too); `placeY = 1 - pitch`. **Allocation-free in the analysis path** (typed-array ring, out-params) — allocation reads as audio jitter.
+- **Onsets**: spectral FLUX over `SENS` 1.32 x the local median, `FLUX_FLOOR` 0.002, debounced `MIN_GAP_MS` 190. Tempo runs on bass energy.
+- **Tempo** (`graph-tempo`): autocorrelation of the onset envelope on a fixed `ENV_HZ` 50 grid (each bucket keeps its MAX), 60-180 bpm; window `ENV_N` 600 (12s), estimating from `ENV_MIN` 300 (6s), every `TEMPO_MS` 1s; **octave correction** (the winner is offered its double, `OCT_KEEP` 0.7; `PREF_LO/MAX` 90-150); **rolling MEDIAN of the last `VOTE_N` 8** estimates (median: errors are whole octaves); a period change never resets the phase (`PERIOD_TOL` 0.03; `PLL_PULL` 0.25 drags the grid onto real onsets within `PLL_WINDOW` 0.25 beat). `LOCK_MIN` 0.22 gates `onBeat`/`hopMs`/`bpm`/`isDownbeat`/`barAccent` alike; the lock lapses after `QUIET_MS` 4000 without an onset. `onBeat` is squared (`ONBEAT_POW`) and **1 with no lock**. Every 4th fire (`BEATS_PER_BAR`) is the downbeat; `barAccent()` rescales confidence from `LOCK_MIN` and scales `DOWNBEAT_BOOST` 1.6 and `graphBias.DOWN_REACH` 0.15 (kept small: reach compounds). `stats()` reports votes + spread.
+- **Fire** (`graph-audio`): a locked grid `fires()` (steady, phase-locked); with no lock a raw onset fires. `driving()` returns `on` — **nothing lights when it is quiet**; handing back to ambient during a gap would lie about what drives the page. Placement: `graphSeed.at(placeX, placeY(centroid))` -> `graphPulse.seedAt(id, n)` (full burst around the place). **Pitch decides height, X is random**: pan is measured and deliberately unused (it pinned X to a vertical column). `n = round((SEEDS_MIN 2 + amp x (SEEDS_MAX 8 - SEEDS_MIN)) x (1 + (BEAT_BOOST 2.5 - 1) x amp x onBeat) x (1 + (DOWNBEAT_BOOST - 1) x barAccent))`, capped by `MAX_SEEDS` 20: amplitude and rhythm MULTIPLY (a loud off-grid noise is a noise; a quiet on-grid tick is a tick). `at()` draws from the nearest `NEAR_AT` 24 candidates so one value doesn't light one node.
+- **Bias** (`graph-bias`, all neutral with no audio): `REACH_GAIN` 0.18 on catch odds, `EXTENT_GAIN` 0.8 on the pool (64 up to `NEAR_MAX` 320); pitch biases edge length and start node by the same rule, `1 + LENGTH_BIAS 0.6 x (2 lowness - 1) x (2 longness - 1)` (low pitch favours long edges / far-reaching nodes, high favours short; `longness` is against TWICE the mean edge, the mean taken AFTER `getPositions`; a node with no edges reads 0.5, never 0). Applied in the per-cascade draws (`at`, `near`), not the ambient index-time `cum`. Lengths are already viewport-shaped (lattice stretches before `index()`), which makes the bias scale-invariant; a window RESIZE does not re-stretch.
+- **Loudness/strength**: `hit()` (read at FIRE time per node) multiplies both envelopes and the charge bump — amplitude decides HOW MANY, strength HOW BRIGHT. Lit-edge width follows `loudness` (`EDGE_SWELL`); the halo and stroke do NOT breathe (the kick's pulse lives in the front's extent).
+- **Readout** (`graph-audio-ui`): `srcLabel . 120 bpm . 118 / 1.4k Hz` (rounded; `crossovers()` null with nothing listening).
+- Reference [raVe](https://github.com/ajm13/raVe) (maps amplitude straight onto geometry, detects no beats); our cascade is discrete so it needs onsets.
 
-**TWO TRANSFORMS, and only the first one touches pitch.** The `AnalyserNode` FFT
-runs on the AUDIO and is a frequency transform, but its output collapses
-immediately to a handful of numbers — `graph-bands.js` reads the UNFILTERED
-analyser's bins as bass/mid/treble energy plus rms, spectral flux, centroid and
-pan — so nothing downstream ever sees which note is playing. The SECOND transform runs over TIME, on the onset envelope: its axis
-is seconds and its peaks are in BPM, not Hz. Pitch is only a means of measuring
-loudness over time; the rhythm is in how that loudness REPEATS.
+#### Cover and loading bar (`graph-cover.js`)
 
-**Tempo is autocorrelation of the onset envelope**, which is the Fourier answer
-computed directly — Wiener-Khinchin makes autocorrelation the inverse transform
-of the power spectrum, so the lag peaking here is the frequency an FFT of the
-envelope would peak at. There is no native FFT for an arbitrary array
-(`AnalyserNode` only transforms live audio), and 34 lags over 300 samples once a
-second costs nothing. The envelope is resampled onto a fixed 50Hz grid so a lag
-converts to a tempo exactly at any frame rate, and each bucket keeps its MAXIMUM:
-a kick is a transient, and averaging it with the 19ms either side of it is how
-you lose the thing you are looking for.
+Static markup `_GRAPH_BOOT` at the top of `<body>`; `gpCover` names the phase (`fetching graph data` -> `building the graph` -> `drawing`), prints the split the payload measures on itself (`data Xs . build Xs`, `idx` phases), says `(slower than usual)` past `SLOW_AFTER` 20s, and on error / no payload prints `[ <reason> - reload to retry ]` and lifts the cover. `LOAD_CAP` 180s declares failure only if `network` never appeared. `#graph` is `opacity:0` until JS adds `body.gp-loaded`, so a JS failure is a black page — the cover is what says which. The payload is fetched by the cover itself (`window.GRAPH_BOOT_URL`, streamed `fetch`, handed back as a Blob `<script src>` so top-level `const`s stay global); `RESCUE_MS` 25s / `onerror` fall back to a plain `<script src>`. **The bar tracks WORK, not bytes** (WebKit returns the payload in one chunk): `FETCHED` 0.35, `BUILT` 0.6 (injected script's `onload`), `PLACED` 0.75, `DRAWN` 0.9 (vis `afterDrawing`), 1.0 at reveal; width eases 280ms between milestones; the build phase breathes (`.gp-build`, opacity — compositor-only, survives a blocked main thread); until a fraction exists the track is `.gp-indet`. `X-Payload-Bytes` is the DECODED length.
 
-**Octave correction is not optional.** A periodic kick pattern correlates just as
-well at HALF its tempo — every other beat still lines up — and the half is the
-longer lag, which on a noisy envelope often edges ahead. Measured against a
-120bpm click track, the raw winner was **61**, reported with high confidence. The
-winner is now explicitly offered its double (`OCT_KEEP` 0.7), and the same track
-then measures **120**, period exactly 500ms. A weighting nudge cannot do this
-job: it only re-ranks candidates that already compete, and at half tempo the two
-are genuinely equally periodic.
+#### Lattice (`graph-lattice.js`)
 
-**Three things stabilise the reported tempo, and the window is only one.** It
-wandered because a 6s envelope is about twelve beats at 120bpm, and on that little
-evidence noise moves the autocorrelation peak from one estimate to the next.
+The layout is snapped to a lattice at serve time, every load (the snap is NOT cached; ~0.1s). `CELLS_PER_NODE` 2.21484375 (a density, not a count). Sequence: `__GP_PRESNAP` captured BEFORE any reshaping (the nightly baker reads it) -> `packCommunities` (opt-in `?pack=1` only) -> `useBakedAspect` (picks the wide bake `BAKE_WIDE` 1.6 or the tall bake `BAKE_TALL` 0.5 from `window.GRAPH_LAYOUT_TALL` by log distance; all-or-nothing) -> `stretchToViewport` (area-preserving, skipped under `?pack=1`; reshapes positions so `cols/rows` follows the window) -> snap with ONE `cell` on both axes (equal horizontal and vertical step) -> `nearestFree` (ring search; real distance first, ties broken toward the cloud's CENTRE so collisions fill inward). **Snap ONCE** (re-snapping a snapped bake produced moire groups). `nodeBounds` pads by the largest node radius. Bakes: `scripts/graph-layout.py` `_BAKES` (wide 1.60 @1440x900, tall 0.50 @430x932), nudging toward the target aspect between stabilisation intervals (`_SHAPE_RATE` 0.2); iterations 300 (`graph_layout.py`).
 
-- **The window is 12s** (`ENV_N` 600), twice the beats agreeing before anything is
-  believed. Estimating still STARTS at 6s (`ENV_MIN`), so the first lock is no
-  slower than it was — the window has to be full for the estimate to be at its
-  steadiest, not for it to exist.
-- **A rolling vote sits on top of it.** Each re-estimate is one ballot and the
-  MEDIAN of the last `VOTE_N` (8) wins, so a single bad second cannot move the
-  answer at all: it has to out-vote the other seven. Median rather than mean
-  because a wrong estimate is usually wrong by a whole OCTAVE, and the average of
-  120 and 60 is 90, which is neither.
-- **A period change no longer resets the phase.** The old line set
-  `nextFire = now` whenever the estimate moved by 3%, which threw the grid's
-  alignment away and restarted the beat from whatever instant the wobble landed
-  on — so the thing that was supposed to make the beat steady was itself the
-  jitter. `phaseLock()` drags the grid onto real onsets and `fires()` resyncs
-  anything wildly stale, so phase looks after itself while the period changes
-  underneath it.
+#### Traps (one-liners)
 
-`stats()` reports `votes` and their `spread`, because "is it stable" is a question
-about the spread and not about the number.
+- Any change to the drop/merge code changes `graph_layout_key` -> the bake MISSES until `scripts/graph-layout.py` re-runs (11e).
+- `_externalise_boot` MUST run last in `_render` (11a); `_cached` keys on the artifact AND `graph-layout.json` `(mtime_ns, size)`.
+- Shape says TYPE, colour says community: `_TYPE_SHAPES` (`graph_geometry.py:19`) code = triangle, rationale = hexagon, document = triangleDown; no `circle` (vis's label-inside family ignores `size`). The overlay copies vis's triangle offset math; a centred triangle lit a glyph a third of a radius off.
+- Node sizes 12..88 (`_SIZE_MIN/_SIZE_MAX`); both ends move together (the RATIO is the encoding); the biggest hub (88) must stay under the lattice step.
+- `graph-pulse.js` and `graph-pulse-draw.js` sit near the 500-line cap — new effects go in their own file (the ring/glow precedent: an effect with its own register and passes owns its pixels; `graph-lit` stays a model because its flash feeds five passes).
+- `node --check` only parses and `no-undef` is off for `web/**` (shared global scope): dead or undefined references survive lint.
 
-**77 lines of dead code came out of graph-tempo.js in the same change**: a
-duplicate of graph-audio.js's `tick()`, left behind when the file was split. It
-referenced `hist`, `HIST_N`, `FLOOR` and `fire()`, none of which exist here, and
-survived because it was never called — `node --check` only parses, and `no-undef`
-is off for `web/**` since those files share one global scope by design.
+History: [ARCHAEOLOGY.md §11](ARCHAEOLOGY.md#11-graph)
 
-**Phase comes from real onsets, not from the autocorrelation**, which yields a
-period and says nothing about where the beats sit. A detected onset drags the
-grid onto it (`PLL_PULL` 0.25) rather than restarting it, so the beat is both the
-right length and on the kicks.
-
-**Energy is measured over the band, never averaged across the whole spectrum.**
-The first design was `source -> lowpass(200Hz) -> analyser`; averaging all 512
-bins after filtering out everything above 200Hz divided the signal by ~128:
-measured, a kick peaked at **6.7 of 255** — sitting ON the silence floor, so
-onsets fired by luck and the phase lock had almost nothing to lock to. Summed
-over the band alone, the same kick peaks at **252**. The lowpass is gone since
-(`graph-bands.js`: 4096-point FFT, unfiltered; bass | mid | treble crossovers are
-re-cut every `RECALC_MS` 2s at the equal-energy thirds of a slowly averaged
-spectrum, clamped to 80-400Hz and 1-6kHz; tempo still runs on the bass band), but
-the lesson holds for every band.
-
-**PITCH DECIDES HEIGHT; X IS RANDOM, deliberately.** `graphSeed.at(fx, fy)` maps a
-fractional position in the node cloud to a node and `graphPulse.seedAt()` lights
-the region around it. The centroid drives Y, inverted so bright sounds sit at the
-top, through a window that ADAPTS to the material: the raw centroid uses only a
-narrow slice of its 60Hz..8kHz log range and sits mid-range, so mapping it
-straight put every cascade in a band across the centre. The window expands
-instantly to admit a new value and contracts slowly (`CENT_RELAX`) toward what the
-music is actually doing, with `CENT_MIN_SPAN` as a floor so a steady tone cannot
-divide by nothing.
-
-**PITCH ALSO BIASES WHICH EDGES A CASCADE PREFERS** (`graphBias.length`). A low
-pitch is a long wavelength, so it travels: the cascade favours LONG edges and
-sweeps across the picture. A high pitch stays close and the activation stays
-local. The mapping is symmetric — the opposite holds at the other end rather than
-one end being special.
-
-Both terms are centred on 0, so their product is positive when they AGREE (low
-pitch crossing a long edge, or high pitch staying short) and negative when they do
-not. That is the whole thing in one line:
-
-```
-1 + LENGTH_BIAS * (2 * lowness - 1) * (2 * longness - 1)
-```
-
-`longness` is measured against TWICE the mean edge length, so an average edge sits
-at 0.5 and only a genuinely long one reaches 1. The mean is taken AFTER the
-layout's positions are read, not with the rest of the edge indexing — that step
-runs before `getPositions`, when every node is still at 0,0 and every edge would
-measure zero.
-
-It MULTIPLIES the catch odds rather than replacing them: degree still decides most
-of whether a node catches and this leans on the result. Measured on the served
-graph (mean edge 715), with the shortest 5% at 194 and the longest 2% at 2584:
-
-| | long edge | short edge |
-|---|---|---|
-| low pitch | **1.60x** | 0.56x |
-| high pitch | 0.40x | **1.44x** |
-| no audio | 1.00 | — |
-
-**Pitch biases WHICH NODES a cascade starts on, by the same rule**
-(`graphBias.node`). A high pitch prefers nodes whose own edges are SHORT —
-tightly connected, locally busy — and a low pitch prefers nodes that reach a long
-way. So pitch decides not only how far the activation travels but where it is
-willing to begin, and the two agree by construction: both read `LENGTH_BIAS` and
-both measure length against twice the graph's mean.
-
-`pos[id].e` is a node's own mean connected edge length, normalised at index time.
-A node with no edges reads **0.5 — no opinion — rather than 0**, which would read
-as "shortest possible" and make every isolated node a high-pitch magnet.
-
-It is applied in the draws that happen PER CASCADE (`graphSeed.at`,
-`graphSeed.near`), not in the index-time `cum` that `any()` uses: that one is the
-ambient path and is precomputed once for the whole graph, so it cannot carry a
-live reading. Measured, with a tight node at mean edge 194 and a far-reaching one
-at 2135: high pitch 1.44x / 0.40x, low pitch 0.56x / 1.60x, 1.00 with no audio.
-
-**EVERY LENGTH MEASUREMENT IS ALREADY IN VIEWPORT-SHAPED SPACE, and that is worth
-knowing before anyone "fixes" it.** `graph-lattice.js` stretches the layout to the
-viewport BEFORE `graphPulse.index()` reads positions, so the coordinates in `pos`
-already carry the window's shape; normalising against the graph's own mean then
-makes the bias scale-invariant. Measured at 430x932 and 1400x900: the cloud aspect
-tracks the viewport (0.509 -> 1.656), while the mean edge as a fraction of the
-cloud diagonal holds at 0.0319 vs 0.0313 and the length distribution holds to
-within ~6% (p50/mean 0.761 vs 0.813, p98/mean 3.56 vs 3.77).
-
-The residual difference is correct rather than error: the stretch is ANISOTROPIC,
-so on a tall phone a vertical edge genuinely is relatively longer on screen, and
-the bias should follow that. One caveat that is pre-existing and not from this
-work: a window RESIZE does not re-run the stretch, so the cloud keeps the aspect
-it was laid out at until the page is reloaded.
-
-**`web/graph-source.js` holds capture and device selection**, on the seam
-graph-audio.js's own header already described: acquiring a stream is a different
-subject from analysing one. Nothing in it touches an AudioContext or an analyser —
-each entry point resolves to a plain `{stream, el, label, audible}` and the caller
-wires the audio graph.
-
-It rejects with a `why` TAG rather than a message (`denied`, `no-device`,
-`cancelled`, `no-share-audio`, `failed`), because the wording is the UI layer's
-business and the capture code should not be choosing it. `cancelled` is the one
-that deliberately says nothing: dismissing a picker is not an error.
-
-**`web/graph-bias.js` holds all three audio biases** — reach, extent and edge
-length — because *how the audio bends the cascade* is a different subject from
-*what a cascade is*, and graph-pulse.js was carrying both. Every read is guarded,
-so with nothing listening each bias returns its neutral value and the ambient
-animation behaves exactly as it did before any of this existed.
-
-**X WALKS, it does not teleport.** Independent random X per beat was what read as
-"too random": every beat landed somewhere unrelated to the last, so a sequence of
-beats was a scatter rather than a movement. A reflecting random walk (`X_STEP`
-0.09 of the width per fire, turning back at the edges rather than wrapping — a
-wrap would teleport across the whole picture, which is the behaviour being
-removed) keeps successive beats near each other, so the eye follows a travelling
-locus. X still carries no audio meaning, which is what "ignore left and right"
-asked for; it simply stops jumping.
-
-**And the burst got much smaller**, because volume was the other half of the same
-complaint. Seeds 4..20 -> **2..8**, `MAX_SEEDS` 48 -> **20**, `EXTENT_GAIN` 3 ->
-**0.8** (the pool was reaching 320 nodes, which is not a burst but a region the
-size of the argument) and `REACH_GAIN` 0.45 -> **0.18**, which matters most
-because branching is `degree x p` and so reach COMPOUNDS. A cascade has to be able
-to die for the next one to mean anything.
-
-**Pan drove X for one commit and was wrong twice over.** A mixed track sits near
-centre, so `(pan + 1) / 2` was ~0.5 almost always; combined with the un-normalised
-centroid the result was a VERTICAL COLUMN, with most of the graph never lighting
-at all. Pan is still measured (`graphBands`, for the readout) and deliberately
-unused: left-and-right carries nothing. Random X is not a placeholder — it is what
-makes the whole width available, so height stays the one axis that MEANS
-something and nothing competes with it for the eye.
-
-`at()` draws from the nearest `NEAR_AT` (24) candidates rather than the single
-nearest node: the same feature value would otherwise light the same node every
-time, which reads as one blinking lamp rather than a region answering. Verified
-that the lookup itself spans the graph — across `fx` 0..1 it returns 11 distinct
-nodes over 18,011 world units, and across `fy` 10 nodes over 10,071 — so the
-column was the input values and never the lookup.
-
-**Loudness chooses how many nodes wake**: `SEEDS_MIN` 2 to `SEEDS_MAX` 8 (graph-audio.js, then scaled by the beat boost), passed
-as the count to `graphPulse.seed()`, judged against a DECAYING PEAK rather than an
-absolute number — a shared tab and a mic across a room arrive at wildly different
-amplitudes and neither is wrong.
-
-**A beat seeds with NO argument**: `graphPulse.seed(id)` is the smaller TAPPED
-cascade, while no id lets the model take its own weighted draw and run the full
-burst.
-
-`smoothingTimeConstant` is **0** against the default 0.8, because averaging across
-frames is precisely what onset detection must not do — the frame-to-frame jump IS
-the beat. And a silent 6s window no longer clobbers a good lock: that is silence,
-not a wrong answer.
-
+---
 
 ### 11g. Field notes (moved verbatim from CLAUDE.md 2026-09-27)
 
-Moved here to keep CLAUDE.md under Claude Code's 150k-char memory limit. Unedited; overlaps 11a-f in places.
+Folded into 11a-f; the live rules are there, the incident narratives are in the archaeology. Server-side facts that live only here:
 
-**Guest-gated** (Turnstile; was public until 2026-07-03). Self-contained graphify codebase viz from the `./graphify-out` volume (rebuilt nightly at 05:00), served by `graph_page()` in **`routes_graph.py`**. **Every transform is applied at SERVE time to graphify's emitted HTML/JS — never an edit to the generated file**, which the next rebuild would overwrite: that is why chrome.css, the cyber-fx, the nav and `web/graph-overlay.{css,js}` are injected too. **Applied per request, COMPUTED once per artifact** — the pipeline is 2.5-2.9s of CPU on a 3.6MB string, so `_cached()` memoises the rendered bytes against the artifact's `(mtime_ns, size)`, one entry per auth tier, and the cold render runs under a lock in `asyncio.to_thread` (a blocking route body would stall every SSE stream on the box). Warm TTFB **0.13s**. **The FIRST PAINT is the loading bar, and that took two changes** (2026-09-22): the cover is now STATIC MARKUP at the top of `<body>` (`_GRAPH_BOOT`, styled from the stylesheet already in `<head>`) instead of a div `graph-overlay.js` appends at the END of the document — and, more to the point, graphify's whole dataset used to be ONE ~2.1MB **inline** `<script>` immediately after it, which **an inline script cannot defer**: the parser reached the cover, then spent a second EXECUTING that block with no rendering opportunity in it, so first paint landed after the wait the bar exists to explain (measured: FCP **1304ms** against a 129ms responseStart — none of it transfer, the page is 133KB gzipped). `_externalise_boot` lifts graphify's inline body scripts into ONE external `defer` file served at `/graph/boot.js?v=<content hash>` (same guest tier, `immutable`, 130KB gzipped, so a repeat visit re-fetches none of it), and `_defer_scripts` defers every other same-origin src tag so document order still decides execution order. **FCP 1304ms → 387ms.** **`_externalise_boot` MUST run last**, after every scrub/drop/merge and after `graph_layout_key`: those are all string edits on the inline node JSON and the layout key is a hash of it, so an earlier extraction turned all of them into no-ops on a 9KB shell — empty layout key (back to ~30s of phone stabilisation) and a payload of RAW, unredacted artifact. The bar also **MOVES from the first frame**: until something can report a real fraction the track keeps `.gp-indet`, an indeterminate marquee, which `graph-overlay.js` drops on its first progress call or at reveal. **A black /graph is a JS failure, not a crash, and the page now says which** (2026-09-22): `#graph` sits at `opacity: 0` until JS adds `body.gp-loaded`, so anything that stops `graph-overlay.js` short leaves a black page — reported from a phone as *tap GPH, nothing, then black*, with the visuals arriving ~3 minutes later. The old failsafe was **120s**, i.e. two minutes of black indistinguishable from a dead tab. The cover moved into its own file (**`web/graph-cover.js`**, `gpCover`, split at the 500-line cap, loaded BEFORE graph-overlay.js and deliberately **not deferred** — deferred it sat behind the payload it exists to report on, and the phase line first appeared at `drawing`) and now: names its phase and counts seconds (`fetching graph data` -> `building the graph` -> `drawing`), prints the split the payload measures on ITSELF (`· data 0.9s · build 1.0s` — the marks are written by the payload, so a main thread blocked solid through the build still reports it honestly, which a ticking clock cannot), says `(slower than usual)` past 20s, and on a thrown error or a payload that never arrives prints `[ <reason> — reload to retry ]` and lifts the cover so the nav is reachable. The hard cap is 180s and only declares failure when `network` never appeared. `#gp-pulse` also caps its backing store at **DPR 2** (12.9MB -> 5.7MB on a DPR-3 phone) — it is a glow layer, not text. **Three phone-only failures came out of one page** (2026-09-22). **(1) A black page after switching tabs and coming back was the old `watchSleep` RELOADING the page** (now `watchWake` in graph-overlay.js: re-measure + redraw on `visibilitychange`, no interval, no reload): a 10s interval whose tick landing >60s late meant "the device slept", and iOS freezes a backgrounded tab within seconds, so every app-switch tripped it — and a reload of /graph is black for the whole load. It is now `watchWake`, on `visibilitychange` + a `persisted` `pageshow`: the wedged canvas that justified the reload is REPAIRED instead (`graphPulseDraw.resize()` + `network.redraw()`), which is the whole of what the reload was buying. No interval, no 60s guess, nothing to false-positive on a busy main thread. **(2) A finished page that would not respond to taps**: `graphPulse` no longer starts on `(pointer: coarse)`. The cascade is the one ANIMATED layer under the CRT stack's two `backdrop-filter` layers, which is the most expensive shape in this repo — a readback per frame, forever (2fps vs 18 measured on the droplet). The stack stays and the cascade goes, in that order: the stack is the site's look on every page, the cascade is /graph-only ambience that is precisely what makes the stack expensive. **(3) Lag between tapping GPH and anything at all** was the RESPONSE, not the page: the render is 1.7-2.9s and `_CACHE` is per-process, so every restart parked a cold render in front of the next visitor. `run_graph_warm_loop` (lifespan task, beside the nudge loop) renders both tiers at startup and re-warms whenever the artifact's `(mtime_ns, size)` changes, so the 05:00 rebuild is covered too. Measured after: **0.046s**. **The bar tracks WORK, not bytes** (2026-09-22): the payload is fetched by `graph-cover.js` itself (`window.GRAPH_BOOT_URL` + a streamed `fetch`, handed back to the browser as a Blob `<script src>` so the payload's top-level `const` bindings stay global) rather than by a `<script defer src>`, because a script tag reports nothing until it is done. Bytes alone could not carry the bar either — **measured, WebKit returns all 2,204,421 of them in ONE chunk**, so a byte bar fires once at 100% — so the bar is a fraction of the WORK, cut by what each phase costs: `FETCHED` 0.45 when the payload is down, `BUILT` 0.9 when it has executed (the injected script's `onload`, the only honest "build is over" marker from outside it), 1.0 at reveal, and inside the download it tracks bytes wherever the stream does split. The build phase holds its width and **breathes** (`.gp-build`, an opacity keyframe) instead of sliding: opacity is a compositor property, so it keeps moving through a main thread blocked solid by the build, where a JS-driven width would freeze and read as hung. Two bugs found by tracing it: the phase text ran BACKWARDS while `go()` and the loader both wrote it (the loader owns it now), and `indeterminate()` has to clear the inline width or the marquee slides a full-width bar. `X-Payload-Bytes` carries the DECODED length — `Content-Length` is the gzipped one. A `RESCUE_MS` timer (25s) and the script's `onerror` both fall back to a plain `<script src>`, since the page no longer carries one. ****The cascade can be TIMED TO WHAT IS PLAYING** (`web/graph-audio.js` + `graph-audio-ui.js` + `graph-tempo.js`, 2026-09-24) — **NOTHING LIGHTS UP WHEN IT IS QUIET** (`driving()` returns `on`, so the ambient clock stays off even in silence), the live input is NAMED and CHOSEN from a picker (a monitor device, a headset mic and a shared tab look identical on screen), **tempo is autocorrelation of the onset envelope** with explicit OCTAVE CORRECTION (a 120bpm track raw-locked at **61** — half tempo correlates just as well and is the longer lag), **tempo stability is three things**: a 12s window (`ENV_N` 600, estimating from 6s so the first lock is not slower), a **rolling MEDIAN vote** over the last 8 estimates (median not mean — a wrong estimate is usually wrong by an OCTAVE, and the average of 120 and 60 is 90), and **a period change no longer resets the phase** (the old `nextFire = now` on any 3% wobble threw the grid away and restarted the beat, so the stabiliser was the jitter). phase is pulled onto real onsets by a PLL, and **loudness picks how many nodes wake** (4..20, judged against a decaying peak). Energy is summed over the PASSED BAND only — averaging all 512 bins after a 200Hz lowpass divides the signal by ~128 (a kick peaked at 6.7/255, sitting ON the silence floor; 252 over the band alone). Sources, best signal first: a dropped **FILE** (no permission at all — the page plays it, raVe's `Playlist.js`), a **SHARED TAB**, a **LOOPBACK input** (`Monitor of…`/Stereo Mix/BlackHole — the speaker output wearing a mic's clothes, no web API, offered never assumed), then the **MIC**. **desktop-only and opt-in**, the control not rendered at all where it cannot work (`getDisplayMedia` absent or a coarse pointer) and nothing captured until tapped. Source order is **`getDisplayMedia` tab/system audio first** (Chrome/Edge desktop; the only route to real OUTPUT, and the only one that works with headphones) falling back to the **microphone** (hears the room, needs speakers). The likeliest failure is named rather than silent: Chrome shows the picker whether or not *share tab audio* is ticked, and an unticked box returns a video track and NO audio. Chain is `source -> lowpass(200Hz) -> analyser`, `smoothingTimeConstant: 0` (the default 0.8 averages away the frame-to-frame jump that IS the beat), both data domains read. An onset is energy over 1.32x the mean of the last 45 frames, debounced 190ms; **the history is written AFTER the test** or the loud frame raises the average it is compared against. A beat calls **`graphPulse.seed()` with NO argument** — `seed(id)` is the smaller TAPPED cascade, no-id runs the full ambient burst. **`graphAudio.driving(now)` is the one in-place edit to `graph-pulse.js`** (which is AT the 500-line cap): the ambient clock yields while audio drives, and takes back over after 4s of silence so a finished track never leaves a still graph. Reference is [raVe](https://github.com/ajm13/raVe), which detects NO beats — it maps amplitude straight onto ring geometry, redrawn every frame — and the lowpass-before-analyser is taken from it; ours needs onsets because a cascade is discrete and cannot be driven continuously. Self-starting, so the whole feature is one file. **ARCHITECTURE.md §11**. **Tapping a node fires a cascade seeded there** (`graphPulse.seed(id)` on vis's `click`) — the same iteration the model seeds on its own, burst and stagger and outward walk, because what is interesting about a node is what it reaches. **Ambient seeding runs everywhere now, on every size and every pointer.** It was gated twice and neither gate survived: first on `(pointer: coarse)`, which turned the animation off on exactly the device that then reported the page as frozen — **the animation is what the page IS**, and a still graph reads as a dead one; then on node count, which meant the same thing once phones stopped being served a smaller graph. The cost was paid down where it actually sat (the DPR cap, the payload off the critical path, a reveal that waits for the first lit frame). `auto` survives as the seam a future gate would use. A tap seeds a cascade in every case regardless, since that is bounded and asked for. **The cover lifts when the page is FINISHED, not when the work is ordered** (2026-09-22). `reveal()` used to fire on the line after `moveTo`, which meant two things were still in flight: vis had set the camera but not repainted at it (so the reveal uncovered the PREVIOUS frame and the graph jumped into place afterwards), and `graphPulse.init()` only wires the model, so the first cascade lit a beat into a page that was already on screen — a still graph that then twitches. `openView` now waits for vis's own `afterDrawing` (the camera-correct frame is up), then for the pulse's FIRST PAINTED frame (`graphPulse.init(onReady)`, fired from the draw call, not from init returning), and only then fades. `READY_CAP` (3s, armed before either wait) is the floor: a reveal that never comes is far worse than one a frame early, and both waits are on events that can be missed. Where nothing will ever paint by itself — `auto` off — `onReady` fires immediately, or the cover would wait for a frame that is not coming. **The “groups of four” were a MOIRE — the layout was quantised twice** (2026-09-22). `scripts/graph-layout.py` waited for `gp-loaded` and read `network.getPositions()`, which is AFTER `snapToGrid`, so the nightly file stored an already-snapped lattice: 107 distinct x values, gaps of 146/147 — `cell` at `CELLS_PER_NODE` 4. Every later visit snapped that a SECOND time at the current cell (97 at CPN 9), and **146/97 = 1.505**, so multiples of 146 land on indices 0, 2, 3, 5, 6, 8, 9: alternating wide and narrow gaps on both axes, drawn as pairs and pairs-of-pairs — evenly spaced groups of up to four, looking entirely deliberate. `snapToGrid` now publishes **`window.__GP_PRESNAP`** (positions as the LAYOUT left them) and the baker reads that, falling back to the old call. **Snap ONCE, at serve time.** Re-baked and measured: the file went 107 distinct x → **2,433**, the render to gaps of 99 x121 / 100 x25 with the odd 198 or 298, and clumps from a hard cap at 4 to a natural tail (1220 singles … one 107). **`_cached` keys on `graph-layout.json`'s `(mtime_ns, size)` too**, not graph.html alone: the 05:00 cron rebuilds graphify and bakes AFTER it, so a visit in that window cached a render with NO baked layout and nothing invalidated it for a full day. **A TAP guarantees its first hop** — every direct neighbour and the edge to it — since at `TERMINAL_ODDS` (0.15) a hub's mostly-leaf neighbours lost the roll and the edges never lit (measured: lit pixels 896 ambient → 1842 after tapping a degree-157 hub); past that ring the cascade is ordinary, and a tap seeds none of the extra `SEEDS_PER_ITER` draws, which exist to make an AMBIENT iteration read as a region waking up. **`CELLS_PER_NODE` is 7** (9 → 7 on request, ~22% fewer points: 19,054 against 24,498, cell 99 → 112; the trade is clumpier — largest block 107 → 160, singles 1214 → 876). **Community packing is opt-in at `?pack=1`**: each of the 14 communities moved as a RIGID tile, translation only, shelf-packed to the viewport's aspect (117 cols x 218 rows, step 350 both axes, cloud 0.53 against a 0.50 viewport). Off by default because it deals the communities out again — nothing inside one moves, but the picture reads as a different graph. vis's physics runs in WORLD coordinates and ignores the viewport, so baking in a tall window changes nothing and scaling an axis is the squish; this is the only honest third option. **Positions are STRETCHED to the viewport before the snap** (2026-09-22): baked positions -> stretch x and y by different factors so the cloud takes the window's shape (area preserved, `boxW*boxH == w*h`, so `cell` and the lattice's density are untouched) -> snap with ONE `cell` on both axes. Measured: **98x199 grid at 430x932 (ratio 0.49 against a 0.49 viewport)**, **183x106 at 1280x800 (1.73 against 1.72)**, step 112/112 on both. Two different things get called squished and only one of them is: the POSITIONS are reshaped, so distances in the picture change, while the LATTICE keeps identical horizontal and vertical spacing — which is exactly what lets the grid gain rows without changing its step. It has to happen before the snap, because with equal spacing `cols/rows` IS the node cloud's bounding-box aspect, so the cloud must already have the window's shape when the snap runs. `?pack=1` is the alternative that reshapes by MOVING communities instead (centroids stretched, each community translated rigidly, overlaps separated, aspect fed back four times: 0.51 against a 0.49 phone) — it preserves every distance inside a community and changes where the regions sit, and the stretch is skipped when it runs, since both answer the same question. **Stabilisation is 370 iterations** (220 -> 270 on 2026-09-21, **+100 on 2026-09-22**): the physics runs another hundred steps before it freezes and the snap lands, so the layout has stopped moving rather than being frozen mid-drift. The whole run happens inside the NIGHTLY BAKE, never in front of a visitor, so the cost is the cron job alone — **20.7s -> 29.1s** measured. It invalidates nothing by itself: `graph_layout_key` hashes node ids and edge pairs, not coordinates, so the previous bake still matches by key and keeps being served until `scripts/graph-layout.py` is re-run (which is why it was, in the same change). **TWO BAKES, one per shape** (2026-09-22). vis has **no per-axis gravity** — 9.1.9 offers `centralGravity`, one scalar toward one point, and nothing that pulls harder on an axis — so a stabilisation settles at whatever aspect the forces like, once, for everyone. `scripts/graph-layout.py` imposes the shape by NUDGING between stabilisation intervals instead: squeeze a few percent toward the target aspect (`_SHAPE_RATE` 0.2, area-preserving), let the next interval's springs relax against it, repeat. That is a layout the forces AGREED to at that shape — edges re-balance rather than being multiplied. It bakes `pos` (wide, target 1.60, **got 1.20**) and `tall` (target 0.50, **got 0.72**) — the springs pull back, so it lands between. The wide set bakes into RAW_NODES as before; the tall set ships in the **payload** (immutable-cached, not the 9KB `no-cache` shell) as `GRAPH_LAYOUT_TALL`, and `useBakedAspect` picks whichever is nearer on log distance, leaving `stretchToViewport` only the remainder (0.72 -> 0.49 rather than 1.6 -> 0.49, about a third of the distortion). **`__GP_PRESNAP` is captured before ANY reshaping** — it was taken after the stretch, so the bake stored a cloud already pulled to the bake window's aspect and every client stretched that again. Iterations are **300** (370 bought nothing visible for 8s of bake). `CELLS_PER_NODE` is **2.21484375** (a density, not a count: 9 -> 7 -> 5.25 -> 3.9375 -> 2.953125, a quarter off each time; **5,716 points, cell 194**). **`nearestFree` breaks ties toward the CENTRE**: a ring offers several cells at the same real distance — the four orthogonals, then the diagonals — and which one a displaced node took was decided by loop order, west then north then south then east, for every node on the board. Preferring the candidate nearer the cloud's centre spends collisions INWARD, filling gaps the layout left rather than growing a rim of pushed-out nodes, and it compounds: filling inward leaves outer first choices free, so FEWER nodes are displaced at all (simulated on the tall bake: 903 -> 793 at the old density, 1,285 -> 1,150 at this one). Strictly a tie-break — real distance still wins first, so nothing travels further from where the layout put it than it must. Coarser costs isolation, not much size: simulated against the tall bake, blocks 588 -> 328 and nodes standing alone **341 -> 184**, while the largest block barely moved (196 -> 204) — fewer cells means neighbours merge into the blocks that already exist rather than forming new ones. Iterations **300** — the range 270/300/325/370 was walked on 2026-09-22 and nothing above 300 showed up in the picture, nor in the aspect shaping (325 moved the bakes by 0.06 and 0.01), because what limits those is the springs pulling back against the squeeze, not how long the sim runs. **The node's name IS the panel title**: graph.html ships a fixed `<h3>Node Info</h3>` and then repeats the label as the first `.field` of the body, so the name rendered twice a line apart in two weights. `patchInfoPanel`'s `showInfo` wrapper writes the label into the heading and removes that first field **by matching its text**, never by position — this is generated markup, and a blind removal of the first field deletes whatever moves into its place the day graphify reorders them. **TWO GLOWS, AND THEY ARE SEPARATE MECHANISMS** (2026-09-24). The **lit effect** (`graph-pulse.js`) is the cascade — white flash + coloured afterglow — on WALL-CLOCK timings, unchanged (`DUR_MIN` 2500 + 290/edge, `SAT_MULT` 3). The **charge** (`web/graph-glow.js`) is how OPAQUE a node has become: every hit adds `GAIN` 0.22 and never resets, and it drains on a RATE set by the audio level (`FADE_LOUD` 110s at peak, `FADE_SILENT` 1.6s, `FADE_AMBIENT` 2.0s) — so a loud track builds the picture and the gap between songs clears it. Conflating the two was wrong both ways: accumulation on the cascade's timings never accumulates, and the cascade on the charge's smears into a wash. **THE AUDIO STACK IS NINE FILES** (2026-09-24), each a real seam: `graph-source.js` (capture + device selection; resolves `{stream, el, label, audible}` and rejects with a `why` TAG, never a message — the wording is the UI's business) -> `graph-bands.js` (spectrum: bass/mid/treble, full-band RMS, spectral FLUX, log centroid, stereo pan) -> `graph-audio.js` (onsets + firing + placement) -> `graph-bias.js` (how the audio bends the cascade: reach, extent, edge length) -> `graph-tempo.js` (tempo, metre, onBeat) -> `graph-seed.js` (WHERE: `at(fx,fy)` and a level-scaled pool) -> `graph-lit.js` (the flash envelopes) + `graph-glow.js` (the accumulated charge) -> `graph-pulse.js` (the cascade) -> `graph-pulse-draw.js` (canvas). **No lowpass any more** — a 200Hz filter meant everything above it was discarded, so a snare, hat, vocal or lead was invisible and 'loudness' was BASS loudness (a bright loud passage read as quiet). **THE BAR IS ACCENTED AS MUCH AS THE LOCK IS BELIEVED** — `confidence()` was measured every second and reached nothing but the text readout, so the picture asserted the same certainty about a half-guessed bar as about one it was sure of. `graphTempo.barAccent()` is 0..1, rescaled from `LOCK_MIN` rather than 0 (0.22 is where a correlation stops being noise, not where it is confident), and it scales `DOWNBEAT_BOOST`. **`isDownbeat()` was also missing the `LOCK_MIN` gate that `onBeat`/`hopMs`/`bpm` all carry** — it accented off a bare `period > 0`, a full pulse on a bar the page did not believe in. **And the bar gets a different VERB, not just more of the same one**: `graphBias.DOWN_REACH` 0.15 lifts the catch odds on the downbeat, so a bar boundary reads as the activation SWEEPING rather than as slightly more dots in the same place — kept small because reach compounds (branching is degree x p) and this one pulses every fourth beat. Measured on a synthetic 120bpm train: locks at conf 0.958, accent 0.947 on beat 0 and exactly 0 on beats 1-3. **SIZE AND WEIGHT BREATHE, NOT ONLY COUNT** — every number on the overlay canvas was a literal, so a peak and a whisper drew identically sized, identically weighted marks and the only thing the music changed was HOW MANY. The LIT EDGE WIDTH follows `loudness` (the ~1.5s envelope, `EDGE_SWELL` 0.6) so the web thickens through a chorus and thins through a breakdown — per-PASSAGE, a slow structural change rather than a flicker. **The HALO used to breathe too and deliberately no longer does**: it followed `bloom` (per-kick), which made every lit node swell and the whole picture throb in place. That pulse moved to the WAVEFRONT's extent, where a kick becomes a thing that TRAVELS instead of a graph pulsating. **The STROKE is deliberately excluded** — the outline carries the shape, which carries the node's type, and it is the one mark here that must stay readable. Both collapse to their literals with nothing listening. **NO RAW MEASUREMENT REACHES THE VISUALS** — `web/graph-norm.js` holds every adaptive window, and they are one subject: a shared tab and a mic across a room arrive at wildly different amplitudes and neither is wrong, a centroid's 60Hz..8kHz range is a narrow slice for any real track, a treble share sits wherever the mastering put it, and a flux value means nothing except against the flux either side of it. So each is normalised against its OWN observed history — `amp` (peak-held level vs a minutes-long decaying peak), `pitch`, `sharpness`, `hit` — and they differ in TIMESCALE deliberately. Split out of `graph-audio.js` at 521 lines, which keeps capture, onsets, tempo and firing. **Every term is neutral with nothing listening** (hit 1, sharpness 0.5, pitch 0.5, loud 0), verified on the live page, so ambient is byte-identical. **TIMBRE DECIDES THE SHAPE OF THE FLASH, and it is why `mid`/`treb` exist** — both bands were computed every frame and read by NOTHING until 2026-09-24 (only bass/rms/flux/centroid reached the picture), so two thirds of the spectrum was analysed and discarded and the adaptive crossovers were sharpening a signal that went nowhere. `graphNorm.sharpness()` (exported through `graphAudio`) is the TREBLE SHARE (`treb/(bass+mid+treb)`) on an adaptive window, and it is self-normalising ONLY BECAUSE the crossovers move — equal-energy thirds put the share near 1/3 whatever the material. `graph-lit.js` bends both the life (`DUR_SHARP` 0.55) and the attack (`ATT_SHARP` 0.6) by `1 + K*(1-2*sharp)`: treble reads SHORT+FAST (a hat is a click), bass reads LONG+SLOW (a kick is a body). Measured 4069ms/448ms at the bass end against 1181ms/112ms at the treble. **The centre is exactly 1**, and `sharpness()` returns 0.5 with nothing listening, so ambient timings are untouched. Its window steps ONCE PER FRAME from `graphNorm.step` (called from `graph-audio.js`'s tick), unlike `graphNorm.pitch` which relaxes per read — sharpness is read per LIT NODE, and a window relaxing dozens of times a frame collapses to its floor. **A LIT NODE FADES SLOWER AND LASTS LONGER, and those are two knobs** (2026-09-24, on request). LENGTH: `DUR_MIN` 1650->**2500** and `DUR_PER_DEG` 195->**290** (1100+130 originally). SHAPE: `DECAY_POW` 1.2->**0.85**, which is the one that costs nothing — below 1 the curve is CONCAVE, so a node holds most of its brightness through the first half and spends the fall at the end (55% at the halfway point against 43%), where above 1 it drops away at once and spends its life dim. It cannot go much lower: as the exponent falls the END steepens and the fade stops being a fade and becomes a hold that switches off. Measured: a node stays above alpha 0.5 for **+78%** longer (1305->2325ms) and above 0.1 for +63%. **The cost of the LENGTH half is FRAMES, not drawing** — per frame the work is unchanged (O(lit), the extra nodes at low alpha); what grows is how many frames `lit` is non-empty for, on the one ANIMATED layer under the CRT stack's two backdrop-filter panes, which is why the pair is not simply doubled. `EDGE_DUR` stays 900, widening node:edge from 2.9x to **4.4x** — a node is a place and stays one, an edge is a crossing that has already happened. **HOW HARD A HIT LANDED IS ITS BRIGHTNESS** (`graphAudio.hit()`, read at FIRE time by `graph-lit.js`): the onset test reduces flux to a BOOLEAN, so a snare at three times the local average and one barely over the line drew identically and a peak differed from a whisper only in HOW MANY nodes lit — one channel doing the work of two, and one that saturates at `SEEDS_MAX` long before music does. The ratio is peak-held ~80ms (a cascade seeded a frame late must still see the transient), mapped `HIT_FLOOR` 0.45..1 over `HIT_SPAN` 2.6, and multiplies BOTH envelopes plus the charge bump — so a soft passage builds the picture slowly and a hard one builds it fast. **Amplitude decides how many, strength decides how bright**, deliberately two channels. Read per node rather than captured per cascade, so a cascade still travelling while the music swells BRIGHTENS along its length. Everything returns 1 with nothing listening, so ambient is untouched. **THE READOUT SHOWS THE SPLITS** (`graph-audio-ui.js`, `srcLabel · 120 bpm · 118 / 1.4k Hz`) — the crossovers move every couple of seconds and that was otherwise entirely invisible: the picture changes BECAUSE of them and never shows them, so a dark track and a bright one were indistinguishable from the analysis sitting on its defaults. Rounded to `118` / `1.4k` deliberately, since the question the number answers is *have the splits moved* and `118.37 / 1404.9` only makes the line longer. `crossovers()` returns **null** with nothing listening, so the line appends nothing rather than a stale pair that reads as a measurement. **THE BAND CROSSOVERS ARE RE-CUT OVER TIME**, not fixed: every `RECALC_MS` (2s) they move to the EQUAL-ENERGY THIRDS of a slowly-averaged spectrum (`AVG_A` ~5s), so what counts as bass is what is bass FOR THIS MATERIAL. Fixed at 200Hz/2kHz they were fine for a typical mix and useless either side of it — a dark master has almost nothing above 2kHz, so one of three inputs read ~0 all song. CLAMPED (`SPLIT1` 80..400, `SPLIT2` 1000..6000) because tempo runs on the bass band and a split drifting into the mids would have the beat detector tracking a vocal; ordering is enforced after clamping, since clamping two values independently can cross them and a band with hi<lo reads as silence forever. Measured: a 90Hz source cuts at 118/1000, a 700Hz one at 400/1400, a 4kHz one at 400/6000. **THE ANALYSER'S dB WINDOW IS SET, not left at the default** (`MIN_DB` -90, `MAX_DB` -10): `getByteFrequencyData` is clamped to `minDecibels`..`maxDecibels`, and the defaults are -100..-30 — a window whose CEILING is -30, so anything normally mastered pins at 255 and the loud half of the music is one flat value. **A NOISE GATE (`GATE` 0.02) makes silence STILL** — dither, room noise and the analyser's own floor all sit a hair above zero, so an ungated band twitches forever and a quiet page looks broken rather than quiet. **PER-BAND ASYMMETRIC SMOOTHING** (`ATTACK` 0.6 / `RELEASE` 0.08) is the one that makes the bands feel alive: `smoothingTimeConstant` is SYMMETRIC, so any value big enough to settle the noise also rounds off every attack — which is why it stays 0 and the following is done per band. Measured: 5 frames up 0.480->0.792, 5 frames down 0.728->0.522. The gate is applied to the TARGET, so silence decays on the release curve instead of snapping. **`bassRaw` is exported UNSMOOTHED and tempo reads that**, because graph-tempo autocorrelates it and a slow release smears exactly the periodicity it is looking for — one band, two consumers wanting opposite things. **`fftSize` stays 4096** (~11.7Hz bins): 2048 is enough for a visualiser and 8192 buys low-end detail at the cost of time smearing, and this drives both onsets and a centroid. **Onsets are spectral FLUX**, not band energy; **tempo stays on bass energy** (a kick's periodicity is the clearest thing in music, and flux is periodic at every subdivision at once). **THE ONSET THRESHOLD IS A RUNNING MEDIAN, not a mean** (2026-09-24): a mean is dragged up by the very transients it is meant to be a baseline for, so one loud hit raises the bar for the next few frames and swallows a second arriving behind it — and in a dense passage it sits so high nothing clears it. Measured: 45 frames of sustained high flux then a 3x transient gives `hit` 0.450 -> **1.000** at ratio 3.00. Answered only on a FULL history, so the zeros in an unfilled ring cannot drag the middle down. **NOTHING IN THE ANALYSIS PATH ALLOCATES PER FRAME** — at 60fps allocation is what reads as jitter, and it reads as jitter in the SOUND rather than in the code, which is the worst place to look for it. Three were found and removed: the flux history was a plain array PUSHED into (reallocating its backing store as it grew) and is a fixed `Float32Array` ring written in place, with a second same-length buffer for the median so `set`+`sort` allocate nothing; `window_` returned a fresh `{lo,hi,v}` and `pitch()` is called once per catch roll, so that was dozens of objects a frame — it returns the value and leaves the bounds in out-params; and `graphLit.levels()` built a new map plus a key per lit node every frame, the largest source on the page, now one reused map with stale keys deleted. **`PEAK_DECAY` 0.999 -> 0.99995**: the old AGC fell to 1/e in ~17s so a quiet intro renormalised to full and the DROP did not look like a drop. **An ~80ms peak HOLD** feeds the seed count, or a grid fire sampled between transients counted a loud beat quiet. **THE X WALK CARRIES MOMENTUM** (2026-09-24) — an independent step per fire is a PURE random walk, and a pure random walk goes nowhere: expected displacement zero, typical distance growing only as sqrt(steps), so it doubles back constantly and SITS in one region. Reported as getting stuck in one place. **No step size fixes that** — a bigger step jitters harder in the same spot. The direction now persists and only TURNS a little per fire (`X_TURN` 0.45), speed held between `X_SLOW` 0.55x and `X_FAST` 2x of `X_STEP` (0.07 -> 0.09): the floor stops it stalling when two turns cancel, the ceiling stops a run of same-sign turns becoming a teleport. **Reflection flips the VELOCITY as well as the position**, or the walk arrives at an edge still travelling into it and is pushed back to nearly the same place every step — which looks exactly like being stuck. Measured fraction of the width covered: after 16 fires **0.210 -> 0.822**, after 32 **0.321 -> 0.959**. **Placement**: **PITCH DECIDES HEIGHT, X IS RANDOM.** Centroid -> Y (inverted: bright at the top) through an ADAPTIVE window — the raw centroid uses a narrow slice of its 60Hz..8kHz log range and sits mid-range, so mapping it straight put every cascade in a band across the centre and left most of the graph dark. The window expands instantly to admit a new value and contracts slowly (`CENT_RELAX`) toward what the music is actually doing. Pan drove X for one commit and was wrong twice over — a mixed track sits near centre, so X pinned to ~0.5 and the result was a vertical COLUMN. Pan is still measured and deliberately unused: left-and-right carries nothing. Random X is not a placeholder, it is what makes the whole width available so height stays the one axis that means something. **Pitch also biases WHICH NODES are chosen** (`graphBias.node`): high pitch prefers nodes whose own edges are SHORT, low pitch prefers far-reaching ones — same `LENGTH_BIAS`, same twice-the-mean scale, so travel and selection agree by construction. `pos[id].e` is the node's mean connected edge length; **a node with no edges reads 0.5 (no opinion), never 0**, or every isolated node becomes a high-pitch magnet. Applied in the PER-CASCADE draws (`at`, `near`), not the index-time `cum` that ambient `any()` uses. Measured: high pitch 1.44x on a tight node / 0.40x on a far-reaching one, low pitch the reverse. **All length measurements are already viewport-shaped** — graph-lattice stretches positions to the viewport BEFORE graphPulse indexes them, so `pos` carries the window's shape and normalising by the graph's own mean is scale-invariant (measured 430x932 vs 1400x900: cloud aspect 0.509 -> 1.656 while mean-edge/diagonal holds 0.0319 vs 0.0313). A RESIZE does not re-stretch, though — that is pre-existing. **PITCH BIASES EDGE LENGTH** (`web/graph-bias.js`, `graphBias.length`): low pitch = long wavelength = prefers LONG edges and sweeps; high pitch stays close and local. Symmetric — `1 + LENGTH_BIAS*(2*lowness-1)*(2*longness-1)`, both terms centred on 0 so the product is positive when they agree. `longness` is against TWICE the mean edge, and **the mean is taken after `getPositions`**, not with the edge indexing (which runs while every node is still at 0,0). It MULTIPLIES the catch odds, never replaces them. Measured: low pitch 1.60x on a long edge / 0.56x short, high pitch 0.40x long / 1.44x short, 1.00 with no audio. `graph-bias.js` holds all three audio biases (reach, extent, length) — guarded, so silence is neutral. **X WALKS rather than teleporting** (`X_STEP` 0.07/fire, reflecting at the edges): independent random X per beat was what read as *too random*, since every beat landed unrelated to the last. And the burst shrank — seeds 4..20 -> **2..8**, `MAX_SEEDS` 48 -> **20**, `EXTENT_GAIN` 3 -> **0.8** (the pool was hitting 320 nodes) and `REACH_GAIN` 0.45 -> **0.18**, which matters most because branching is degree x p so reach COMPOUNDS. A cascade has to be able to die for the next one to mean anything. **Level also drives EXTENT** (pool 64 -> up to 320), **REACH** (`REACH_GAIN` on the catch odds) and **SPEED** (`graphTempo.hopMs()` = period/4, so the spread is rhythmic instead of a flat 110ms). **Metre**: every 4th fire gets `DOWNBEAT_BOOST`. **`onBeat` is squared** so it discriminates. **A LIT NODE IS AN OUTLINE AND A HALO, never a fill** — its interior stays BLACK however brightly lit (`A_FILL` retired; a filled centre clips to white, reads as a blob and buries the SHAPE that carries the node's type). That forces the paint order, which IS the implementation: **all edges -> all halos -> one opaque black fill over every node -> all outlines**. A fill after the halos erases them; an outline before the fill is erased by it — hence `nodeHalos` and `nodeStroke` as two functions and `satNodes` called twice a frame. **A BIG NODE THROWS A WAVEFRONT WHEN IT LIGHTS ON THE BEAT** (`web/graph-ring.js`, 2026-09-24): a growing copy of its OWN shape, fading to nothing exactly at full extent. **TWO GATES about different things** — only big nodes (WHERE, the same `GRAPH_OCCLUDE_MIN`) and only on the beat (WHEN, `graphTempo.onBeat >= 0.6`, roughly the middle fifth of a beat). Without the second, a cascade walks outward at sixteenth hops and a hub caught mid-bar threw a front with nothing audible behind it. `onBeat` is **1 with no lock** by design, so ambient is unchanged — the rule every audio term here follows. **ONE TRIANGLE, ALWAYS** — not a copy of the node's own shape: the shape a node wears carries its TYPE, and a front is not a statement about a type, so three silhouettes sweeping out said the wrong thing three ways (the up-triangle is what 74% wear anyway). `GROW` **300** — the largest node's front passes well off every edge before it is spent, so the triangle sweeps THROUGH the view rather than expanding inside it, affordable only because the gates make it rare. Growth **LINEAR** (`GROW_EASE` 1) because the easing compounds against the range — at 0.75 and 50x a front is past 18x a QUARTER of the way through its life, so all the travel happens in the first few hundred ms and the rest is a huge faint triangle creeping; linear spends the whole duration travelling, which is what reads as a sweep. Fade `^1.1`, `dur` = 1600 + 12/r so a BIGGER node throws a SLOWER wave (at fixed duration the biggest would snap out while the smallest drifted; scaling the clock keeps apparent speed even and leaves SIZE as what differs). **STROKED, NEVER FILLED** — a filled copy at 7x is a disc the size of a neighbourhood; an outline is a FRONT. **THE STROKE SCALES STRICTLY PROPORTIONALLY, AND THAT IS THE ZOOM ILLUSION** — scaling a stroked shape scales its stroke, so a constant or thinning width is the giveaway that the thing is being redrawn larger rather than approached. `W_AT_NODE` is therefore NOT free: it is `nodeStroke`'s own lineWidth (**1.4**), so at scale 1 the front IS the node's outline and every frame after is that outline, nearer — move the two together or the illusion breaks where it starts. It ends at **420px** by construction and that width IS the zoom; the alpha reaches nothing over the same span, so the last stretch is a wide faint wash. **THE PAINT ORDER WAS RE-CUT FOR IT** (2026-09-24). Under `'lighter'` additive layers COMMUTE, so what the order decides is where the three NON-additive passes land. **Six passes, each forced by the one before**: `halos` (additive, and they spill inside the glyphs) -> `clearNodes` (**destination-out**, every node's interior, of that spill) -> `punchNodes` (**opaque**, the big nodes, so nothing paints inside them) -> `outlines` (additive, over the black) -> `graphRing.draw` (**source-atop**, so the front lands only where the canvas holds NODES by now) -> `edges` (**destination-over**, underneath all of it). **The edges moved LAST and paint beneath**, which is what lets the front be restricted to nodes — drawn first, `source-atop` landed it on every lit edge it crossed too, and the front is meant to sweep the nodes, not light the wiring. Occlusion survives free and by a better mechanism: a big node's interior is already opaque, so an edge painting underneath does not appear there, while a small node's interior was CLEARED to transparent so an edge shows through. One real cost: where an edge crosses a halo it now composites BENEATH the glow rather than adding to it, so it reads slightly dimmer there. **THE NODE FILL MUST BE THE REAL PAGE BACKGROUND, AND TWICE IT WAS NOT.** It is what makes a node occlude the edges behind it, so it has to be the page's colour EXACTLY or the fill is a visible shape rather than a hole. **(1)** `_GRAPH_BG` was `#0f0f1a` — graphify's own body colour, which stopped being true when `/graph` began injecting chrome.css. This site's `--bg-hsl` is `0 0% 0%`, **measured pure black**, so every filled interior painted a dark NAVY shape onto black. It surfaced as **nodes appearing DUPLICATED**: a rotated node has BOTH orientations filled (to cover vis's unrotated copy, which is on a canvas we cannot erase), and the union of an up- and a down-triangle is only invisible if the fill matches the page. Now `#000000`, and **`web/graph-surface.js` reads the real background from `getComputedStyle(document.body)`**, which cannot drift because it IS the thing being matched; the node-data value is only a fallback. Verified by sampling: a punched interior reads `[0,0,0,255]` where it read `[15,15,26]`. vis's own unlit layer has no fallback, so keep `_GRAPH_BG` equal to `--bg-hsl`. **(2)**  — four fifths of the nodes carry that exact string (`_unocclude_small_nodes`) and it is TRUTHY, so the old falsy-only guard accepted it, whichever node came last won, `BG` became `transparent`, filling with it painted nothing and `punchNodes` silently stopped occluding. **Symptom: the centre of every big node going BRIGHT** — a hub's lit edges all converge there, and with no opaque fill over them they add up under `'lighter'`. `setBg` is now the SINGLE gate (graph-pulse.js passes the value through unguarded); verified by sampling the pixel, a hub with 40 neighbours lit reads `[15,15,26,255]`, exactly `#0f0f1a` opaque. Incident: **ARCHAEOLOGY.md §11**. The clear is `destination-out`, NOT a fill with the background colour, and that distinction is the whole reason it is a separate pass: an opaque fill hides everything beneath it including **vis's canvas, a layer down, which carries the unlit graph** — using one would mask the unlit edges behind every lit node and undo `_unocclude_small_nodes` for exactly the nodes a cascade is touching. `destination-out` erases only the OVERLAY's own pixels inside the glyph, so a halo and a 50x front both stop at a node's edge while vis's own node and edges show through it untouched. Edges then draw so they cross a node that does not occlude them, and the big nodes go opaque over the top, which is the occlusion rule. **It expands CONCENTRICALLY via the new `graphGlyph.at()`** — vis's triangle offset is proportional to SIZE, so growing `r` through `path()` walks the triangle down the screen instead of expanding it; the centre is taken once at the node's own radius and held. **THE KICK'S PULSE LIVES HERE NOW, not on the node halo.** `HALO_SWELL` is GONE: the halo followed `bloom` and swelled on every lit node, so the whole picture throbbed in place and said nothing about WHERE anything happened. `BLOOM_GROW` 0.6 scales a front's EXTENT instead (50x..80x), captured ONCE at release rather than read per frame — a front is a one-shot event and should carry the moment it left on, where a per-frame read would resize every live front together on the next kick. The node halo is back to a fixed radius; `EDGE_SWELL` on the lit edge width stays, being per-PASSAGE rather than per-kick. Spawned from `graphLit.fire` through the same guarded shim as the charge, because that is the ONE place a node hit is announced (graph-pulse.js calls `fire` from three sites). **It owns its own pixels**, unlike graph-lit/graph-glow — those are models a draw half reads because SEVERAL passes consume each; a wave feeds one stroked path, so splitting it would put one effect in two files. graph-pulse-draw.js still owns WHEN it draws. **A FRONT NEVER OUTLIVES ITS BEAT** — one release per beat was not enough alone: the nominal life was ~2.6s against beats ~0.5s apart, so about five were in flight and the picture showed them NESTED, read as a doubled shape. `dur` is clamped to one beat, so release rate and lifetime are the same number and a front completes its whole 1->GROW sweep before the next is thrown; the sweep therefore gets FASTER with the tempo, which is the right way round (500ms at 120bpm, 345ms at 174). `MAX_LIVE` 4 is now a pure safety bound — the count is structurally one. **THE FRONT IS NEUTRAL WHITE, never the node's community colour**: under `source-atop` a coloured stroke REPLACES what it lands on, so a front was rewriting each node's community — the one thing colour is spoken for here. White imposes no hue, so what a front changes is luminance. `'luminosity'` would say that exactly and **cannot be used**: there is one `globalCompositeOperation` slot and `source-atop` holds it, which is what confines the front to the nodes at all. Residue, stated not hidden — compositing white OVER colour lightens toward white, so a node desaturates slightly as it brightens; adding would preserve saturation and adding is `'lighter'`, the same occupied slot. **ONE FRONT PER BEAT ACROSS THE WHOLE GRAPH** (`BEAT_GAP` 0.5 of a period, `BEAT_FALLBACK_MS` 420 with no lock) — a GLOBAL gate, not per-node: a beat lights several seeds and more than one can be a hub, so the old per-node rule let one beat throw several and the accent became a strobe. Half a beat rather than a whole one, because the on-beat window is ~1/5 of a beat, so half a period clears the current window without swallowing the next when the lock runs late. Measured: concurrent fronts **23 -> 3**; `MAX_LIVE` 24 is now far from binding. **THE FRONT LEAVES AT A RANDOM QUARTER TURN** (`TURNS` — a quarter, half or three quarters, never 0, so consecutive fronts do not stack into one stencil). **THE NODE ITSELF DOES NOT TURN, and that is a removal, not an oversight** (2026-09-24). It did, written onto `pos[id].t`; it could not be made clean and was pulled. vis draws its OWN copy of every node at the original angle on a canvas a layer down that the overlay cannot erase, and with physics off that canvas is **STATIC** — so re-orienting vis's copy means forcing a full graph redraw (~100ms) per rotation, once a beat. Covering it instead failed twice, the same reason in two disguises: the opaque fill that hides vis's copy also **cuts a hole in the node's own halo** (two discs out to 2.6x the glyph radius, drawn earlier on the same canvas — the union of an up- and a down-triangle is a hexagram, and a hexagram-shaped hole in a glowing disc is what *doubled shapes* meant), and trimmed back to avoid the hole it left a visible **rim of vis's own border**. A front has no counterpart on vis's canvas, so its rotation costs nothing and stays. Verified structurally: every node glyph is built with no turn at all. **A ROTATED NODE IS PUNCHED AT ONE ORIENTATION ONLY**, and getting that wrong is what "the node shapes are doubled up after rotation" meant — reported twice. It briefly punched BOTH orientations to cover the copy vis draws at the original angle, on the reasoning that the extra area costs nothing, *being the page background over the page background*. **That was wrong and visibly so: the punch does not land on the PAGE, it lands on the node's own HALO** — a disc 2.6x the glyph radius drawn on this canvas a few passes earlier — so it cuts a HOLE in that halo shaped like whatever was filled, and the union of an up- and a down-triangle is a hexagram. A hexagram-shaped hole in a glowing disc is the doubled shape. Punching one shape makes the hole match the outline drawn over it. **What that leaves**: vis's unrotated copy is still under the halo where it sticks out, so a hairline of its border can show — it cannot be erased from here, because vis's canvas is a layer down and, with physics off, STATIC, so re-orienting it means a full redraw (~100ms) per rotation, once a beat. Its fill is the page colour and its border alpha 0.2, and the halo paints additively over both, so what remains is a line rather than a second shape. Verified structurally by counting the `turn` every glyph path is built with in a frame: **no node is drawn at two orientations** (zero turn absent entirely). Rotation is done in the VERTICES, never `ctx.rotate`, since a transform would have to wrap both the path build and the caller's stroke and would leak out of graph-glyph.js's contract. It PERSISTS after the wave dies — a rotation of the node, not an animation on it. It is part of the idle check or a frame clears the canvas mid-expansion. **`graph-glow.js` owns its own pixels too now** — its two passes (charge edges, charge outlines) moved out of graph-pulse-draw.js on the same precedent as the wavefront: an effect with its own register and a couple of passes nothing else shares. graph-pulse-draw.js still calls them at the two different points in the paint order where they belong, and `width`/`edgeAlpha` arrive from there so the charge cannot drift out of step with the flash above it. **graph-lit.js is the counter-example that keeps the split honest**: its flash feeds five passes, so it stays a model a draw half reads. **TWO SPLITS came out of this work, both at the cap and both at a real seam.** **`web/graph-surface.js`** off graph-pulse-draw.js — the canvas element, its backing store, the DPR-2 cap, where it sits over the graph and the real page background; the seam that file kept returning to, since everything else in it is pixels with an opinion and this is the pixels' address (108 lines, and `ctx`/`cw`/`ch` stay locals in the draw file via a resize callback, so the hot passes pay no accessor). **`web/graph-glyph.js`** off graph-pulse-draw.js: vis's shape geometry, offset constants included, the part with an argument entirely its own (the overlay must agree with the renderer it paints over). **`api/graph_geometry.py`** off graph_style.py at 513 lines — what shape a node is, how big, and whether it is solid — where *how a node is FORMED* stops and *what colour it is* begins; the three belong together because **occlusion READS the size rule**, so computing it anywhere else lets the pair drift, and a drifted pair is a node that occludes on one layer and not another. graph_style.py keeps communities + palette, labels, edges and the stats header (371 lines / 161). **ONLY THE BIGGEST TENTH OF NODES OCCLUDE THEIR EDGES** (2026-09-24, on request). An opaque interior is what stops an edge AT a node, and every node had one — including the degree-1 leaves, 76% of the graph and sitting at the size floor, where all it bought was a NOTCH cut out of the one edge running in, so the structure between nodes read as broken rather than as arriving somewhere. **THE THRESHOLD IS A PERCENTILE OF THE ACTUAL SIZES** (`_OCCLUDE_PCTL` 0.90), not a fraction of the size RANGE — it was `_SIZE_MAX / 2` for one commit and that is the wrong denominator: sizes are GEOMETRIC in degree, so the range's midpoint sits far out in a thin tail and caught 82 of 2867 nodes (2.9%) where the intent was *the big ones*. A percentile is a statement about this graph's own distribution and stays true as the repo grows. Nearest-rank, never interpolated — an interpolated percentile invents a size no node has, and this number is shipped to the client and compared against real sizes on two more layers. **Computed once server-side and shipped as `window.GRAPH_OCCLUDE_MIN`**, because THREE layers gate on it (the unlit fill, the lit punch, the wavefront) and a second implementation of the percentile is a second chance to disagree about the node sitting exactly on the boundary. **`_OCCLUDE_PCTL` is 0.90.** It went to 0.80 briefly on 2026-09-24 and straight back — that was a DIAGNOSTIC for the bright-centre bug, not a tuning, and the cause turned out to be `setBg` (below). The measurement it produced is still worth keeping: because sizes are GEOMETRIC, a tenth of a step down the distribution is a small step down in SIZE, so 0.90 -> 0.80 moved the cut only **20.3 -> 15.6** while more than doubling the solid set, **261 -> 573 nodes**. At 0.90: threshold **20.3**, **261 nodes (9.1%)**, min occluding degree 6, both layers agreeing exactly. **A SECOND, SEPARATE CUT GATES THE WAVEFRONT** (`_WAVE_PCTL` 0.90, shipped as `window.GRAPH_WAVE_MIN`) — the same value today but its own knob, since being SOLID and being loud enough to throw a front across the whole picture are different questions; they have been moved independently once already. `_unocclude_small_nodes` **MUST RUN AFTER `_size_graph_by_degree`** — it reads `size`, and the colour objects are built in `_merge_graph_communities`, which runs before sizes exist; reading `degree` instead would duplicate the size formula and let the two drift. It touches ONLY the three `background` keys: `hover.border` carries the full-strength community colour graph-pulse.js reads for its saturated ink (verified intact on all 2867 nodes). **The overlay reads the shipped number** (a WORLD size off `pos[id].r`, never a drawn pixel radius — whether a node occludes is a property of the node, not the zoom), resolved once at `init`/`index` rather than at script-evaluation time. **The trade one opaque fill cannot avoid**: that same fill also punches out the HALO spilling inside a lit glyph, so a small node's interior now carries its own faint glow instead of staying black — letting an edge through and blocking a halo are the same pixel asked for opposite things. Big nodes, whose interiors are large enough on screen for a glow to read as a FILL, keep it black. It changes no node id and no edge pair, so `graph_layout_key` is unaffected and the nightly bake still matches — **no re-bake needed**. The baseline 0.2 is the BORDER's alpha (`_rgba()`), never the fill's, because `opacity` scales the fill too and a translucent fill cannot occlude; the overlay draws all edge passes, then punches the BIG node glyphs in the bg colour, then glows. **Amplitude x rhythm, MULTIPLIED**: seeds = `(SEEDS_MIN + amp*range) * (1 + (BEAT_BOOST-1) * amp * beat)` where `beat` is `graphTempo.onBeat(now)` (1 on a grid point, 0 between, and **1 when unlocked** — raw onsets are on-beat by construction, so no lock must not be a penalty). Loud ON the beat is the moment worth spending the graph on; a loud off-grid noise is a noise and an on-grid whisper is a tick, which is why the boost is scaled by amp too. `MAX_SEEDS` 24 -> 48, and the stagger is a WINDOW (`SEED_WINDOW_MS` 800) not a fixed gap — at 100ms each a 48-seed burst would take 4.8s and span several beats. **An edge varies only in SATURATION, never hue**: all three passes tint from the from-node, because the white flash pass used to stroke `#ffffff` and an edge travelled white -> community colour as it faded. Nodes keep the white core (that IS the flash); an edge is a line whose colour says which community it is. **Every EDGE effect fades faster than a node's**: lit edge `EDGE_DUR` 900 against a node's 1845-3990, and the edge charge drains at `EDGE_FADE` 0.45 of the node time (~2.2x faster). A node is a place and stays one; an edge is a crossing that has already happened, and held as long as its endpoints the picture becomes a wireframe with bright corners. The level is **smoothed** (`graphAudio.loudness()`, envelope follower 0.97/frame) or it would drain in the gaps INSIDE a bar. The charge pass draws UNDER both flash passes with NO halos (it can cover much of the graph late in a track, so it is the pass that must stay cheap), `dt` is capped at 100ms, and **`graphGlow.charged()` is part of the idle check** or an idle frame wipes the accumulated picture. **Unlit baseline is `_NODE_OPACITY` 0.2 for nodes AND edges** — `opacity` scales only the drawn alpha so colours, `size` and HIT-TESTING all survive; it was 0 for an afternoon and that was too far (nothing to be lit against). Edge opacity must be PER EDGE: graphify emits a `color` object per `RAW_EDGES` entry, so a global `edges:{color:{opacity}}` is outranked. `ATTACK_MS` 90 -> 280 (the rise was the flicker). **Every `graphGlow` call goes through a no-op shim** — the tree is edited live, so a new `graph-pulse.js` can reach a browser before its `<script>` tag does (`graphGlow not defined`), and an unguarded call throws inside the rAF and kills the whole cascade. **Shape says TYPE, colour says community**: REASSIGNED 2026-09-23 — `code` (2,078, 74%) is an **upward** triangle, `rationale` (462, 16%) a **hexagon**, `document` (262, 9%) a **downward** triangle (`_TYPE_SHAPES`, `_shape_graph_nodes_by_type`) — the two triangle directions still read as a related pair against the one hexagon, which is the argument the table was built on. The mapping lives in `graph_style.py` ALONE: the global `nodes: { shape: … }` default tracks the majority type (`triangleDown` now), and `graph-pulse-draw.js` draws whatever shape a node arrives with, so a rotation touches one table. **No `circle` in the set, and that is a constraint rather than a taste**: vis splits shapes into two families — `circle`/`ellipse`/`box`/`text` draw the label INSIDE and size themselves to it, ignoring `size` entirely, while `dot`/`hexagon`/`triangle`/`diamond`/`square`/`star` draw it outside and take `size`. Node size here is geometric in degree, the graph's main encoding, so a shape from the first family would throw that away for every node of that type and move its label at the same time. **Node sizes are 12..88** (6..44 until 2026-09-21): both ends always move together, because the RATIO is the encoding. Tried at x1.25 (15..110) on 2026-09-22 and reverted the same day — too big: at 110 the largest hubs measured 220 across against a 168 lattice step, so they sat over their neighbours instead of in a cell of their own. That is the ceiling this range has to respect while the lattice keeps getting coarser. The per-node `shape` has to be named in graphify's DataSet mapper (same explicit-field trap as the baked x/y) or it is dropped on the way in, and the global `nodes: { shape: 'hexagon' }` stays as the default for any type this misses. ****The overlay copies vis's triangle math, offset included**: vis does not draw a triangle centred on the node — its own code is `triangle: y += 0.275 * (size *= 1.15)` and `triangleDown: y -= 0.275 * (size *= 1.15)`, so the shape is scaled 1.15x and then shifted off the node point, which is why edges converge near a downward triangle's bottom vertex. A plainly centred triangle in graph-pulse-draw.js put the lit glyph a third of a radius off the node under it; `graphGlyph.centre`/`triangle()` (graph-glyph.js) now reproduce vis's constants exactly, and the halo is centred on the GLYPH rather than the node point or a triangle glows off-centre. The overlay has to agree with the renderer it paints over, not with the geometry it would pick. The cascade's lit glyph follows the shape too** (`glyph()` in graph-pulse-draw.js) — lighting everything as a hexagon made a cascade say the wrong thing about what it was crossing; the triangle gets 1.15x the radius, since at equal circumradius it reads smaller than the hexagon beside it. **A tapped node centres in the space beside the panel** (`centreBesidePanel`): measured correction, not computed — where the node IS on screen against where it should be, since something else pans too and an open-loop offset landed 156px out. It runs on the next FRAME and moves **without animation**, because every animated frame is a full 2,581-node vis redraw (~100ms) and an animated pan took 2.1s to arrive while the hub's cascade competed for the thread. **The bar EASES between its milestones** (`transition: width 280ms ease-out`, 2026-09-22) — the steps are discrete events (payload down 0.35, built 0.6, camera set 0.75, vis painted 0.9, revealed 1.0) and it was jumping between them. The transition smooths how a step is DRAWN and invents nothing between them: a creep that filled the gaps would be the fixed-3s fill this file threw out once, in slower clothing. The marquee sets `transition: none`, since its segment moves by transform and easing the width at the same time stutters the hand-off. **Islands under 5 nodes are dropped** (`_drop_graph_small_islands`, 2026-09-22): a component of two or three is a couple of files that reference each other and nothing else — true, and not structure, reading as specks around the rim. It runs AFTER the inferred-edge and orphan drops, since removing edges is what splits components. **2,722 -> 2,581 nodes, 3,582 -> 3,482 edges**, 137 components with the smallest now exactly 5, and all 14 communities survive (424 down to 69). **Any change to the drop/merge code changes `graph_layout_key` and the bake MISSES** — `GRAPH_LAYOUT_CACHED` goes false and every visit pays the ~30s browser stabilisation until `scripts/graph-layout.py` is re-run, which is a manual step after a change like this one (20.7s). The page opens at the **FURTHEST ZOOM THE WALLS ALLOW** — `contain * FIT_MARGIN`, the same expression `setupZoomLimits` clamps to, so the opening view and the outward wall cannot drift apart into a page that opens past where it will let you return to. It replaced a standalone `OPEN_ZOOM` (0.75 -> 1 -> 1.2); history in ARCHAEOLOGY §11. **The lattice keeps EQUAL SPACING on both axes** (2026-09-22). For one commit `snapToGrid` rescaled nodes into a box of the viewport's aspect before snapping, which made the outline fit the screen (0.50 -> 0.50 on a phone, 1.72 -> 1.73 on a desktop) and **squashed everything inside it**: the grid POINTS stayed square while the picture between them did not, which is the worst of both, since a force layout says something by distance and an axis scaled alone rewrites it. The map is now UNIFORM — one `k` for x and y — so adjacent lattice points are the same step apart horizontally and vertically (measured: step x 97, y 97). The consequence, and it is geometry rather than a bug: the grid's rows-to-columns ratio follows the CLOUD, not the window, so it is **107x103 on every screen** while a phone is 0.50 and a desktop 1.72. A square cloud cannot fill a tall screen without either stretching it or genuinely re-placing the nodes; the camera takes up the slack instead (cover, filling on the limiting axis). Cover and contain then converge, so `OPEN_ZOOM_OUT` went **0.75 -> 1** (a quarter out was how you got the shape back when cover cropped; with nothing left to overflow it is just a black border), and `nodeBounds` pads the box by the largest node's radius because the bbox is built from node CENTRES — filling the window would otherwise clip the outermost nodes down the middle. **It distorts distances and that is the knowing trade**: this is a force layout, so a stretched axis stretches what the layout meant by distance, against a phone seeing less than half the picture. **The snap is NOT cached** — it re-runs on every load, and the nightly bake captures positions AFTER it (`gp-loaded` comes later), so a desktop re-snaps an already-snapped layout while a phone re-lays 600 survivors onto a lattice whose `cell` is 2.13x coarser (cell derives from node COUNT). That costs nothing: **measured 0.0-0.1s**. The bar's weights were re-cut on the same measurement — `FETCHED` 0.35, `BUILT` 0.6, `PLACED` 0.75, `DRAWN` 0.9 (vis's `afterDrawing`), 1.0 at reveal — after the lite payload made download and build finish almost at once, leaving the bar at 90% through a pause it knew nothing about. The suspect was the snap; the measurement says the gap is vis's first full draw plus the pulse indexing. **A PHONE GETS A SMALLER GRAPH** (2026-09-22). Safari on iOS froze solid on /graph — not slow, FROZEN, with the nav bar unable to take a tap, which is a main thread that never came back rather than a graph that was missing. Every lever before this one (static cover, deferred payload, DPR cap, pulse gate, wake repair) made the WAIT better and none of them made the work smaller, because the work IS the graph: 2,722 nodes is a page a laptop draws and a phone dies on. `_prune_for_lite` keeps the busiest `_LITE_NODES` (600) by degree and the edges among them — degree because this graph's shape is its hubs and the tail is leaves hanging off one parent, which at the opening zoom are the halo, not the structure. **It is OPT-IN, `?lite=1`, and was the phone default for a few hours only** — reverted on the owner's call: the whole graph is the point of the page, a codebase map with its leaves cut off is a smaller claim about the codebase, and picking that for someone off their user-agent is the wrong call to make on their behalf. The freeze was answered instead by everything that made the page cheaper without making it smaller. Measured: **0.49MB / 600 nodes / 929 edges** against 2.10MB / 2,722 / 3,582, with all 14 communities and every baked x/y intact. **It runs AFTER `_apply_graph_layout`, and that ordering is the whole trick**: positions are per node id, so the survivors keep the coordinates they were baked at and `graph_layout_key` still hashes the FULL graph — pruning first would change the key, miss the nightly bake, and hand a phone the ~30s browser stabilisation all of this exists to avoid. `_fix_graph_stats` re-runs after it so the header counts what is actually drawn. `_CACHE` is keyed `(guest, lite)` — four entries — and the warm loop covers all four; the nightly `?relayout=1` bake is never lite, since it has to place every node including the ones a phone will not be sent. *"It's constantly regenerated so it can't be cached"* has the invalidation backwards: an mtime key is correct at ANY rebuild frequency, and this one rebuilds once a day. Two modules: **`graph_scrub.py`** = privacy scrubs + node/edge drops (redacted summaries; `_GRAPH_DROP_PREFIXES` — the Pollack tarot book, the vendored vis-network bundle, **`nightfall-incident/nightfall-src/`** (the game's own React source, 1054 nodes, the biggest community in the graph) and **`api/data/`** (786 nodes that are the JSON KEY STRUCTURE of the runtime data files — `numCredits`, `netmapStatus`, bare uuids; keys only, never values, so it was never a leak, it is just not architecture), both dropped 2026-09-21; moltbook plumbing; external library symbols; the dashed INFERRED edges; then every node no surviving edge touches). **`graph_style.py`** = how the survivors LOOK (feature-based community re-grouping, then a HARD CAP at `_MAX_COMMUNITIES` 14 — the min-size fold alone left 54 and raising it plateaus at ~20, because the tail is whole dirs, not small modules; hexagon nodes; **unlit edges at opacity 1.0 / width 3** (from graphify's 0.7/2 — at the opening zoom a width-2 hairline at two-thirds alpha made the structure BETWEEN nodes read as haze; colour is left inheriting from the from-node so edges stay community-coloured, and the cascade's LIT edges are a separate thing on the overlay canvas); **size geometric in degree**, `min(88, 12×1.14^(deg-1))` (doubled 2026-09-21 — at the opening fit the hexagons were specks; the RATIO is the encoding, so both ends double), so a hub reads as a hub where the old sqrt-of-line-count flattened it; labels + font baked in; tooltips stripped; a ONE-SHOT physics block so `stabilizationIterationsDone` can turn physics off for good; and the `#stats` header rewritten LAST). 4843/7154/610 as emitted -> **2581 nodes / 3482 edges / 14 communities** as served (the cap makes `(other)` the second-biggest community at 444, which is the long tail of 38 small modules and the price of capping at all). Non-admins get the guest nav; admins keep the full nav. Content-hash ETag + `no-cache`. **THE LAYOUT IS BAKED, NOT STABILISED IN THE BROWSER** — ~370 forceAtlas2 iterations over 2581 nodes measured ~30s ON A PHONE, EVERY VISIT, for a layout identical every time. `scripts/graph-layout.py` runs it nightly after the graphify rebuild, driving a REAL vis-network in headless WebKit (not a Python reimplementation, so the cache IS what vis would produce, lattice snap included) against `/graph?relayout=1` — which renders WITHOUT a baked layout, so it can't feed on its own output — and writes `graphify-out/graph-layout.json` `{key, pos, tall}` (~470KB; graphify-out is gitignored since 2026-10-12, so never committed). **The key is a hash of the GRAPH** (sorted node ids + edge pairs), not of graph.html: it invalidates on a rebuild AND when our drop/merge code changes what survives, and is identical across guest/admin renders. On a hit `_apply_graph_layout` bakes x/y into RAW_NODES, patches graphify's DataSet mapper to carry x/y (it lists fields explicitly or they'd be dropped) and sets `physics:{enabled:false}`. **430x932 measured 8.8s ready, was ~30s.** EVERY failure falls back to browser stabilisation — a stale layout is worse than a slow one. The overlay needs `window.GRAPH_LAYOUT_CACHED` because with physics off there's no `stabilizationIterationsDone`, which is what reveals the page. **Cron has no session bus**, so the job must export `XDG_RUNTIME_DIR` or `systemd-run --user` fails every night while working by hand. Client side, `graph-overlay.js` **opens on COVER, a wallpaper's fill mode** — `nodeBounds()` gives both scales and the camera takes `cover` = `max(W/w, H/h)` centred on the node bbox, so NEITHER edge has a gap and the cloud runs off the non-limiting axis (vis's own `fit()` is CONTAIN, which on this near-square cloud in a wide window left two black bands). Measured: 1280x744 opens at 0.0883 with width exactly 1.00x the window and height 1.80x; 430x876 opens at 0.0593, height 1.00x and width 2.08x. Replaced an `OPEN_ZOOM` 1.25x on top of `fit()` — cover is already ~1.8x contain on desktop, so stacking both would over-crop. The zoom-OUT wall stays on CONTAIN x `FIT_MARGIN` 0.8, looser than the opening view on purpose, so zooming out to see every node is still allowed; the TOUR lives in **`web/graph-pulse.js`** (the model) + **`web/graph-pulse-draw.js`** (the canvas — split at the 500-line cap; the model hands it `pos`/`litEdges`/`level` ONCE at init because those are mutated in place and never reassigned, and **load order IS the wiring**: draw, then model, then graph-overlay.js) and is a FIRING SIMULATION on its OWN transparent canvas (`#gp-pulse`, `--z-raised`, `pointer-events:none`) over vis's — **vis never redraws for it**, which is the only reason it is affordable (a warm vis redraw of this graph measured ~1.5s; per frame the overlay draws only what is LIT, O(lit) not O(graph); the frozen layout means world positions are read once and the camera transform is recomputed per frame from `getScale()`/`getViewPosition()`). **Brain activity as a SPREADING CASCADE**: extra seeds are drawn from the **64 nearest nodes to the first seed** (`web/graph-seed.js`, `NEAR_POOL`/`NEAR_SOFT`), weighted by size AND closeness, with the falloff measured against the pool's own radius so it behaves the same in a dense community as on the sparse rim. It replaced a 16-square positional lattice that quantised at its boundaries (ARCHAEOLOGY §11). **`graph-seed.js` owns WHERE a cascade starts and `graph-pulse.js` what spreads from it** — split at that seam when the cap said graph-pulse.js held too much; `TERMINAL_ODDS` is passed in rather than duplicated. Once every `ITER_MS` (1s) a seed node is picked weighted by **size^`SEED_POW`** (2; prefix-sum + binary search — strictly proportional looked like nothing happening, since 76% of nodes are size-floor leaves), then the activation walks outward — each neighbour queued at `HOP_MS` (110ms ±30%) and lighting with a probability from ITS OWN size (`P_MIN` 0.55 → `P_MAX` 1, and size is geometric in degree; the floor was 0.18 and chains were too short to read as travelling), **lighting the edge it crossed**. The iteration lights **`SEEDS_PER_ITER` (8) nodes from ONE square**, the rest drawn on the same weight from the first seed's square — scattered seeds read as unrelated sparks, eight in one square read as a region waking up. **STAGGERED by `SEED_STAGGER_MS` (100ms)**, not all on one frame (eight at once is a flashbulb; over 0.8s it is a region coming awake, and the early seeds spread before the last fires): a staggered seed is claimed in `seen` at once but queued, flagged `seed:true`, and when its turn comes it lights UNCONDITIONALLY and lights NO edge — it was chosen, not caught, so there is no edge it arrived along. `until` covers the stagger or the last seeds are dropped before firing. Draws are weighted WITH REPLACEMENT so they won't all be distinct; `SEED_TRIES` (4/seed) bounds the retry (a 4-node square must not spin looking for a fifth). All seeds share the iteration's `seen`+queue, so burst and spread are one cascade. **Terminal nodes (degree 1 — 76% of the graph) are held at `TERMINAL_ODDS` 0.15**, for catching AND (scaled) for seeding: on the size curve they sit at the floor, so at `P_MIN` every cascade dragged a halo of dead ends with it, and a cascade seeded on one can never be more than a single dot. **A node that fails its roll is SPENT** — doesn't light, nothing walks past it — which is the only reason a cascade dies on its own instead of eating the graph every second; branching is `degree × p`, so a leaf seed is a 2-3 node spark and a hub seed blooms. `seen` is per-iteration so a node is TRIED once however many neighbours reach it. `ITER_LIFE` 2s with one starting every 2s — **seeding is on a clock and nothing else**, never gated on whether anything is still lit — so one is in flight, handing over as it dies; the busyness comes from how many nodes ONE iteration lights, not from stacking several. `MAX_LIVE` 8 stays a safety bound above that. **More edges = lit longer** (`dur` = 1100ms + 130ms/edge capped at 12, ×0.6-1.4) and a node **FADES** (`(1-t)^1.2` after a 90ms attack — near-linear on purpose; at 1.8 the light was gone before the eye had followed the chain), never blinks. `SIZE_FLOOR`/`SIZE_CEIL` MIRROR `graph_style`'s size range (not derived from data, so one outlier can't flatten everything onto `P_MIN`) — move them together. **A SECOND, SATURATED PASS is drawn over the whole lit effect** (2026-09-23): the same halos, glyph and lit edge repeated in the node's own community colour with its saturation raised (`SAT_BOOST` 1.75, clamped), lasting `SAT_MULT` **3x** as long — a white flash decaying into a long coloured afterglow. It only reads BECAUSE it outlives the white pass: under `'lighter'` colour added over an already-clipped white centre does nothing, so the first third is a tint on the halo and the last two thirds are the coloured pass alone. Three rules carry over from the white pass — the colour is computed ONCE per node at `index()` and cached on `pos[id].c` (`graphPulseDraw.satInk`; per frame the draw half only assigns the cached string), the envelope is the model's own `level` read against `dur * SAT_MULT` through one scratch record rather than a second copy of `ATTACK_MS`/`DECAY_POW`, and the node passes (`nodeHalos`/`nodeStroke`) take an alpha set `A` so there is ONE geometry and two inks. **The cost is that `lit` stays non-empty ~3x longer** (`graphLit.expire` keeps a record for `dur * SAT_MULT`), so the canvas paints on ~3x the frames — which on this page matters more than the drawing, the cascade being the one animated layer under the CRT stack's two `backdrop-filter` panes. `graph-pulse.js` was exactly AT the 500-line cap, so the layer lives wholly in `graph-pulse-draw.js` and the model file only has lines edited (cached ink, the `SAT_MULT` life in `graphLit.expire`, `lit` added to `init`). **Do not name a colour helper `hue2rgb`** (it is `hueChan` in `graph-ink.js`): the palette lint reads source text with whitespace stripped, so any colour-function name followed by a paren — in code OR in a comment — reports as a new raw colour, and `satInk` returns hex for the same reason. Ink is two soft discs under a **solid** glyph (`A_FILL` 1) under `globalCompositeOperation:'lighter'` (cheaper than `shadowBlur`; the fill was 0.55 and only greyed the node's bg-filled interior, reading as outlined-brighter rather than lit), alpha on `ctx.globalAlpha` over one flat white `fillStyle` — never a per-call colour string (60fps × per node = collector garbage, and the lint wants one literal). **Hover does NOTHING to the canvas** (2026-09-21): it used to pin the hovered node's whole community lit and steady, and the animation stopping dead under the pointer was worse than the question it answered — `pin`/`unpin` are gone. Clicking still opens the node-info panel (graph.html's own handler). **A frame with nothing lit skips its draw** (a full-viewport canvas layer isn't free even painting nothing). **The canvas sits UNDER the CRT stack on purpose** (raising it above was tried on 2026-09-22 and REVERTED — the CRT was not the problem; see below) — the glow belongs behind the same glass as the graph. On the droplet's GPU-less headless WebKit that measured **2 fps under the stack vs 18 with it hidden, while our own canvas work measured 0ms either way** — the cost is compositing full-viewport layers, not this file, so on real hardware it is a non-issue and looking right won. **`moveNode` per node was a REDRAW per node, and that was the freeze** (2026-09-22). `snapToGrid` wrote 2,722 positions through `network.moveNode`, chosen long ago over a DataSet write (7.4s -> 1.07s) — but each call asks vis to redraw, and **the redraws it queues are not counted by the timer around the loop**: `place` measured **0.0s** while the draws it had queued ran on for seconds. Measured on the served page by hooking `beforeDrawing`/`afterDrawing`: **160 vis draws, 16.1s of main thread, median 93ms apart**, 130 of them before the cover lifted, each repainting a 3.36-megapixel canvas of 2,722 nodes. A thread that busy cannot run a timer — which is why even the 3s reveal failsafe never fired, and why the page read as frozen with the bar stuck at `drawing`. Writing straight to `network.body.nodes[id].x/y` (guarded; falls back to `moveNode`) and calling `network.redraw()` ONCE after the loop: **160 draws -> 4, 16.1s -> 0.74s**. `graphPulse.index()` was chunked into four rAF-separated phases in the same hunt and is **not** the culprit — measured `nodes 22 / edges 5 / pos 7 / grid 54ms` — but the phases stay, since a thread that yields is what lets a failsafe fire at all, and their numbers print in the cover line (`idx …`). The reveal also gains a short `DRAWN_CAP` (800ms from vis's first painted frame) so the graph can never be held back by the cascade. **`CELLS_PER_NODE` went 4 -> 9**: more points for each part of the graph to snap to, a finer grid at the same outline (107x103 distinct coordinates against ~70x70), so dense communities stop collapsing onto a handful of cells. **What was wrong with the old tour was the camera, not the cycling**: flying to a cluster showed you that cluster and threw away the graph it came from. The freeze|tour toggle is gone outright, and so is the **physics configurator panel** and every `vis-configuration` rule that themed it (2026-09-21 — a strip of live sliders governs nothing once physics is off for good, and a reload undoes whatever they were dragged to; the node-info panel on the right is the only panel left); the old tour also re-enabled physics after graphify had turned it off, leaving a 4.5k-node canvas at **0.4 fps with 4.2s frames**. (historical, before `watchWake` replaced it) `watchSleep` was ARMED ONLY AFTER stabilisation and at a 60s gap — stabilising blocks the main thread in bursts, so on a slow device the old 30s watchdog fired mid-load and reloaded the page into another stabilisation, forever. Full drop list, the caps, the measurements: **ARCHITECTURE.md §11** (history: **ARCHAEOLOGY.md §11**).
+- Guest-gated (Turnstile; was public until 2026-07-03). Applied per request, COMPUTED once per artifact: `_cached()` memoises rendered bytes per auth tier x `lite`, keyed on the artifact `(mtime_ns, size)` and `graph-layout.json`'s; cold render under a lock in `asyncio.to_thread`; `run_graph_warm_loop` renders all four `(guest, lite)` variants at startup and on change (warm TTFB ~0.05-0.13s).
+- First paint is the static cover; `_externalise_boot` lifts graphify's inline scripts into one external `defer` file `/graph/boot.js?v=<hash>` (same guest tier, `immutable`), `_defer_scripts` defers every other same-origin `src` (FCP 1304 -> 387ms).
+- `?lite=1` (OPT-IN, never the phone default): `_prune_for_lite` keeps the busiest `_LITE_NODES` 600 by degree and their edges, AFTER `_apply_graph_layout` so `graph_layout_key` still hashes the full graph; `_fix_graph_stats` re-runs after it. The nightly `?relayout=1` bake is never lite.
+- Edges: unlit opacity = `_EDGE_OPACITY` (= `_NODE_OPACITY` 0.2), width `_EDGE_WIDTH` 3, colour inherits from the from-node. Communities hard-capped at `_MAX_COMMUNITIES` 14; islands under 5 nodes dropped after the inferred-edge/orphan drops.
+- The baked layout falls back to browser stabilisation on EVERY failure (a stale layout is worse than a slow one); `window.GRAPH_LAYOUT_CACHED` tells the overlay whether `stabilizationIterationsDone` will fire. The bake's cron has no session bus: export `XDG_RUNTIME_DIR` or `systemd-run --user` fails nightly.
+- Keep `_GRAPH_BG` equal to `--bg-hsl`.
 
+History: [ARCHAEOLOGY.md §11](ARCHAEOLOGY.md#11-graph)
 ## 12. The bottom nav
 
-Fixed to every page. Labels are **fixed 3-char codes** (`_NAV_LABELS`); no label is a glyph any more (the `/cc` star left with the page, 2026-09-29 — the detection machinery stays, §12a).
+Fixed to every page. Labels are **fixed 3-char codes** (`_NAV_LABELS` in `api/pages.py`); none is non-ASCII today, but the glyph machinery stays (§12a).
 
 | Code | Route | Tier |
 |---|---|---|
@@ -2393,95 +1148,71 @@ Fixed to every page. Labels are **fixed 3-char codes** (`_NAV_LABELS`); no label
 | `MTG` · `TRT` | `/mtg` · `/tarot` | guest |
 | `HSK` | `/hosaka` | guest-or-full |
 | `3DP` | `/printer` | guest read-only / owner control |
-| `NDL` | `/noodle` | guest (app submodule `apps/noodle`; poll pages themselves are public by link) |
+| `NDL` | `/noodle` | guest (app submodule `apps/noodle`; poll pages are public by link) |
 | `CV` | `/recruiter` | public |
 
-The guest-gated ones (`BOT`, `UIX`, `HSK`, `3DP`, `GPH`, `SPR`, `NDL`) appear in the guest nav too. `GPH` only actually did from 2026-09-21: this table and CLAUDE.md had both said so while `_GUEST_NAV_LINKS` omitted it, so the public landing offered `/graph` to a visitor who then had no nav entry to leave by. Pinned now by `tests/test_landing_nav_parity.py`, which scrapes the rendered landing and the rendered guest nav and asserts the first is a subset of the second — both sides read out of the markup, never a hand-written list of sections, so a new section is covered the day it is added. One direction only: the nav may legitimately hold more (`/zombo` is unlinked on purpose, and the landing's own `admin` link is deliberately not a nav entry).
+Two lists in `pages.py`: `_NAV_LINKS` (owner, all 14) and `_GUEST_NAV_LINKS` (11: everything but `rd`/`hq`/`debug`), plus `_NAV_HREFS`, `_NAV_ICONS`, `_NAV_LABELS`. The guest nav also carries the `F5` refresh item (§12b). `tests/test_landing_nav_parity.py` scrapes the rendered landing and the rendered guest nav and asserts every landing link has a guest-nav entry (one direction: `/zombo` is unlinked on purpose, the landing's `admin` link is not a nav entry). Add a nav entry in all four tables, and the guest list if guest-reachable.
 
 ### 12f. The nav icons are traced, not drawn — and stay pixel art
 
-**Two modes, since 2026-09-21.** The default traces an icon in its OWN COLOURS (`icon_colour.py`): the tile is dropped, which is the transparency, and every other colour is painted as itself, the ink taking the tile's colour so the icon keeps a rim of it. Eight icons stay on the older LINE-ART path (`LINE_ART` in `icon_config.py`) because a heavily dithered source traces its dither faithfully, and faithful is not always what an icon wants. The colour mode matters beyond looks: at 27px the shading IS the shape, so it returns for free what the line-art path needs an interior pass, a colour quantiser, a despeckler, per-icon floors and hand-drawn glyphs to reconstruct — all of which remain, but only for those eight.
+The nav serves `web/icons/<name>.svg`, never the 27x27 PNG it was drawn from. They are **generated** by `scripts/trace-icons.py` (config tables in `scripts/icon_config.py`, helpers `icon_colour.py`/`icon_contours.py`/`icon_mask.py`): edit the script, never the SVGs. Rules and per-icon tables: `web/icons/README.md`.
 
-The nav serves `web/icons/<name>.svg`, not the 27x27 PNG it was drawn from — at 20px the raster was mush, the tile colour reading while the art did not. Each SVG is that art's own black linework, **traced** by `scripts/trace-icons.py` and filled with the source tile's colour, so an `<img>` needs no styling.
+- **Pixel art on purpose.** One source pixel = one viewBox unit (`0 0 27 27`, integer coordinates) and the root carries `shape-rendering="crispEdges"` — load-bearing: 20/27 is not whole, so without it every edge antialiases to a blur at exactly the nav's size. `image-rendering:pixelated` is the raster knob and does nothing to an SVG. No curve smoothing (4x the bytes).
+- **Two modes.** Default = trace in the icon's OWN COLOURS (tile dropped = the transparency; ink takes the tile colour). `LINE_ART` (`icon_config.py`: `turbo bitman printer wizard data-file data-doctor sentinel bug`) stays on the older line-art path, where a dithered source would otherwise trace its dither.
+- **Line-art path.** Outline = the DARKEST cluster (not "darker than tile": drop shadows/dither would fill solid). An interior pass inks boundaries between colour regions, only on pixels enclosed by the outline, over quantised colour (`ICON_QUANT`), merging small regions into neighbours (never dropping: that punches holes). `NO_INTERIOR` turns it off for pure-dither interiors. `GLYPH_ONLY` (`data-file`, `data-doctor`, `laser-satellite`) discards the trace and DRAWS the icon; `ICON_GLYPH` draws a named glyph over a trace; a `solid` glyph occludes earlier ones. Other by-name tables: `ICON_COLOUR`, `ICON_ACCENT`, `DROP_COLOURS`, `CENTRE_INK`, `DESPECKLE_OUTLINE`, `ICON_INK_BAND`.
+- A tile within 25 lightness points of `--bg-hsl` gets its brightness inverted so it stays visible on the black site.
+- A 27px source's interior detail does not resolve at the nav's 20px: the nav shows silhouette, detail reads from ~40px.
 
-**It is still pixel art, deliberately.** One source pixel is one viewBox unit (so the viewBox is the source's own grid, `0 0 27 27`, and every path coordinate is an integer), and the root carries `shape-rendering="crispEdges"`. That attribute is the load-bearing one: 20/27 is not a whole number, so without it every pixel edge misses a device pixel and gets antialiased, and hard pixel art renders as a blur at exactly the size the nav uses it. `image-rendering:pixelated` is the RASTER knob and does nothing here. A first version instead ran Chaikin corner-cutting to round the staircases off — smoothing a pixel grid is the opposite of keeping it, and it cost 4x the bytes to do (120KB for the set against 26KB).
+### 12a. The glyph label (machinery kept)
 
-**The outline alone was not the icon.** Everything drawn as flat colour rather than linework — the boss's mouth, watchman's iris, wardenpp's badge, golem-stone's panels, the wizard's moon — is invisible to a darkest-cluster pass, so a second pass inks the boundaries BETWEEN colour regions. Three things make that work rather than produce noise, and each was learned by producing noise first: it runs only on pixels enclosed by the outline (the drop shadow every icon casts lies outside it); colour is quantised first, because these sources shade by DITHERING and a stippled iris is never one region at full depth; and a region under the size floor is merged into its nearest neighbour rather than dropped, since dropping inked a line only where both sides survived and every removed speck punched a hole in the line running past it. Against the tile the ink goes on the art's side whatever the luminance says — data-file's near-white pages on orange made the TILE the darker side, and a darker-side rule drew the silhouette onto the background where a "never ink the tile" guard deleted it. Three icons defeated every version of that and are DRAWN instead (`GLYPH_ONLY`): data-doctor's cross is five red cells smeared across an isometric face, laser-satellite's dice have dithered facets, and data-file's back sheets only ever traced as the sliver of themselves that is not hidden. A drawn glyph marked `solid` occludes the glyphs listed before it — paper is not see-through, and without that rule three closed sheets over each other are three wireframes. Per-icon floors, colour overrides, accent fills, drop-colours, ink-centring and outline despeckling live in by-name tables in the script; `web/icons/README.md` explains each. Where the source shape cannot be traced into the thing it depicts, a named glyph is DRAWN over the trace on the same pixel grid: data-doctor's cross is five red cells smeared across an isometric face, watchman's iris is dithered green-on-olive with a two-cell pupil, the boss's mouth is a 6px red band too small to survive the floor that calms his stippled skin, and data-file writes its text as a grid of grey blocks that is noise at icon size. `NO_INTERIOR` switches the interior pass off where the inside is nothing but dither (watchman, and bitman/printer, the same biting sphere). Note that a 27px source's interior detail does not resolve at 20px: the nav shows silhouette and the detail reads from ~40px up. The whole set is generated: edit the script, never `web/icons/*.svg`. Two things the tracer gets right that are easy to get wrong, and both were got wrong first — the ink is the DARKEST cluster rather than everything darker than the tile (every icon casts a drop shadow, often a dithered one, and the loose test fills the subject solid and turns the dither into thousands of one-pixel squares), and `data-file`/`data-doctor` are named exceptions because they are flat vector art with no outline anywhere in them, so their line is derived from where colour regions meet. Full rules, including the brightness inversion that keeps a near-black tile visible on this site's black: `web/icons/README.md`.
+The pixel nav font (`04b25`, `--font-pixel`) is **ASCII only**; any other character falls back to a different face per device.
 
-
-### 12a. The glyph label (machinery kept; the `/cc` star is gone)
-
-The pixel nav font (`04b25`, `--font-pixel`) carries **106 glyphs, ASCII only**. A symbol like `✦` (U+2726) has no glyph there, so the implicit fallback picks a different face on every device. `/cc` wore that star from 2026-09-21 until the page folded into the Exec panel (2026-09-29); no nav label is non-ASCII now, but the machinery below stays so the next one is drawn correctly. The measurements are of the star as it was.
-
-**It is DETECTED, not listed.** `_build_nav` marks any label carrying a non-ASCII character (`text.isascii()`) as `nav-label glyph`, so a second glyph label is drawn correctly without anyone remembering this note. `.nav-label.glyph` re-fonts it to `--font-mono`, which HAS the glyph, and **must sit AFTER `.nav-label`** — the extra class is what wins on specificity, but the two `font-family` declarations would otherwise be one source-order edit away from fighting.
-
-**The size is a `transform`, never a `font-size`, because the label's box IS nav geometry.** At `--fs-2xs` the star's ink measures 6.1px; a font-size big enough to match the codes beside it would grow the span, the anchor and the nav bar under them. `scale(1.48)` paints bigger and leaves the 13.6px box alone.
-
-**The factor is set by WIDTH**: the star's ink is 9.0px, the same as the M of MTG two slots along, so it reads as one letter of the row rather than a symbol dropped into it. The star is square, so that also makes it 9.0px tall against the caps' 11.3px — width is the match, and one glyph cannot have both. Measured 2026-09-21 at 430x932 by clipping a screenshot per label and counting green pixels at 3x DPR (letters ink 910.04–921.04, star 911.09–919.76, centres 0.12px apart). **Do not size this off canvas `measureText`**, which reports this glyph ~30% off what it paints; the pixel count is the ground truth.
-
-The baseline nudge rides in the same transform (`translateY(0.3px) scale(1.9)`, translate FIRST so the scale does not multiply it) because `.exec-nav a` is a **flex column**: the label is a flex ITEM, already blockified (no `display` needed for the transform to apply) and `vertical-align` is inert on it — a `-0.05em` that did nothing was the first attempt.
-
-One thing this does NOT fix: the glyph's box is 13.6px against the pixel labels' 13px (`--lh-none` × `--fs-2xs`, where 04b25's `normal` line-height resolves to 13), so that one anchor is 35.6px and the nav 56.59 rather than 56. Closing it needs a font-size token of 13px for one glyph — a near-duplicate scale step for 0.6px of nav height, deliberately not taken.
+- **Detected, not listed.** `_build_nav` marks any label failing `text.isascii()` as `nav-label glyph`; `.exec-nav .nav-label.glyph` (chrome.css) re-fonts it to `--font-mono` and **must sit AFTER `.nav-label`** (source order at equal specificity).
+- **Sized by `transform`, never `font-size`** — the label's box IS nav geometry; a bigger font-size grows the span, anchor and nav bar. The rule is `transform: translateY(0.3px) scale(1.48)`: `translateY` FIRST so the scale does not multiply it; the nudge rides in the transform because `.exec-nav a` is a flex column (label = flex item, `vertical-align` inert).
+- Factor 1.48 was set by WIDTH (glyph ink = the M of MTG), measured by counting painted pixels at 3x DPR — **never size off canvas `measureText`** (~30% off for this glyph).
+- Known residue: the glyph's 13.6px box vs the pixel labels' 13px makes one anchor 35.6px; not fixed (would need a near-duplicate font-size token).
 
 ### 12b. Standalone launch (home-screen / installed web app)
 
-Detected by `navigator.standalone` or `display-mode: standalone` in the `_build_nav` script, which adds `html.standalone` and sets `--per-row` = ceil(item count / 2).
+![Standalone nav reflow and refresh item](docs/arch/12-standalone.svg)
 
-The nav reflows to **two rows** with one empty icon-cell of padding on each side (`html.standalone .exec-nav` in chrome.css; cell width = W/(per-row+2)).
+Detected in the `_build_nav` script by `navigator.standalone` or `display-mode: standalone`: adds `html.standalone` and sets `--per-row` = ceil(items / 2). The nav reflows to **two rows** with one empty icon-cell of padding each side (`html.standalone .exec-nav` in chrome.css; cell width = W/(per-row+2)).
 
-Standalone also appends a **refresh** nav item (`#nav-refresh`, `firewall.svg` padlock icon, last slot, labelled `F5`) — created in JS only when the standalone class is added (counted before `--per-row`), with no href so the link interceptor skips it, and a click handler that hard-reloads via `location.reload()`. There is no browser chrome to reload from in a home-screen launch. **The guest nav renders it server-side in every mode** (`_REFRESH_ITEM` in pages.py, 2026-09-26): a guest is the visitor likeliest to be on a phone watching a page that has stopped updating, with no idea a reload is the fix. The standalone script checks for `#nav-refresh` before appending, so a guest's home-screen launch still shows exactly one.
-
-The nav script also tracks the live nav height via a `ResizeObserver` (→ `--nav-h`, taller in two-row mode so pages reserving it do not hide content behind the nav) and, in standalone, intercepts same-origin link taps → `location.href` (prevents Safari kick-out).
-
-**Keeping iOS chrome-less across navigation is the manifest's job, not the meta's.** `/manifest.webmanifest` (served by the static mount with `application/manifest+json` via a `mimetypes.add_type` in main.py; linked from `_APPLE_WEBAPP_META`) declares `scope:"/"` + `display:"standalone"`, so iOS treats in-scope page loads as in-app and hides the back/reload toolbar. **iOS reads the manifest at add-to-home-screen time only** — changing it requires deleting and re-adding the icon.
+- **`F5` refresh item** (`#nav-refresh`, `firewall.svg`, last slot): no href (the link interceptor skips it), click = `location.reload()`. Standalone appends it in JS, counted before `--per-row`; **the guest nav renders it server-side in every mode** (`_REFRESH_ITEM`), and the script checks for `#nav-refresh` first, so there is exactly one.
+- `--nav-h` tracks the live nav height via `ResizeObserver` (taller in two-row mode). In standalone, same-origin link taps go through `location.href` (stops Safari kick-out).
+- **Chrome-less across navigation is the manifest's job**: `/manifest.webmanifest` (`mimetypes.add_type` in main.py; linked from `_APPLE_WEBAPP_META`) declares `scope:"/"` + `display:"standalone"`. **iOS reads it at add-to-home-screen time only** — a change needs the icon deleted and re-added.
 
 ### 12c. The Exec bubble is not a nav entry
 
-It is a floating draggable bubble (`#exec-bubble`, `guru-pink.png` glasses icon, `exec-bubble.js` + `exec-bubble-drag.js`) injected by `_build_nav()`. There is no `/exec` route. Guests get no bubble.
+A floating draggable bubble (`#exec-bubble`, `guru-pink.png`, `exec-bubble.js` + `exec-bubble-drag.js`) injected by `_build_nav()`. No `/exec` route; guests get none.
 
-**On the planning routes (`/rd`, `/hq`)** it toggles the Exec chat panel. Appending `?exec=open` opens the panel expanded on load.
-
-**On every OTHER non-guest page** the same `#exec-bubble` renders (identical look via exec-bubble.css, same drag + shared `exec-bpos` position) but a tap NAVIGATES to `/hq?exec=open` — wired by `exec-link.js`. It is a `<div>`, not an `<a>`, so a drag cannot fire a stray click; nav goes via `location.href`, which stays in-app under standalone.
-
-**The bubble sits UNDER the CRT stack on every page** (`z-index: var(--z-bubble)` 8999 < the fx's `--z-modal` 9990) — behind the glass and the scanlines, the same in-the-CRT look as the rest of the chrome, and the fx are `pointer-events:none` so the tap still lands (`elementFromPoint` at the bubble's centre returns the bubble, measured on `/rd` and `/debug`). It used to be `--z-max` with an `.exec-under-fx` opt-in that only the link-bubble pages passed, so on `/rd`+`/hq` — the two pages the bubble is actually used on — it was the one element painting on top of the monitor. The class is gone; the base rule carries it.
-
-Bubble position persists in `localStorage` (`exec-bpos`), clamped to viewport. Unread monitor count shows as a badge on it.
-
-**While the panel is open the bubble is HIDDEN** (`body:has(#exec-panel.open) #exec-bubble { display: none }`, exec-bubble.css — the same rule the card dialog applies for the same reason). Bubble and panel are both at `--z-bubble`, so DOM order decides and the bubble wins it: wherever it rests it is ABOVE the panel and swallows every tap inside its 50px circle, and the tap it swallows is `togglePanel()`, i.e. CLOSE. The bubble's job is to OPEN; the panel closes from its own `[x]`.
-
-`#exec-term` carries `var(--space-2)` of BOTTOM padding as a tap guard, not as rhythm: **WebKit touch adjustment** snaps a tap that lands on no clickable element to the nearest one within ~10px, and the composer's `[x]` is a 29x19 target directly under the transcript's last line. Pinned by `tests/test_exec_bubble_overlap_browser.py` (WebKit, 430x932): nothing of the bubble may intersect the open panel, every choice button must be the topmost element at its own left/centre/right, and tapping the row's last answer must send it and leave the panel open.
-
+- **`/rd`, `/hq`**: tap toggles the Exec panel; `?exec=open` opens it on load.
+- **Every other non-guest page**: same bubble (exec-bubble.css, shared drag + `exec-bpos`), but a tap NAVIGATES to `/hq?exec=open` (`exec-link.js`). A `<div>`, not an `<a>`, so a drag cannot fire a click; nav via `location.href` stays in-app under standalone.
+- **Under the CRT stack on every page**: `z-index: var(--z-bubble)` (8999) < the fx's `--z-modal` (9990); the fx are `pointer-events:none`, so taps land.
+- Position persists in `localStorage` `exec-bpos`, clamped to the viewport; unread monitor count = badge.
+- **Hidden while the panel is open** (`body:has(#exec-panel.open) #exec-bubble { display: none }`, exec-bubble.css): both sit at `--z-bubble`, DOM order puts the bubble on top, and its tap is `togglePanel()` = CLOSE. The bubble opens; the panel closes from its own `[x]`.
+- `#exec-term` keeps `var(--space-2)` of BOTTOM padding as a tap guard (WebKit touch adjustment snaps a tap on nothing to the nearest control within ~10px; the composer `[x]` is a 29x19 target under the last line). Pinned by `tests/test_exec_bubble_overlap_browser.py` (WebKit 430x932): bubble never intersects the open panel; every choice button is topmost at its left/centre/right; tapping the last answer sends it and leaves the panel open.
 
 ### 12d. Exec's voice, and the panel
 
-Exec speaks aloud in the GLaDOS voice (`exec-voice.js`, `glados`/piper over the shared HosakaAudio core), audible by default with an `#exec-mute` toggle in the panel input line (localStorage `exec.voice`, global across pages). Wai's own messages and bracketed sys notes are never spoken.
-
-Each Exec turn's leading glyph in the panel is a clickable **replay** marker (`.msg-mark` — `>` reply / `~` monitor-nudge, built via `voice-ui.js`, bound in `exec-voice.js`); Wai's `$` and sys `#` lines get no marker.
-
-On the planning pages the panel voices assistant replies + monitor comments + nudges. On every OTHER non-planning protected page **except /tarot and /hosaka**, `exec-voice-listener.js` loads the same player and voices the unsolicited turns (monitor comments + nudges) arriving over `/api/monitor/stream`, so a nudge narrates wherever Wai is. Audio unlocks on the first user gesture per page (browser autoplay rule).
-
-The panel's top section is a server-persisted scratch **todo list** (`exec-todos.js`, `exec_todos.json`) — sizes to its content up to half the panel, then scrolls; an add-input at the top, a divider under the list, chat below. Items are DELETED on checkbox, distinct from rd.json cards, which archive. A chevron button (`#exec-todo-fold`) sits ON the divider and collapses the section to just the line (`.folded`, persisted in localStorage `exec.todos.folded`). **On desktop (`(hover: hover) and (pointer: fine)`) Enter sends and Shift+Enter is a newline. On touch the composer's Enter is a NEWLINE** (2026-10-05): the THIRD consecutive Enter sends (counted on `beforeinput` `insertParagraph`/`insertLineBreak` so phone keyboards count; the two blank lines are trimmed; any other edit resets the run), as does Ctrl/Cmd+Enter; there is no send button; the mic still sends on its own. Typing pins the transcript to its bottom, since a growing composer shrinks it.
-
-**The panel's composer is exactly one text line tall**, matching the messages above it — the point of the panel is that it reads as a terminal where the prompt is simply the next line. It was 33px against an 18.6px message line (6px of row padding, plus `#exec-mute` and `#exec-ph-close` carrying their own vertical padding), so **nothing in that row may have height of its own**: `#exec-iline` has zero padding and `align-items: flex-start`, and both buttons are `padding: 0 0 0 var(--space-2)` at `--lh-tight`. Measured in WebKit: prompt, input and the assistant/user message bodies all start at x=27 with an 18.6px line box.
+- Exec speaks aloud in the GLaDOS voice (`exec-voice.js`: `glados` on piper, over the shared HosakaAudio core); audible by default; `#exec-mute` toggle in the input line (localStorage `exec.voice`, global). Wai's messages and bracketed sys notes are never spoken.
+- Each Exec turn's leading glyph is a clickable **replay** marker (`.msg-mark`: `>` reply, `~` monitor/nudge; built by `voice-ui.js`, bound in `exec-voice.js`). `$` and sys `#` lines get none.
+- Planning pages voice replies + monitor comments + nudges. On every OTHER non-planning protected page **except `/tarot` and `/hosaka`** (`want_voice` in pages.py), `exec-voice-listener.js` voices unsolicited turns arriving over `/api/monitor/stream`. Audio unlocks on the first gesture per page.
+- Panel top = server-persisted scratch **todo list** (`exec-todos.js`, `exec_todos.json`): grows to half the panel then scrolls; add-input on top; items are DELETED on checkbox (rd.json cards archive). `#exec-todo-fold` on the divider collapses it (`.folded`, localStorage `exec.todos.folded`).
+- **Composer keys.** Desktop (`(hover: hover) and (pointer: fine)`): Enter sends, Shift+Enter newline. Touch: Enter is a NEWLINE; the THIRD consecutive Enter sends (counted on `beforeinput` `insertParagraph`/`insertLineBreak`; blank lines trimmed; any other edit resets the run), as does Ctrl/Cmd+Enter. No send button; the mic sends on its own. Typing pins the transcript to the bottom.
+- **The composer is exactly one text line tall**: nothing in that row may have height of its own (`#exec-iline` zero padding + `align-items:flex-start`; `#exec-mute`/`#exec-ph-close` are `padding: 0 0 0 var(--space-2)` at `--lh-tight`). WebKit check: prompt, input and message bodies start at x=27 with an 18.6px line box.
 
 ### 12e. Page scroll
 
-Non-`full_height` pages (every `_render_page` caller except `/rd`, `/hq`, `/hosaka`, `/printer` and `/spire`, which pass `full_height=True`) scroll inside a `.page-scroll` wrapper — `_render_page` wraps `content` when not `full_height`; `position:fixed; inset:0 0 var(--nav-h) 0; overflow-y:auto` in chrome.css.
+Non-`full_height` pages scroll inside a `.page-scroll` wrapper (`_render_page` wraps `content`; chrome.css `position:fixed; inset:0 0 var(--nav-h) 0; overflow-y:auto`). `full_height=True` callers skip it (body `overflow:hidden`, inner containers scroll): `/rd`, `/hq`, `/hosaka`, `/printer`, `/spire` (and the unlinked `/emet`).
 
-The reason is not layout preference: **the native root scrollbar is top-layer** and painted the styled pill (and its track's scanlines) OVER the fixed bottom nav's right edge. Confining the scroller to end at the nav top keeps the pill in the content area.
+Why: the native root scrollbar is top-layer and painted the styled pill (and its scanlines) OVER the fixed nav's right edge; ending the scroller at the nav top keeps it in the content area.
 
-`full_height` pages (`/rd`, `/hq`, `/printer`, `/hosaka`) already scroll inner containers (body `overflow:hidden`) so they skip the wrapper.
+### Click-outside-to-close is decided in the CAPTURE phase
 
+![Click-outside origin recorded on the way down](docs/arch/12-click-outside.svg)
 
----
-
-### Click-outside-to-close must be decided in the CAPTURE phase
-
-The Exec panel dismisses itself when a click lands outside it. The obvious way to write that is a bubble-phase listener on `document` asking `panel.contains(e.target)` — and it is wrong for any panel containing a control that removes itself.
-
-`document` is the LAST stop on the way up, so by the time the test runs the target's own handler has already executed. exec-choices' answer buttons call `retireAnswers()`, which removes every answer in the row **including the one just tapped**, synchronously. The target is then detached from the tree, `panel.contains()` is false, and the panel closes under the very tap that was meant for it — the user answers a nudge and the chat vanishes.
-
-So the origin is recorded on the way DOWN instead:
+A bubble-phase `panel.contains(e.target)` test is wrong for any panel containing a control that removes itself: `document` is the last stop, so exec-choices' `retireAnswers()` has already detached the tapped button and the panel closes under the tap. `exec-bubble.js` records the origin on the way DOWN:
 
 ```js
 let fromInside = false;
@@ -2489,221 +1220,198 @@ function markOrigin(e) { fromInside = panel.contains(e.target) || bubble.contain
 function closeIfOutside() { if (isOpen && !fromInside) closePanel(); }
 document.addEventListener('click', markOrigin, true);   // capture: DOM still intact
 document.addEventListener('click', closeIfOutside);     // bubble: act on the flag
+// same pair is registered for 'touchend'
 ```
 
-Capture reaches `document` before any handler can rewrite the DOM, so the node is still in the tree when it is tested. **This is a property of the mechanism, not of those particular buttons** — any control added later that detaches itself on tap is covered without touching this code.
+A property of the mechanism: any later self-detaching control is covered. Testing: the open panel spans the whole viewport (empty region passes clicks through), so there is no "outside" (x, y) — dispatch at a target the panel does not contain, and assert the old predicate reads false alongside the panel staying open. `exec-todos.js` is immune (checkbox defers `li.remove()` by 180ms).
 
-Two notes for anyone re-testing it. The panel element **spans the whole viewport** when open (it is a full-bleed element whose empty region passes clicks through), so there is no screen coordinate on `/rd` that is geometrically "outside" it — a click-outside test has to dispatch at a target the panel does not contain, not at an (x, y). And the regression is only visible if you assert the OLD predicate alongside the new behaviour: `panel.contains(e.target)` in a bubble listener reads **false** on that tap while the panel correctly stays open, which is what proves both halves at once.
-
-`exec-todos.js` does NOT hit this: its checkbox defers `li.remove()` by 180ms, so the removal lands well after the click has finished propagating.
-
-History — the incidents behind the rules above: [ARCHAEOLOGY.md §12](ARCHAEOLOGY.md).
+History: [ARCHAEOLOGY.md §12](ARCHAEOLOGY.md).
 
 ---
-### 12-notes. From CLAUDE.md (moved 2026-09-27)
-
-Moved verbatim from CLAUDE.md on 2026-09-27 when CLAUDE.md was thinned to an index. Unedited; may overlap the subsections above.
-
-**[Web app → Nav]**
-
-Nav (as of 2026-10-14; the `/cc` star `✦` left 2026-09-29): `R&D` · `HQ` · `DBG` · `BOT` (→`/security`) · `GPH` · `UIX` (→`/UI`) · `12AM` · `SPR` (→`/spire`) · `MTG` · `TRT` · `HSK` (→`/hosaka`) · `3DP` (→`/printer`) · `NDL` (→`/noodle`) · `CV` (→`/recruiter`) — fixed 3-char codes (`_NAV_LABELS`), bottom of every page; the guest-gated ones (`BOT`/`UIX`/`HSK`/`3DP`/`GPH`/`SPR`/`NDL`) appear in the guest nav too — `GPH` genuinely so only since 2026-09-21, when `_GUEST_NAV_LINKS` was found to omit the one entry both docs already claimed for it, stranding any guest who took the landing's `/graph` spoke. **`tests/test_landing_nav_parity.py` now pins it**: every landing link must have a guest-nav entry, both sides scraped from the rendered HTML rather than listed by hand. **The icons are TRACED SVGs that STAY PIXEL ART, in TWO modes.** Fourteen are traced in their OWN COLOURS — tile dropped (that is the transparency), every other colour painted as itself, the ink taking the tile's colour so each keeps a rim of it. Eight (`turbo`/`bitman`/`printer`/`wizard`/`data-file`/`data-doctor`/`sentinel`/`bug`, the `LINE_ART` set) stay on the older line-art path, because a heavily dithered source traces its dither faithfully and faithful is not always what an icon wants. The colour mode is the better default and it retired most of the line-art machinery for the icons that use it: at 27px the SHADING IS THE SHAPE, so painting the shading returns exactly what the interior pass, the quantiser, the despeckler and the drawn glyphs were reconstructing. The rest of this paragraph describes the line-art path. (`web/icons/`, served at `/icons/<name>.svg`), not the PNGs: `scripts/trace-icons.py` traces each PNG's own black linework and fills it with that PNG's tile colour. **One source pixel = one viewBox unit**, every path coordinate an integer, plus `shape-rendering="crispEdges"` — which is the whole trick, since 20/27 is not a whole number and without it the renderer antialiases every pixel edge into a smudge at exactly the nav's size. (`image-rendering:pixelated` is the RASTER knob and does nothing to an SVG.) An earlier version Chaikin-smoothed the staircases off; smoothing a pixel grid is the opposite of keeping it, and cost 4x the bytes to do it — 120KB for the set against **26KB**. The set is GENERATED — edit the script, never the SVGs — and `web/icons/README.md` carries the rules. The outline is the **darkest cluster** (so drop shadows and dither are not swallowed); on top of it an **interior-detail pass** draws what the artist drew as flat colour rather than linework (the boss's mouth, watchman's iris, golem's panels, the wizard's moon), confined to the pixels enclosed BY that outline so the shadow stays out, over **quantised** colour because these sources shade by dithering and a stippled iris is otherwise never one region, with small regions **merged into their neighbour rather than dropped** — dropping them inked a line only where both sides survived, so every speck punched a hole in the line past it. Where even that fails, `GLYPH_ONLY` throws the trace away and the icon is DRAWN (`data-file`, `data-doctor`, `laser-satellite` — an isometric case whose cross is a five-cell smear, dice whose facets are dithered, and a paper stack whose back sheets only ever traced as slivers). A drawn glyph marked `solid` OCCLUDES the ones listed before it, which is what makes paper read as paper rather than as three wireframes. Other by-name knobs: `DROP_COLOURS` (a solid drop shadow no size or luminance rule reaches), `CENTRE_INK` (centre on the drawing, not the image), `DESPECKLE_OUTLINE` (dither inside the LINEWORK; counts all eight neighbours, or a diagonal outline is deleted as speckle) and `ICON_QUANT`. Two more tables carry colour: `ICON_COLOUR` where the subject is not the tile's colour (`turbo` is a yellow bolt on a blue tile) and `ICON_ACCENT` for a feature whose colour IS its meaning (`data-doctor`'s red cross, re-centred on the case; `wardenpp`'s gold rank crosses; `wizard`'s moon and stars). A tile within 25 lightness points of `--bg-hsl` gets its brightness inverted. Where a source shape cannot be traced into the thing it depicts, a named `ICON_GLYPH` is DRAWN over it on the same pixel grid — data-doctor's cross (five red cells smeared across an isometric face), watchman's iris + green pupil, the boss's mouth, data-file's text rules — and `NO_INTERIOR` turns the interior pass off where the inside is pure dither (watchman, bitman/printer). **A 27px source's interior detail does not resolve at the nav's 20px** — the nav shows silhouette, the detail reads from ~40px up; that is the source's property, not the trace's. **A non-ASCII label now has the machinery it needs, and it is DETECTED, not listed** — the pixel nav font (`04b25`) is ASCII-only, so `_build_nav` marks any label with a non-ASCII character `nav-label glyph` (`text.isascii()`) and `.nav-label.glyph` re-fonts it to `--font-mono`, which HAS the glyph. Two rules that rule lives by: it sits AFTER `.nav-label` (source order decides at equal specificity, and the extra class is what actually wins), and **it sizes the glyph with a `transform`, never `font-size`** — the label's box is nav geometry, so a font-size big enough to match the pixel caps would grow the span, the anchor and the nav bar under them. `scale(1.48)` sizes it by WIDTH — the star's ink is 9.0px, the same as the M of MTG, so it reads as a letter of the row; being square that leaves it 9.0px tall against the caps' 11.3px, and a glyph cannot match both. The nudge rides in the same transform (`translateY` FIRST, unmultiplied) because the nav anchor is a flex column, which makes the label a flex ITEM and `vertical-align` inert on it. **Standalone launch** (home-screen install) reflows to two rows and appends an `F5` refresh item, since there is no browser chrome to reload from — **the GUEST nav carries it in every mode** (server-rendered `_REFRESH_ITEM`, 2026-09-26; the standalone script skips its append when `#nav-refresh` already exists, so never two); `--nav-h` is kept live by a `ResizeObserver`, and **keeping iOS chrome-less across navigation is the manifest's job** (`/manifest.webmanifest`, `scope:"/"` + `display:"standalone"`) — iOS reads it at add-to-home-screen time ONLY, so a change needs the icon deleted and re-added. **Exec is NOT a nav entry** — it is a floating draggable bubble (`#exec-bubble`, `exec-bubble.js` + `exec-bubble-drag.js`) injected by `_build_nav()`; on `/rd`+`/hq` it toggles the chat panel (`?exec=open` opens it on load), on every other non-guest page it NAVIGATES to `/hq?exec=open` (`exec-link.js`, a `<div>` not an `<a>` so a drag can't fire a stray click). **It sits UNDER the CRT stack everywhere** (`--z-bubble` 8999 against the fx's `--z-modal` 9990) — behind the glass and scanlines like the rest of the chrome, and the fx are `pointer-events:none` so the tap still lands; the old `.exec-under-fx` opt-in only covered the link-bubble pages, leaving the bubble painting over the CRT on exactly the two pages it is used on. **While the panel is open the bubble is HIDDEN** (`body:has(#exec-panel.open) #exec-bubble`) — bubble and panel are both `--z-bubble` and DOM order puts the bubble on top, so wherever it rests it ate the tap under it and that tap is `togglePanel()`; at phone width its resting corner sits on the tail of the last choice row and on the composer's mute/`[x]`, so answering a nudge minimised the panel instead (2026-09-18). The bubble OPENS; the panel closes from its own `[x]`. Guests get no bubble; there is no `/exec` route. Exec speaks in the GLaDOS voice (`exec-voice.js`, a binding over the shared `voice-narrator.js`); on non-planning pages `exec-voice-listener.js` voices nudges + monitor comments wherever Wai is, except `/tarot` and `/hosaka`. **Voice goes BOTH ways in the panel** — the composer's `$` is a mic (`exec-mic.js` on the shared `voice-input.js` engine): one tap opens a continuous session, each finished utterance sends itself, and anything heard while a reply is streaming **or while Exec is speaking** (`execVoice.isSpeaking()`) is dropped, or the panel transcribes its own narration and answers itself. Closing the panel ends the session. The `.mic` prompt is a `<span>`, so it had to be added to the panel's first-gesture keyboard arm (`exec-bubble.js`; the old `cc-input.js` went with the page), which `preventDefault()`s a pointerdown on anything that isn't a control and ate the first tap on it. The panel also holds a server-persisted scratch todo list (`exec-todos.js`, `exec_todos.json`) whose items DELETE on checkbox. Non-`full_height` pages scroll inside a `.page-scroll` wrapper, not the document root — the native root scrollbar is top-layer and painted its pill over the fixed nav. Nav table, standalone details, bubble/voice wiring and the one-line composer rule: **ARCHITECTURE.md §12** (history: **ARCHAEOLOGY.md §12**).
 
 ## 13. The pre-commit hook suite
 
-Source of truth is `scripts/pre-commit` (version-controlled); `.git/hooks/pre-commit` is a symlink to it — run `bash scripts/install-hooks.sh` to (re)install on a fresh clone. Run `bash scripts/pre-commit` manually to check before committing. Linter configs are tracked: `ruff.toml`, `eslint.config.mjs`, `.stylelintrc.json`, `package.json`.
+Source of truth is `scripts/pre-commit`; `.git/hooks/pre-commit` symlinks to it (`bash scripts/install-hooks.sh` on a fresh clone; `bash scripts/pre-commit` to check by hand). Configs tracked: `ruff.toml`, `eslint.config.mjs`, `.stylelintrc.json`, `package.json`. Every check is **trigger-gated on what the commit stages** (`$STAGED`, read once; every gate filters it). Checks run in the order below; the first failure blocks.
 
-Every check is **trigger-gated on what a commit actually stages**, so the suite stays fast.
+![Pre-commit gate order](docs/arch/13-precommit-gates.svg)
 
 | Check | Fires when | What it rejects |
 |---|---|---|
+| inline-script syntax | always (every `api/templates/*.html`) | `node --check` failure in an inline `<script>` |
 | ruff | staged `.py` | lint |
-| JS syntax + ESLint | staged templates, `web/*.js` | syntax; `max-lines-per-function: 100` |
-| stylelint | staged `web/*.css` | lint |
-| `scripts/lint-colors.py` | any css / web-js / template staged | a new colour or alpha (below) |
-| `scripts/lint-scale.py` | any `web/*.css` staged | a raw literal on a governed property (below) |
-| shellcheck | staged `.sh` | lint |
-| `scripts/lint-swallowed.py` | staged top-level `web/*.js` | code after a mid-line `//` (it swallowed code and broke /spire 3x) |
-| 500-line cap | staged `.py`/`.js` | any file over the cap (no allowlist; `LINE_CAP_ALLOW` is empty) |
-| no-multiline-inline-JS/CSS | templates | a multi-line inline `<script>`/`<style>` |
-| fixture resolution | staged `tests/` or `api/*.py` | a stale/renamed/deleted fixture reference |
-| page smoke tests | staged `api/*.py` or templates | a broken route |
-| admin-tier guard | (part of the smoke tests) | a `protected` route reachable by guest/anon |
-| tarot progression / exec-voice (WebKit) | staged tarot reader or voice-layer files | a reading that can hang / Exec not speaking in its voice (run inside `run_capped`, 700M) |
-| repo gates, keyed by `REPO_NAME` | committing in `spire` (game smoke, `scripts/spire-smoke/smoke.mjs`) or `cc-sidecar` (`node --check` + every `*.test.mjs`) | a blank/throwing game; a failing sidecar suite |
-| CLAUDE.md size cap | staged `CLAUDE.md` | over 140000 chars (the staged blob) |
+| stylelint | staged `web/*.css` (not `web/vendor/`), if stylelint installed | lint |
+| `scripts/lint-colors.py` | any css / web-js / template staged | a new colour or alpha (§13a) |
+| `scripts/lint-scale.py` | any `web/*.css` staged | a raw literal on a governed property (§13b) |
+| shellcheck (`--severity=warning`) | staged `.sh` | lint |
+| **mermaid render** | staged `.mmd` | `scripts/render-mermaid.py` failure; re-renders each to the `.svg` beside it and `git add`s the SVG (below) |
+| ESLint | always on template inline scripts; staged `web/*.js` | errors; `max-lines-per-function: 100` (ratchet: only touched files) |
+| `scripts/lint-swallowed.py` | staged top-level `web/*.js` | code after a mid-line `//` (swallowed code broke /spire 3x) |
+| 500-line cap | staged `.py`/`.js` (not node_modules/graphify-out/web/vendor) | any file over 500 lines (no allowlist; `LINE_CAP_ALLOW` is empty) |
+| no-multiline-inline-JS/CSS | staged templates | a multi-line inline `<script>`/`<style>` (one-liners ok) |
+| fixture resolution (§13e) | staged `tests/*.py` or `api/*.py` | stale/renamed fixture reference |
+| page smoke + admin-tier guard (§13d) | staged `api/*.py` or templates | a broken route; a `protected` route open to guest/anon |
+| repo gates, by `REPO_NAME` | `spire`: staged `web/aspira-*.js`, `aspira.html` or `scripts/spire-smoke/` → `scripts/spire-smoke/smoke.mjs`. `cc-sidecar`: staged `.mjs` → `node --check` + every `*.test.mjs` | blank/throwing game; failing sidecar suite |
+| tarot progression (WebKit, `run_capped`) | staged `api/tarot/`, `tarot.html`, `web/tarot*.js`, `hosaka-audio.js`, or its test | a reading that can hang |
+| exec-voice (WebKit, `run_capped`) | staged `exec-voice.js`, `exec-voice-listener.js`, `voice-util.js`, `exec-bubble.js`, `hosaka-audio.js`, `api/pages.py`, or its test | Exec not speaking in its voice |
+| CLAUDE.md size cap | staged `CLAUDE.md` | staged blob over 140000 chars |
 
-Plus a non-blocking reminder to update `CLAUDE.md`/`ARCHITECTURE.md` when source changes.
+Non-blocking: a reminder when `api/*.py`/templates are staged without `CLAUDE.md`/`ARCHITECTURE.md`/`ARCHAEOLOGY.md`.
 
-**Shared lint plumbing (2026-10-14).** `scripts/lintkit.py` is what the lints share: file discovery through `api/app_paths.py` (`web_dirs()`, `template_dirs()` — the SAME lists the static mount, `pages._tmpl` and `/api/ui/usage` use, so a lint scans exactly what is served, apps included), comment stripping, baseline JSON I/O and the `--update` entry point. `scripts/pre-commit` resolves `PYTEST` and reads the staged list (`$STAGED`) ONCE; every gate filters that.
+- **Mermaid.** `.mmd` → `.svg` through the host's `.venv` (playwright + WebKit; mermaid 11.4.1 fetched from jsdelivr, dark theme, `htmlLabels:false` so the SVG works in an `<img>`). Docs embed the SVG, not a fence (the Claude Code viewer prints a fence as code). A tooling-only copy skips with a note.
+- **Browser suites run capped**: `run_capped` wraps pytest in `systemd-run --user --scope -p MemoryMax=700M` (bare fallback where unavailable) so a WebKit spike kills the scope, not the site.
+- **Pytest scope**: `$HOST/tests/` plus every `apps/*/tests`; `PYTEST` = host `.venv`, else PATH, else empty (each pytest gate then skips cleanly). Smoke needs the live app on :8080 (`SMOKE_BASE_URL`); it skips if down.
+- **Shared lint plumbing.** `scripts/lintkit.py`: file discovery via `api/app_paths.py` (`web_dirs()`/`template_dirs()` — the SAME lists the static mount, `pages._tmpl` and `/api/ui/usage` use, so lints scan what is served, apps included; `LINT_APP_ROOT` adds a committing sub repo's own tree), comment stripping, baseline I/O, `--update`.
+
+### 13h. One hook for every repo (sub repos carry only a shim)
+
+![Hook and shim across submodules](docs/arch/13-hook-shim.svg)
+
+exec-fn owns every lint, hook and check (§1e). `HOST` = the exec-fn tree the running `scripts/pre-commit` came from (`readlink -f`); `REPO_NAME` (from `remote.origin.url`) selects the repo-specific gates. A sub repo (`apps/spire`, `apps/noodle`, `claude-box`) carries only `scripts/pre-commit` = a verbatim copy of `scripts/subrepo-pre-commit` (pinned by `tests/test_subrepo_shims.py`), wired by `core.hooksPath=scripts` (`session-context.sh` sets it for any submodule whose shim matches). As a submodule it `exec`s the superproject's hook; cloned alone it sparse-checkouts ONLY the files in `scripts/tooling-paths.txt` into a gitignored `.exec-fn/` (refresh at most hourly), runs that copy (`FULL_HOST=0`: lints only, no tests/venv). **A new lint, config or file a lint reads must be added to `tooling-paths.txt`**, or a standalone sub repo's commit fails on a missing file. nightfall keeps its own long-standing eslint hook (no shim).
 
 ### 13a. The palette lint (`scripts/lint-colors.py`)
 
-**The allowed `(color, alpha)` pairs are DERIVED from usage**, by the same extraction `/api/ui/usage` feeds to `/UI`, and frozen in `scripts/palette-baseline.json`. It rejects:
+Allowed `(color, alpha)` pairs are **DERIVED from usage** (same extraction `/api/ui/usage` feeds `/UI`) and frozen in `scripts/palette-baseline.json`. It rejects:
 
-1. Any off-snap-scale alpha. The scale is `0/0.06/0.12/0.25/0.45/0.6/0.8/1`.
-2. Any colour using more than **4 non-zero** alpha steps.
-3. Any `(token, alpha)` pair not in the baseline — a new alpha for a colour, or a new colour token.
-4. Any `var(--*-hsl)` not defined in chrome.css or `LOCAL_ACCENTS`.
-5. Any raw colour literal (rgb/rgba/hex, or a non-token `hsl()`/`hsla()`) not in `scripts/raw-color-baseline.json` — current raw literals are grandfathered as a freeze-baseline, a NEW one is rejected.
-6. Any CSS **named colour** (red/white/gold/…) in a colour property — `web/*.css` declarations and template inline `style=` — rejected outright. None exist to grandfather. `var(--green-hsl)` etc. are not misread as the colour; `transparent`/`currentcolor` stay allowed.
+1. any alpha off the snap scale `0/0.06/0.12/0.25/0.45/0.6/0.8/1` (`SNAP_SCALE`);
+2. any colour with more than **4 non-zero** alpha steps;
+3. any `(token, alpha)` pair not in the baseline (new alpha for a colour, or a new colour token);
+4. any `var(--*-hsl)` not defined in chrome.css or `LOCAL_ACCENTS` (`ember-hsl`, `seal-hsl`);
+5. any raw colour literal (rgb/rgba/hex, or `hsl()`/`hsla()` not of the token form) not in `scripts/raw-color-baseline.json` (grandfathered freeze; a NEW one is rejected);
+6. any CSS **named colour** in a colour property (`web/*.css` declarations, template inline `style=`) — no baseline, none exist. `transparent`/`currentcolor` allowed.
 
-Every hued colour sits at ≤4 steps (e.g. `--cyan-hsl` = `0.12/0.45/0.8/1`, matching `--green-hsl`); neutrals (Silver, Smoked Glass) use fewer.
-
-**To add a colour or alpha**: make the change, eyeball it on `/UI`, then `python3 scripts/lint-colors.py --update` to regenerate the baseline, and commit that too.
+**To add a colour or alpha**: make the change, eyeball it on `/UI`, run `python3 scripts/lint-colors.py --update`, commit the baseline.
 
 ### 13b. The scale lint (`scripts/lint-scale.py`)
 
-The SAME move as the palette lint, for every OTHER design choice.
+The same move for every other design choice. Tokens live in chrome.css's second `:root`: `--space-*`, `--radius-*`, `--font-*`, `--fs-*` (4 sizes: 2xs/sm/xl/3xl; fluid `clamp()` stays bespoke), `--fw-*` (2: normal/bold), `--lh-*`, `--tracking-*` (em), `--blur-*`, `--z-*`. Border-width, duration and easing tokens were dropped as unused.
 
-Structural scale tokens live in chrome.css's second `:root` section: `--space-*` px steps, `--radius-*`, `--font-*` families, `--fs-*` (4 rem sizes — 2xs/sm/xl/3xl; fluid `clamp()` sizes stay bespoke), `--fw-*` (2 weights), `--lh-*`, `--tracking-*` em, `--blur-*`, `--z-*`. Border-width, duration and easing tokens were all dropped as unused — transitions and the `border` shorthand stay raw.
+- **Governed**: padding / margin / gap / border-radius / font-size / font-weight / line-height / letter-spacing / font-family must reference a token. Allowed raw: `0`, `calc()/min()/max()/clamp()`, `%` + viewport units, CSS keywords, **`em`** (but letter-spacing tokens ARE em, so raw em tracking is rejected), negative lengths.
+- **Not governed**: border-width (in the `border` shorthand), transition/animation duration.
+- **`box-shadow` and `z-index` are FREEZE-governed**: current values frozen in `scripts/scale-baseline.json`, any new value rejected; `z-index: var(--z-*)` always passes. Add one deliberately with `python3 scripts/lint-scale.py --update`.
+- Scans each served web dir's top-level `*.css` (apps included); inline template styles fall under the no-inline-CSS rule.
+- **Snap a page onto the scale**: `python3 scripts/scale-codemod.py [file...]` (dry-run) / `--write`; unit-aware (px↔rem snap, em stays raw).
 
-Every **governed** property — padding / margin / gap / border-radius / font-size / font-weight / line-height / letter-spacing / font-family — must reference a token, not a raw literal.
+### 13c. Cache-busting is done at serve time (`api/asset_version.py`)
 
-Allowed raw: `0`, `calc()/min()/max()/clamp()`, `%` + viewport units, CSS keywords, **`em`** (relative-by-design, left fluid for size and spacing — but letter-spacing tokens ARE em, so raw em tracking is rejected), and **negative** lengths (deliberate pull-ups).
+Versioned static is `public, max-age=31536000, immutable`, so a stale `?v=` pins the old file in every browser that has it. The hand-bump rule and `scripts/lint-cachebust.py` are **retired** (an app submodule's template naming the parent's `/chrome.css` can't bump both in one commit).
 
-NOT governed: border-width (it lives in the `border` shorthand), and transition/animation duration.
+`VersionedAssetsMiddleware` (innermost, before GZip; pure ASGI) rewrites every `/<asset>?v=<anything>` — and this site's absolute URLs (the og:image) — in each **text/html** response to `?v=<first 8 hex of the served file's sha256>`, resolving files via `app_paths.web_dirs()` (parent `web/`, then each `apps/*/web`). **The number in the source is ignored: write `?v=1` on a new reference, never bump one.** Hashes are cached per `(path, mtime_ns, size)` (a stat per asset per page).
 
-**`box-shadow` and `z-index` are FREEZE-governed** — there is no clean token scale to snap them to, so the current values are frozen into `scripts/scale-baseline.json` and any NEW/unseen value is rejected. A tokenised `z-index: var(--z-*)` always passes. Add a deliberate new shadow or z with `python3 scripts/lint-scale.py --update`, the same act as the palette `--update`.
-
-It scans `web/*.css` only; inline template styles are covered by the no-inline-CSS rule.
-
-**Snap a page onto the scale** with `python3 scripts/scale-codemod.py [file...]` (dry-run) or `--write`. The codemod is unit-aware: px↔rem convert and snap, em stays raw.
-
-### 13c. Cache-busting is done at serve time (`api/asset_version.py`, 2026-10-14)
-
-Versioned static is served `public, max-age=31536000, immutable`, so a stale `?v=` keeps the old file in every browser that has it — how `/hq`'s row layout shipped to desktop while the phone kept rendering the pre-rows `hq.css?v=17` for weeks. That used to be policed by hand: bump the `?v=` on every `api/` reference in the same commit, enforced by `scripts/lint-cachebust.py`. **Retired 2026-10-14**: once pages and the assets they name could live in different repos (an app submodule's template naming the parent's `/chrome.css`), no single commit could bump both.
-
-Now `VersionedAssetsMiddleware` (innermost, before GZip) rewrites every `/<asset>?v=<anything>` — and this site's absolute URLs, e.g. the og:image — in each **text/html** response to `?v=<8 hex of the served file's sha256>`, looking the file up through `app_paths.web_dirs()` (parent `web/`, then each `apps/*/web`). **The number in the source is ignored**: write `?v=1` on a new reference; never bump one. Hashes are cached per `(path, mtime_ns, size)`, so a page costs a stat per asset. Not covered: JS that loads other assets with its own `?v=` (e.g. `exec-bubble-assets.js`' `loadStyles`) — those still need a hand bump; `/printer/*` and `/nightfall-game/*` are skipped (nightfall stamps `?v=<mtime>` itself). A URL whose file is not found is left as written. Pinned by `tests/test_asset_version.py`.
+Not covered: JS that loads other assets with its own `?v=` (e.g. `exec-bubble-assets.js` `loadStyles`; `tarot-music.js`'s `tarot-ambient.m4a?v=3`) — hand bump; `/printer/` and `/nightfall-game/` are skipped (nightfall stamps `?v=<mtime>`); a URL whose file isn't found is left as written. Pinned by `tests/test_asset_version.py`.
 
 ### 13d. The admin-tier guard (`tests/test_admin_only.py`)
 
-Every route on `protected` must be admin-**ONLY**: refused for anonymous AND guest, and still reachable by the admin cookie. (A route that refused everyone would otherwise pass a "not public, not guest" check while being broken.)
+Every route on `protected` must be admin-**ONLY**: refused for anonymous AND guest, still reachable with the admin cookie (a route refusing everyone would otherwise pass a "not public, not guest" check while broken).
 
-**The route list is enumerated from the decorators, never hand-written.** A hand-written list is a denylist covering only what someone remembered, and a route added later would be silently uncovered.
-
-Two rules the enumeration turns on: **`protected` is a SUFFIX of `guest_protected`**, so the regex is anchored with `(?<![\w_])` — the same substring trap `cmdscan.py` exists for; and **an included router's alias must resolve to its MODULE**, since nearly every route module names its router `router`.
-
-**GET routes are fired over HTTP; mutating ones deliberately are NOT.** The suite runs against the LIVE container, and the one case where an unauthenticated POST does not stop at 401 is precisely the bug under test — at which point `POST /api/morning` would run the morning pipeline against real data. Those get a structural assertion instead.
-
-SSE routes (`/api/monitor/stream`, `/api/hosaka/mode/stream`) are held open by an ACCEPTED request and answer nothing, so a timeout there means *not refused* and is read as such.
+- **The route list is enumerated from the decorators, never hand-written** (a hand list is a denylist of what someone remembered).
+- `protected` is a SUFFIX of `guest_protected`, so the regex is anchored with `(?<![\w_])` (the substring trap `cmdscan.py` exists for); an included router's alias must resolve to its MODULE (nearly every module names its router `router`).
+- **GET routes are fired over HTTP; mutating ones are NOT** — the suite runs against the LIVE container, and an unauthenticated POST that doesn't stop at 401 is the bug under test (it would run `POST /api/morning` on real data). They get a structural assertion.
+- SSE routes (`/api/monitor/stream`, `/api/hosaka/mode/stream`) answer nothing when accepted; a timeout there is read as "not refused".
+- `tests/test_cc_admin_only.py` does the same for `routes_cc.py` (shell on the host; must never reach `guest_protected`).
 
 ### 13e. The fixture-resolution check
 
-`pytest tests/ --setup-plan`, run when any `tests/` or `api/*.py` is staged. It RESOLVES every test's fixture graph across the WHOLE suite without executing fixture or test bodies, so no WebKit and no live app are needed (~0.3s).
+`pytest <test dirs> --setup-plan` when any `tests/*.py` or `api/*.py` is staged. It RESOLVES every test's fixture graph across the WHOLE suite without executing bodies (no WebKit, no live app, ~0.3s), so a conftest rename can't hide in a test behind an untriggered gate. Skips cleanly without a pytest venv. The page smoke tests are HTTP over every route against the live container on :8080 (`-m "not browser"`); they skip if it's down and fail+block on a broken route.
 
-It catches a stale/renamed/deleted fixture reference *anywhere*, even when the consuming test sits behind a per-feature trigger gate — so a cross-cutting conftest rename cannot hide in an untriggered test. It skips cleanly with no pytest venv.
+### 13f. The Claude Code guard set (`.claude/hooks/`, registered in `.claude/settings.json`)
 
-The **page smoke tests** themselves are HTTP over every route against the live container on :8080; they skip cleanly if it is down or the dev venv is absent, and fail+block on a broken route.
+Separate from the git hook: these fire only when committing/editing THROUGH Claude Code. exec-fn owns every hook (§1e). **Every one fails open** — a parse error, missing file or bad payload exits 0.
 
-History — the incidents behind the rules above: [ARCHAEOLOGY.md §13](ARCHAEOLOGY.md).
+![Claude Code hooks by event](docs/arch/13-claude-hooks.svg)
+
+| Hook | Event / matcher | Does |
+|---|---|---|
+| `docs-commit-guard.sh` | PreToolUse Bash (`git commit` / `git -C <dir> commit`) | Denies a commit that stages `api/*.py` or `api/templates/*.html` without `CLAUDE.md`/`ARCHITECTURE.md`/`ARCHAEOLOGY.md`; opt-out token `[skip-docs]` in the message. Judges the index of the repo the commit RUNS in (`commit_repo.py`). |
+| `git-stash-guard.sh` | PreToolUse Bash, `if: Bash(git stash*)` | Blocks `git stash` (stales bind mounts → 502). |
+| `nightfall-build-guard.py` | PreToolUse Bash | Denies a webpack build missing `NODE_ENV=production` (asset URLs 404 → silent black screen) or not run in the background. |
+| `dead-file-guard.sh` | PreToolUse Edit/Write/NotebookEdit | Denies edits to `nightfall-src/components/Netmap.tsx` (dead; only Netmap3D renders). |
+| `push-after-commit.sh` | PostToolUse Bash (after a commit) | Pushes when HEAD is ahead; see below. |
+| `deploy-healthcheck.sh` | PostToolUse Bash (commit, push, `docker compose up/restart`, SSH deploy, `scripts/deploy.sh`) | `curl https://wai-lau.net/` up to 5 tries; 200/301/302 = healthy. |
+| `session-context.sh` | SessionStart | States droplet-vs-local from the hostname (`main` + `/exec-fn`), reinstalls the graphify post-commit hook if missing, re-attaches a detached submodule HEAD to master (only when exactly `origin/master`), sets `core.hooksPath=scripts` for shim'd submodules. |
+| `session-start.sh` | SessionStart | Web sandbox only (`CLAUDE_CODE_REMOTE=true`): installs Python deps + ruff + npm devDeps. |
+
+**`push-after-commit.sh`** pushes in the repo the commit ran in; on rejection it discards `graphify-out` drift, `pull --rebase`s and pushes again (never stash). Skips a detached HEAD, a mid-rebase tree and a branch with no upstream (publishing a new branch stays deliberate). For a submodule commit it then bumps the parent's gitlink in its own `chore(apps): bump <path> to <sha>` commit (commits ONLY that path; forward-only — never rolls a submodule back) and pushes the parent, submodule FIRST (`push.recurseSubmodules=check`).
+
+![push-after-commit flow](docs/arch/13-push-after-commit.svg)
+
+**The trap they share, and why `cmdscan.py` exists**: a hook matching its trigger as a SUBSTRING fires on any command that merely *mentions* the phrase (a heredoc documenting the rule). `cmdscan.py` strips heredoc bodies (and quoted strings on request) so a guard matches an INVOCATION; every Bash-matching hook routes through it. It does NOT strip quotes by default — the docs guard reads `[skip-docs]` out of the quoted message.
+
+### 13g. Size rules (what the cap enforces, how to split)
+
+No inline JS/CSS in templates (extract to `web/<page>.{js,css}`; a one-line `onclick=` stays). No `.py`/`.js` over 500 lines — split on a real seam: modules, or same-global-scope files loaded in order (`web/` JS shares globals, so ESLint `no-undef`/`no-unused-vars` are off for `web/**`). Existing splits: `main.py` → `pages.py` + `routers.py` + `routes_views.py` + `routes_api.py` + `routes_graph.py`; `graph_scrub` + `graph_style`; `nudge` + `nudge_deadlines` + `nudge_llm` + `nudge_loop`; `monitor_sse`; `hq-core/drag/groups/board.js` (`hq-drag.js` = shared pointer wiring + floating-ghost drag); `graph-audio.js` → `graph-norm.js`; `tarot-view/voice/stream/chat.js` (`tarot-stream.js` = `streamResponse()` + the audio-paced typewriter).
+
+History: [ARCHAEOLOGY.md §13](ARCHAEOLOGY.md).
 
 ---
-### 13-notes. From CLAUDE.md (moved 2026-09-27)
-
-Moved verbatim from CLAUDE.md on 2026-09-27 when CLAUDE.md was thinned to an index. Unedited; may overlap the subsections above.
-
-**[RULES → Pre-commit hook]**
-
-**PRE-COMMIT HOOK** runs automatically on commit, every check gated on what the commit actually stages: ruff on staged `.py`; JS syntax + ESLint on templates and `web/*.js` (incl. `max-lines-per-function: 100`); stylelint on `web/*.css`; a **palette lint** (`scripts/lint-colors.py` — no new colours or alphas: the allowed `(color, alpha)` pairs are DERIVED from usage and frozen in `scripts/palette-baseline.json`); a **scale lint** (`scripts/lint-scale.py` — every governed property must reference a token, not a raw literal; `box-shadow` + `z-index` are freeze-governed); (the cache-bust lint was retired 2026-10-14 — `?v=` is filled in at serve time, §13c); shellcheck on `.sh`; a **500-line cap** on staged `.py`/`.js` (no allowlist); a **no-multiline-inline-JS/CSS** check on templates; a **fixture-resolution check** (`pytest --setup-plan`, ~0.3s, resolves the WHOLE suite's fixture graph so a rename can't hide in an untriggered test); **page smoke tests** over every route against the live container; and an **admin-tier guard** (`tests/test_admin_only.py`) whose route list is **enumerated from the decorators, never hand-written**. Plus a non-blocking reminder to update `CLAUDE.md`/`ARCHITECTURE.md`. **Adding a colour, alpha, shadow or z-index is a deliberate act**: make the change, eyeball it on `/UI`, then `python3 scripts/lint-colors.py --update` (or `lint-scale.py --update`) to regenerate the baseline and commit it. Snap a page onto the scale with `python3 scripts/scale-codemod.py [file...]` (dry-run) / `--write`. Source of truth is `scripts/pre-commit`; `.git/hooks/pre-commit` symlinks to it — `bash scripts/install-hooks.sh` on a fresh clone, `bash scripts/pre-commit` to check by hand. Configs tracked: `ruff.toml`, `eslint.config.mjs`, `.stylelintrc.json`, `package.json`. What each lint rejects, the two traps in the tier guard, and why cache-busting moved to serve time: **ARCHITECTURE.md §13** (history: **ARCHAEOLOGY.md §13**).
-
-**[RULES → Claude-Code guard set]**
-
-**CLAUDE-CODE GUARD SET** (all in `.claude/hooks/`, registered in `.claude/settings.json` — exec-fn owns every hook, §1e; every one **fails open** — a parse error, a missing file or a bad payload exits 0 and allows, so a hook bug can never block work). Alongside the docs guard above and `git-stash-guard.sh`: **`push-after-commit.sh`** (PostToolUse) pushes whenever HEAD is ahead of its upstream after a `git commit`, and on a rejection discards the regenerated `graphify-out` drift, rebases and pushes again — never stash; it skips a detached HEAD, a mid-rebase tree, and a branch with no upstream, since publishing a new remote branch stays a deliberate act. **`deploy-healthcheck.sh`** (PostToolUse) curls `https://wai-lau.net/` after any commit / push / `docker compose up|restart` / SSH deploy, 5 retries, and reports the code — so a deploy is verified before it is called done. **`nightfall-build-guard.py`** (PreToolUse) denies a webpack build missing `NODE_ENV=production` (its absence makes asset URLs 404 under `/nightfall-game/` and renders a silent black screen) or not run in the background. **`dead-file-guard.sh`** (PreToolUse Edit/Write) denies recreating `nightfall-src/components/Netmap.tsx` (deleted; only Netmap3D renders). **`session-context.sh`** (SessionStart) answers *droplet or local* from the hostname instead of leaving it to be inferred, and reinstalls the graphify post-commit hook if a fresh clone lost it. **The trap they share, and the reason `cmdscan.py` exists:** a hook that matches its trigger as a SUBSTRING fires on any command that merely *mentions* the phrase — a heredoc documenting the rule, an echoed warning — which tripped two of these within an hour of being written. `cmdscan.py` strips heredoc bodies (and quoted strings on request) so a guard matches an INVOCATION, not a mention; every Bash-matching hook routes its command through it. It deliberately does NOT strip quotes by default: the docs guard reads the `[skip-docs]` token out of the quoted commit message.
-
-**[RULES → No inline JS/CSS; 500-line cap]**
-
-**NO INLINE JS/CSS in templates; 500-line cap on `.py`/`.js`.** HTML templates carry no multi-line inline `<script>`/`<style>` — extract to `web/<page>.{js,css}` and reference via `<link>`/`<script src>` (a one-liner `onclick=`/touch-detect handler may stay inline). No `.py`/`.js` over 500 lines: split into modules (`main.py`→`pages.py`+`routers.py`+`routes_views.py`+`routes_api.py`+`routes_graph.py`; `graph_scrub.py`+`graph_style.py`; `nudge.py`+`nudge_deadlines.py`+`nudge_llm.py`+`nudge_loop.py`; `monitor_sse.py`) or same-global-scope files loaded in order (`hq-core/drag/groups/board.js` — `hq-drag.js` holds the shared pointer wiring + floating-ghost drag (`attachBlockDrag`/`startTimelineDrag`), `graph-audio.js`->`graph-norm.js` (every adaptive window: level, pitch, timbre, onset strength, the placement walk), `tarot-view/voice/stream/chat.js` — `tarot-stream.js` holds `streamResponse()` + the audio-paced typewriter). Both enforced by the pre-commit hook (no allowlist — every file is under the cap). A **per-function** cap also applies: `max-lines-per-function: 100` (skipping blanks+comments), via ESLint on staged `web/*.js` — a ratchet that only fires on files a commit touches (`no-undef`/`no-unused-vars` are off for `web/**` since those are cross-file same-scope globals, not modules).
 
 ## 14. `/tarot` — the reading surface
 
-Guest auth. Spread (top, fixed-height) + Pollack-voiced reader chat (bottom). Per-browser state in `localStorage`, no server persistence. The reading FLOW and its five phases are in CLAUDE.md § *Tarot reading flow*; this section is the page.
+Guest auth. Spread (top, fixed-height) + Pollack-voiced reader chat (bottom). Per-browser state in `localStorage` (`messages`, `spread`, `significator`), **no server persistence** (the server saves a reading only for the owner, `POST /api/tarot/save`). Prompt/phase logic in `api/tarot/prompt.py`; routes in `api/tarot/routes.py` (per-IP limit 20 req / 60s on chat, history capped).
+
+![Reading phases](docs/arch/14-reading-phases.svg)
+
+Bracketed `[event marker]` user messages drive the flow (`[opened /tarot; …; time=HH:MM <band>]`, `[chose Significator: …]`, `[drew a Three-Card spread; …]`, `[turned **Pos**: Card, upright|reversed]`). Phase 1: minimum five single-question turns (one open question ≤30 words), then the exit turn declares the card, calls `set_significator`, asks Phase 2's opening question. Phase 2: at most four querent answers, then names the heart + frame (`past_present_future` / `situation_obstacle_advice`) and calls `deal_spread`. Phase 3: face-down (the frontend prints the first flip invite). Phase 4: one card per `[turned …]`; `lookup_card_meaning` for Majors, Minors from suit + numerology in the prompt. Phase 5: two-paragraph synthesis. Server sees only revealed cards; face-down identities and `card_id`s never leave the browser. Returning querent with a Significator skips Phase 1.
 
 ### 14a. The status bar carries what the chat no longer says
 
-A fixed **status bar under the cards** (`#tarot-status`, styled in tarot.css) sits below the spread and above the nav; the spread/input/terminal stacks reserve `--status-h` at the bottom for it, and `#terminal` reserves `--status-h` at top.
+A fixed **status bar under the cards** (`#tarot-status`, tarot.css; height `--status-h`, 3rem) sits between the spread and the nav; the spread, input bar and `#terminal` insets all reserve `--status-h` at the bottom. It holds two dim whole-line credit links (Pollack's *78 Degrees of Wisdom*; card back by u/vegetablebasket) under a single-line `#tarot-statusline` showing the LATEST bracketed sys note (`set_significator`/`deal_spread` results, `reader voice unavailable`, errors). `setStatus()` (tarot-view.js) writes it; **the chat carries only reader/querent prose**.
 
-It holds two dim credit lines, each a whole-line link — "method from 78 Degrees of Wisdom — Rachel Pollack" → the Pollack book, and "card back by u/vegetablebasket" → that reddit comment — below a single-line `#tarot-statusline` (top of the bar) showing the LATEST bracketed sys note: `set_significator`/`deal_spread` results, `reader voice unavailable`, errors.
-
-Those used to be `.msg.sys` lines in the chat scrollback. Now `setStatus()` (tarot-view.js) writes them to the bar, latest-wins, and **the chat carries only reader/querent prose**.
-
-**The deal turn's last two lines are likewise unrendered.** `drawSpread` still pushes the `[drew a … spread; N cards face-down]` state record and the frontend-owned flip invite ("When you're ready, turn the **Situation**.") into `messages` — the model needs the deal state and its own invite for continuity — but neither reaches the scrollback, so the chat ends on "…let me set the cards." with the face-down cards saying the rest. `isHiddenLine()` (tarot-view.js) is the shared predicate, and `tarot-chat.js`'s reload replay skips the same two, so a refresh cannot resurrect them.
-
-**The reader's `[State: …]` note never reaches the querent.** `routes._build_spread_preamble` hands the model a per-turn Phase 1 turn-count note; the model sometimes parroted it as its reply's first line ("[State: Phase 1 turn count = 5.] You've said enough…", 2026-09-27). The note now says it is private, and `tarot/state_echo.py` is the guarantee: `StateEchoFilter` swallows a leading `[State: …]` per round in `agent.stream_chat` (holding text only while it could still be that prefix), and `scrub_state_echo` strips it from stored reader turns in incoming history, since an echo left in localStorage teaches the reader to keep echoing. Pinned by `tests/test_tarot_state_echo.py`.
-
-The pre-reading `begin-hint` ("tap anywhere to begin the reading") centers vertically in the empty terminal — a `#terminal:has(.begin-hint)::before{flex:0}` neutralizes chat.css's bottom-anchoring flex spacer.
+- **Hidden lines.** The deal turn's `[drew a … spread; N cards face-down]` record and the frontend flip invite stay in `messages` (model continuity) but are never rendered. `isHiddenLine()` (tarot-view.js) is the shared predicate; `tarot-chat.js`'s reload replay skips the same lines.
+- **`[State: …]` never reaches the querent.** `routes._build_spread_preamble` hands the model a private per-turn Phase 1 note; `tarot/state_echo.py` guarantees it: `StateEchoFilter` swallows a leading `[State: …]` per round in `agent.stream_chat`, and `scrub_state_echo` (called in routes) strips it from stored reader turns in incoming history (an echo in localStorage teaches the reader to repeat it). Pinned by `tests/test_tarot_state_echo.py`.
+- The pre-reading `begin-hint` centres in the empty terminal (`#terminal:has(.begin-hint)::before{flex:0}` neutralises chat.css's bottom-anchoring spacer).
 
 ### 14a-ii. The cards: the outline hugs the picture, and a turned card turns at once
 
-**A card's outline hugs its picture.** The card takes the HEIGHT and its width from the image (`width:auto` + `justify-self:center`, which is what makes a grid item shrink to fit rather than stretch to its column), and the image is sized `height: var(--card-h); width: auto`. The 78 scans run 0.5545 (`strength`) to 0.5837 (`the_tower`), so no single fixed box could fit them. `card_back.jpg` is cropped to **686x1200** (0.5717, the median) so a flip does not resize the outline under the finger, and it is not `object-fit: fill`. `#sig-card` must keep a box while EMPTY — the back is its background, not an `<img>` — so it carries `aspect-ratio: 686 / 1200`.
-
-**A turned card paints face-up on the tap, before the turn that commits it.** The commit is still gated on the reader actually narrating — a dropped request has to leave the position retryable, and `nextPosition()` must not move past a card nobody read — but `flipCard` awaits the WHOLE turn (stream, voice and reveal), and the querent dismisses the zoom whenever she likes, usually mid-reading. Behind it the card she had just turned was still showing its back for the length of the reading. `paintFlipped()` sets `data-flipped`/`data-next` and the reversed rotation on that one element; `card.flipped` stays false, and a failed turn calls `renderSpread()`, which draws the back straight back over it. Pinned by `test_a_turned_card_shows_its_face_before_the_turn_ends` and `test_a_failed_turn_puts_the_card_back`.
+- **Outline hugs the picture**: the card takes HEIGHT and width from the image (`width:auto` + `justify-self:center`; image `height: var(--card-h); width:auto`) because the 78 scans run 0.5545 (`strength`) to 0.5837 (`the_tower`). `card_back.jpg` is cropped to **686x1200** (median, 0.5717) so a flip doesn't resize the outline; `#sig-card` keeps a box while empty via `aspect-ratio: 686 / 1200`.
+- **A turned card paints face-up on the tap, before the turn commits.** The commit still waits for the reader to narrate (a dropped request must stay retryable; `nextPosition()` must not pass an unread card), but `flipCard` awaits the whole turn and the zoom is usually dismissed mid-reading. `paintFlipped()` (tarot-view.js) sets `data-flipped`/`data-next` + the reversed rotation on that element; `card.flipped` stays false; a failed turn calls `renderSpread()`, redrawing the back. Pinned by `test_a_turned_card_shows_its_face_before_the_turn_ends` / `test_a_failed_turn_puts_the_card_back`.
 
 ### 14b. Narration paces the typewriter
 
-`tarot-voice.js`, AUDIBLE by default, works for full `session` AND `guest_session`. The reader's turn is spoken via hosaka (voice `nicole`), and the typewriter paces to **the actual audio clock**.
+`tarot-voice.js`: AUDIBLE by default (localStorage `tarot.voice`), works for `session` AND `guest_session`. The reader's turn is spoken via hosaka (voice `nicole`, kokoro, from the home GPU box). `tarot-chat.js` holds text until audio starts (blinking cursor), then reveals on a `charWeight` schedule normalised to the measured duration, self-correcting off `player.elapsed()`. Both paces live in shared `web/typewriter.js` (`twAudio` with `leadMs`, `twGuess` at the reader's 1.25; see CLAUDE.md *Typewriter*, §18).
 
-`tarot-chat.js` holds the text until audio starts (the reader "draws breath" behind a blinking cursor), then reveals characters on a `charWeight`-shaped schedule normalized to the measured audio duration — preserving punctuation pauses, with no drift, self-correcting off `player.elapsed()`.
-
-The ♪ button in `#spread-controls` is a real **ON/OFF** (2026-09-20; it was a volume mute). Off, nothing is synthesized and the reveal runs at the reader's own 1.25 — `wantsDeferredOpening()` also stops holding the opening for a gesture, since there is no audio to unlock and the hold would buy nothing. Audio failure or not-yet-unlocked lands in the same place.
-
-Both paces now live in the shared `web/typewriter.js` (`twAudio` moved out of tarot-stream.js when the Exec panel got the same voice), and the reader is a binding: `createTypewriter` is a render target and a speed. See CLAUDE.md § *Typewriter*.
+The ♪ button in `#spread-controls` is a real **ON/OFF**: off = nothing synthesized, no socket, reveal at 1.25, and `wantsDeferredOpening()` stops holding the opening for a gesture. Audio failure or not-yet-unlocked lands in the same place.
 
 ### 14b-ii. The mic, and the reader it must not hear
 
-The `$` prompt is the control (`tarot-mic.js` over the shared `voice-input.js`, a thin binding like `exec-mic.js`). One tap opens a continuous session and each finished utterance sends itself — a reading runs to five Phase 1 answers, a query dialogue and three turned cards, which is a lot of phone typing in the dark.
+The `$` prompt is the control (`tarot-mic.js` over shared `voice-input.js`, a binding like `exec-mic.js`): one tap opens a continuous session, each finished utterance sends itself. Its `busy:` list drops sound during three moments: a reader turn streaming (`tarotReplyStreaming`), **the reader's own voice playing** (`tarotVoice.isSpeaking()`), a card zoomed (`tarotCardZoomed`). The narrator core clears `speaking` for a NON-queueing surface too (else it stays true forever on `/tarot`). `tarot:voice-idle` re-lights the dot; `tarot:reply-done` (live turn AND canned opening) re-arms the session on browsers that end recognition per utterance.
 
-The mic's `busy:` list (`tarotReplyStreaming`, `tarotReaderSpeaking`, `tarotCardZoomed`) names three moments whose sound must NOT become the querent's answer: a reader turn still streaming, **the reader's own voice playing** (`tarotVoice.isSpeaking()` — without it the page transcribes the reading and the reader interviews itself), and a card zoomed over the table, where a tap is someone looking at a card rather than answering.
-
-That guard is why the narrator core clears `speaking` for a NON-queueing surface too: it used to be the queue's own drain, so `/tarot` left the flag true forever and nothing noticed until a microphone needed to know when the reader had stopped talking. `tarot:voice-idle` re-lights the dot; `tarot:reply-done` (fired by both the live turn and the canned opening) re-arms the session on a browser that ends recognition per utterance.
-
-**The keyboard stays down during a session.** `focusInput()`, `_focusNow()` and `sendMsg()` all check `tarotMicActive()` first — focusing the composer is what raises the keyboard, which shrinks the viewport and takes the spread with it, for an input nobody is typing into. And `#input-prompt` had to join the first-gesture arm's control list in tarot-chat.js: the prompt is a `<span>`, so it matched none of the selectors and the `preventDefault()` there ate the very first tap on it.
+**The keyboard stays down during a session**: `focusInput()`, `_focusNow()`, `sendMsg()` check `tarotMicActive()` first (focusing the composer raises the keyboard, shrinking the viewport and the spread). `#input-prompt` is a `<span>`, so it must be in the first-gesture arm's control list in tarot-chat.js or `preventDefault()` eats the first tap.
 
 ### 14c. Ambient music, and why the level is measured
 
-`tarot-music.js`, ♫ toggle below the reset button. A looping background track, streamed lazily from `web/tarot-ambient.m4a` (gitignored, 58MB — **the server holds the only copy**). Starts and fades in over 4s on the first tap, from a random point.
+`tarot-music.js`, ♫ toggle below reset. A looping track streamed lazily from `web/tarot-ambient.m4a` (gitignored, ~58MB — **the server holds the only copy**), fade-in 4s (`FADE_MS`) on first tap from a random point (desktop; iOS ignores `el.volume`). Loops via `el.loop=true` **plus** an `ended` handler that rewinds and replays (native loop can fail on a progressively-streamed m4a). No ducking.
 
-**The bed level is baked into the file.** iOS makes `el.volume` read-only AND silences a WebAudio-routed element, so no JS path can attenuate it there. There is no ducking.
-
-**The bed level is baked into the file, and it is set by MEASURING dBFS rather than by picking a multiplier.** The shipping bake (`?v=3`) is the source x 0.15 = **-31.8 dBFS mean / -16.2 dB peak**. The usable band is well under 10 dB: anything replacing it has to clear the desktop noise floor without competing with the narration.
-
-Re-bake from `~/tarot-ambient-0.15-orig.m4a`:
+**The bed level is baked into the file** (iOS makes `el.volume` read-only AND silences a WebAudio-routed element) and set by MEASURING dBFS, never by picking a multiplier. Shipping bake (`?v=3` in `TAROT_MUSIC_SRC`): source x 0.15 = **-31.8 dBFS mean / -16.2 dB peak**; the usable band is well under 10 dB. Re-bake from `~/tarot-ambient-0.15-orig.m4a`:
 
 ```bash
 ffmpeg -i <master> -af volume=NdB -c:a aac -b:a 128k -movflags +faststart
 ffmpeg -i <out> -af volumedetect -f null -   # verify
 ```
 
-Then bump `?v=`.
+Then bump the `?v=` in `tarot-music.js` (hand bump; §13c doesn't reach JS-loaded assets).
 
-It loops via `el.loop=true` **plus** an `ended` handler that rewinds to 0 and replays — native loop can fail to restart a track seeked into a progressively-streamed m4a.
+### 14d. The opening turn is pre-generated
 
-### 14d. The opening turn is pre-generated — and why the first reading of a day was slow
+![Opening pre-generation and playback](docs/arch/14-opening-pregen.svg)
 
-The reader's FIRST turn is the only turn whose content is a function of nothing but the clock: no history, no Significator, no spread — one or two lines of image for the room at this hour, a blank line, the first Phase 1 question. Generating it live cost an opus round-trip AND a TTS synth before the querent had typed a word, and on the first reading of a day that synth is a **cold** one: ~4.6s of model load against 0.36s loaded (measured 2026-09-10). That is the slow start.
-
-
-So ten openings per hour are generated ahead of time **with their narration already rendered**, and the page plays one at random for the hour it was opened in.
+The reader's FIRST turn depends on nothing but the clock (an image of the room at this hour, a blank line, the first Phase 1 question). Generating it live cost an opus round-trip AND a (cold, ~4.6s vs 0.36s loaded) synth before the querent typed a word. So `TARGET_PER_HOUR = 10` openings per hour are generated ahead with narration already rendered; the page plays one at random for the CLIENT's hour.
 
 | Piece | What |
 |-------|------|
-| `api/tarot/openings.py` | the store: `data/tarot_openings/index.json` + one `<id>.wav` per clip. The pure half (`pick_clip` / `clip_id_ok` / `shortfall`) takes the index as an argument, so `tests/test_tarot_openings.py` needs no filesystem |
-| `api/tarot/openings_gen.py` | generation + the CLI (`stats` / `backfill` / `refresh` / `check`) |
-| `api/tarot/voice_synth.py` | the server-side synth, §4c |
-| `GET /api/tarot/opening?hour=` | one random clip for that hour: `{id, text, dur, audio}`, or `{"clip": null}` |
-| `GET /api/tarot/opening/<id>.wav` | the narration, `immutable` (the id is content-unique) |
-| `web/tarot-opening.js` | `startOpeningTurn()` — the client half, replacing the opening block that used to sit inline at the end of tarot-chat.js |
+| `api/tarot/openings.py` | the store: `data/tarot_openings/index.json` + one `<id>.wav` per clip. Pure half (`pick_clip` / `clip_id_ok` / `shortfall`) takes the index as an argument (`tests/test_tarot_openings.py`) |
+| `api/tarot/openings_gen.py` | generation + CLI (`stats` / `backfill` / `refresh` / `check`) |
+| `api/tarot/voice_synth.py` | server-side synth, §4c (voice `nicole`, backend `kokoro`) |
+| `GET /api/tarot/opening?hour=` | one random clip: `{clip:{id,text,dur,audio}}`, or `{clip:null}` |
+| `GET /api/tarot/opening/<id>.wav` | the narration, `immutable` (id is content-unique) |
+| `POST /api/tarot/warm` | load TTS models while the opening is read; 300s server cooldown (`WARM_COOLDOWN_S`), rate-limited |
+| `web/tarot-opening.js` | `startOpeningTurn()`, the client half |
 
-**The hour is the CLIENT's** (`new Date().getHours()`), so a querent outside America/New_York opens on their own light. The id shape `h<HH>-<8 hex>` is the whole traversal defence, since it is a path component — validated before it touches the filesystem, the same structural guarantee `gamesave_store` makes with its sha256 component.
-
-**Only the FIRST turn is canned** (`!significator && !spread`). The other two openings — a returning querent whose Significator is already set, one who left mid-spread — answer a state the clips know nothing about, so they stay live. And **every failure falls back to the live turn**: an hour with no clips, a failed fetch, a clip whose audio never lands.
-
-**The canned turn is otherwise indistinguishable.** It records the same `[opened /tarot; …]` marker, reveals through the same `createTypewriter`, and pushes the same `{role:'assistant'}` message onto `messages`, so the model continues the reading from its own first turn with no idea it did not write it.
-
-**The audio downloads during the hold.** The prefetch starts the moment the clip JSON lands, which is while the page is sitting on "tap anywhere to begin" waiting for the gesture that unlocks audio; the reveal then waits at most `TAROT_CLIP_WAIT_MS` (5s) for the buffer and otherwise types silently. Bounded, because a stalled fetch must not hold the reading.
-
-**WAV, deliberately.** 16-bit mono at 24 kHz is ~48KB/s, so an 8-13s opening is 400-600KB, fetched once and cached forever. The container has no encoder (ffmpeg is on the HOST only), and adding one would mean a new pinned dep and an image rebuild — a re-resolve of the whole lock, which is exactly how `httpx`/`httpx2` took the site down (§1) — to shrink a file served a handful of times a day. 240 clips ≈ 150MB in a gitignored data dir.
-
-**Generation is ONE opus call per HOUR, not per clip.** Asked for ten at a time the model varies them against each other instead of converging on the same lamp and the same siren; asked one at a time it would not. There is no `temperature` — it is **removed on opus 4.8** (the SDK raises `TypeError`, the API 400s), so the batch shape is also where the variety now comes from. The system prompt is `prompt.voice_preamble()` alone (~1.5K: the register and the time-of-day table) — the framework chapters and phase machinery do not apply before the querent has said a word, and at that size it is under opus's 4096-token minimum cacheable prefix, so there is deliberately no `cache_control` marker. An off-shape variant (no blank line, not ending in `?`, over 420 chars, echoing the marker) is **dropped, not repaired**: the next top-up fills the gap, and a bad opening would be frozen into audio and played for months.
+- **Hour is the client's** (`new Date().getHours()`). Id shape `h<HH>-<8 hex>` (`_CLIP_ID_RE`) is the whole traversal defence (it's a path component), validated before touching the filesystem.
+- **Only the first turn is canned** (`!significator && !spread`); the other two openings answer state the clips don't know and stay live. **Every failure falls back to the live turn** (no clips, failed fetch, audio never lands).
+- The canned turn is indistinguishable downstream: same `[opened /tarot; …]` marker, same `createTypewriter`, pushed as `{role:'assistant'}`.
+- **Audio downloads during the hold**: prefetch starts when the clip JSON lands (page sits on "tap anywhere to begin"); the reveal waits at most `TAROT_CLIP_WAIT_MS` (5s), else types silently.
+- **WAV, deliberately**: 16-bit mono 24 kHz (~48KB/s, 8-13s ≈ 400-600KB, cached forever). The container has no encoder (ffmpeg is HOST-only); adding one = new pinned dep + rebuild (the `httpx` outage, §1). 240 clips ≈ 150MB in a gitignored data dir.
+- **Generation = ONE opus call per HOUR** (a batch converges less than ten single calls; no `temperature` — removed on opus 4.8, SDK `TypeError`/API 400). System prompt = `prompt.voice_preamble()` alone (~1.5K, under opus's 4096-token minimum cacheable prefix, so deliberately no `cache_control`). An off-shape variant (no blank line, not ending `?`, over `MAX_CHARS`=420, echoing the marker) is **dropped, not repaired**; the next top-up fills the gap.
 
 ```bash
 docker compose exec api python -m tarot.openings_gen stats
@@ -2711,642 +1419,402 @@ docker compose exec api python -m tarot.openings_gen backfill        # idempoten
 docker compose exec api python -m tarot.openings_gen refresh --n 1   # rotate the oldest
 ```
 
-**`POST /api/tarot/warm` finishes the job.** The canned opening removes the synth from turn ONE; the querent's next turn still needs a live one, and under GPU mode `idle` the models load on demand. So the page fires a warm on open — fire-and-forget, server-side 300s cooldown so a reload storm is not GPU load — and the models load while the opening is being read.
-
-**When the home box is gone, the page says so — after the opening has spoken.** The reader's voice is `nicole` on the home GPU box; the droplet's own piper is always up but only speaks `glados`, which is Exec's voice, not the reader's. So with the box unreachable the reading is silent, and the page used to say nothing until the first turn had already failed mid-reading. `tarotVoice.probeHome()` (`GET /api/hosaka/health` — the same probe /hosaka polls for its "Wai's GPU offline" line, guest-safe) decides two things on load: the warm POST is skipped, since a round-trip into a dead tunnel warms nothing, and once the opening finishes the status bar reads `[ reader voice offline — the reading continues in silence ]`.
-
-**The note waits for the opening deliberately.** A canned opening narrates from a FILE, so it speaks even with the box down — the silence starts at the querent's first answer, not at load, and a note that contradicts the voice currently talking is worse than no note. Its wording is also deliberately NOT streamResponse's `reader voice unavailable`, which means a voice that tried and failed; this one never had a box to try. A querent returning mid-reading has no opening turn, so there it goes up straight away.
-
-`homeDown()` answers only once the probe has returned — an unprobed voice is not a voice known to be down, and a note that guesses is worse than no note.
+**When the home box is gone the page says so — after the opening has spoken.** The reader's voice is `nicole` on the home box; the droplet's piper only speaks `glados` (Exec's). `tarotVoice.probeHome()` (`GET /api/hosaka/health`, guest-safe) decides on load: skip the warm POST (a round-trip into a dead tunnel warms nothing), and once the opening finishes the status bar reads `[ reader voice offline — the reading continues in silence ]`. The note waits because a canned opening narrates from a FILE and speaks even with the box down. Wording is deliberately NOT `reader voice unavailable` (streamResponse's: a voice that tried and failed). A querent returning mid-reading has no opening, so the note goes up at once. `homeDown()` answers only after the probe returned.
 
 ### 14e. The nightly voice check
 
-Narration fails **silently**: the page bails to the guessed-pace typewriter and reads fine, so a dead voice is only noticed the next time someone sits down for a reading. `api/tarot/openings_loop.py` checks it once a night at 05:45 ET — after morning (4:30), graphify (5:00), security (5:10) and the cc probe (5:20), so the five never contend for a 1967MB box.
+Narration fails **silently** (the page falls to the guessed-pace typewriter), so `api/tarot/openings_loop.py` checks it at 05:45 ET (`RUN_AT`; after morning 4:30, graphify 5:00, security 5:10, cc probe 5:20 — never contending on a 1967MB box). It's an **in-process asyncio loop, not cron** (polls every 300s; lifespan-started in `main.py`; no image rebuild to change) and writes `data/cron/YYYY-MM-DD__tarotvoice.log`, shown on `/debug` via `GET /api/debug/cron`. **The log is the stamp** (`_due`: past 05:45 and today's log absent), so `--reload` can't run it twice.
 
-It is an **in-process asyncio loop, not a cron line** (same reason as the nudge loop: a baked `/etc/cron.d` entry needs an image rebuild to change, while this re-arms on the next `--reload`), and it writes `data/cron/YYYY-MM-DD__tarotvoice.log`, which `/debug` renders through `GET /api/debug/cron`. **The log is the stamp** — one file, written once, and the thing that proves it ran.
-
-The probe is a real one-line synth through the path a querent uses, not a port check. Its verdict:
+The probe is a real one-line synth through the querent's path (`voice_synth.probe`), judged with `gpu_mode_client.fetch_mode`:
 
 | Reading | Meaning |
 |---------|---------|
 | `OK first_audio=…` | the voice answered |
-| `OK SLOW …` | answered, but first audio took over 2.5s on a box that should be warm |
-| `voice down (mode=idle\|emo)` | hosaka-server is deliberately stopped — the expected state, not a fault (the same call `gpu_mode_client.effective_mode` makes from the other direction) |
-| `voice unreachable (mode=gone)` | the box did not decline, it did not answer at all: asleep, off, or its reverse tunnel down. Not a deliberate stop, and saying so sends the reader looking in the right place |
-| `FAIL (mode=homo)` | the box claims loaded models and served nothing. This is the one worth shouting about |
+| `OK SLOW …` | answered, but first audio over `SLOW_MS` (2500ms) on a box that should be warm |
+| `voice down (mode=idle\|emo)` | hosaka-server deliberately stopped — expected, not a fault |
+| `voice unreachable (mode=gone)` | the box didn't answer at all: asleep, off, or tunnel down |
+| `FAIL (mode=homo)` | the box claims loaded models and served nothing — the one worth shouting about |
 
-The same pass tops every hour back up to ten openings, which normally costs nothing because nothing is missing, and is skipped outright when there is no voice to render audio with.
+The same pass tops every hour back up to ten (`openings_gen.backfill`), skipped when there's no voice to render with.
 
-History — the incidents behind the rules above: [ARCHAEOLOGY.md §14](ARCHAEOLOGY.md).
-
----
-### 14-notes. From CLAUDE.md (moved 2026-09-27)
-
-Moved verbatim from CLAUDE.md on 2026-09-27 when CLAUDE.md was thinned to an index. Unedited; may overlap the subsections above.
-
-**[Pages → /tarot]**
-
-`/tarot` — Tarot reading (guest auth): spread on top, Pollack-voiced reader chat below, per-browser state in `localStorage` — **no server persistence**. **A card's outline hugs its picture**: the box takes the card's HEIGHT and its width from the image (`width:auto` + `justify-self:center`), because the 78 scans run 0.5545–0.5837 and a fixed `--card-w x --card-h` box letterboxed every one of them; `card_back.jpg` is cropped to the median 0.5714 so a flip doesn't resize the outline, and `#sig-card` carries that ratio as `aspect-ratio` since it must keep a box while empty. **A tapped card paints face-up immediately** (`paintFlipped`) while the COMMIT still waits for the reader to narrate it — the zoom is dismissed mid-reading and the card behind it used to stay face-down for the whole turn; a failed turn re-renders the back over it. **The FIRST reader turn is pre-generated** (`web/tarot-opening.js` + `api/tarot/openings*.py`): it depends on nothing but the hour, so 10 openings per hour are generated ahead of time with their narration already rendered (`data/tarot_openings/`, gitignored, ~150MB) and one is played at random for the CLIENT's hour — no opus round-trip, no synth, which is what made the first reading of a day start slowly (a COLD synth is ~4.6s against 0.36s loaded). Canned ONLY for a true first turn (`!significator && !spread`); the other two openings answer a state the clips know nothing about. Every failure — no clips for the hour, a failed fetch, audio that never lands — falls back to the live turn unchanged. The clip records the same event marker, reveals through the same typewriter and is pushed onto `messages` as the assistant's own first turn. Audio prefetches during the "tap anywhere to begin" hold and the reveal waits at most 5s for it. **WAV on purpose** (16-bit 24kHz, ~48KB/s): the container has no encoder, and adding one means a new pinned dep + rebuild for a file served a few times a day. `POST /api/tarot/warm` (fired on page open, 300s server cooldown) loads the models while the opening is read, so the querent's NEXT turn doesn't pay the cold load either. **When the home box is unreachable the page says so** — `tarotVoice.probeHome()` (`/api/hosaka/health`) on load skips the pointless warm and, once the opening has spoken (it narrates from a file, so it speaks even with the box down), the status bar reads `[ reader voice offline — the reading continues in silence ]`; a querent returning mid-reading gets it straight away. Wording is deliberately not `reader voice unavailable`, which streamResponse reserves for a voice that tried and failed. Regenerate/rotate with `docker compose exec api python -m tarot.openings_gen backfill|refresh --n 1`. The five-phase flow is in § *Tarot reading flow*. A fixed **status bar under the cards** (`#tarot-status`) carries the credits plus `#tarot-statusline`, the latest bracketed sys note — those were `.msg.sys` lines once, and moving them out is why **the chat carries only reader/querent prose**; `isHiddenLine()` (tarot-view.js) is the shared predicate, and the reload replay must skip the same lines or a refresh resurrects them. **Voice in as well as out** — the `$` prompt is a mic (`tarot-mic.js` on the shared `voice-input.js` engine, the same one `/cc` and the panel run): a reading is the longest conversation on the site and the one most likely to be had lying down, so tapping once and talking is the point. It drops what it hears while the reader is speaking or a card is zoomed, and it never raises the keyboard mid-session (`focusInput`/`sendMsg` check `tarotMicActive()`). **Reader narration** (`tarot-voice.js`, `nicole`, audible by default, works for guests too) paces the typewriter off the measured audio clock (`player.elapsed()`) rather than the shared `web/typewriter.js` engine, which is its silent fallback; the ♪ button is a real ON/OFF as of 2026-09-20 (it was a volume mute): off means nothing is synthesized and the reveal runs at the reader's own pace. Optional ambient music (`tarot-music.js`, ♫) streams lazily from `web/tarot-ambient.m4a` — gitignored, 58MB, **the server holds the only copy** — with **the bed level baked into the file**, since iOS makes `el.volume` read-only. Set that level by MEASURING dBFS, never by picking a multiplier: the usable band is under 10 dB and a +10 dB re-bake drowned the reader. Page mechanics, the status-bar rules and the audio bake recipe: **ARCHITECTURE.md §14** (history: **ARCHAEOLOGY.md §14**).
-
-**[Cron → 5:45 tarot voice]**
-
-5:45 AM ET — **NOT CRON** — an in-process asyncio loop (`tarot/openings_loop.py`, lifespan-started from `main.py` beside the nudge loop) probes the `/tarot` reader voice with a real one-line synth and tops the pre-generated openings back up. Last of the five so they never contend for the box. Writes `data/cron/YYYY-MM-DD__tarotvoice.log` (visible on `/debug`) — and **the log IS the stamp**, so a `--reload` can't make it run twice. `OK`/`OK SLOW` (first audio >2.5s) / `voice down (mode=idle\|emo)` (hosaka-server deliberately stopped — expected, not a fault) / `voice unreachable (mode=gone)` (the box never answered: asleep, off, or its reverse tunnel down) / `FAIL (mode=homo)` (claims loaded models, served nothing — the one worth shouting about). **ARCHITECTURE.md §14e**.
-
+History: [ARCHAEOLOGY.md §14](ARCHAEOLOGY.md).
 ## 15. The nudge loop (`nudge.py` + `nudge_deadlines.py` + `nudge_loop.py`)
 
-ADHD activation scaffolding. Every card is decomposed **prep** steps plus (when `work > 0`) one atomic **event block**. The prep back-schedules to finish at the event anchor; a nudge fires **once at the start of each step** — prep step or the event block itself ("start commuting at 6:50"). No reply just leaves that step `awaiting_reply` in silence. The frontier moves only when Wai acts, and due dates are protected behind the consequences conversation.
+ADHD activation scaffolding. Every card = decomposed **prep** steps + (when `work > 0`) one atomic **event block**. The prep back-schedules to finish at the event anchor; a nudge fires **once at the start of each step** (prep step or the event block). No reply leaves the step `awaiting_reply` in silence. The frontier moves only when Wai acts; due dates are protected behind the consequences conversation.
 
 ### 15a. Trigger and eligibility
 
-An in-process asyncio loop (`_run_nudge_loop` in `nudge_loop.py`, lifespan-started from `main.py`, 30s tick). **No cron, no rebuild** — state lives on the cards in `rd.json`, so `--reload` restarts just re-arm. `POST /api/nudge/tick` is a manual tick.
+An in-process asyncio loop (`_run_nudge_loop`, `nudge_loop.py`; lifespan-started from `main.py`; `NUDGE_POLL_SEC = 30`). **No cron, no rebuild** — state lives on the cards in `rd.json`, so `--reload` just re-arms. `POST /api/nudge/tick` is a manual tick.
 
-`_eligible`: `decomposable()` (hq, not reminder/book) AND `scheduled_day == today`. **No-Rollover cards are NOT excluded** — they sit on the timeline and nudge like any other, their prep and their event block.
+![Nudge tick loop](docs/arch/15-tick-loop.svg)
 
-**Anchor** (`active_anchor`): each node's start is its back-scheduled deadline minus its own duration.
+- **`_eligible`** = `decomposable()` (column `hq`, not reminder/book) AND `scheduled_day == today`. No-Rollover cards are NOT excluded. (`decomposable`'s docstring mentions `is_dir_card`; the code no longer checks it.)
+- **Anchor** (`nudge_deadlines.active_anchor`): the active node's back-scheduled `deadline` minus its own duration (`est_min` x category factor; factor is 1.0 while recalibration is gated off, §15g).
+- **First nudge** = the placement. While `stage == nudging` and `last_nudge_at` is empty, `next_nudge_at` tracks the anchor each tick (`_arm_nudge`), so dragging the card moves the nudge.
+- **Fire** (`_fire_nudge`): decompose first if the card has no graph (one LLM call -> graph + first chunk + nudge text), else `nudge_text_sync`. Sets `stage=awaiting`, `awaiting_reply=true`, clears `next_nudge_at`. Delivery = `append_monitor_comment(text, card_id=)` + `push_to_monitor({comment, card_id})` + `{cards_changed}` — the monitor pipe, zero frontend.
+- **Failure backoff**: 300s per-card in-memory retry delay (`_NUDGE_FAIL_BACKOFF_SEC`); `_nudges_inflight` prevents a double fire.
+- **Tick order**: triage pass, plan pass, fire pass (diagram). Every `rd.json` read-modify-write holds `_RD_LOCK`, never across the LLM call (reload + re-check after it).
 
-**First nudge** is the card's placement (`scheduled_day` @ `dir_start_min`). While unfired, `next_nudge_at` tracks the slot each tick.
+**`card["nudge"]` fields** (`default_nudge_state`, lazy, absent on most cards):
 
-**Fire**: decompose on first fire (one LLM call → graph + first chunk + nudge text), else nudge text for the active node. Delivered via the monitor SSE channel + `chat.json` `role=monitor` — the same pipe as encouragement comments, zero frontend.
+| Field | Meaning |
+|-------|---------|
+| `stage` | `idle\|nudging\|awaiting\|consequences\|resolved` (see 15d). `stalled` is read in `_ACTIVE_NUDGE_STAGES`/`chat.py` but **never assigned** — vestigial |
+| `graph` | `{nodes:[{id,label,done,depth,created_at,est_min,deadline,tl_offset?,is_event_start?}], edges:[{from,to}]}`; edge = `from` precedes `to`; strict linear chain (§15b) |
+| `active_node` | id of the current step |
+| `first_nudge_at` / `next_nudge_at` / `last_nudge_at` / `last_user_reply_at` | naive-ET ISO (`_FMT %Y-%m-%dT%H:%M:%S`), never mixed with the UTC `ts` of the activity log / chat |
+| `awaiting_reply`, `last_nudge_text` | one-nudge-per-step latch; previous nudge fed back as an anti-repeat signal |
+| `consequences` | `{asked_at, answer, decision}` |
+| `auto_deadline` | staggered deadline for a today card with no fixed one (`assign_auto_deadlines`; stacks by `_lead` from now, in `order`) |
+| `triage_pending` | title/notes changed (`routes_api._flag_triage`, `chat_tools`) -> next tick runs `triage_sync` and rebuilds the plan only if `needs_update`; a result is dropped (flag kept) if the graph's done-state moved during the LLM call |
+| `version` | `1` |
+| `window_deadline`, `redecompose_count`, `redecompose_at` | **vestigial**: `window_deadline` is only ever set to `None`; the `redecompose_*` metrics are never incremented (still read by `chat.py:125` and `nudge_llm.py:215`) |
 
-**Failure backoff**: per-card 5-min in-memory retry delay on LLM errors; an in-flight set prevents a double fire.
+`tl_offset` = a step's start offset in minutes from the card's `dir_start_min` (set when placed on the timeline or edited in the dialog).
 
 ### 15b. Everything in hq has a plan
 
-Each tick, hq cards missing a graph (excluding reminders + books) get a **silent decompose** (`_build_graph` — no nudge sent) that builds the prep steps only; the event block is appended by `compute_deadlines`/`ensure_event_block`.
+Each tick, hq cards missing a graph (not reminders/books) get a **silent decompose** (`_build_graph`, no nudge sent) that builds the prep steps only; the event block is appended by `compute_deadlines` -> `ensure_event_block`.
 
-A card with `prep_time = 0` is **fully decomposed** — the whole `estimated_time` is broken into work steps with no event block (the decompose prompt and `ensure_event_block` both special-case prep 0). A self-task with `work = 0` is likewise all steps, no event node.
+- `prep_time = 0` -> **fully decomposed**: the whole `estimated_time` is work steps, no event block. `work = 0` (self-task) likewise: all steps, no event node.
+- **Strict linear chain, never parallel.** `_linearize_chain` (called in `_normalize_graph`) topo-sorts the LLM's steps by its edges, then re-chains `step1->...->stepN`, discarding branching. Legacy parallel graphs relinearize on their next breakdown/recalc.
+- **Event block** (`is_event_start:true`, `est_min = work`, label = card title) is the terminal sink every prep step points to; only when `work > 0` AND `prep > 0`. Back-scheduled so it ends at `card_deadline` and starts at the anchor.
+- **`card_deadline` precedence**: placed slot (`scheduled_day`@`dir_start_min`) + total > timed `due_date` + work > `auto_deadline` > 21:00 (`_EOD_HOUR`) of the scheduled day.
+- Default per-step `est_min` = `max(5, round(budget / n_prep_nodes))`, `budget = prep or total`.
 
-**The breakdown is a strict linear chain — never parallel.** `_linearize_chain` (nudge.py, called inside `_normalize_graph`) topo-sorts the LLM's steps by its edges, then re-chains them `step1→…→stepN`, discarding any branching. Legacy parallel graphs relinearize on their next breakdown/recalc.
-
-The **event block** (`is_event_start:true`, `est_min = work`, label = card title) is the terminal sink every prep step points to. It is present only when `work > 0` (`nudge_deadlines.ensure_event_block`), back-scheduled so it ends at `card_deadline` (= block end) and starts at the anchor.
+![Step chain: prep to event](docs/arch/15-step-chain.svg)
 
 ### 15c. The breakdown UI
 
-Visible and editable in the card dialog (`web/card-graph.js` SVG chain, shown when `card.nudge.graph.nodes` is non-empty). Per-step label, start time (→ `tl_offset`) and estimate (`est_min`) are all editable; edits persist on dialog save, and `active_node` is recomputed client-side with the same first-open rule.
+Visible and editable in the card dialog (`web/card-graph.js`, SVG chain, shown when `nudge.graph.nodes` is non-empty). Per-step label, start time (-> `tl_offset`) and estimate (`est_min`) editable; edits persist on dialog save; `active_node` is recomputed client-side with the same first-open rule.
 
-Nodes render **full-width** (single-column chain). Each step's left control stack is two circled buttons (`.cg-circ`): `✕` delete over `+` insert — the in-graph done-toggle was removed. The `+` inserts a `new step` *after* its node (`insertStep` splices `from→to` into `from→new→to`). An **entry arrow** points into the head step with a circled `+` above it to insert before the start. The chain stays linear; inserts persist via the dialog onChange.
-
-A **breakdown** button beside the notes field (shown only for a non-book, non-reminder card with NO breakdown yet — it creates the first one; once a graph exists it hides and the breakdown-row **recalculate** button takes over) and **recalculate** both run the same rebuild: POST `/api/rd/{id}/recalc` with the current `{notes, prep, duration}`.
-
-The hq today-column timeline renders the event block as a dashed block after the prep (`web/hq-groups.js renderTaskBlock`, `.dir-task.event`). It is a tap-done block like any step (`wireTaskDone`); the card as a whole moves by dragging its spine (`createGroup` → `saveStartTime` writes `dir_start_min`, the steps ride along as offsets).
+- Single-column full-width nodes; left control stack = two `.cg-circ` buttons: `✕` delete over `+` insert (`insertStep` splices `from->to` into `from->new->to`); an entry arrow with a `+` inserts before the head. No in-graph done-toggle.
+- **breakdown** (beside notes; only for a non-book, non-reminder card with NO breakdown yet) and **recalculate** both POST `/api/rd/{id}/recalc` with `{notes, prep, duration}`.
+- hq today column renders the event block as a dashed `.dir-task.event` after the prep (`web/hq-groups.js renderTaskBlock`); tap-done like any step (`wireTaskDone`); dragging the spine writes `dir_start_min` (`createGroup` -> `saveStartTime`).
 
 ### 15d. One nudge per step — no stall re-peel
 
-A step nudges **exactly once**, at its start (`_due_nudge` in nudge_loop.py). If Wai does not reply, the card sits `awaiting_reply` in **silence**: the loop never re-fires or peels a smaller sub-step for that step.
+A step nudges **exactly once**, at its start (`_due_nudge`). No reply -> `awaiting_reply` in silence; the loop never re-fires or peels a sub-step.
 
-The frontier advances only when Wai acts. `advance_chunk` (chat tool / timeline tap-done) marks the step done and re-arms `next_nudge_at` one stall-window out (`now + window_for`, `clamp(estimate × 2.6, 45, 240)` min) so the **next** step nudges once too. A reply-**without**-advance (any exec-chat turn) likewise re-arms the *same* step one window out via `clear_awaiting_focused` — so Wai engaging keeps the loop alive, but staying silent does not.
+![Nudge stage state machine](docs/arch/15-nudge-stages.svg)
 
+- `advance_chunk` (chat tool / timeline tap-done) marks the step done, `stage=nudging`, and re-arms `next_nudge_at = now + window_for(card)`; all steps done -> `stage=resolved` (never archives — Wai archives).
+- A reply **without** advance (any exec-chat turn) re-arms the *same* step one window out (`clear_awaiting_focused`, focused = most recently nudged awaiting card).
+- **`window_for`** = `clamp(round(_lead * 2.6), 45, 240)` min (`NUDGE_WINDOW_MULT/MIN/MAX`); `_lead` = `estimated_time` (default 90) x category factor.
+- `record_consequences` -> `stage=consequences`; `reschedule_after_consequences` -> `stage=idle` (keeps graph); `archive_card` -> `resolved`.
 
 ### 15e. A nudge ASKS whether the step is done; it never asserts that it isn't
 
-`_TONE` + both prompts in `nudge_llm.py`, 2026-09-13.
+(`nudge_llm._TONE` + both prompts.) **The loop has no completion data** — a fire means only that the step's slot arrived, and Wai often does a step without tapping it. So: ask whether it's done, then name the tiny first move if not. "done" -> `advance_chunk`; "not yet" -> the step; either way the loop re-arms.
 
-**The loop has no completion data.** A fire means only that the step's slot on the timeline arrived, and Wai routinely does a step without tapping it done — so the old framing ("a task sitting untouched on today's timeline", "frame the un-started task as a clinical finding") was asserting a fact the system cannot know, and read as being accused of nothing when the thing was already finished.
-
-The shape is now *ask whether it's done, then name the tiny first move for if it isn't*, which also makes the reply self-classifying: "done" → `advance_chunk`, "not yet" → the step. Either way the loop re-arms.
-
-The prompt explicitly countermands `EXEC_VOICE`'s activity-log example ("The task you scheduled for 10 AM is untouched at 2 PM") — **that framing belongs to monitor comments**, which really do read the log. A nudge has none.
-
-**Asking is not softening — the question is the weapon**, and the prompt says so explicitly, because the first cut's "you are requesting a status confirmation, not filing an accusation" read as *be nicer* and flattened the voice. Not knowing costs GLaDOS nothing and the doubt is plainly performative: extending Wai the benefit of it lands harder than an accusation, which would at least credit her with being worth the certainty.
-
-The tone block carries five **mechanisms** to rotate rather than phrases to reuse — mock-charitable doubt, feigned ignorance as the jab, sarcastic optimism, mock scientific rigour, false comfort — with the rule that the step and the reason still land in plain words: the sass rides ON the question, never replacing the instruction.
-
-**The previous nudge is fed in as an anti-repeat signal** (`last_nudge_text`, already stored on the card). Each nudge is an independent LLM call with no memory of the last, so "VARY it every single time" had nothing to vary *against* and the same good line recurred — two of four samples opened identically before this.
-
-**Time-critical steps ask READINESS, not completion.** Asking whether a 6:30 departure that is still in the future is "done" reads as nonsense, so: clock + action first, then "are you ready to walk out?" The clock going first buys clarity, not a softer voice — the old prompt's "keep the warm, practical register" there fought the persona on exactly the path where it matters most.
-
-`chat.py`'s `_active_nudge_block` handling carries the other half: a bare "yes"/"yep"/"did that" answering the question IS Wai saying the step is done, and a "not yet" is an answer, not pushback — so it must not trigger the consequences conversation.
+- The prompt countermands `EXEC_VOICE`'s activity-log framing ("The task you scheduled for 10 AM is untouched") — that belongs to monitor comments, which read the log.
+- **Asking is not softening — the question is the weapon.** Tone block = five mechanisms to rotate (mock-charitable doubt, feigned ignorance, sarcastic optimism, mock scientific rigour, false comfort); the step and reason stay in plain words — sass rides ON the question.
+- `last_nudge_text` is fed in as an anti-repeat signal (each nudge is an independent LLM call).
+- **Time-critical steps ask READINESS, not completion** ("are you ready to walk out?"); clock + action first.
+- `chat._active_nudge_block`: a bare "yes"/"did that" IS the step done; "not yet" is an answer, not pushback — must not trigger the consequences conversation.
 
 ### 15e-bis. Answering a nudge by tapping
 
-A nudge ends on a question, and the question is the part Wai answers — so the model writes the answers as its final line, `[Sent it | Not yet | Doing it now]`, and `web/exec-choices.js` renders them as buttons under the message in the exec panel.
+The nudge's final line is `[Sent it | Not yet | Doing it now]`; `web/exec-choices.js` renders buttons under the message in the exec panel. One bracketed span because that is how Exec writes a sys note and `exec-voice.js` strips every `[...]` before narrating.
 
-**Why one bracketed span**: that is already how Exec writes a sys note, and `exec-voice.js`'s `speak()` strips every `[...]` span before narrating — so the marker costs the voice path nothing and needs no second parser there.
+- **Regex** (`RE`, exec-choices.js:56) is anchored to the LAST line and needs a `|` or a lone `card=` cell; emphasis (`**[..]**`) and trailing whitespace are tolerated; options cap at 4. Both prompts (`nudge_llm._TONE`, `chat._CHAT_STATIC_PREFIX`) say write it plain AND the parser forgives bold.
+- **Every Exec reply is parsed**, not just nudges. History replay goes through `addMsg`.
+- **`card=<id>` cell**: `[card=card-1750000000000 | Got it | Not yet]` -> `parse()` returns `cardId`, not an option; a pipe-less `[card=…]` is allowed. Precedence in `addMsg`: `cardId || choices.cardId`. It is the ONE place Exec may write a raw card id (stripped before render/speech). **Discord** has no buttons: `discord_bot.strip_card_cell` (in `_send_chunked`) drops the cell, keeps the answers.
+- **Tapping sends the answer as Wai's own message** — the server needs no button knowledge. Built by `answerRef(text, cardId)`: `[answering: "Packed yet?" card=card-climbing] Not yet`; the quote is the LAST interrogative sentence of the message the row hangs under (whitespace collapsed, 120 chars + ellipsis).
+- **EVERY open question keeps its buttons** (`clear()` is a no-op leftover). The reference replaces the old wiping, which left a tappable row under the WRONG card.
+- Pieces that make the reference land: `_CHAT_STATIC_PREFIX` ANSWER REFERENCES paragraph (marker is authoritative, never echo it); `_active_nudge_block` appends **OTHER OPEN NUDGES** (`_open_nudge_cards` / `_other_nudge_lines`); `exec-bubble-msg.js` renders the marker as a dim `re: "…"` chip (`.msg-ref`), id never shown.
+- **Answering retires that row's answer buttons only** (`retireAnswers`); `archive`/`exile` stay; a row left empty is removed. A **failed PATCH re-arms the button and leaves the row.**
+- **Tapping must not close the panel**: `retireAnswers` detaches the tapped node synchronously, so a bubble-phase click-outside test reads it as outside. `exec-bubble.js` records the origin in the **capture** phase (`markOrigin`) and the handler consults that flag (§12). Tap-guard: `#exec-term` bottom padding `var(--space-2)` (WebKit touch adjustment snaps to the 29x19 composer `[x]`). Pinned by `tests/test_exec_bubble_overlap_browser.py`.
 
-**The regex is anchored to the LAST line and requires a `|` or a lone `card=` cell** (`/\n[ \t]*(?:\*\*|__|\*|_)?\[([^[\]\n]*\|[^[\]\n]*|card=[^[\]\n|]+)\](?:\*\*|__|\*|_)?\s*$/`), so an ordinary `[bracketed]` sys note, a markdown link, or a stray bracket mid-sentence is never mistaken for a choice row. Options cap at 4.
+#### Card actions are not messages
 
-**Emphasis around the row is tolerated, and so is trailing whitespace** — `**[Got everything | Not yet | On it now]**` parses. The model reaches for bold on a line that reads like a control, and the failure is silent in the worst way: the row prints as raw brackets, as prose, and Wai gets no buttons at all. Both prompts now say to write it PLAIN (`nudge_llm._TONE`, `chat._CHAT_STATIC_PREFIX`) **and** the parser forgives it — a format rule the model has to remember is one it will sometimes miss.
+`archive` / `exile` mean what the card dialog's buttons mean, so they **PATCH `{id, column}` directly** (no model turn). **Appended by the CLIENT** to every row that knows its card. Only `{id, column}` is sent (merge-by-id preserves the server-owned `nudge`); the server clears `scheduled_day` on exile, keeps it into archives (§8b), revives recurring cards. Leaving hq ends the loop for that card (`_eligible` requires `hq`). The panel labels the button `archive`, not `done` (it sat beside a step's `Did that` and `done` read as step-done); the dialog keeps `done`.
 
-**Every Exec reply is parsed, not just a nudge.** Exec asks Wai questions with a small answer set in ordinary turns too; `addMsg` parsed only the `probe` role, so those rows printed as brackets. Both paths now parse: the live stream re-renders the body without the row once the typewriter finishes (it has already typed it as prose) and attaches the buttons, and history replay goes through `addMsg`. A chat reply used to get **answer buttons only** — it carries no card id in its payload, and guessing one would archive the wrong card.
-
-**So the model names the card in the row: every question about a card gets `archive`/`exile`.** The row's first cell may be `card=<id>` — `[card=card-1750000000000 | Got it | Not yet]` — and `parse()` returns it as `cardId` instead of an option, which is the whole test `attach()` already applies for the card actions. A question about a card with no small answer set writes the cell alone, `[card=…]`, which is why the regex accepts a pipe-less row in that one shape. Precedence in `addMsg` is `cardId || choices.cardId`: a nudge push's id is the server's, the row's is the model's.
-
-That cell is **the one place Exec may write a raw card id**, and `_CHAT_STATIC_PREFIX` says so explicitly beside the standing ban — the row is stripped before the body renders, and `exec-voice.js` strips every `[...]` span before narrating, so it reaches neither Wai's eyes nor her ears. The exception is **Discord**, which has no buttons and prints the reply verbatim: `discord_bot.strip_card_cell` (applied in `_send_chunked`, so it covers DM'd nudges too) removes the cell and keeps the answers, or drops the row entirely when the cell was all it held.
-
-Why it matters: "is the poster picked up?" asked in ordinary chat is answered by *doing the thing*, and about half the time the next action Wai wants is to mark the card done. Without the cell the panel showed her the question and no way to close it out.
-
-Tapping an answer **sends that text as Wai's own message** — the same message she would have typed — so nothing server-side has to know the buttons exist: the exec chat already reads "done" as advancing the chunk and "not yet" as an answer rather than pushback (§15e).
-
-**EVERY open question keeps its buttons — nothing is wiped.** A day that fires two nudges asks two real questions about two different cards, and Wai answers them when she surfaces rather than in arrival order. `clear()` is a no-op, an exported leftover with no caller.
-
-**What the wiping was protecting against was ambiguity, and the reference replaces it.** A bare `Not yet` belongs to no question on its face, so a tapped answer is sent as:
-
-```
-[answering: "Packed yet?" card=card-climbing] Not yet
-```
-
-built by `answerRef(text, cardId)`. The quoted question is the LAST interrogative sentence of the message the row hangs under (whitespace collapsed, capped at 120 chars with an ellipsis) — it appears verbatim in the transcript the model is already reading, so resolving it is a string compare, not an inference. `card=` rides along when the row came from a nudge push, so `advance_chunk`/`archive_card` get the id directly. A plain chat reply's row has no card id and sends the quoted question alone.
-
-Three pieces make the reference actually land:
-
-- **`_CHAT_STATIC_PREFIX`** (an ANSWER REFERENCES paragraph) tells the model the marker was attached by the panel, is authoritative about which question is being answered, and must never be echoed back — Exec is separately forbidden from printing raw card ids.
-- **`_active_nudge_block`** appends an **OTHER OPEN NUDGES** list (`_open_nudge_cards` / `_other_nudge_lines`: id, title, current step, the question asked) below the focused card's detail. Without it an answer referencing the non-focused card named a card the prompt said nothing about.
-- **`exec-bubble-msg.js`** strips the marker out of the displayed message and renders the human half as a dim `re: "Packed yet?"` chip (`.msg-ref`, same rank as `.msg-ts` — addressing, not content). The id never reaches the screen.
-
-**Answering retires that row's answer buttons only** (`retireAnswers`); `archive`/`exile` stay, because the card may still need marking, and a row left with no buttons at all is removed so a plain chat reply's row still disappears whole. A card action removes the whole row. Pinned by `tests/test_exec_choices_browser.py`.
-
-#### Card actions are the exception, and are deliberately not messages
-
-`archive` and `exile` mean exactly what the card dialog's `done` and `exile` buttons mean — archive it, or drop it — so they **PATCH the card directly**. `cdDone`/`cdExile` in `card-dialog.js` do the identical `{id, column}` write to `archives` / `exile`.
-
-**In the panel the archive button says `archive`, not `done`** (2026-10-14). It sits beside a step's answers (`Did that | Not yet`), and the nudge prompt itself teaches that "done" advances the plan, so `done` read as "this step is done": Wai tapped it after a step of an interview prep card and the whole card went to archives (log: `moved hq→archives source=Exec`, no `actor`, 8s after the `advanced` entry). The dialog keeps `done` — there the only subject is the card.
-
-Routing those through the model instead would spend a turn asking it to do something the tap already decided, and could silently not happen.
-
-**They are appended by the CLIENT, not written by the model.** They apply to every nudge, and a model that has to remember to offer them is one that will sometimes forget.
-
-**Only `{id, column}` is sent.** `PATCH /api/rd` merges by id, so every field the client does not own — above all the server-owned `nudge` block — is preserved. The server then does the rest on its own: clearing `scheduled_day` on exile, preserving it into archives (§8b), and reviving a recurring card. **Leaving hq also ends the nudge loop for that card**, since `_eligible` requires `column == "hq"` — nothing has to disarm it by hand.
-
-Exec can also do both itself now: **`archive_card`** (added 2026-09-15) is the chat-side twin of the dialog's archive button, alongside `exile_card`. The prompt used to say archiving was Wai's alone, so asked to mark a card done Exec answered that the lever lived on her side of the glass. It now archives on Wai's word — and only on her word about that specific card, never on its own read of the board. The handler keeps `scheduled_day`, resolves the nudge block, and clones a recurring card's next occurrence through `helpers.recurring_clone`, the same function `PATCH /api/rd` uses, so both archive paths revive identically. Pinned in `tests/test_archive_card.py` (which also asserts schema and handler map stay in sync in both directions).
-
-**This is why a nudge carries its card's id** and a monitor comment does not: `_fire_nudge` passes it to both `append_monitor_comment(text, card_id=…)` and `push_to_monitor({"comment": …, "card_id": …})`, monitor messages are preserved whole by `_save_chat`, `sanitize_history_for_api` drops them entirely so the key never reaches the API, and `GET /api/chat` returns the stream raw so a page reload still gets it. A monitor comment reads the whole board rather than one card, so it gets no actions.
-
-**A failed PATCH re-arms the button and leaves the row.** A failed tap that removed the row would look exactly like a successful one.
-
-Pinned in `tests/test_exec_choices_browser.py`, which **stubs `fetch`** — the suite runs against the LIVE container, and a real PATCH there would archive one of Wai's actual cards.
+- Exec can also do both itself: **`archive_card`** (`chat_tools`) — on Wai's word about that card only; keeps `scheduled_day`, sets nudge `resolved`, clones recurring via `helpers.recurring_clone` (same as `PATCH /api/rd`). Pinned by `tests/test_archive_card.py`.
+- **A nudge carries its card id, a monitor comment does not**: `_fire_nudge` passes `card_id` to `append_monitor_comment` and the `{comment, card_id}` SSE payload; `_save_chat` keeps monitor messages whole, `sanitize_history_for_api` drops them, `GET /api/chat` returns raw so a reload still has the id.
+- `tests/test_exec_choices_browser.py` **stubs `fetch`** — the suite runs against the LIVE container and a real PATCH would archive one of Wai's cards.
 
 ### 15f. Due-date protection
 
-`schedule_card` refuses to defer or unschedule an active-nudge card. `record_consequences` → `reschedule_after_consequences` is the **only** later-day path.
+`schedule_card` refuses to defer or unschedule an active-nudge card (`card_schedule._ACTIVE_NUDGE_STAGES`). `record_consequences` -> `reschedule_after_consequences` (hard-fails without a recorded answer) is the **only** later-day path.
 
-**Morning (4:30)**: `morning_reconcile()` re-anchors placed-today cards to a fresh first nudge at the restacked slot and disarms others to `idle` (they re-arm on their day). It never leaves a past-dated `next_nudge_at`.
+**Morning (4:30)** `morning_reconcile`: for every card whose stage is not `idle`/`resolved` it clears `awaiting_reply`, `last_nudge_*`, `auto_deadline`; placed-today cards -> `nudging` with a fresh first nudge at the restacked anchor; others -> `idle`. Never leaves a past-dated `next_nudge_at`.
 
-### 15g. Lateness recalibration — built, and GATED OFF
+### 15g. Lateness recalibration — built, GATED OFF
 
-`recalibration.py`. Every completion (`moved→archives`) is tagged with its `category`; late ones (`completed_late`) also carry `minutes_late` + `estimated_time` (`_log_entries_for_patch` / `_minutes_late` in `routes_api.py`).
+`recalibration.py`. Completions (`moved->archives`) are tagged with `category`; late ones (`completed_late`) also carry `minutes_late` + `estimated_time` (`routes_api._log_entries_for_patch` / `_minutes_late`). The morning pipeline folds them into a per-category EMA `factor` (`recalibrate()`, `EMA_ALPHA 0.25`, bounded `[FACTOR_MIN 1.0, FACTOR_MAX 2.0]`). `nudge._factor` biases `_lead()`, `window_for()` and `active_anchor()`; a missing/broken store = 1.0.
 
-The morning pipeline folds the day's completions into a per-category EMA `factor` (`recalibrate()`), bounded [1.0, 2.0] — late tasks push it up (∝ how late), on-time pull it back toward 1.0. `nudge._factor(card)` reads it and biases `_lead()` (reserve more time), `window_for()` (wider stall window) and `active_anchor()` (nudge earlier), so a chronically-late category starts sooner with no manual estimate change. A missing or broken store means factor 1.0 — the loop never breaks.
+**`recalibration.ENABLED = False`** — `factor_for` returns 1.0. The telemetry is **dormant**: the manual "late" dialog button (sole producer of `completed_late`) was removed 2026-06-29. Flip `ENABLED` only after re-wiring a late source and accruing a sample.
 
-**`recalibration.ENABLED = False`** pending real data: `factor_for`/`recalibrate` no-op at factor 1.0.
-
-The telemetry is **dormant**, not merely unused. The manual "late" dialog button that set `completed_late` was **removed 2026-06-29** and was its only producer, so the late branch in `_log_entries_for_patch` currently receives nothing. The telemetry (the `late`/`minutes_late` tags) accrues only when a card carries `completed_late`. `_minutes_late` and the recalibration backend stay in place, gated off. **Flip `ENABLED` on only after re-wiring a late source and accruing a sample.**
-
-History — the incidents behind the rules above: [ARCHAEOLOGY.md §15](ARCHAEOLOGY.md).
+History: [ARCHAEOLOGY.md §15](ARCHAEOLOGY.md#15-the-nudge-loop).
 
 ---
-### 15-notes. From CLAUDE.md (moved 2026-09-27)
-
-Moved verbatim from CLAUDE.md on 2026-09-27 when CLAUDE.md was thinned to an index. Unedited; may overlap the subsections above.
-
-**[Card schema → card["nudge"]]**
-
-**`card["nudge"]`** (added lazily; absent on most cards): decomposition+nudge loop state — `stage` (`idle|nudging|awaiting|stalled|consequences|resolved`), `graph` (`{nodes:[{id,label,done,depth,created_at,est_min,deadline,tl_offset?,is_event_start?}], edges:[{from,to}]}`, edge = `from` precedes `to`; the breakdown is a **strict linear chain — never parallel**: `_linearize_chain` (nudge.py, called inside `_normalize_graph`) topo-sorts the LLM's steps by its edges then re-chains them `step1→…→stepN`, discarding any branching. Legacy parallel graphs relinearize on their next breakdown/recalc. The **event block** (`is_event_start:true`, `est_min = work`, label = card title) is the terminal sink every prep step points to — present only when `work > 0` (`nudge_deadlines.ensure_event_block`), back-scheduled so it ends at `card_deadline` (= block end) and starts at the anchor; `tl_offset` = a step's start offset in minutes from the card's `dir_start_min`, set when a sub-step is placed on the dirs timeline or its time is edited in the card dialog), `active_node`, `redecompose_count`/`redecompose_at` (metrics), `first_nudge_at`/`next_nudge_at`/`window_deadline`/`last_nudge_at`/`last_user_reply_at` (naive-ET ISO), `awaiting_reply`, `last_nudge_text`, `consequences` (`{asked_at, answer, decision}`), `version`.
-
-**[Nudge loop → A nudge's answers are tappable]**
-
-- **A nudge's answers are TAPPABLE** (`web/exec-choices.js`, rendered under the message in the exec panel). The model writes them as its final line, `[Sent it | Not yet | Doing it now]` — one bracketed span, which is already how Exec writes a sys note, so `exec-voice.js` strips it before narrating and the voice path needs no second parser. The regex is anchored to the LAST line and **requires a `|`**, so a sys note, a markdown link or a stray bracket is never mistaken for a choice row. **It tolerates emphasis around the row** (`**[a | b]**`) and trailing whitespace, and **EVERY Exec reply is parsed, not only a nudge** — the model asks small-answer-set questions in ordinary turns too, and both misses printed the row as raw brackets with no buttons (2026-09-15). **Every question about a card carries `archive`/`exile`, not only a nudge**: a nudge push supplies the card id in its payload, and an ordinary chat reply — which carries none — names the card IN the row, `[card=card-123 | Got it | Not yet]`, the `card=` cell being parsed out rather than rendered as a button (`_CHAT_STATIC_PREFIX` tells the model to write it whenever the question is about one card, and to write the row as the lone cell when there are no likely answers). That cell is the ONE place Exec may print a raw card id: the whole row is stripped before the message renders or is spoken. Discord has no buttons, so `discord_bot.strip_card_cell` drops the cell on the way to the phone and keeps the answers. Tapping sends that text as Wai's own message. **EVERY open question stays tappable** — rows are never wiped, because a day that fires two nudges asks two real questions and Wai answers them when she surfaces, not in arrival order (wiping all but the newest left one tappable row under the WRONG card: 2026-09-16, the tap meant for the climbing nudge archived "Lyre poster"). What that wiping was really avoiding is ambiguity, and **a deterministic reference solves it instead**: a tapped answer is sent as `[answering: "<the question>" card=<id>] Not yet`, the quoted question being the last interrogative sentence of the message the row hangs under — verbatim in the transcript, so resolving it is a string compare. The panel renders the marker as a dim `re: "…"` chip (`.msg-ref`) and never shows the id. `_CHAT_STATIC_PREFIX` tells the model the marker is authoritative and not to echo it, and `_active_nudge_block` now lists **OTHER OPEN NUDGES** (id, current step, question asked) so an answer referencing a non-focused card is actionable. Answering a question retires that row's answer buttons; its `archive`/`exile` stay, since the card may still need marking. **Tapping any of them must not close the panel**, and that is a property of WHEN the click-outside test runs, not of the buttons: `retireAnswers()` removes every answer in the row — including the one just tapped — synchronously, so by the time the click reaches `document` its target is DETACHED and `panel.contains(e.target)` reads it as *outside*. exec-bubble.js records the origin in the **capture** phase instead (`markOrigin`, on the way down, before any handler can rewrite the DOM) and the bubble-phase handler consults that flag. Any control added later that detaches itself on tap is covered for free. **Two more things paint over that row and both closed the panel**: the bubble itself (hidden while open, see the nav section) and, where a tap lands on no clickable element, **WebKit touch adjustment** snapping it to the nearest one within ~10px — the composer's `[x]` is a 29x19 target directly under the transcript's last line, which is why `#exec-term` carries `var(--space-2)` of bottom padding as a tap guard. Pinned by `tests/test_exec_bubble_overlap_browser.py`.
-
-**[Nudge loop → archive/exile are card actions]**
-
-- **`done` and `exile` are CARD ACTIONS, not answers** — they are appended by the CLIENT to every row that knows its card (a model that has to remember to offer them will sometimes forget) and they do exactly what the card dialog's own two buttons do: PATCH `{id, column}` to `archives` / `exile`, no message, no model turn. Merge-by-id means only those two fields are sent, so the server-owned `nudge` block is preserved, and leaving hq ends the loop for that card by itself (`_eligible` requires `column == "hq"`). This is why a nudge carries its card id (`append_monitor_comment(text, card_id=…)` + the `{comment, card_id}` SSE payload), and a chat reply names one in its row, while a **monitor comment carries neither** — it is about the whole board, so it gets no card actions.
 
 ## 16. The Exec monitor (`monitor.py`)
 
-**Exec's own changes never trigger a comment** (2026-09-29). Once the panel moved onto the sidecar, Wai saw Exec call `advance_chunk`, report it, then a minute later comment on its own step ("One message sent. Three steps... still waiting"). Every activity-log entry written during one Exec tool call is stamped `actor: "exec"` — `exec_tools.run_tool` runs the handler through `_as_exec`, which sets the `helpers.LOG_ACTOR` contextvar INSIDE the worker thread (so it cannot leak onto another request) and `_append_rd_log_batch` copies it onto each entry. `_is_commentable`, `_entry_is_significant` and `generate_encouragement`'s activity list all skip those entries. The old `MONITORED_TOOLS` hook that scheduled the monitor after a tool call is gone. The marker is `actor`, NOT `source`: the panel's archive/exile buttons PATCH `/api/rd?source=Exec`, and those are Wai's taps — they still earn a comment. Pinned by `tests/test_monitor_actor.py`.
+Unsolicited comments after significant card activity, in Exec's GLaDOS voice (`EXEC_VOICE`, shared with chat) — backhanded observations, not encouragement. Model `claude-opus-4-8`, `max_tokens 200`.
 
-Unsolicited comments after significant card activity, in Exec's GLaDOS voice (`EXEC_VOICE`, shared with chat) — backhanded observations rather than warm encouragement.
+**Exec's own changes never trigger a comment.** `exec_tools.run_tool` runs the handler through `_as_exec`, which sets the `helpers.LOG_ACTOR` contextvar (`"exec"`) INSIDE the worker thread (cannot leak across requests); `_append_rd_log_batch` copies it onto each entry as `actor: "exec"`. `_by_exec` is checked by `_is_commentable`, `_entry_is_significant` and `generate_encouragement`. The marker is `actor`, NOT `source`: the panel's archive/exile taps PATCH `/api/rd?source=Exec` and still earn a comment. Pinned by `tests/test_monitor_actor.py`.
 
 ### 16a. What counts as significant
 
-A move to archives/exile, a book-card update, or a completed decompose sub-step.
+A move to archives/exile (`to_col`), a book-card update (`updated` + `is_book`), or an `advanced` entry (completed sub-step). Reminders never. A sub-step completes two ways:
+1. `advance_chunk` chat tool (`chat_tools._tool_advance_chunk` logs it; reached via `exec_tools.run_tool`) — `actor=exec`, so it does NOT comment.
+2. **Timeline tap-done** in the hq today column: `persistLayout` PATCHes the card, and `routes_api._advanced_entries` (via `_log_entries_for_patch`) emits `advanced` (with `id` + `node_id`) on a node's `done` false->true — independent of the card-level diff.
 
-**A sub-step completes two ways, both significant:**
-1. The `advance_chunk` chat tool (`chat_tools._tool_advance_chunk`, which logs the `advanced` entry itself; reached through `exec_tools.run_tool` on the panel).
-2. A **timeline tap-done** in the hq today column — `persistLayout` PATCHes the whole card, and `_log_entries_for_patch` emits an `advanced` log entry (`_advanced_entries`; carrying the card `id` + `node_id`) on any nudge node's `done` false→true transition. That is independent of the card-level diff, so a same-patch column change cannot mask it.
-
-An `advanced` entry is **re-validated at fire time** (`_drop_undone_advanced` in `_recent_entries`): if the node is no longer done by the time the debounce fires, the entry is dropped — a step marked done then unmarked (accidental) earns no comment.
+`advanced` is **re-validated at fire time** (`_drop_undone_advanced` in `_recent_entries`): done-then-unmarked earns no comment.
 
 ### 16b. Timing
 
-`schedule_monitor()` runs a **60s trailing debounce**, called from `PATCH /api/rd` on a significant entry (an Exec tool's own changes never schedule it, see above). `POST /api/monitor/flush` bypasses the wait.
+![Monitor trigger and 60s debounce](docs/arch/16-monitor-debounce.svg)
 
-The "already-commented" boundary is the last log entry's `ts` at process start (`_init_monitor_ts`), compared **strictly (`>`)** so a `--reload`/restart never re-comments the last action.
-
-Context for the comment = profile.json + hq cards + books-in-progress + today's schedule.
-
-**Recurring cards.** When one is archived, a `revived` entry is also logged (the auto-cloned next occurrence). `revived` is not significant on its own, but it rides the same batch as the `moved→archives` entry, so `_entry_line` renders it as context ("'{title}' is a recurring task; the system automatically queued its next occurrence") and a system-prompt rule tells the model to read the requeue as a normal recurrence — done this round, back next time — **never as resurrection, undeath, or a clerical error**.
-
-Subscribers receive `{thinking}`/`{comment}` via `/api/monitor/stream` SSE. The posted comment is written to `chat.json` as `role=monitor` so the exec bubble shows it on next load.
+- `schedule_monitor()` = **trailing 60s debounce** (`_run_monitor(delay=60.0)`), called from `PATCH /api/rd` when any logged entry is significant. A new event cancels the pending task; a cancel mid-LLM pushes `{thinking:false}`.
+- `POST /api/monitor/flush` (`flush_monitor`) bypasses the wait if a significant entry is newer than the watermark.
+- **Watermark** `_monitor_last_comment_ts`: init = last activity-log entry's `ts` (`_init_monitor_ts`), compared strictly `>` so a `--reload` never re-comments. **Advanced only after the LLM call succeeds** (a 429/529 must not drop the batch).
+- Context = profile.json + hq cards + books in progress + today's schedule (`_build_context`).
+- **Recurring cards**: archiving logs a `revived` entry too; not significant alone but rides the same batch, `_entry_line` renders it as context and the system prompt tells the model to read it as normal recurrence — never resurrection/undeath/clerical error.
+- Subscribers get `{thinking}` / `{comment}` on `/api/monitor/stream` SSE; the comment is written to `chat.json` as `role=monitor`. The same stream carries `{cards_changed:true}` on any server-side `rd.json` rewrite (nudge fire/build/triage, `PATCH /api/rd`, Discord and web exec tool rounds via `chat_passes` / `routes_exec`); `exec-bubble.js` relays it as a `window` `exec:cards-changed` event so open boards refetch.
 
 ### 16c. chat.json is ONE chronological stream
 
-Persistence lives in **`chat_store.py`** (`get_chat`/`_save_chat`/`append_monitor_comment`/`sanitize_history_for_api`/`_msg_text_key`) — split out of `chat.py` to keep both under the 500-line cap; `chat.py` keeps the prompt + tool builders.
+Persistence lives in **`chat_store.py`** (`get_chat`, `_save_chat`, `append_monitor_comment`, `sanitize_history_for_api`, `_msg_text_key`); `chat.py` keeps the prompt + tool builders. Every stored message carries a server `ts` (ISO-UTC) and the file is sorted by `ts`, so monitor comments and nudges interleave in time. `_save_chat` carries each conversation message's `ts` forward by index (convo only grows by append) and stamps new tail messages `now`; a keyless (structural) message inherits the preceding message's `ts` so the sort cannot split a tool turn. `append_monitor_comment` stamps and re-sorts.
 
-Every stored message (conversation + monitor) carries a server-side `ts` (ISO-UTC), and the file is kept sorted by `ts` — **not** conversation-then-monitor — so the bubble renders monitor comments and nudges interleaved in time order rather than dumped at the bottom. `_save_chat` carries each conversation message's original `ts` forward by index (the convo only grows by append) and stamps new tail messages `now`; `append_monitor_comment` stamps and re-sorts.
+### 16d. The orphaned-`tool_use` 400
 
-### 16d. The orphaned-`tool_use` 400, and its two fixes
+Before an Anthropic call, **both** send paths (`routes_chat.api_chat`, `discord_bot.exec_reply`) run history through `chat_store.sanitize_history_for_api`: text-only, role-alternating `{role, content:<string>}`; drops `ts` (API rejects unknown keys), all monitor lines, and every prior-turn `tool_use`/`tool_result`. The fresh, correctly paired tool round is appended after. **Stripping the tool blocks is load-bearing** — an orphaned `tool_use` 400s the API (`tool_use ids … without tool_result blocks immediately after`). (The web panel no longer uses this path since phase 3; Discord and legacy `/api/chat` do.)
 
-Before an Anthropic call, **both** send paths (`routes_chat.api_chat` and `discord_bot.exec_reply`) run the history through `chat_store.sanitize_history_for_api`. It flattens every stored message to text-only, role-alternating `{role, content:<string>}` — dropping the server-side `ts` (the API rejects unknown keys), all monitor lines, AND every prior-turn `tool_use`/`tool_result` block. The fresh, correctly-paired tool round is appended *after*, so only past turns flatten.
-
-**Stripping the tool blocks is load-bearing.** An **orphaned** `tool_use` — one whose `tool_result` drifted away — makes the API 400: `tool_use ids … without tool_result blocks immediately after`.
-
-History — the incidents behind the rules above: [ARCHAEOLOGY.md §16](ARCHAEOLOGY.md).
+History: [ARCHAEOLOGY.md §16](ARCHAEOLOGY.md#16-the-exec-monitor).
 
 ---
-### 16-notes. From CLAUDE.md (moved 2026-09-27)
-
-Moved verbatim from CLAUDE.md on 2026-09-27 when CLAUDE.md was thinned to an index. Unedited; may overlap the subsections above.
-
-**[API → GET /api/monitor/stream]**
-
-GET `/api/monitor/stream` — SSE stream — exec-bubble live updates: `{thinking}` / `{comment}` payloads as significant activity rolls in, plus `{cards_changed:true}` when a serverside mutation (morning rollover, nudge advance/decompose, discord tool round, **web exec tool round** — every tool but `update_context` writes `rd.json`, and the panel lives ON /rd + /hq, so a card it archives has to leave the board under it) rewrites `rd.json` — exec-bubble.js relays it as a `window` `exec:cards-changed` event so any open board (`/hq`, `/rd`) refetches live.
-
-**[Exec monitor → chat.json is one stream]**
-
-**`chat.json` is ONE chronological stream sorted by `ts`**, so monitor lines interleave in time order rather than dumping at the bottom; persistence lives in **`chat_store.py`** (split out of `chat.py` for the 500-line cap). Two rules there are load-bearing: both send paths run history through `chat_store.sanitize_history_for_api` before an Anthropic call — flattening to text-only, role-alternating messages and dropping every prior-turn `tool_use`/`tool_result`, because an **orphaned `tool_use` 400s the API** — and `_save_chat` makes a keyless (structural) message inherit the preceding message's `ts`, so the sort can't split a tool turn apart in storage.
 
 ## 17. Memory is the scarce resource on this box
 
-1967MB RAM + **5GB of swap** (`/swapfile` 1G and `/swapfile3` 4G, both in `/etc/fstab`; `/swapfile2` was retired 2026-09-13).
-
-**Swap is sized at 2x RAM**, the standard rule under 2GB, because the spikes here are whole processes rather than growth: a WebKit launch is 200-400MB and every CLI subprocess (a chat turn, a title call) is ~300MB, against ~650MB of available RAM at rest. The 2GB it replaced was already 1029/2047MB used with 6 OOM kills behind it, so there was no headroom left to absorb one.
-
-`vm.swappiness` stays at the default 60 **deliberately**: most of what sits in RAM here is idle interactive sessions, and those pages belong on disk.
-
-The 4G file is `pri=10` so new pages land there; the old 1G file is priority -2 and drains as its pages are touched. Retire it with `sudo swapoff /swapfile && sudo rm /swapfile` once it reads near 0 — **a swapoff has to fit every live page somewhere, so do it while the new file has room**.
+1967MB RAM + **5GB swap** (`/swapfile` 1G, prio -2, draining; `/swapfile3` 4G, `pri=10`; both in `/etc/fstab`). Swap is 2x RAM because spikes are whole processes: a WebKit launch is 200-400MB, every CLI subprocess (chat turn, title call) ~300MB, against ~650MB available at rest. `vm.swappiness` stays default 60 **deliberately** (idle interactive sessions belong on disk). Retire the 1G file with `sudo swapoff /swapfile && sudo rm /swapfile` once near 0 — a swapoff must fit every live page, so do it while the 4G file has room.
 
 ### 17a. What the pressure actually is
 
-**Not the test suite.** The browser suites already run serially, and `conftest.py` launches ONE WebKit for the whole pytest session, shared by every browser test.
+Not the test suite (browser suites run serially; `conftest.py` launches ONE WebKit per pytest session) and not the containers (api ~148MB, hosaka-piper ~57MB). It is the **baseline**: two Claude Code sessions + daemon ~890MB, tmux ~146MB, against ~180MB for app + sidecar. Top consumers: an interactive `claude` (~400MB), tmux (~216MB).
 
-**Not the containers** (api ~148MB, hosaka-piper ~57MB).
+### 17b. The OOM killer picks by badness score, not culprit
 
-It is the **baseline**: measured at rest, two Claude Code sessions plus the daemon account for ~890MB (456 + 242 + 94) and tmux ~146MB, against ~180MB for the app and the sidecar combined. The top consumers are an interactive `claude` session (~400MB) and tmux (~216MB).
+An uncapped spike shoots `dbus-daemon` or uvicorn's python rather than the cause; a capped one just fails. So:
 
-### 17b. The global OOM killer picks by badness score, not by culprit
-
-That is the whole reason for the caps below. An uncapped spike shoots `dbus-daemon` or uvicorn's python instead of the process that caused it; a capped one just fails.
-
-**The browser suites run inside `systemd-run --user --scope -p MemoryMax=700M`** (`run_capped` in `scripts/pre-commit`, falling back to a bare run where systemd-run is unavailable), so an over-budget browser fails the commit instead of taking out the site.
-
-
-Rebuilds cannot overlap (`fcntl.flock` on `graphify-out/.rebuild.lock`).
-
-**Ad-hoc WebKit/playwright runs are the other hazard.** Wrap heavy one-offs in `systemd-run --user --scope -p MemoryMax=...` and check for strays afterwards with `pgrep -f '[M]iniBrowser'` (the bracket keeps the pattern from matching its own command line).
-
-Check pressure with `free -m` (watch **Swap used**, not just Mem) and `sudo dmesg -T | grep -i oom`.
-
-### 17e. The `--reload` poller was burning 44% of a core to watch 66 files
-
-
-**`uvicorn --reload` has two backends and picks silently.** With `watchfiles` installed it uses `WatchFilesReload` (inotify, event-driven, ~0% idle). Without it, it falls back to `StatReload`, which **polls**: `should_restart()` runs `reload_dir.rglob("*.py")` over every reload dir, `resolve()`s and `stat()`s each hit, then sleeps `reload_delay` (default **0.25s**) and does it again. `watchfiles` was never in `requirements.txt`, so this box had been polling since the day `--reload` was added. Uvicorn even warns that `--reload-include`/`--reload-exclude` "have no effect unless watchfiles is installed" — which is why an exclude was never the available fix.
-
-Measured, it was **0.209s per pass on a 0.25s interval** — an ~84% duty cycle on one thread of a 2-core box — spent walking 34,187 entries to find 66 `.py` files, almost all of them `nightfall-src/` riding along inside the `./nightfall-incident` bind mount. Nothing at runtime reads that tree.
-
-Two fixes, applied together:
-
-1. **`tmpfs: /app/nightfall/nightfall-src`** in `docker-compose.yml` — an empty tmpfs shadowing that one path. Docker mounts shallowest-first, so it lands on top of the `./nightfall-incident` bind; the host copy is untouched and webpack still builds against it. Walk: **34,187 → 5,184 entries**, CPU **44% → 8-12%**, verified with `/nightfall-game/index.html` and `bundle.css` both still 200.
-2. **`watchfiles` in `api/requirements.txt`** — switches the backend to inotify and takes the residual 8-12% to ~0. Now in the lock (`requirements.in` + `requirements.txt`, `watchfiles==1.2.0`), so the inotify backend is live — which is also what makes `entrypoint.sh`'s `--reload-exclude` globs for the app submodules (`apps/*/tests`, `apps/*/scripts`) take effect (§1e).
-
-**Two traps for anyone touching this.** A bind mount cannot be partially excluded, so masking a subpath with a deeper mount is the only lever — `.dockerignore` governs the build context, not runtime binds. And after masking, `/app` holds **363 directories**, comfortably inside this box's `fs.inotify.max_user_watches` of 15,052; a future mount that re-inflates the tree would blow that budget and make `watchfiles` fail differently (and more quietly) than the poller did.
-
+- **Browser suites** run under `systemd-run --user --scope -p MemoryMax=700M` — `run_capped` in `scripts/pre-commit` (falls back to a bare run if `systemd-run` is unavailable), so an over-budget browser fails the commit instead of taking out the site.
+- **graphify rebuild** capped at 600MB (`GRAPHIFY_REBUILD_MEMORY_LIMIT_MB=600`, exported in `scripts/graphify-daily.sh` and `~wai-root/.zshenv`); the layout bake under `MemoryMax=700M` too.
+- **Ad-hoc WebKit/playwright runs**: wrap in `systemd-run --user --scope -p MemoryMax=...`; check strays with `pgrep -f '[M]iniBrowser'`.
+- **A graphify rebuild that looks expensive: check `graphify-out` ownership first** (root-owned output made every run redo full work and die at the write).
+- Check pressure: `free -m` (watch **Swap used**), `sudo dmesg -T | grep -i oom`.
 
 ### 17c. Every cron job writes where both sides can see it
 
-`data/cron/YYYY-MM-DD__<job>.log` (`morning`, `graphify`, `security`, `ccprobe`, `tarotvoice`), read by `/debug`'s cron section through `GET /api/debug/cron`. **The data volume is the only filesystem both the container and the host can see, and a log nobody can see is how a nightly job fails quietly for weeks.**
+`data/cron/YYYY-MM-DD__<job>.log` (`morning`, `graphify`, `security`, `ccprobe`, `tarotvoice`), shown on `/debug` via `GET /api/debug/cron`. **The data volume is the only filesystem both container and host see; a log nobody can see is how a nightly fails quietly for weeks.**
 
-**One file per JOB, not one per day**: the three writers are three different uids (container root, host root for the security refresh, host `wai-root` for graphify), and whoever created a shared daily file first would own it and lock the others out of appending.
+![Nightly job timeline](docs/arch/17-cron-timeline.svg)
 
-The host cron lines therefore `mkdir -p` the directory and escape the date as `$(date +\%F)` — **a bare `%` is a newline to crontab**.
+| Time (ET) | Job | Where it runs |
+|-----------|-----|---------------|
+| 04:30 | `morning_cron.sh` -> `POST /api/morning` | in-container, baked from `api/exec-fn.cron` into `/etc/cron.d/exec-fn` |
+| 05:00 | `scripts/graphify-daily.sh` (as `wai-root`) | host `/etc/cron.d/exec-fn-graphify` |
+| 05:10 | `api/scripts/security/refresh.py` (root; `flock -n /tmp/exec-fn-security.lock`; `SECURITY_OWNER_IP` in the cron file) | host `/etc/cron.d/exec-fn-security` |
+| 05:20 | `scripts/cc-probe-daily.sh` (root) | host `/etc/cron.d/exec-fn-ccprobe` |
+| 05:45 | `tarot/openings_loop.py` (`RUN_AT = (5, 45)`) | **not cron** — in-process loop; its `__tarotvoice.log` is the stamp |
 
-`morning_cron.sh` tees to both that file and `/var/log/exec-fn.log`, and reports **`${PIPESTATUS[0]}` rather than `$?`** — through a pipe `$?` is `tee`'s status, so the old line logged "exit 0" for every failed curl.
+- **One file per JOB, not per day** — the writers are different uids (container root, host root, host `wai-root`); whoever created a shared daily file would lock the others out.
+- Host cron lines `mkdir -p` the dir and escape the date `$(date +\%F)` — **a bare `%` is a newline to crontab**.
+- `morning_cron.sh` tees to that file and `/var/log/exec-fn.log` and reports **`${PIPESTATUS[0]}`, not `$?`** (through a pipe `$?` is `tee`'s status).
+- `morning._prune_cron_logs` keeps 30 days (string compare on the filename).
 
+### 17d. The nightly graphify rebuilds its own output
 
-`morning._prune_cron_logs` keeps 30 days, as a string compare on the filename — no `stat()` per file and no clock skew between writer and sweeper.
+`scripts/graphify-daily.sh` (as `wai-root`, 05:00): rebuild (`_rebuild_code(force=True)`, 1800s alarm, RLIMIT_AS 600MB), then the **/graph layout bake** (`scripts/graph-layout.py`, `MemoryMax=700M`, non-fatal on failure). Sits between 04:30 morning and 05:10 security so they never contend. Guarded by `flock` on `/tmp/graphify-daily.lock` (graphify has its own too); logs to `data/cron/…__graphify.log`.
 
-### 17d. The nightly graphify publishes its own output
+- **graphify-out is gitignored** (`/graphify-out/`): generated, served from disk, never committed or pushed. Before each rebuild the script copies `graph.html` to `graphify-out/.graph.html.prev`; if the rebuild writes no fresh `graph.html` it restores that copy (stale graph beats a 404) and skips the bake.
+- **graphify REFUSES to emit `graph.html` past a node ceiling (default 5000) and only logs a skip, exit 0** — so `/graph` 404s behind a "healthy" nightly. `GRAPHIFY_VIZ_NODE_LIMIT=8000` is exported in the script; **it must stay above the repo's node count**. The RLIMIT is the real guard: too big should die of `MemoryError` and log, not be skipped silently.
+- **`.graphifyignore` must skip the trees `_GRAPH_DROP_PREFIXES` drops at serve time** (`api/data/`, `api/tarot/book/`, `nightfall-incident/nightfall-src/`) — graphify does not read `.gitignore`, and runtime data (e.g. `spire-perflog/`) inflates the node count. Keep both lists in step.
+- The per-commit path is off via `GRAPHIFY_SKIP_HOOK=1` in `~wai-root/.zshenv`, **not** by deleting `.git/hooks/post-commit` (untracked; `session-context.sh` reinstalls it). **Never a stash** (bind-mount outages).
 
-Host cron `/etc/cron.d/exec-fn-graphify` → `scripts/graphify-daily.sh`, as `wai-root`, at 05:00.
+History: [ARCHAEOLOGY.md §17](ARCHAEOLOGY.md#17-memory-is-the-scarce-resource-on-this-box).
 
-It used to run on **every commit**, which was the wrong trigger for something this heavy on a 1967MB box: dozens of runs a day. A graph a few hours stale costs nothing; a 502 does. It now sits between the 04:30 morning pipeline and the 05:10 security refresh so the three never contend. `flock`-guarded, capped at 600MB (a full rebuild measures 4089 nodes in 25s at a 366MB peak), logging to `~/.cache/graphify-rebuild.log`.
+### 17e. The `--reload` poller
 
-**graphify-out is gitignored (2026-10-12)** — generated, served from the droplet's disk, regenerated in 25s. From 2026-09-13 the nightly committed and pushed it (1.4 MiB of pack a night, 214MB tracked); that publish step is gone. The failed-rebuild fallback that used `git checkout -- graph.html` now restores `graphify-out/.graph.html.prev`, copied just before each rebuild.
+`uvicorn --reload` silently falls back to polling `StatReload` without `watchfiles`. Two fixes, both live:
 
-**graphify REFUSES to emit `graph.html` past a node ceiling, and a skip is not a failure** (2026-09-22). The default is **5000**; the repo crossed it (4151 nodes on 2026-09-11 -> **5057** on 2026-09-22) and the rebuild logged one `Skipped graph.html: ... too large for HTML viz` line, then went on to report `Rebuilt: 5057 nodes` and **exit 0**. So the nightly looked healthy while `/graph` served `404 graph.html not found` for the whole day. The bake then made it worse rather than catching it: `scripts/graph-layout.py` drives `/graph?relayout=1`, got the 404, and sat on `wait_for_function` for the **full 600s timeout** before failing non-fatally — ten minutes of headless WebKit on a 1967MB box, for nothing. `GRAPHIFY_VIZ_NODE_LIMIT=8000` is exported in the script, and the ceiling moves with the repo: the node count is growth, not a regression. **The RLIMIT is the real guard** — if the viz ever gets genuinely too big it must die of `MemoryError` and log it, which is loud, rather than be skipped into a 404, which is silent. Re-measured after: 5062 nodes emitted / **2781 served**, 31s rebuild, 54s bake.
+1. **`tmpfs: /app/nightfall/nightfall-src`** in `docker-compose.yml` — an empty tmpfs masking the game's source tree inside the `./nightfall-incident` bind (Docker mounts shallowest-first, so it lands on top; host copy untouched, webpack still builds against it). **Removing it costs ~40% of a core.**
+2. **`watchfiles`** in `api/requirements.in` (locked `watchfiles==1.2.0`) -> inotify backend, ~0% idle; it is also what makes `entrypoint.sh`'s `--reload-exclude 'apps/*/tests/*.py'` / `'apps/*/scripts/…'` globs take effect (§1e).
 
-**It tripped again on 2026-10-14, and not from source growth: graphify was extracting RUNTIME DATA.** `api/data/` is gitignored but graphify does not read `.gitignore`, so every file there became nodes — `spire-perflog/` alone (the slow logs, up to 400 files) was **6,644**, and the build hit **14,666 > 8,000**. The script's guard caught it (restored the last `graph.html`, skipped the bake). Nothing leaked: `_GRAPH_DROP_PREFIXES` already cut `api/data/` at serve time. Fix: **`.graphifyignore` now skips the trees the scrub drops anyway** (`api/data/`, `api/tarot/book/`, `nightfall-incident/nightfall-src/`) — keep that list and `_GRAPH_DROP_PREFIXES` in step. After: **5,797 nodes (72% of the ceiling)**, 32s rebuild, ~110s bake.
-
-**The per-commit path is disabled by `GRAPHIFY_SKIP_HOOK=1` in `~/.zshenv`, not by deleting `.git/hooks/post-commit`** — that hook is untracked and `session-context.sh` reinstalls it, so a deleted hook comes back and an env var does not.
-
-History — the incidents behind the rules above: [ARCHAEOLOGY.md §17](ARCHAEOLOGY.md).
-
----
-### 17-notes. From CLAUDE.md (moved 2026-09-27)
-
-Moved verbatim from CLAUDE.md on 2026-09-27 when CLAUDE.md was thinned to an index. Unedited; may overlap the subsections above.
-
-**[Cron → 5:00 graphify]**
-
-5:00 AM ET — **HOST** cron `/etc/cron.d/exec-fn-graphify` → `scripts/graphify-daily.sh` (as `wai-root`) — the graphify rebuild **and then the /graph LAYOUT BAKE** (`scripts/graph-layout.py`, capped at 700MB; a failure is non-fatal and only means /graph stabilises in the browser as before). ONCE A DAY, sitting between the morning pipeline and the security refresh so the three never contend. `flock`-guarded, capped at 600MB, logs to `~/.cache/graphify-rebuild.log`. **`GRAPHIFY_VIZ_NODE_LIMIT=8000` is exported in the script and the ceiling moves with the repo** — graphify refuses to write `graph.html` past it and only LOGS the skip, so on 2026-09-22 the repo crossing the 5000 default left `/graph` a 404 all day behind a nightly that reported success and exit 0 (the bake then sat on that 404 page for its full 600s timeout). The 600MB RLIMIT is the real guard: too big must die of `MemoryError` and log it, not be skipped into a 404. **(STALE: it no longer commits or pushes — `graphify-out` is gitignored since 2026-10-12, see §17d.)** **Never a stash** (it has taken the site down twice through the bind mounts). The per-commit path is disabled by `GRAPHIFY_SKIP_HOOK=1` in `~/.zshenv`, NOT by deleting `.git/hooks/post-commit` — that hook is untracked and `session-context.sh` reinstalls it. Details: **ARCHITECTURE.md §17d** (history: **ARCHAEOLOGY.md §17**).
-
-**[Cron → Memory is the scarce resource]**
-
-**MEMORY IS THE SCARCE RESOURCE ON THIS BOX** — 1967MB RAM + **5GB of swap** (2x RAM, the rule under 2GB; `vm.swappiness` stays at the default 60 deliberately). The spikes are whole processes, not growth: a WebKit launch is 200-400MB and every CLI subprocess (a chat turn, a title call) ~300MB, against ~650MB free at rest. **The global OOM killer picks by badness score, not by culprit** — an uncapped spike shoots `dbus-daemon` or uvicorn's python instead of the process that caused it, which has happened four times. So: browser suites run under `systemd-run --user --scope -p MemoryMax=700M` (`run_capped` in `scripts/pre-commit`), the graphify rebuild is capped by `GRAPHIFY_REBUILD_MEMORY_LIMIT_MB=600` in `~/.zshenv`, and heavy one-offs get the same wrapper (check strays with `pgrep -f '[M]iniBrowser'`). **When a rebuild looks expensive, check `graphify-out` ownership first** — root-owned output made every run redo the full work and die at the write (~780MB); `chown wai-root` turned it into a 125MB no-op. Check pressure with `free -m` (watch **Swap used**) and `sudo dmesg -T | grep -i oom`. Baseline, the OOM history and the caps: **ARCHITECTURE.md §17** (history: **ARCHAEOLOGY.md §17**).
-
-**[Cron → Every cron job logs]**
-
-**EVERY cron job writes its output to `data/cron/YYYY-MM-DD__<job>.log`** (`morning`, `graphify`, `security`), read by `/debug` through `GET /api/debug/cron` — the data volume is the only filesystem both the container and the host can see, and **a log nobody can see is how a nightly job fails quietly for weeks**. **One file per JOB, not per day**: the three writers are three different uids, and whoever created a shared daily file would own it and lock the others out. Host cron lines `mkdir -p` the dir and escape the date as `$(date +\%F)` — a bare `%` is a newline to crontab. `morning_cron.sh` reports `${PIPESTATUS[0]}`, not `$?` (through a pipe `$?` is `tee`'s status, so the old line logged "exit 0" for every failed curl). `morning._prune_cron_logs` keeps 30 days. See **ARCHITECTURE.md §17c** (history: **ARCHAEOLOGY.md §17**).
-
-**[Docker volumes → tmpfs mask]**
-
-**The tmpfs mask is a CPU fix, and removing it costs 40% of a core.** `./nightfall-incident` is bind-mounted whole, which dragged `nightfall-src/` (354MB, **29,010 entries**, node_modules included) into `/app` — even though nothing at runtime reads it: only the BUILT output is served (`index.html`, `static/`, `wai-*.js`, `audio/`), and webpack runs on the HOST. That mattered because **`uvicorn --reload` with no `watchfiles` installed silently falls back to `StatReload`, which POLLS**: it `rglob()`s the whole reload tree for `*.py` every 0.25s. So 34,187 entries were walked four times a second to find **66 `.py` files**, 0.21s per pass on a 0.25s interval — 44% of one core, around the clock, measured at 82 CPU-hours over 8 days. The tmpfs takes the walk to 5,184 entries (**44% → 8-12%**) and costs 0 bytes, since nothing writes there. Docker mounts shallowest-first, so it lands on top of the bind; the host copy is untouched. `watchfiles` in `requirements.txt` finishes the job (inotify, ~0%) — see **ARCHITECTURE.md §17e** (history: **ARCHAEOLOGY.md §17**).
-
+Traps: a bind mount cannot be partially excluded — masking a subpath with a deeper mount is the only lever (`.dockerignore` governs the build context, not runtime binds). `fs.inotify.max_user_watches` is **15,052**; a future mount that re-inflates the tree (it was 363 directories after masking) would exhaust it and fail more quietly than the poller did.
 ## 18. The typewriter and the shared chat surfaces
 
-### 18-0. What the four transcripts actually share
+Shared across `/mtg`, `/tarot` and the Exec panel (`/cc` folded into the panel): look = `chat-msg.css` (+ shell files), stream bubble + caret = `chat-dom.js` (`chatStreamDiv`, `chatCaret`), reveal = `typewriter.js`, voice = `voice-narrator.js` + `voice-ui.js` + `voice-util.js`, mic = `voice-input.js` (engine + `bindComposer`). **One copy cannot drift** — a copy is a fix you will forget to apply.
 
-| Shared | Where | Was |
-|--------|-------|-----|
-| the transcript look | `chat-msg.css` (+ `chat.css` / `chat-doc.css` / `chat-reader.css`) | three near-copies of forty lines |
-| the stream bubble + the caret mirror | **`chat-dom.js`** (`chatStreamDiv`, `chatCaret`) | four copies each |
-| the reveal | `typewriter.js` (`twGuess`, `twAudio`) | tarot-stream.js owned the audio half |
-| the voice | `voice-narrator.js` + `voice-ui.js` + `voice-util.js` | two hand-written narrators |
-| the mic | `voice-input.js` (engine **and** `bindComposer`) | one engine, three near-identical bindings |
-
-**The caret mirror is the argument for all of it.** A copy is a fix you will forget to apply.
+![Reveal and narration ordering](docs/arch/18-typewriter-reveal.svg)
 
 ### 18a. Every chat surface reveals character by character
 
-`web/typewriter.js`: a per-character delay where punctuation is a beat (`twCharWeight`: `.`/`!`/`?` 850ms, `\n` 1100, `;` 620, `-`/`—` 480, `,`/`:` 420, ` ` 110, else `TW_BASE_MS` 65), divided by a speed multiplier.
+`web/typewriter.js`: per-character delay, punctuation is a beat (`twCharWeight`: `.`/`!`/`?` 850ms, `\n` 1100, `;` 620, `-`/`—` 480, `,`/`:` 420, ` ` 110, else `TW_BASE_MS` 65), divided by a speed multiplier.
 
-`/tarot` runs it at **1.25** — a reading is paced to be listened to. `/mtg` (`MTG_TYPE_SPEED`) and the **Exec panel** (`EXEC_TYPE_SPEED`, `exec-stream.js`) run the same engine at **5**, because those are read for an answer, and **a typewriter that lags the eye is latency with a costume on**. Measured on a real /mtg reply: ~45 chars/sec at SPEED 2; the multiplier has gone 2 → 3 → 5 (2026-09-14) as the reveal kept reading slower than the eye, and at 5 the ordinary 65ms character is 13ms, still a reveal rather than a paste.
+| Surface | Speed | Why |
+|---|---|---|
+| `/tarot` (`tarot-stream.js`, `SPEED`) | 1.25 | a reading is paced to be listened to |
+| `/mtg` (`MTG_TYPE_SPEED`), Exec panel (`EXEC_TYPE_SPEED`, `exec-stream.js`) | 5 | read for an answer; a typewriter that lags the eye is latency with a costume on (65ms char -> 13ms) |
 
 ### 18a-ii. With the voice on, the narrator sets the pace
 
-Those speeds are the SILENT pace (`twGuess`). When a surface is narrating, the reveal belongs to the voice: **`twAudio`** keeps the same per-character weights for shape but rescales the total to the measured utterance, so the words land as they are spoken. It was `/tarot`'s main path, living in tarot-stream.js; it moved into the shared engine on 2026-09-20 when the Exec panel got the same voice, and the three now differ only in render target and fallback speed.
+Those speeds are the SILENT pace (`twGuess`). When narrating, **`twAudio`** keeps the per-character weights for shape but rescales the total to the measured utterance. All three surfaces now call it; they differ only in render target and fallback speed (`tarot-stream.js` binds it with `leadMs: 350`).
 
-**The reveal can run AHEAD of the voice, by a constant offset** (`leadMs`, default 0; `/tarot` passes **350**). Exactly on the audio clock each word appears as it is said, which reads a beat late — the eye wants the word a moment before the ear gets it. The offset is added to the elapsed audio (`(el + leadS) / dur`), deliberately CONSTANT rather than a multiplier: a proportional lead is zero at the start and seconds ahead by the end of a long reading, which is a different effect (finishing early) than staying one step ahead. The bail paths are untouched — the lead only moves the target character, never the stall watchdogs.
-
-**Text buffers instead of typing while a voice is coming.** `push()` on a narrating surface does not start a reveal — typing at 5 under a voice finishes the answer before it has been read out, which is two versions of the same reply racing each other. The reveal starts when the utterance does.
-
-**Syntax costs ZERO reveal time** (`twWeights`). It is jumped in one frame (18b) *and* the narrator never says it — `VoiceUtil.stripMarkdown` drops fences, tables and markers before TTS. Charging time for a span the voice skips is what would put a long code block's worth of drift between the words on screen and the words in the air, which is the Exec panel's normal reply shape.
-
-**Every failure path ends at the guessed pace**, because a reveal that hangs freezes the page with the answer half-written: a dead controller (voice off, never unlocked, upstream gone) types immediately; `FIRST_AUDIO_MS` 12s covers a cold synth (10.3s measured off a box that had just come up — §14d — which is why the old 8s window was raised); `STALL_MS` 2.5s catches a stream that dies mid-utterance, with `el` capped at what was actually buffered so the watchdog cannot be defeated by a clock that keeps ticking after the audio stopped arriving.
-
-A surface whose utterance is QUEUED behind another (`voice-narrator.js` queues so a monitor comment cannot cut off a reply) takes the guessed pace instead: its audio may be a minute away, and `twAudio` would sit out its first-audio window and bail to the same place.
+- **`leadMs`** (default 0; `/tarot` 350): reveal runs ahead of the voice by a CONSTANT offset, `(el + leadS) / dur` — not a multiplier (proportional lead finishes early). Only moves the target char, never the stall watchdogs.
+- **Text buffers while a voice is coming**: `push()` on a narrating surface doesn't start a reveal; it starts when the utterance does (typing at 5 under a voice races the audio).
+- **Syntax costs ZERO reveal time** (`twWeights`): jumped in one frame (18b) and `VoiceUtil.stripMarkdown` never speaks it.
+- **Every failure path ends at the guessed pace** (a hung reveal freezes the page): dead controller (voice off, never unlocked, upstream gone) types immediately; `FIRST_AUDIO_MS` 12000 (cold synth was 10.3s measured, §14d); `STALL_MS` 2500 with `el` capped at what was buffered.
+- A QUEUED utterance (`voice-narrator.js` queues so a monitor comment can't cut off a reply) takes the guessed pace.
+- **Narration starts with the reveal, not after it**: in `execStreamResponse()` (`exec-stream.js`), `speakAndPace(text)` (calls `execVoice.speak`) sits BEFORE `await t.typer.done()` once the read loop ends. Safe because `speak()` is fire-and-forget. `addMsg()` (nudges, monitor) renders instantly and speaks immediately.
 
 ### 18b. Everything that is SYNTAX rather than prose is jumped
 
-Markdown's markers are instructions to the renderer; typing them shows punctuation that then vanishes, and the reader watches the machinery instead of the sentence.
+`twJump`, largest form first: fenced block, table opening, link tail, whole image `![alt](url)`, then `#`/`>`/list/`---` (block ones only at a line start) and `**` `__` `*` `_` `` ` `` `~~` `[` anywhere.
 
-One place answers it — `twJump`, largest form first: a fenced block, a table opening, a link tail, an image `![alt](url)` whole (it renders as a picture; none of it is read), then the small markers — `#` heading, `>` quote, `-`/`*`/`+`/`1.` list, `---` rule (block ones only at a line start, so a dash mid-sentence stays a dash), and `**`/`__`/`*`/`_`/`` ` ``/`~~`/`[` anywhere.
-
-Measured on a sample holding all of them: **283 chars in 150 frames**, and `Done - not a bullet, 3 * 4, a # hash.` still types as prose.
-
-| Jump | Rule | Why |
-|---|---|---|
-| `twLinkTail` — a link's `](url)` tail | waits for the closing paren rather than jumping to the end of what has streamed | the label is the only part anyone reads; typing the URL spends seconds on something invisible once the link closes. Half a URL revealed and then taken back is worse than a short pause |
-| `twTableHead` — a table's opening | header + separator revealed together, body rows type like prose; only at a line start | a table is only a table once its `|---|---|` is complete, so typing those two lines shows a row of raw pipes slowly becoming a table. A `|` mid-sentence would otherwise be mistaken for one |
-| `twFenceEnd` — a fenced block | jumped **whole, never typed**; while still unclosed, everything available is revealed each frame | an SVG diagram revealed backtick by backtick is markup scrolling past, not a picture being drawn. Measured on an 89-char reply carrying one SVG block: **18 frames instead of 89**, the 72-char block landing in a single one |
+| Jump | Rule |
+|---|---|
+| `twLinkTail` — a link's `](url)` tail | waits for the closing paren; label is the only part read |
+| `twTableHead` — a table's opening | header + separator revealed together, body rows type like prose; line start only |
+| `twFenceEnd` — a fenced block | jumped **whole, never typed**; while unclosed everything available is revealed each frame (89-char SVG reply: 18 frames, not 89) |
 
 ### 18c. The waiting indicator is a solid blinking block
 
-`#blinkcursor` / `#exec-bc` in chat-msg.css — the one `/tarot`'s reader has always had (`.reader-cursor`). **A terminal that is thinking shows a cursor, not the three pulsing dots of a messaging app.**
+`#blinkcursor` / `#exec-bc` in chat-msg.css (the reader's `.reader-cursor` look). The old dot spans are `display: none`; the `blink` keyframes live in chat-msg.css. In the Exec panel the cursor **follows the work**: `park()` (`exec-stream.js`) re-attaches it to the last line until the turn ends.
 
-The dot spans the JS still builds are simply `display: none`, which is cheaper than churning three files for no visual difference, and the `blink` keyframes live in chat-msg.css so the reader and the three chat surfaces share one definition.
+### 18d. Reveal state contract
 
-In the Exec panel the cursor **follows the work**: dropping the empty bubble for a tool call used to take the only "still going" signal off the screen with it, so a long search looked like a page that had stopped. `park()` (`exec-stream.js`) re-attaches it to whatever line is last until the turn actually ends.
+`tarot-stream.js` is `/tarot`'s binding of the shared engine (guessed / audio modes), not a second engine. **The state object is shared and mutable by contract** — caller appends to `buffered` and sets `serverDone`, the engine owns `displayed`. **Each surface must await the reveal before its settle pass** (markdown + SVG in the panel, rule-citation linkifying on `/mtg`) — settling mid-type prints the whole reply and types over it. Exec glue: `exec-stream.js` (`execTyper`: `push`/`speakAndPace`/`done`) and `exec-bubble-assets.js` (markdown).
 
-### 18d. Tarot's other mode is not shared
+### 18e. Three surfaces, one transcript look (four stacked files)
 
-`tarot-stream.js` paces the reveal off the measured audio clock (`player.elapsed()`), which needs narration to pace against (§14b).
+![Chat CSS load order per surface](docs/arch/18-chat-css-cascade.svg)
 
-**The state object is shared and mutable by contract** — the caller appends to `buffered` and sets `serverDone`, the engine owns `displayed` — and **each surface must await the reveal before its settle pass** (markdown + SVG in the Exec panel, rule-citation linkifying on `/mtg`), since settling mid-type prints the whole reply and then types over it.
+| File | Holds |
+|---|---|
+| `chat-msg.css` | the vocabulary: `.msg` roles + markers, markdown in a reply, blink cursor, composer, `.mic` states. **Deliberately position-free** (nothing fixed, no viewport sizing, no keyboard awareness) so it works in a sliding panel and a pinned terminal |
+| `chat.css` | full-page shell only: non-scrolling body, `#terminal` pinned, `#input-bar` above the keyboard; composer MERGED into the scrollback |
+| `chat-doc.css` | `/mtg`: document palette, full-width scrollback, `--kb-anchor` + `--input-h` terminal inset |
+| `chat-reader.css` | `/tarot`: neon reader mood, `--lh-relaxed` over the dense default |
 
-The Exec glue lives in `exec-stream.js` (`execTyper`: `push`/`speakAndPace`/`done`) and `exec-bubble-assets.js` (markdown), not `exec-bubble.js`.
+`chat-msg.css` is also injected on `/rd`+`/hq` by `exec-bubble-assets.js` (`chat-msg`, `voice-ui`, `exec-term`, `exec-bubble`, in that order) — **order is the cascade**.
 
-### 18e. Four surfaces, one transcript look
-
-`/mtg`, `/tarot` and the **Exec panel** are ONE look in four stacked files (`/cc` was a fourth surface until it folded into the panel). They used to be three near-copies of the same forty lines, drifting a value at a time — Exec's scrollback a step tighter than /mtg's, sys lines near-invisible on one page and legible on another.
-
-| File | Holds | Note |
-|---|---|---|
-| `chat-msg.css` | the vocabulary: `.msg` roles + markers, markdown inside a reply, the typing dots, the composer | **Deliberately position-free** — nothing fixed, no viewport sizing, no keyboard awareness — so the same rules work inside a panel that slides in and a terminal pinned to the window |
-| `chat.css` | the full-page shell only: non-scrolling body, `#terminal` pinned to the window, `#input-bar` anchored above the keyboard | The composer is MERGED into the scrollback (transparent, no slab, no rule) for every page that loads it; that used to be an override in chat-reader.css, which left the slab variant underneath it styled but unreachable |
-| `chat-doc.css` | `/mtg`: the document palette (softer phosphor, full-width scrollback, the `--kb-anchor`+`--input-h` terminal inset) | was the same ten lines copied into the head of each page file |
-| `chat-reader.css` | `/tarot` only: the neon reader mood — glow, wide tracking, `--lh-relaxed` over the dense shared default | a reading is paced to spoken audio; the other two are read as a column of exchanges |
-
-`chat-msg.css` is loaded by the pages AND injected on `/rd`+`/hq` by `exec-bubble-assets.js`, **before** `exec-bubble.css` — order is the cascade, and a swap hands the pages' rules the last word over the panel's.
-
-**One gutter.** Every line hangs its marker (`>` reply · `$` Wai · `#` sys · `~` monitor · `+` tool) in a fixed `1ch` column (`--chat-gutter`), so every body and every wrapped line starts on ONE left edge; markers used to be inline `::before` content of varying width, leaving each role at its own indent.
-
-A surface that builds its own marker ELEMENT — the Exec panel, whose mark is a replay button — is caught by `.msg:has(> .msg-mark)::before { content: none }`, **which must sit after the role markers**: it and `.msg.assistant` weigh exactly the same (two classes), so source order is the whole of the decision, and above them it silently loses and every Exec reply opens `> >`. A markerless line (tool output, thinking, the monitor probe) indents by `--chat-indent` instead.
-
-**Density is the point of the merge**: `--lh-tight` (1.2, added to chrome.css for this), `--space-1` between messages, `--fs-2xs` sys lines. Sys moved from alpha 0.12 to **0.45** — at 0.12 it was legible only as a smudge, which is exactly how /cc's "not logged in" got read as a broken page.
-
-**Headless WebKit will not composite the panel's `backdrop-filter` into a screenshot.** `#exec-panel` is in the DOM, hit-tests on top, and paints nothing in the PNG. Neutralise it (`backdrop-filter:none`) in an injected style tag when verifying the panel, and **do not read a blank panel as a regression**.
-
----
-
-### The narration starts with the reveal, not after it
-
-`execStreamResponse()` in exec-stream.js reads the SSE stream, pushes each delta into `execTyper`, and then awaits the reveal. **`execVoice.speak(fullText)` (inside `speakAndPace`) must sit BEFORE that await**, right where the read loop ends and `fullText` is final.
-
-
-Moving it earlier is safe in the other direction because **`speak()` is fire-and-forget** — it strips markdown and any `[bracketed]` row, opens the TTS socket and returns; nothing awaits it. Had it been blocking, putting it first would have delayed the text instead.
-
-`addMsg()` — the path nudges and monitor comments take — renders with `innerHTML` and no typewriter at all, so it speaks immediately and never had this bug. Only the streamed chat reply did.
-
----
+- **One gutter**: marker (`>` reply · `$` Wai · `#` sys · `~` monitor · `+` tool) hangs in a fixed `1ch` column (`--chat-gutter`, gap `--chat-gutter-gap`). A surface building its own marker ELEMENT (the panel's replay button) is caught by `.msg:has(> .msg-mark)::before { content: none }`, which **must sit AFTER the role markers** (same specificity, source order decides; above them every reply opens `> >`). Markerless lines (tool output, thinking, probe) indent by `--chat-indent`.
+- **Density**: `--lh-tight` (1.2, chrome.css), `--space-1` between messages, `--fs-2xs` sys lines at alpha **0.45**.
+- **Headless WebKit won't composite the panel's `backdrop-filter`** into a screenshot — neutralise it (`backdrop-filter:none`) when verifying; a blank panel is not a regression.
 
 ### 18f. If Exec names a link, the link is tappable
 
-A nudge that says *"open the login link"* with no link in it is a nudge that costs more to act on than doing nothing — the address is in the card, the reader is on a phone, and the instruction hands her a search instead of a tap. Observed 2026-09-19 on the biweekly EI card, whose notes have carried the `hrdc-drhc.gc.ca` login URL the whole time.
-
-Both halves had to change, prompt and render:
+Both halves required:
 
 | Half | Rule | Where |
 |---|---|---|
-| Prompt | Wherever Exec can SEE a URL — a card's notes (`_card_brief` ships `NOTES:`, `_build_chat_system_prompt` ships notes on every selected/pool card), KNOWN CONTEXT — it writes the instruction as a markdown link, `[the EI login](https://…)`. Never a naked phrase (*the link*, *the portal*, *that form*) with nothing behind it, and **never a bare URL**: every surface narrates, and the label is what gets spoken. No URL in hand → name the thing in words and invent nothing. | `chat._CHAT_STATIC_PREFIX` (the cached static block — the rule is global, so it belongs in the byte-stable half), `nudge_llm._TONE` |
-| Render | `mdHtml()` parses through a `marked.Renderer` whose `link` emits `target="_blank" rel="noopener"` over a `URL()`-checked href. **New tab is not a preference here**: the panel lives ON `/rd` and `/hq`, so following a link in place tears down the board and the panel with it, mid-nudge, with the answer row still unanswered. | `web/exec-bubble-assets.js` |
+| Prompt | Wherever Exec can SEE a URL (card `NOTES:`, KNOWN CONTEXT) it writes a markdown link `[the EI login](https://…)`. Never a naked phrase (*the link*) and **never a bare URL** (every surface narrates; the label is spoken). No URL in hand -> name it in words, invent nothing | `chat._CHAT_STATIC_PREFIX` (byte-stable cached block), `nudge_llm._TONE` |
+| Render | `mdHtml()` parses via a `marked.Renderer` whose `link` emits `target="_blank" rel="noopener"` over a `URL()`-checked href (unusable scheme keeps the label, drops the anchor). New tab because following in place tears down the board + panel mid-nudge | `web/exec-bubble-assets.js` |
 
-The scheme check goes through `URL()` rather than the spelling — the regex scrub that follows `marked.parse` only catches a literal `javascript:`, and `java\nscript:` is the same href to a browser. An unusable scheme keeps the label and drops the anchor. `/mtg` already rendered links this way; the panel was the one surface still on bare `marked.parse`.
+- **Every `marked.parse` goes through DOMPurify** (`mdHtml` keeps `target`; `tarot-view.js renderText`, `mtg.js renderText`). ```` ```svg ```` blocks stay escaped code until `exec-svg.js` draws them through its allowlist.
+- **Libs are vendored** in `web/vendor/` (marked 15.0.12, DOMPurify 3.4.17, Sortable 1.15.2, vis-network 9.1.9): bump by downloading the new pinned file, never by pointing at a CDN. Ruffle (`/zombo`) stays on the CDN, pinned by version AND SRI hash, `allowScriptAccess: false`.
+- Link colour is repeated as `.msg.probe a` in exec-bubble.css (`probe` is a panel-only role; chat-msg.css colours `.msg.assistant a` alone).
+- No parser change needed downstream: `twJump` jumps the `](url)` tail, `stripMarkdown` reduces links to labels, the choice-row regex needs a `|`.
 
-**Every `marked.parse` goes through DOMPurify, and both are served from this site** (2026-10-14, security audit). `marked` passes raw HTML through, and the old regex scrub let `<img src=x/onerror=…>`, entity-encoded `javascript:` and `<iframe srcdoc>` survive — a reply steered by a web page the agent read would have run as the owner. Now `mdHtml` (panel), `tarot-view.js renderText` and `mtg.js renderText` all return `DOMPurify.sanitize(marked.parse(…))` (the panel keeps `target`); ```` ```svg ```` blocks stay escaped code until `exec-svg.js` draws them through its own allowlist. `marked` 15.0.12 (byte-identical to what the unversioned CDN URL served), DOMPurify 3.4.17 and Sortable 1.15.2 are **vendored** in `web/vendor/` — an unpinned jsDelivr script ran with the page's origin and could read every noodle identity in localStorage or call owner APIs. Bump them by downloading the new pinned file, never by pointing at a CDN. Ruffle (`/zombo`) stays on the CDN (it pulls its own wasm) but the loader is pinned by version AND an SRI hash, with `allowScriptAccess: false`.
-
-On the CSS side the link colour is repeated as `.msg.probe a` in **exec-bubble.css**, not extended in chat-msg.css. A nudge arrives as `addMsg('probe', …)`, and `probe` is a **panel-only role** — defined in exec-bubble.css, unknown to the shared vocabulary, which colours `.msg.assistant a` alone (`.msg.monitor` is vocabulary no JS applies any more). So the one line in the transcript that carries links was the one rendering in the UA's default blue.
-
-Nothing downstream needed a parser change: `twJump` already jumps a link's `](url)` tail whole (§18b), `VoiceUtil.stripMarkdown` already reduces `[label](url)` to the label, and the choice-row regex is anchored to the last line and requires a `|`, so a link never reads as an answer row.
-
-History — the incidents behind the rules above: [ARCHAEOLOGY.md §18](ARCHAEOLOGY.md).
+History: [ARCHAEOLOGY.md §18](ARCHAEOLOGY.md).
 
 ---
-### 18-notes. From CLAUDE.md (moved 2026-09-27)
-
-Moved verbatim from CLAUDE.md on 2026-09-27 when CLAUDE.md was thinned to an index. Unedited; may overlap the subsections above.
-
-**[File map → Typewriter]**
-
-**Typewriter (`web/typewriter.js`)** — every chat surface reveals a reply character by character instead of in stream-sized bursts. **TWO modes, and the narrator picks**: `twAudio` spreads the text across the MEASURED utterance so the words land as they are spoken (the pace on `/tarot` and the Exec panel whenever the voice is on), and `twGuess` is the silent pace — the engine `/tarot` has always used for its SILENT fallback (`twCharWeight`: `.`/`!`/`?` 850ms, `\n` 1100, `;` 620, `-`/`—` 480, `,`/`:` 420, ` ` 110, else 65, divided by a speed multiplier). `/tarot` runs it at **1.25** (a reading is paced to be listened to) and, with the voice on, runs the audio-paced reveal **350ms of audio AHEAD of the narrator** (`leadMs`, default 0 elsewhere) so the words land a beat before they are spoken instead of exactly on them — a constant offset, not a multiplier, since a proportional lead would finish the reading early rather than stay a step ahead; `/mtg` and the **Exec panel** run it at **5** (3 until 2026-09-14), because those are read for an answer and a typewriter that lags the eye is latency with a costume on. **Those speeds apply only while the narrator is OFF.** With the voice on the reveal is the narrator's: the text buffers as it streams and `twAudio` releases it against the audio clock, because typing at 5 under a voice finishes the answer before it has been read out — two versions of the same reply racing. Syntax the voice never says (fences, tables, markers) costs **zero** reveal time (`twWeights`), so a long code block can't drift the words on screen away from the words in the air. Every failure path — voice off, never unlocked, upstream gone, a stall mid-utterance — ends at the guessed pace; a reveal that hangs is the one outcome that must never happen. **Everything that is SYNTAX rather than prose is jumped** (`twJump`, largest form first — fenced block, table opening, link tail, whole image, then the inline markers): markdown's markers are instructions to the renderer, so typing them shows punctuation that then vanishes. Three sub-rules matter — a link's `](url)` tail waits for the closing paren (`twLinkTail`), a table's header+separator are revealed together (`twTableHead`), and a fenced block is jumped WHOLE, never typed (`twFenceEnd`). **The waiting indicator is a solid blinking block on every surface** (`#blinkcursor` / `#exec-bc` in chat-msg.css) — a terminal that is thinking shows a cursor, not a messaging app's three dots; on the Exec panel's `park()` keeps it attached to the last line so a long tool call doesn't look like a stopped page. Tarot's OTHER mode (`tarot-stream.js`, paced off the audio clock) is NOT shared. **The state object is shared and mutable by contract** — the caller appends to `buffered` and sets `serverDone`, the engine owns `displayed` — and each surface must **await the reveal before its settle pass**, since settling mid-type prints the whole reply and then types over it. **The NARRATION must not wait on that await, though** — `exec-stream.js` (`execTyper.speakAndPace`) speaks the moment the read loop ends and the text is final, BEFORE the reveal is awaited. It used to sit after it, so the voice only opened its mouth once the last character had landed and a long reply was read aloud to a screen that had finished saying it (measured: speech started 2.7s late). Safe to move earlier only because `execVoice.speak()` is fire-and-forget — it strips markdown, opens the WS and returns — so it cannot stall the reveal in the other direction. `addMsg` (nudges, monitor comments) renders instantly and never had the problem. Weights, the jump table and the measurements: **ARCHITECTURE.md §18** (history: **ARCHAEOLOGY.md §18**).
-
-**[Chat surfaces → One gutter]**
-
-**One gutter.** Every line hangs its marker (`>` reply · `$` Wai · `#` sys · `~` monitor · `+` tool) in a fixed `1ch` column (`--chat-gutter`) so every body and every wrapped line starts on ONE left edge. A surface building its own marker ELEMENT (the Exec panel's replay button) is caught by `.msg:has(> .msg-mark)::before { content: none }`, **which must sit AFTER the role markers** — equal specificity, so source order is the whole decision, and above them every Exec reply opens `> >`. **Density** is the point: `--lh-tight`, `--space-1` between messages, `--fs-2xs` sys lines at alpha `0.45` (0.12 read as a smudge — how /cc's "not logged in" got reported as a broken page).
-
-**[Chat surfaces → A link Exec names is a link Wai can tap]**
-
-**A link Exec names is a link Wai can tap.** Both halves are required and both were missing (2026-09-19, the biweekly EI nudge said "open the login link" while the URL sat in the card's notes): the **prompt** side — `chat._CHAT_STATIC_PREFIX` + `nudge_llm._TONE` — says that wherever a URL is visible to the model (a card's `NOTES`, KNOWN CONTEXT) the instruction carries it as a markdown link `[the EI login](https://…)`, never a naked *"the link"* and **never a bare URL** (every surface narrates, and the label is what gets spoken); the **render** side — `exec-bubble-assets.js` `mdHtml()` — parses through a `marked.Renderer` emitting `target="_blank" rel="noopener"` over a `URL()`-checked href, because the panel lives ON `/rd`+`/hq` and a same-tab navigation tears down the board, the panel and the unanswered nudge with it. The colour is repeated as `.msg.probe a` in **exec-bubble.css**, not extended in chat-msg.css — a nudge arrives as `addMsg('probe', …)`, a panel-only role the shared vocabulary (which colours `.msg.assistant a` alone) never hears about, so the one line that carries links was the one rendering in default UA blue. **ARCHITECTURE.md §18f**.
 
 ## 19. `/zombo` — a secret page with one third-party dependency
 
-The 1999 zombo.com Flash intro, **the real movie**: `web/zombo-flash.js` loads the [Ruffle](https://ruffle.rs) emulator from jsDelivr and points it at the `.swf` on **welcometozombo.com** ([Jonty/zombocom](https://github.com/Jonty/zombocom)).
+The real 1999 zombo.com Flash intro: `web/zombo-flash.js` loads [Ruffle](https://ruffle.rs) from jsDelivr and points it at the `.swf` on **welcometozombo.com** ([Jonty/zombocom](https://github.com/Jonty/zombocom)). **Hotlinked, never vendored** (host sends `access-control-allow-origin: *`); the cost is a dependency on somebody else's server. If the movie can't mount the page says so; no imitation.
 
-**The `.swf` files are hotlinked, never vendored.** That host sends `access-control-allow-origin: *` on its page and on all three `.swf` files, so the visitor's browser fetches them from the host that already publishes them, and nothing of anyone else's is committed here. The cost is a dependency no other page has: somebody else's server.
+**Unlinked on purpose** (no `_NAV_*` entry, no landing spoke) but **unlisted is not a tier**: `guest_protected` (Turnstile), in `_GUEST_NEXT_ALLOWED`, the 401 handler's guest prefix tuple, and `tests/test_smoke.py` `GUEST_PAGES`. `api/routes_zombo.py`, bare shell (no nav, no CRT over a white Flash intro).
 
+![/zombo load path](docs/arch/19-zombo-load.svg)
 
-**It is unlinked on purpose** — no `_NAV_*` entry, no `_LANDING_HUE_ORDER` spoke, no link from any page; it is reached by typing the URL. **Unlisted is not a tier**, so it is still `guest_protected` (Turnstile), still in `_GUEST_NEXT_ALLOWED`, still in the 401 handler's guest prefix tuple, and still asserted in `tests/test_smoke.py`'s `GUEST_PAGES`. It lives in `api/routes_zombo.py`, built off the **bare shell** like `/recruiter`: the bottom nav and the CRT stack over a white 1999 Flash intro would defeat the only thing the page is.
+### Load-path traps
 
-### The load path, and the three traps in it
+1. `inrozxa.swf` is a 7.9KB LOADER pulling the movie by a RELATIVE path: without Ruffle's `base` it asks wai-lau.net for `/welcomeclip.swf` (404, blank white 1360-frame movie while `load()` resolves).
+2. `load()` resolves BEFORE `player.metadata` exists: hand over on the **`loadedmetadata` event**, never the promise or a timer.
+3. The HEAD probe runs FIRST, on the **clip** not the loader (loader outliving the movie is trap 1), so a dead upstream costs one request, not ~1MB WASM.
 
-```
-zbFlashInit()  HEAD welcometozombo.com/welcomeclip.swf   ← is the host alive?
-     │ ok
-zbLoadRuffle() ← ~1MB of emulator WASM from jsDelivr
-     │
-zbFlashMount() player.load({url, base})
-     │ 'loadedmetadata'
-zbOnPlayerReady()  ← the click, if already made, is spent here
-```
+### The outbound link is rewritten in the bytes
 
-**1. `inrozxa.swf` is a 7.9KB LOADER that pulls the movie by a RELATIVE path.** Without Ruffle's `base` it resolves against *this* page, so the browser asked wai-lau.net for `/welcomeclip.swf`, got a 404, and played a blank 1360-frame white rectangle while `load()` resolved perfectly happily.
+The one clickable link ("sign up for the newzletter") lives in the LOADER swf as a bare `ActionGetURL` to `http://www.zombo.com/join1.htm` with an empty target. `zbPatchLink` (zombo-flash.js) replaces it with `https://wai-lau.net/#fromzombo` **before Ruffle sees the file**: Ruffle uses `location.assign` on an empty target and every `Location` member is `[LegacyUnforgeable]`, so it can't be intercepted. **Same length (30 bytes) is the whole trick** — the file is uncompressed (`FWS`), so no tag/`DoAction`/file-length header changes. `zbFetchLoader()` GETs the loader, splices, `player.load({data, swfFileName, base})`; a data load drops Ruffle's `swfUrl`, so `base` is the ONLY thing resolving the relative pull. Any failure leaves `zbSwfData` null and Ruffle streams the original by URL. Nothing of theirs is stored.
 
-**2. `load()` resolves BEFORE `player.metadata` is populated.** Measured: `null` at the promise's resolve, `{550×400, 1360 frames}` four seconds later. A version of this read metadata there, treated the empty value as failure, and tore down a healthy player. The handover is gated on the **`loadedmetadata` event** — never the promise, never a timer.
+### The page itself
 
-**3. The HEAD probe runs FIRST**, before the emulator is fetched, so a dead upstream costs one request instead of a megabyte. It probes the **clip**, not the loader, because the loader outliving the movie is the exact shape of trap 1.
+- **Before the click**: white paper + `#zb-begin` (*click Anywhere to* / *Begin the.experience*, `--font-mono`, one `<span>` per char). Colour/jitter are **classes from a running index** in `zbTint()` (`.zb-h0..8`, `.zb-j0..4`), never `:nth-child` (a `<br>` is an element child, and word wrappers un-sibling the spans). Hue order = the wordmark's own (red, orange, blue, violet, cyan, blue, orange, green, blue). Each word wrapped (`.zb-w`, `nowrap`) since chars are `inline-block`.
+- Ruffle `autoplay: 'off'`, `unmuteOverlay: 'hidden'`; `zbStart()` does `play()` + `unmuteAudio()` on the one gesture. A click before mount is remembered (`zbClicked`), the line goes **blank** (no status wording: downloading and missing look the same), `zbOnPlayerReady()` spends it.
+- **Pre-click hide is `opacity`** (not `visibility`/`display:none`): Ruffle's overlay is in shadow DOM and sets `visibility: visible` on itself; the player measures against its real box.
+- **Cross-fade, tuned together**: movie fades up over **3.5s** (`#zb-flash`), line out over **2.5s** (`.zb-begin`). The overlay must stay the shorter.
+- **Sizing**: movie is 550x400, never cropped. `--zb-mh = min(100dvh, calc(100vw * 8 / 11))` (`vh` fallback under `@supports`), pinned to the TOP; the player is `min(100%, --zb-mh * 11 / 8)` wide, centred. `<ruffle-player>` needs `display: block`; sizing rule is `#zb-flash > :not(.zb-bar)` (id specificity otherwise sizes the bars as the movie).
+- **Pillars** are sampled from the movie: `zbPaintBars()` stretches `ZB_SAMPLE` (6) edge columns across each bar every frame, read from Ruffle's shadow-root canvas.
+- The gap inside the `.swf` between wordmark and loader is baked in.
 
-### The one outbound link, and why it is rewritten in the bytes
-
-The intro has exactly one clickable link: **"sign up for the newzletter"**. It lives in the **loader** `.swf`, not in the movie — the movie carries no URL string at all, its type being drawn as glyph shapes — and it is a bare `ActionGetURL` to `http://www.zombo.com/join1.htm` with an **empty target**: plain HTTP, to a domain that has not served that page this century. Clicking it navigated the tab off the page to nothing. It now goes to this site's own landing.
-
-**The rewrite is done on the BYTES, before Ruffle sees the file** (`zbPatchLink`, zombo-flash.js), rather than by intercepting the navigation. Ruffle's web navigator reaches for `location.assign` on an empty target, and every member of `Location` is `[LegacyUnforgeable]` — an own, non-configurable property that a page cannot patch. Overriding `window.open` would only cover the *named*-target case, which is not the case this link uses. So the URL is replaced before it can be read.
-
-**The replacement is the same length, and that is the whole trick.** The file is uncompressed (`FWS`), so an equal-length splice needs no `ActionGetURL` tag length, no `DoAction` length and no file-length header rewritten. `https://wai-lau.net/#fromzombo` is 30 bytes against the original's 30; the fragment is padding that happens to record where the visitor came from, and the landing ignores it.
-
-Mechanically: `zbFetchLoader()` GETs the 7.9KB loader over CORS (Ruffle would have fetched it a moment later anyway), splices, and hands the buffer to `player.load({data, swfFileName, base})`. **A data load drops Ruffle's own `swfUrl`**, so `base` stops being a refinement and becomes the only thing resolving the loader's relative pull of `welcomeclip.swf` — it was already required by trap 1 and is the same value. Anything that fails — the fetch, the CORS header, a miss on the byte search because upstream recompressed or relinked the file — leaves `zbSwfData` null and Ruffle streams the original by URL, dead link and all. **Nothing of theirs is stored here**: the browser still fetches the file from the host that publishes it, and the edit lives in one `ArrayBuffer` for the life of the tab.
-
-### Before the click, the page is one line
-
-Until the click the page is white paper and `#zb-begin`: *click Anywhere to* / *Begin the.experience*, set in `--font-mono`, one `<span>` per character. Colour and jitter are **classes assigned from a running index** in `zbTint()` (`.zb-h0..8`, `.zb-j0..4`). The hue order is the wordmark's own sequence — Z o m b o . c o m = red, orange, blue, violet, cyan, blue, orange, green, blue — nine values with blue three times and orange twice, because it is a sequence to repeat rather than a palette to cycle evenly; nine against five offsets repeats only every 45 characters.
-
-Colour and jitter are **classes assigned from a running index** in `zbTint()` (`.zb-h0..8`, `.zb-j0..4`), never positional selectors — a `<br>` is an element child too, and the per-word wrapper nests the spans so they stop being siblings of one parent. Each **word** is wrapped (`.zb-w`, `white-space: nowrap`) because every character is an `inline-block`, so a line break could otherwise land between any two letters.
-
-Ruffle runs `autoplay: 'off'` and `zbPlay()` does `play()` + `unmuteAudio()` together on that one gesture, so the click **starts** the movie rather than revealing one already part-way through. Ruffle's own unmute control is a speaker button — chrome the intro never had — so it is suppressed (`unmuteOverlay: 'hidden'`).
-
-**The pre-click hide is `opacity`, and it has to be.** `visibility: hidden` is inherited but a descendant can override it, and Ruffle's click-to-play overlay lives in the player's **shadow DOM** and sets `visibility: visible` on itself, which put a large orange play button squarely on the begin line. Opacity composites the whole subtree and cannot be un-set from inside. `display: none` is wrong too: the player measures itself against its real box.
-
-**The click is a cross-fade, and the two halves are tuned against each other** — the movie fades up over **3.5s** (`#zb-flash`, from 1.4s) while the line fades out over **2.5s** (`.zb-begin`, from 1s). The movie is already *playing* underneath from the instant of the click, so a slow reveal opens on its green wash rather than cutting to it. The overlay has to stay the shorter of the two: raising the movie's fade alone leaves the line gone and the movie not yet up, which is a second of blank white paper in the middle of the transition.
-
-**Clicking before the movie has mounted is neither a no-op nor an error.** The click is remembered (`zbClicked`), the line goes **blank** — deliberately no status wording, because at click time a missing player is equally a movie still downloading and the page cannot tell them apart — and `zbOnPlayerReady()` starts it the moment it lands.
-
-### Sizing: the movie FITS, and the pillars are sampled from it
-
-The movie is **550×400** and must never be cropped — the loader cluster falling off the bottom edge is the failure this sizing exists to prevent. So `--zb-mh` is `min(100dvh, calc(100vw * 8 / 11))`: the height it fits at, never taller than the viewport. The movie is **pinned to the top of the screen** — its green header wash is the page's top edge — so leftover height is spent below it and never split above. The player is sized to exactly that box (`width: min(100%, calc(var(--zb-mh) * 11 / 8))`) and centred.
-
-Two things are easy to get wrong there:
-
-- **`<ruffle-player>` is a custom element, so it is `inline` unless told otherwise**, and `margin: auto` does not centre an inline box. Without `display: block` the movie sits hard against the left edge with both pillars bunched on the right.
-- **The bars are children of `#zb-flash` too.** A `#zb-flash > *` sizing rule carries id specificity and beats `.zb-bar`, so the bars got sized as if each were the movie. The selector is `#zb-flash > :not(.zb-bar)`.
-
-Fitting the movie leaves **pillars** on any window wider than 11:8, and the movie's green header wash stops at its own edges. `zbPaintBars()` fills them by stretching `ZB_SAMPLE` (6) of the movie's own edge columns across each bar every frame, reading the canvas out of Ruffle's shadow root. A fixed CSS gradient was the first attempt and is wrong in principle — it hardcodes what the opening frames happen to look like and drifts the moment the movie animates. Stretching the real pixels stays correct for free.
-
-
-**What cannot be changed from here:** the spacing *inside* the movie — the gap between the wordmark and the loader cluster — is baked into the `.swf`. Only the framing of the whole movie is ours.
-
-History — the incidents behind the rules above: [ARCHAEOLOGY.md §19](ARCHAEOLOGY.md).
+History: [ARCHAEOLOGY.md §19](ARCHAEOLOGY.md).
 
 ---
-### 19-notes. From CLAUDE.md (moved 2026-09-27)
-
-Moved verbatim from CLAUDE.md on 2026-09-27 when CLAUDE.md was thinned to an index. Unedited; may overlap the subsections above.
-
-**[Pages → /zombo]**
-
-`/zombo` — **SECRET** + **guest-gated** (Turnstile). The 1999 zombo.com Flash intro — **the real movie**: `web/zombo-flash.js` loads **Ruffle** from jsDelivr and points it at the `.swf` on **welcometozombo.com** (Jonty/zombocom). **HOTLINKED, never vendored** — that host sends `access-control-allow-origin: *`, so the browser fetches from the host that already publishes them and nothing of anyone else's is committed here; the cost is a dependency no other page has (somebody else's server). **The page is the movie and ONE LINE** — the CSS reproduction that used to sit underneath as a fallback (wordmark, loader, caption crawl) and `zombo-audio.js` (its synthesised bed + voice) were **deleted 2026-09-17**; if the movie can't mount the page says so rather than drawing an imitation. Three load traps, all measured: **(1)** `inrozxa.swf` is a 7.9KB LOADER pulling the movie by a **relative** path, so without Ruffle's `base` it asked wai-lau.net for `/welcomeclip.swf`, 404'd, and played a blank 1360-frame white rectangle while `load()` resolved happily; **(2)** **`load()` resolves BEFORE `player.metadata` exists** (null at resolve, `{550×400}` 4s later) — a version reading it there tore down a healthy player, so handover is gated on **`loadedmetadata`**, never the promise or a timer; **(3)** a `HEAD` on the **clip** (never the loader — the loader outliving the movie is trap 1) runs FIRST so a dead upstream costs one request, not ~1MB of WASM. **Before the click: white paper + `#zb-begin`** (*click Anywhere to* / *Begin the.experience*, `--font-mono`, one `<span>` per char). Colour + jitter are **classes assigned from a running index in `zbTint()`** (`.zb-h0..8`, `.zb-j0..4`), never `:nth-child` — the hue order is the wordmark's OWN sequence (Z o m b o . c o m = red, orange, blue, violet, cyan, blue, orange, green, blue: nine, blue thrice, orange twice), and nine against five offsets repeats only every 45 chars. **Positional selectors were a bug that shipped**: a `<br>` is an element child too, so adding the line break shifted every cycle after it and dropped letters through to the default ink — visible as BLACK letters — and the per-word wrapper nests the spans so they stop being siblings at all. Each **word** is wrapped (`.zb-w`, `white-space:nowrap`) because every char is an `inline-block`, so the line otherwise broke mid-word (`exp / erience`). Ruffle runs `autoplay:'off'` so the click **starts** the movie (`play()`+`unmuteAudio()`), and a click *before* mount is remembered (`zbClicked`) with the line going **blank** — any status wording would be a guess, since a missing player is equally one still downloading; `zbOnPlayerReady()` spends the click the moment the movie lands. **The click is a CROSS-FADE and the two halves are tuned together** — the movie fades up over **3.5s** (`#zb-flash`) while the line fades out over **2.5s** (`.zb-begin`); the movie is already playing underneath from the click, so a slow reveal opens on its green wash instead of cutting to it, and the overlay must stay the SHORTER of the two or the middle of the transition is a second of blank white paper. **The pre-click hide must be `opacity`**: Ruffle's play overlay lives in the player's SHADOW DOM and sets `visibility:visible` on itself, beating an inherited `hidden` and parking an orange play button on the line (`display:none` is wrong too — the player measures against its real box). **Sizing: the movie FITS and is centred, and the pillars are SAMPLED from it.** `--zb-mh = min(100dvh, calc(100vw*8/11))` is the height it fits at — never cropped, since the loader cluster falling off the bottom is the failure this prevents — the movie is **pinned to the TOP of the screen** (its green wash is the page's top edge, leftover height spent below it, never split above), and the player is sized to exactly that box. Two traps: **`<ruffle-player>` is a custom element and therefore `inline`**, so `margin:auto` will not centre it without `display:block` (it sat hard left with both pillars bunched on the right); and **the bars are children of `#zb-flash` too**, so a `#zb-flash > *` rule carries id specificity, beats `.zb-bar` and sizes each bar as if it were the movie — the selector is `#zb-flash > :not(.zb-bar)`. Fitting leaves pillars on anything wider than 11:8, so **`zbPaintBars()` stretches 6 of the movie's OWN edge columns across each bar every frame** (reading the canvas out of Ruffle's shadow root); a fixed CSS gradient was the first attempt and is wrong in principle, hardcoding the opening frames and drifting as the movie animates. Every alternative was measured and worse: `noBorder` crops the wordmark to "mbo.co" on a phone, `exactFit` stretches it 2.4x, `backgroundColor:'transparent'` broke rendering outright (page went solid green), and width-driven sizing cropped the loader on a short window. **The gap between the wordmark and the circles is inside the `.swf` and cannot be changed from here.** **The intro's ONE outbound link — "sign up for the newzletter" — is rewritten in the BYTES** (`zbPatchLink`): it lives in the LOADER swf (the movie carries no URL string at all, its type being glyph shapes) as a bare `ActionGetURL` to `http://www.zombo.com/join1.htm` with an **empty target** — plain HTTP to a domain long dead — and it now goes to this site's landing. Patched rather than intercepted because Ruffle uses `location.assign` on an empty target and every `Location` member is `[LegacyUnforgeable]`, so a page cannot patch it (a `window.open` override would only cover the *named*-target case this link doesn't use). **The replacement is the SAME LENGTH and that is the whole trick** — the file is uncompressed (`FWS`), so an equal-length splice rewrites no tag length, no `DoAction` length and no file-length header; `https://wai-lau.net/#fromzombo` is 30 bytes against 30, the fragment being padding that happens to say where the visitor came from. `zbFetchLoader()` GETs the 7.9KB loader over CORS and hands the buffer to `player.load({data, swfFileName, base})` — **a data load drops Ruffle's own `swfUrl`**, so `base` becomes the ONLY thing resolving the relative pull of `welcomeclip.swf` (same value trap 1 already required). Any failure (fetch, CORS, or a byte-search miss because upstream recompressed/relinked) leaves `zbSwfData` null and Ruffle streams the original by URL, dead link and all. Still nothing of theirs stored here — the browser fetches from the publisher and the edit lives in one `ArrayBuffer`. Unlinked (no nav, no landing spoke) but **unlisted is not a tier** — still in `_GUEST_NEXT_ALLOWED`, the 401 guest prefix tuple, and `GUEST_PAGES`. Own module `api/routes_zombo.py`, bare shell, no nav/CRT, and the site's default favicon (the page-local red-Z override was dropped 2026-09-17). Full path + the sizing table: **ARCHITECTURE.md §19** (history: **ARCHAEOLOGY.md §19**).
 
 ## 20. Pages and subsystems without a section of their own
 
-Moved verbatim from CLAUDE.md on 2026-09-27 when CLAUDE.md was thinned to an index. Unedited; may overlap the subsections above.
-
 ### 20a. Auth tiers (cookies, guest set)
 
-**[Web app → guest_session cookie]**
+![Auth tiers and 401 routing](docs/arch/20-auth-tiers.svg)
 
-- `guest_session` cookie (set via `POST /guest`, requires solving a **Cloudflare Turnstile** challenge) — the guest-accessible set is `/mtg`, `/tarot`, `/nightfall`, `/hosaka`, `/graph`, `/UI`, `/security`, `/printer`, `/zombo`, plus `/noodle` and `/spire` (2026-10-14; `/aspira` 301s to it) (the middle three moved public→guest 2026-07-03; `/printer` moved owner→guest **read-only** 2026-08-30; `/zombo` is **unlinked** — secret, but gated like the rest, because unlisted is not a tier — the page only, never its control routes so no page is wide-open except the landing/recruiter front doors + the login forms). Login form at `GET /guest` renders the Turnstile widget (CF `api.js` + site key `TURNSTILE_SITE_KEY`, auto-submits via `web/guest_login.js` `onGuestVerified` → `form.submit()`; the manual ▼ submit button, the PED logo, and the `admin` link were all removed — the page auto-continues on solve, nothing to click); `POST /guest` verifies the `cf-turnstile-response` token via CF `siteverify` (`auth.verify_turnstile`, secret `TURNSTILE_SECRET`) then sets the cookie. The cookie token derives from `TURNSTILE_SECRET` (`GUEST_SESSION_TOKEN = sha256("guest:"+secret)`) — the old shared `GUEST_KEY` is gone, and `require_guest_auth` no longer accepts a guest bearer (only `session`/`guest_session` cookies + the admin `API_KEY` bearer). `GET /guest-login` is a 302 alias to `/guest` (bookmark compat).
-
-**[Web app → Both cookies]**
-
-Both cookies: `HttpOnly`, `SameSite=Lax`, `Secure`, **`Max-Age` 400 days** (`auth.SESSION_MAX_AGE`). **A login persisting across a server restart is a COOKIE-lifetime property, not a token one** — both tokens are `sha256()` of a server env value (`API_KEY` / `TURNSTILE_SECRET`), so they were already restart-stable and nothing server-side ever expired a session; what logged Wai out was that `set_cookie` carried no `max_age`, making these **browser-session** cookies the browser drops when ITS session ends (a phone evicting the tab, the standalone PWA being killed) — which reads as the server logging you out. 400 days is the ceiling Chrome/Safari clamp any cookie to and the value `nf_save` already used; Safari's 7-day ITP cap is for script-written cookies, not these HttpOnly server-set ones. The admin token is a static derivation, so a longer cookie life adds no forgeability — an extracted cookie was already valid indefinitely; rotating `API_KEY` is the only revocation, and it invalidates every session at once. `/guest` `next` param is allowlisted (`_GUEST_NEXT_ALLOWED` = `/mtg`, `/tarot`, `/nightfall`, `/hosaka`, `/graph`, `/UI`, `/security`, `/printer`, `/zombo`, `/noodle`, `/spire`); arbitrary values are clamped to `/mtg`. 401 on an HTML GET redirects full-auth pages to `/login?next=`, and the guest-gated set (`/mtg`, `/tarot`, `/hosaka`, `/graph`, `/UI`, `/security`, `/nightfall`, `/zombo`, `/aspira`, `/spire` — the prefix tuple in `main.py`'s 401 handler — plus `/printer` and `/noodle` matched EXACTLY, so its owner-only sub-paths still bounce to the admin login) to `/guest?next=` (must stay in sync with the router tiers, or a gated page bounces guests to the admin login). Both login forms carry a visually-hidden `username` input (autocomplete=username) so password managers can store/fill credentials.
-
-**Security headers, every response** (`api/security_headers.py`, 2026-10-14 -- a security audit found none): `Strict-Transport-Security: max-age=31536000` (no includeSubDomains, no preload -- both hard to take back; an http:// noodle link could otherwise be TLS-stripped and its `#k=` key read by the attacker's page), `X-Frame-Options: SAMEORIGIN` (the printer's same-origin iframe keeps working) and `X-Content-Type-Options: nosniff`; a response that sets its own value keeps it. `CacheControlMiddleware` no longer overwrites a page's `no-store` with `no-cache`. Pinned by `tests/test_smoke.py` (`test_every_response_carries_the_security_headers`).
+- `session` (`POST /login`, `API_KEY`) = full. `guest_session` (`POST /guest`, Cloudflare Turnstile via `auth.verify_turnstile`, secret `TURNSTILE_SECRET`) = guest set: `/mtg`, `/tarot`, `/nightfall`, `/hosaka`, `/graph`, `/UI`, `/security`, `/printer` (read-only), `/zombo` (unlinked), `/noodle`, `/spire` (`/aspira` 301s to it). Pages only, never control routes; the landing/recruiter/login pages are the only open ones.
+- Guest token = `sha256("guest:"+TURNSTILE_SECRET)` (`auth.GUEST_SESSION_TOKEN`); `require_guest_auth` takes only `session`/`guest_session` cookies + the admin bearer, no guest bearer. `GET /guest` renders the widget and auto-submits on solve (`web/guest_login.js` `onGuestVerified`); `GET /guest-login` 302s to `/guest`.
+- Both cookies `HttpOnly`, `SameSite=Lax`, `Secure`, **`Max-Age` 400 days** (`auth.SESSION_MAX_AGE`). Tokens are `sha256` of env values, so restart-stable; rotating `API_KEY` is the only revocation (invalidates every session).
+- **Three places that must stay in sync** or a gated page bounces guests to the admin login: `_GUEST_NEXT_ALLOWED` (routes_views.py; other `next` values clamp to `/mtg`), the 401 handler's prefix tuple in `main.py` (`/mtg /tarot /hosaka /graph /UI /security /nightfall /zombo /aspira /spire`, with `/printer` and `/noodle` matched EXACTLY so owner-only sub-paths still go to `/login`), and the router tiers (`public` / `protected` / `guest_protected`, `routers.py`).
+- Both login forms carry a visually-hidden `username` input for password managers.
+- **Security headers, every response** (`api/security_headers.py`): `Strict-Transport-Security: max-age=31536000` (no includeSubDomains/preload), `X-Frame-Options: SAMEORIGIN` (printer iframe), `X-Content-Type-Options: nosniff`; a response that sets its own value keeps it. `CacheControlMiddleware` doesn't overwrite a page's `no-store`. Pinned by `tests/test_smoke.py::test_every_response_carries_the_security_headers`.
 
 ### 20b. `/hq`
 
-**[Pages → /hq]**
+7-day planning (`scheduled_day`). Today's timeline = tall LEFT column; other 6 days = full-width **rows** (`buildBoard`/`dayRowHtml`), vertical day-label spine + horizontal list (`.hq-list-row`, card `flex-basis` 1/3 so >=3 show, `--fs-2xs`). Rows region reserves `--nav-h`.
 
-`/hq` — 7-day planning — assign `scheduled_day` to cards. Today (timeline) = tall LEFT column; the other 6 days = full-width **rows** stacked to its right (`buildBoard`/`dayRowHtml`), each a vertical-text day-label spine + a horizontal card list (`.hq-list-row`; card `flex-basis` = 1/3 of the row so ≥3 show, rest scroll; card text `--fs-2xs` to match the timeline). The rows region reserves `--nav-h` at the bottom so it sits above the fixed nav. **Stays in sync with serverside `rd.json`** three ways (hq-board.js): (1) live — the monitor SSE `{cards_changed}` relay reloads the board (`load(weekStart)`) on any serverside mutation while the page is foregrounded; (2) **SSE reconnect** — `EventSource` never replays what it missed, so `exec-bubble.js` fires `exec:cards-changed` on every RE-open of the stream (`src.onopen` after the first), catching a drop shorter than the wake threshold below (a phone backgrounded for 10s); (3) wake catch-up — returning to the tab after >30s hidden (or bfcache `pageshow`) reloads with `load(null)` to **re-anchor to the fresh logical-today**, so a page left open across the 4:30 rollover moves its "today" column instead of showing yesterday. All three guarded by `hqCanReload()` = not mid-drag, no `saveTimer` pending, no `_hqSaving` PATCH in flight — **`flushUpdates()` must null `saveTimer` as its first statement** (and flip `_hqSaving` around the PATCH instead): leaving the fired handle set wedged the guard false for the life of the page, so after the first drag of a session EVERY live/wake reload was silently skipped and the board sat stale until a manual refresh — the mobile failure mode, where the tab lives for days. The board GET is `cache: 'no-store'` (the JSON carries no cache headers and iOS Safari will serve a woken tab its own stale copy). The today timeline shows a **16h view window** (`TL_VIEW_MIN`, hq-core.js) zoomed to fill the column, the rest scrolls. A breakdown card renders as a **spine view** (`createGroup`, hq-groups.js): a thin always-shown spine (tap → card dialog, drag → move the whole group) plus the **CURRENT step** (active/first-open node via `currentStep`) **stretched to fill the card's whole time** (`renderTaskBlock`, height = group bottom), with any **DONE steps greyed** (`.dir-sub.done`) at their real time slots above it; future not-yet-open steps stay hidden under the current block. **Tapping a task marks it done** (grey out) and reveals the next open step — tapping a done task un-marks it (`wireTaskDone`, click-only; the card drags via the spine). No expand/collapse toggle. Spine height always spans ALL steps so the time footprint holds.
+![/hq sync paths](docs/arch/20-hq-sync.svg)
+
+- Three reload paths (`hq-board.js`), all gated by `hqCanReload()` = not dragging, no `saveTimer`, no `_hqSaving`: monitor SSE `{cards_changed}` -> `exec:cards-changed` -> `load(weekStart)`; SSE re-open (`exec-bubble.js` `src.onopen` after the first); wake after >30s hidden or bfcache `pageshow` -> `load(null)` (re-anchors to logical-today after the 4:30 rollover).
+- **`flushUpdates()` must null `saveTimer` as its first statement** (flip `_hqSaving` around the PATCH) or every later reload is silently skipped.
+- Board GET is `cache: 'no-store'` (iOS serves a woken tab its stale copy).
+- Today timeline: **16h view window** (`TL_VIEW_MIN`, hq-core.js) zoomed to fill, rest scrolls.
+- Breakdown card = **spine view** (`createGroup`, hq-groups.js): thin spine (tap -> dialog, drag -> move group) + the CURRENT step (`currentStep`) stretched to the card's whole time (`renderTaskBlock`), DONE steps greyed (`.dir-sub.done`) above it, future steps hidden. Tapping a task toggles done (`wireTaskDone`, click-only). Spine height spans ALL steps.
 
 ### 20c. `/debug`
 
-**[Pages → /debug]**
-
-`/debug` — Profile notes + **cron archive** + activity log viewer + mtg log + saved tarot readings. The **vain-empress** and **moltbook heartbeat** panels were removed 2026-09-10 along with the `/api/moltbook/heartbeat-log` route that existed solely to feed the latter, and the jsdelivr `marked` script the page loaded only to render that markdown (so `/debug` left `_JSDELIVR_PAGES` too). Moltbook machinery OUTSIDE the page is deliberately untouched: `morning.py` still rotates `moltbook-heartbeat.log` daily, and `graph_scrub._drop_graph_moltbook_nodes` still keeps that plumbing out of the guest-visible `/graph`. Styled via the shared **document theme** — chrome.css's reusable `.doc-card` / `.doc-h2` / `.doc-chip` classes (centered dark card, green glow, phosphor ink, ruled uppercase section headers, tag chips) reference the **raw palette directly** (green at `0.12/0.45/0.8/1`, cyan `0.8`, pink `1`; card surface = green `0.12` over `--bg-hsl`, page bg = `--bg-hsl`) — no `--doc-*` alias layer (ripped out 2026-07-02; every consumer inlines the palette token). The reading/dashboard pages (`/debug`, `/UI`, `/mtg`, `/tarot` chat, `/security`) apply those classes in their template + style only page-specific content on the same raw palette tokens; the dense boards (`/rd`, `/hq`) stay as-is. (`/recruiter` keeps its own `--cv-*` light/dark palette — a separate deliberate departure.)
+Profile notes + cron archive + activity log + mtg log + saved tarot readings, on the shared **document theme** (chrome.css `.doc-card` / `.doc-h2` / `.doc-chip`, raw palette tokens, no `--doc-*` layer). `/debug`, `/UI`, `/mtg`, `/tarot` chat, `/security` use it; `/rd`, `/hq` stay dense; `/recruiter` has its own `--cv-*` palette. Moltbook plumbing outside the page is deliberately kept (`morning.py` log rotation, `graph_scrub._drop_graph_moltbook_nodes`).
 
 ### 20d. `/security`
 
-**[Pages → /security]**
-
-`/security` — **Guest-gated** (Turnstile; was public until 2026-07-03). ONE long page (no tabs), framed as the automated bot/scanner traffic any public server sees — deliberately NOT a script-kiddie attack-count wall. `security.py`'s `render_security()` builds inline-SVG charts from `data/security.json`, wrapped in the standard shell via `_render_page("security", ..., guest=…)` (non-owners get the guest nav). Sections top→bottom: the **origin map** (hero, first; `dotmap(zoom=1.2)` = a 20%-zoomed equirectangular world, dot size=volume, bright green=SSH-login bots / dim green=web scanners; the projection crops empty ocean/poles centred on 0,0), **Scanner traffic by country** \| **Networks hosting the bots** (datacenter ASNs), and **Common endpoints** (top 404 probe paths — `/.env`, `/.git/config`, `wp-admin`, …, none of which exist here). **No owner-identifying data is rendered** (no owner-IP `◄ you` marker, no raw attacker-IP table, no usernames/bans) — kept minimal because the page is guest-visible (low-trust, Turnstile-gated). DELIBERATELY drops the user-agent `kind` "human vs bot" split: `kind` is UA-based, bots spoof browser UAs, so its "human" bucket (tens of thousands) inverts the whole point. The JSON is produced OUT-OF-BAND by a **host** cron (`api/scripts/security/refresh.py`, runs as root OUTSIDE the container) that parses `/var/log/{auth,nginx/access,fail2ban}.log*`, geolocates the top IPs via ip-api.com (cached in `data/geo_cache.json`), and atomically writes `data/security.json` (gitignored) — keeping host log access out of the internet-facing app. `SECURITY_OWNER_IP` still feeds the cron (owner-hit accounting) but is no longer surfaced in the page. Nav icon = `sentinel.png`; default favicon kept. Missing/empty JSON → "not generated yet" placeholder. Styled on the shared **document theme** (`.doc-card` wrapper; `security.py`'s inline `_CSS` references the raw palette tokens directly, no `--doc-*` layer); all SVG chart DATA colours are **Ono-Sendai green** shades only (`G`/`GDIM`/`GHI`, concrete `hsl` since SVG `fill=` can't resolve `var()`) — series differ by shade, not hue. Panels are FLAT (`.spanel` = vertical rhythm only, no bg/border) — the whole page is already ONE `.doc-card`, so per-panel cards would be card-on-card.
+**Guest-gated.** One long page from `data/security.json` via `security.py` `render_security()` (inline-SVG charts, `_render_page("security", …, guest=…)`). Top to bottom: origin map (hero; `dotmap(zoom=1.2)`, dot size = volume, bright = SSH-login bots, dim = web scanners), scanner traffic by country | networks hosting the bots, common endpoints (top 404 probes). **No owner-identifying data** (no owner IP, attacker-IP table, usernames/bans). **No UA-based "human vs bot" split** (bots spoof UAs, the "human" bucket inverts the point). The JSON is written OUT-OF-BAND by the **host** cron `api/scripts/security/refresh.py` (root, outside the container; parses `/var/log/{auth,nginx/access,fail2ban}.log*`, geolocates via ip-api.com cached in `data/geo_cache.json`, atomic write, gitignored); `SECURITY_OWNER_IP` feeds only owner-hit accounting. Missing JSON -> "not generated yet". Chart colours: green shades only (`G`/`GDIM`/`GHI`, concrete `hsl` since SVG `fill=` can't resolve `var()`); panels FLAT (`.spanel`, the page is one `.doc-card`). Nav icon `sentinel`.
 
 ### 20e. `/UI` and `/api/ui/usage`
 
-**[Pages → /UI]**
+`/UI` — **Guest-gated**, case-sensitive, read-only palette + scale moodboard (edit tokens in chrome.css). Colour tables two per row (hue-ordered, neutrals last, 4 columns padded; card colours = wisp/idea/plan/commitment, non-card `-hsl` = used alpha steps; same-HSL tokens merge, max 4 variations; `SIZE_ALPHA` wisp .15 / idea .25 / plan .8 / commitment 1 in `web/ui.js`). Scale tokens render in the same table format by family (radius, font-family/size/weight/tracking, line-height, blur); spacing, z-layers, `--doc-*` are not shown. One `▼` usage toggle per card (`<details>`, `.clr-usedet`). Admin cookie -> full nav, else guest nav.
 
-`/UI` — **Guest-gated** (Turnstile; was public until 2026-07-03 — palette + scale reference, no data; route is case-sensitive `/UI`). Read-only moodboard: one little table per color, **two cards per row** (grid, collapses to one column ≤640px; hue-ordered; neutrals at the end). Title (friendly `[Name]`) above; a **fixed-height description box** (`.clr-guse`, always rendered even when empty) so every card is the same size; table padded to 4 columns (the variations — card colors = wisp/idea/plan/commitment, non-card `-hsl` colors = their used alpha steps, empty trailing cols); rows = swatch / opacity / count / effects. Tokens with the same H S L merge into one (max 4 variations); a non-card token's alpha usages map onto the nearest card size (`SIZE_ALPHA` = wisp .15 / idea .25 / plan .8 / commitment 1) — for card colors the count row is text `(sizes +N)×` of those mapped usages, for non-card it's per-column `×N` from `alpha_counts`. Effects (e.g. blur) sit in their column. Below the colour tables, the non-colour **scale tokens** render as more tables in the **identical format** (4 columns padded, rows = visual / `--name` / value / ×count, then the same single `▼` usage toggle below) grouped by family, no "Scale" header/note/step-count — radius→rounded boxes (unused steps hidden → the 4 numeric steps), font-family→the typeface's own name set in that face, font-size/weight/tracking→the token name self-labelled at that size/weight/spacing (the `--name` row is dropped when the visual already IS the name), line-height→a paragraph block, blur→blurred text. Spacing, z-layers, and doc-* are NOT rendered (structural noise / removed). Each card (colour AND scale) has **ONE usage toggle** — a single centred `▼` below the table (native `<details>`, `.clr-usedet`) that reveals every column's usage-site lists at once in a nested fixed 4-col table (`.clr-usetbl`, each variation's sites most-used first), collapsed by default. Live `var()` counts + sites come from `/api/ui/usage` (`web/ui.js` `scaleGroupsHtml`/`scaleTableHtml`/`usageDetails`/`siteListInner`, styles `.sc-*`/`.clr-*` in ui.css). Edit colors/scale in chrome.css; this page just watches. Admin cookie → full nav, else guest nav
-
-**[API → GET /api/ui/usage]**
-
-GET `/api/ui/usage` — Public. `{counts, alphas, alpha_counts, sites}` — `var(--X)` reference counts + actually-used alphas per `-hsl` token + parallel per-alpha counts + `sites` (`{token: {α-string: {site-label: n}}}`, site = nearest CSS selector else filename; `-hsl` colours keyed per-alpha, scale tokens under a flat `*` bucket), across templates + web assets + **all `api/*.py`** (several ship inline CSS — `security.py` alone references ~56 tokens — that would otherwise misflag used tokens as unused on /UI; chrome.css `:root` block excluded; bare `hsl(var(--X-hsl))` = α 1). Feeds the alpha columns, per-opacity ×N, per-column usage-site lists, and the Scale-section counts/flags on `/UI`
+`GET /api/ui/usage` — **Public**. `{counts, alphas, alpha_counts, sites}`: `var(--X)` counts, used alphas per `-hsl` token, per-alpha counts, and `sites` (`{token: {α: {site-label: n}}}`, site = nearest CSS selector else filename) across templates, web assets and **all `api/*.py`** (inline CSS in Python would otherwise misflag tokens unused); chrome.css `:root` excluded; bare `hsl(var(--X-hsl))` = α 1.
 
 ### 20f. `/nightfall` save slots
 
-**[Pages → /nightfall]**
-
-`/nightfall` — Standalone game (semi-public, guest auth). **Save slots are scoped PER CALLER** (`gamesave_store.py`) — the owner's save is permanent at the original `data/gamesave_<slot>.json` paths (no migration, never swept at any age); every guest gets their own set under `data/gamesave_guests/`, keyed to an opaque `nf_save` cookie (HttpOnly/Secure/Lax, 400-day max-age) minted on the PAGE response, not lazily in the API — `wai-save-sync.js` fires all three slot POSTs in parallel on load, so a cookie-less mint would scatter one guest's slots across three buckets. The guest id never reaches the filesystem verbatim: the path component is `sha256(id)[:32]`, i.e. `[0-9a-f]{32}` by construction, so a hostile cookie can't traverse, hold a separator, or collide with an owner file. Guest saves untouched for 90 days are swept on a write-counter (`_SWEEP_EVERY` 200, `routes_nightfall.py`; `gamesave_store.sweep_stale_guest_saves`) so one-time visitors don't accrete files forever; POST bodies cap at 64KB → 413. **This replaced three GLOBAL slot files** (2026-09-01): 005e26c moved the API to `guest_protected` so guests could save, without giving the slots any caller identity, and since `wai-save-sync.js` restores server→IndexedDB on load ("server is source of truth") AND uploads IDB→server on every put, the two halves composed into a full swap — any visitor who solved Turnstile pulled Wai's save into their browser, played it, and pushed their progress back over it. Observed in the wild 17:15 that day. Regression properties pinned in `tests/test_gamesave_store.py`.
+Guest-or-full. **Saves are scoped PER CALLER** (`gamesave_store.py`): owner at `data/gamesave_<slot>.json` (permanent, never swept); each guest under `data/gamesave_guests/`, keyed to an opaque `nf_save` cookie (HttpOnly/Secure/Lax, 400-day) minted on the PAGE response (not lazily — `wai-save-sync.js` fires three slot POSTs in parallel). Path component is `sha256(id)[:32]`, so a hostile cookie can't traverse or hit an owner file. Guest saves untouched 90 days are swept on a write counter (`_SWEEP_EVERY` 200, `routes_nightfall.py`, `sweep_stale_guest_saves`); POST bodies cap 64KB -> 413. Pinned by `tests/test_gamesave_store.py`.
 
 ### 20g. `/recruiter`
 
-**[Pages → /recruiter]**
-
-`/recruiter` — **Public** (no auth). Clean static résumé page for recruiters — **light theme** (the one page that departs from the black palette): white card on off-white, accents = deepened legible shades of the brand hues (green 135 / cyan 188) kept as page-local `--cv-*` tokens in `recruiter.css`, no nav / no cyber fx. Skills render as chips; cyan "Download résumé (PDF)" CTA. Built from the bare shell like the landing (`recruiter_page()` in routes_views.py, markup in `templates/recruiter.html`, styles in `web/recruiter.css`). CTA → Google Doc PDF export. **Dark-mode toggle** (`#cv-theme`, recruiter.js — the `⋆₊⏾⁺₊⋆` kaomoji as an outline pill in the footer row, right of `wai-lau.net`; moon/sun at normal size, content flex-centred; a switch smooth-scrolls back to the top, where the change (and dark's type-out) is seen) flips to a green-on-black terminal (token overrides under `html.cv-dark`) with the **full site CRT stack** injected by recruiter.js — the same 5 `cyber-*` layers in the same paint order as `_CRT_FX` (bg → lines → blur → crt → scan), so dark mode matches every other page (was a 3-layer subset), persisted in localStorage. **Light mode is the plain professional résumé** (2026-09-24): `--font-doc` (Helvetica/Arial), neutral ink headings via the page-local `--cv-accent` (ink in light, brand green in dark), plain bullets, skills as a comma list, NO animation. The summary type-out (tarot-paced, decoy fake-out) and the monospace/pill/spaced-caps terminal look are DARK-ONLY — `recruiter.js` starts the type-out when dark is applied and tears it down on the switch back. Linked from the bottom nav (`cv`, `data-file.png` icon) and the landing page (hue-ordered first).
+**Public**, static résumé, built from the bare shell (`recruiter_page()` in routes_views.py, `templates/recruiter.html`, `web/recruiter.css`), no nav/fx in light mode. **Light** = plain professional résumé: `--font-doc`, ink headings via page-local `--cv-accent`, plain bullets, skills as a list, no animation; CTA -> Google Doc PDF export. **Dark toggle** (`#cv-theme`, `recruiter.js`, persisted in localStorage `cv-theme`) flips `html.cv-dark` (token overrides), injects the full 5-layer CRT stack in `_CRT_FX` order (bg -> lines -> blur -> crt -> scan), and starts the summary type-out (dark-only; torn down on switch back). Linked from the bottom nav (`cv`, `data-file` icon) and the landing.
 
 ### 20h. `PATCH /api/rd`
 
-**[API → PATCH /api/rd]**
-
-PATCH `/api/rd` — Update rd.json (source query param: rd/Exec/hq/dirs). Atomic write. **Merge-by-id, NOT whole-array replace** (`helpers._merge_cards`): clients send only the card(s) they touched with only the fields they own (rd.js board → `{id,column,order}`; card-dialog → the one edited card incl. `nudge`; hq timeline → the one mutated card), and the server shallow-merges each onto disk by id — every omitted top-level field (esp. the nudge loop's server-owned `card["nudge"]`) is preserved on untouched cards. A sent `nudge` replaces wholesale (never deep-merged). Unknown id = new card. Side-effects run on the merged full-board list. Scheduling side-effects (`_apply_patch_schedule`): hq<->rd column moves, and re-pin a today card's `dir_start_min` to `event_time - prep` (`scheduler.timed_start_min`) when its timed due_date **or prep_time** is edited (so the today timeline auto-repositions the block — prep back-schedules to finish at the event; a plain drag, with no due/prep change, is left alone). Runs recurring-card revival on archived cards with `recur_type`. Schedules monitor debounce if any entry is significant.
+Source query param (rd/Exec/hq/dirs). Atomic write. **Merge-by-id, NOT whole-array replace** (`helpers._merge_cards`): clients send only touched cards with only the fields they own (rd.js `{id,column,order}`; card-dialog the edited card incl. `nudge`; hq timeline the mutated card); the server shallow-merges onto disk by id, so omitted fields (esp. server-owned `card["nudge"]`) survive. A sent `nudge` replaces wholesale. Unknown id = new card. Side-effects run on the merged list: `_apply_patch_schedule` (routes_api.py: hq<->rd moves; re-pin `dir_start_min` to `event_time - prep` via `scheduler.timed_start_min` when a timed due_date or `prep_time` changes, a plain drag is left alone), recurring revival on archived `recur_type` cards, monitor debounce if significant.
 
 ### 20i. The card dialog
 
-**[Card schema → The card dialog never scrolls itself]**
-
-**The card dialog NEVER scrolls itself** (`web/card-dialog.js`, shared by rd/hq/dirs): `.cd-box` is a flex column with `overflow:hidden`, `.cd-body` is the only scroller (`flex:1; min-height:0`), and `.cd-actions` (exile/done/chat/save) is a pinned footer — they used to be the last thing inside one big scrolling box, so a tall card (recurring + notes + a 5-step breakdown) pushed them out of reach. Three things keep the footer on screen and each was a separate bug: the overlay is sized to **`dvh`, not `vh`** (iOS resolves `vh` against the LARGE viewport, so a `90vh` box centred in it drops its own bottom below the visible area — invisible to headless WebKit, which has no browser chrome at all; check **430x700** as well as 430x932); the overlay pads by `var(--nav-h, 56px)` because the nav paints at `--z-top` over the overlay's `z-index:50`; and `body:has(.cd-ov.open) #exec-bubble` is hidden, since at `--z-bubble` it floats over the scrim and parks on **save**. **Every scrollbar inside the dialog is SILVER** (`--gray-hsl / 0.45`, on `.cd-body`, the notes `textarea` and card-graph's `.cg-scroll`) — the dialog is tinted to the CARD's colour (`.cd-dark`/`.cd-bright` + `currentColor`) and the cards are every colour, so a `currentColor` thumb changed hue per card and the unstyled `textarea` fell through to chrome.css's phosphor-green page default (green bar on an orange card). Firefox needs `.cd-box, .cd-box *`, not inheritance — the global rule sets `scrollbar-color` on `*` directly — and stays inside the same `@supports not selector(::-webkit-scrollbar)` guard chrome.css uses, or Chrome 121+ lets the standard prop override the webkit thumb. The dialog's CSS lives in a JS template literal — **no backticks in its comments**.
-
+**The dialog NEVER scrolls itself** (`web/card-dialog.js`, shared by rd/hq/dirs): `.cd-box` flex column `overflow:hidden`, `.cd-body` the only scroller, `.cd-actions` a pinned footer. Footer stays on screen via: overlay sized `dvh` with `vh` fallback (iOS `vh` = LARGE viewport; check **430x700** too); overlay pads by `var(--nav-h, 56px)` (nav is at `--z-top` over z-index 50); `body:has(.cd-ov.open) #exec-bubble` hidden. **Scrollbars are SILVER** (`--gray-hsl / 0.45` on `.cd-body`, notes `textarea`, card-graph `.cg-scroll`) because the dialog is tinted to the card colour; Firefox needs `.cd-box, .cd-box *` inside the same `@supports not selector(::-webkit-scrollbar)` guard chrome.css uses. CSS lives in a JS template literal — **no backticks in its comments**.
 
 ---
+
 ## 21. noodle — moved to its own repo
 
-noodle left this repo on 2026-10-14: `wai-lau/noodle`, consumed as the submodule `apps/noodle` (history kept — 163 commits, `git filter-repo`). This section (§21a–m, ~700 lines) is its `ARCHITECTURE.md` now, with its own `ARCHAEOLOGY.md` and `CLAUDE.md`; a `§21x` reference anywhere means that file. What stays here is integration: `routers.py` mounts its three routers and injects nav + owner detection (`set_nav`, `set_owner`), the guest set (§20a), `log_masking.py` + the nginx log mask (§1d), the CSP harness in `conftest.py`. How the parent serves it: §1e.
+`wai-lau/noodle`, submodule `apps/noodle` (since 2026-10-14). Its `ARCHITECTURE.md` (§21a–m) is the design doc, with its own `ARCHAEOLOGY.md` and `CLAUDE.md`; a `§21x` reference means that file. Parent-side integration only: `routers.py` mounts its three routers and injects nav + owner detection (`noodle_pages.set_nav` / `set_owner`), the guest set (§20a), `log_masking.py` + the nginx log mask (§1d), the CSP harness in `conftest.py`. How the parent serves it: §1e.
 
 ## 22. /spire — moved to its own repo
 
-THE SPIRE left this repo on 2026-10-14: `wai-lau/spire`, consumed as the submodule `apps/spire` (history kept — 1,172 commits, `git filter-repo`). This section became its `ARCHITECTURE.md` — since rewritten (2026-10-14) as a topic-ordered game design doc, history in its `ARCHAEOLOGY.md`, with its own `CLAUDE.md`. How the parent serves it: §1e.
+THE SPIRE: `wai-lau/spire`, submodule `apps/spire` (since 2026-10-14). Its `ARCHITECTURE.md` is a topic-ordered game design doc; history in its `ARCHAEOLOGY.md`; own `CLAUDE.md`. How the parent serves it: §1e.

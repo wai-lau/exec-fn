@@ -1,0 +1,38 @@
+flowchart TB
+  browser["Browser<br/>wai-lau.net"]
+
+  subgraph droplet["DigitalOcean droplet (Ubuntu 24.04)"]
+    nginx["nginx (bare metal)<br/>:443 SSL, :80 redirects to 443<br/>upstream execfn_app, listed twice"]
+
+    subgraph compose["docker compose"]
+      subgraph api["api (TZ=America/New_York)"]
+        entry["entrypoint.sh"]
+        cron["cron daemon<br/>30 4 * * * morning_cron.sh"]
+        uvicorn["uvicorn main:app<br/>0.0.0.0:8080 --reload<br/>published as 127.0.0.1:8080"]
+        entry --> cron
+        entry -->|exec| uvicorn
+        cron -->|"POST /api/morning<br/>localhost:8080"| uvicorn
+      end
+      piper["hosaka-piper<br/>glados voice, no published port"]
+    end
+
+    subgraph mounts["api mounts"]
+      src["./api to /app (source)"]
+      data["./api/data to /app/data"]
+      tmpl["./api/templates to /app/templates"]
+      web["./web to /app/static"]
+      apps["./apps to /app/apps"]
+      gfy["./graphify-out to /app/graphify-out (ro)"]
+      mtgd["./mtg/data to /app/mtg/data"]
+      night["./nightfall-incident to /app/nightfall"]
+      mask["tmpfs mask over nightfall-src"]
+      vols["named volumes: gcal-auth, rmapi-auth"]
+    end
+
+    uvicorn --- mounts
+    night -.->|masked by| mask
+    uvicorn -->|"compose network"| piper
+  end
+
+  browser -->|HTTPS 443| nginx
+  nginx -->|"proxy_pass 127.0.0.1:8080"| uvicorn

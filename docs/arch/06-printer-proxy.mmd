@@ -1,0 +1,37 @@
+flowchart LR
+  browser["Browser"]
+  subgraph droplet["droplet container: routes_printer.py"]
+    page["GET /printer<br/>guest or owner"]
+    health["GET /api/printer/health<br/>guest or owner"]
+    status["GET /api/printer/status<br/>guest or owner"]
+    frame["GET /printer/frame<br/>guest or owner, pull"]
+    video["GET /printer/video<br/>guest or owner, MJPEG"]
+    http["ANY /printer/path<br/>OWNER, rewrites HTML+JS"]
+    ws["WS /ws/printer<br/>OWNER, session cookie"]
+    hub["printer_camera hub<br/>ONE upstream stream"]
+    sdcp["printer_status<br/>ONE read-only SDCP socket"]
+  end
+  tunnel(["SSH reverse tunnel<br/>172.17.0.1:8126 / 8127 / 8128"])
+  subgraph lan["home LAN 192.168.2.25"]
+    p80[":80 SPA + files"]
+    p3030[":3030 SDCP websocket"]
+    p3031[":3031 MJPEG"]
+  end
+  browser --> page
+  browser -->|"15s poll"| health
+  browser -->|"3s poll, guest"| status
+  browser -->|"pull, guest"| frame
+  browser -->|"img src, owner SPA"| video
+  browser -->|"iframe + assets"| http
+  browser <-->|SDCP JSON| ws
+  status --> sdcp
+  frame --> hub
+  video --> hub
+  health --> tunnel
+  http --> tunnel
+  ws --> tunnel
+  hub --> tunnel
+  sdcp --> tunnel
+  tunnel --- p80
+  tunnel --- p3030
+  tunnel --- p3031

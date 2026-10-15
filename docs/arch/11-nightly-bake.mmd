@@ -1,0 +1,14 @@
+flowchart TD
+  CR["host cron 05:00<br/>graphify-daily.sh"] --> RB["graphify rebuild<br/>(600MB cap, VIZ_NODE_LIMIT 8000)"]
+  RB --> CK{"fresh graph.html<br/>written?"}
+  CK -- "no" --> FL["restore .graph.html.prev<br/>log FAILED, exit 1, no bake"]
+  CK -- "yes" --> SR["systemd-run --user --scope<br/>MemoryMax=700M<br/>XDG_RUNTIME_DIR=/run/user/uid"]
+  SR --> GL["scripts/graph-layout.py"]
+  GL --> W["bake 1, field pos<br/>wide target 1.60, WebKit 1440x900"]
+  W --> T["bake 2, field tall<br/>tall target 0.50, WebKit 430x932"]
+  W -. "each bake" .-> PG["GET 127.0.0.1:8080/graph?relayout=1<br/>(Bearer API_KEY)<br/>nudge sim each stabilizationProgress<br/>wait gp-loaded, read __GP_PRESNAP"]
+  T -. "each bake" .-> PG
+  T --> KM{"keys equal and<br/>over 1 position?"}
+  KM -- "no" --> BF["FAIL, file untouched,<br/>job logs bake failure"]
+  KM -- "yes" --> WR["atomic write<br/>graphify-out/graph-layout.json<br/>key, presnap, pos, tall"]
+  WR --> SV["next /graph: cache key moved,<br/>re-render bakes pos, tall rides payload"]

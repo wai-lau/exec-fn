@@ -1,0 +1,27 @@
+flowchart LR
+  browser["Browser<br/>/hosaka, /tarot, Exec panel"]
+  subgraph droplet["droplet"]
+    subgraph api["api container: routes_tts.py"]
+      page["GET /hosaka"]
+      rest["GET /api/hosaka/voices, /health"]
+      ws["WS /ws/hosaka<br/>cookie-gated"]
+      mode["GET/POST /api/hosaka/mode, /mode/stream<br/>owner-only"]
+    end
+    piper["hosaka-piper container<br/>glados, port 8123"]
+  end
+  tunnel(["SSH reverse tunnel<br/>172.17.0.1:8123, :8124"])
+  subgraph home["home GPU box"]
+    up["TTS upstream /v1/audio/stream<br/>kokoro, chatterbox + RVC"]
+    gm["gpu-mode service :8124"]
+  end
+  browser --> page
+  browser --> rest
+  browser <-->|"audio frames"| ws
+  browser --> mode
+  ws -->|"backend piper"| piper
+  ws -->|"other backends"| tunnel
+  rest --> piper
+  rest --> tunnel
+  mode -->|"Bearer GPU_MODE_TOKEN"| tunnel
+  tunnel --- up
+  tunnel --- gm
