@@ -15,7 +15,7 @@ SKIP = {"IMG_25419", "ped-logo"}
 # Icons that stay on the LINE-ART path. Everything else is traced in its own
 # colours (icon_colour.py), which reads better on most of the set -- but where
 # a source is heavily dithered the full-colour trace reproduces the dither
-# faithfully, and faithful is not always what an icon wants. These seven were
+# faithfully, and faithful is not always what an icon wants. These eight were
 # each judged by eye against their colour version and kept as they were.
 LINE_ART = {"turbo", "bitman", "printer", "wizard", "data-file", "data-doctor",
              "sentinel", "bug"}

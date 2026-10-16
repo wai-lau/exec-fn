@@ -7,10 +7,10 @@ from mtg.tools import TOOL_FNS, TOOLS
 
 _MODEL = "claude-opus-4-8"
 
-# SYSTEM (~5.9K tokens) + TOOLS are static and reused across every research-loop
-# iteration AND the summarize pass of one question. Cache the prefix so only the
-# first call pays full price; the rest read it at ~0.1x. Same bytes at both call
-# sites => the create() loop writes the cache and the stream() summarize reads it.
+# SYSTEM + TOOLS are static. Cache the prefix so the research loop's later
+# iterations read it at ~0.1x. The stream() summarize pass sends SYSTEM WITHOUT
+# tools, so it is a separate, system-only prefix: it caches across questions,
+# not off the loop. Token counts: ARCHITECTURE.md §5.
 _SYSTEM_CACHED = [{"type": "text", "text": SYSTEM,
                    "cache_control": {"type": "ephemeral"}}]
 

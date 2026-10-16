@@ -178,8 +178,9 @@ _PAYLOAD_MAX = 6
 def _externalise_boot(page: str, extra: str = "") -> tuple[str, str]:
     """Lift graphify's inline <body> scripts into one deferred external file.
 
-    Returns (page, payload). Runs FIRST, on the raw artifact, so the only inline
-    body scripts it can see are graphify's own."""
+    Returns (page, payload). Runs after the node-JSON edits and BEFORE the
+    </head>/</body> injections, so the only inline body scripts it can see are
+    graphify's own."""
     start = page.find("<body>")
     end = page.find("</body>", start)
     if start < 0 or end < 0:
