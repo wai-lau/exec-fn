@@ -101,7 +101,7 @@ def render_security(data):
     W = data.get("web") if data else None
     Gd = data.get("geo") if data else None
     if not data or not Gd or not Gd.get("geo"):
-        body = '<p class="snote">Telemetry not generated yet — the host cron refreshes it hourly.</p>'
+        body = '<p class="snote">Telemetry not generated yet — the host cron refreshes it daily at 5:10.</p>'
         return f'<div class="secwrap doc-card">{_CSS}{body}</div>'
     parts = []
     # 1. origin map — the hero, first thing, zoomed in; no subtitle line.
