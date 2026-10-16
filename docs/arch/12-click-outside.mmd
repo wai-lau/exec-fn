@@ -4,7 +4,7 @@ sequenceDiagram
   participant H as target handler
   participant B as document, bubble
   T->>C: click descends
-  C->>C: fromInside = panel.contains(target)
+  C->>C: fromInside = panel or bubble contains target
   C->>H: continue to target
   H->>H: retireAnswers removes the button
   H->>B: click bubbles up

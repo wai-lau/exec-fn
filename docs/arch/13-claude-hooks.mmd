@@ -14,6 +14,7 @@ flowchart LR
     q2["deploy-healthcheck.sh"]
   end
   cs["cmdscan.py<br/>strips heredocs"] -.-> p1
+  cs -.-> p2
   cs -.-> p3
   cs -.-> q1
   cs -.-> q2

@@ -2,6 +2,7 @@ flowchart LR
   main["main.py<br/>(composition root)"]
   routers["routers.py<br/>(tiers + mounts)"]
   routes_api["routes_api.py"]
+  routes_morning["routes_morning.py"]
   routes_views["routes_views.py"]
   routes_chat["routes_chat.py"]
   routes_nightfall["routes_nightfall.py"]
@@ -70,13 +71,17 @@ flowchart LR
   main --> routes_api
   main --> routes_cc
   main --> routes_exec
+  main --> routes_morning
   main --> LEAF
   main --> routes_views
   main --> TAROT
+  TAROT --> LEAF
   monitor --> chat
   monitor --> chat_store
   monitor --> monitor_sse
   morning --> chat
+  morning -.-> gcal
+  morning -.-> recalibration
   morning -.-> nudge_deadlines
   morning -.-> scheduler
   nudge -.-> recalibration
@@ -96,13 +101,10 @@ flowchart LR
   routers --> TAROT
   routes_api --> card_llm
   routes_api -.-> card_schedule
-  routes_api --> cc_client
-  routes_api --> chat_store
   routes_api --> gcal
   routes_api -.-> hq
   routes_api --> monitor
   routes_api --> monitor_sse
-  routes_api --> morning
   routes_api -.-> nudge
   routes_api -.-> nudge_deadlines
   routes_api --> nudge_llm
@@ -123,6 +125,11 @@ flowchart LR
   routes_exec --> monitor_sse
   routes_exec --> routers
   LEAF --> routers
+  routes_morning --> cc_client
+  routes_morning --> chat_store
+  routes_morning --> monitor_sse
+  routes_morning --> morning
+  routes_morning --> routers
   routes_nightfall --> gamesave_store
   routes_views --> routers
   routes_views --> routes_nightfall

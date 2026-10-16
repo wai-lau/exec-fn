@@ -10,4 +10,4 @@ flowchart TD
   HIT -- "yes" --> ET
   RN --> ET["ETag = md5 of page<br/>Cache-Control no-cache"]
   ET --> R["200, or 304 on If-None-Match"]
-  W["run_graph_warm_loop<br/>every 600s"] -. "pre-renders 4 variants<br/>when the key moves" .-> HIT
+  W["run_graph_warm_loop<br/>every 600s"] -. "pre-renders 4 variants<br/>when graph.html moves" .-> HIT

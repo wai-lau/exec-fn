@@ -6,8 +6,8 @@ stateDiagram-v2
   P3: Phase 3 spread face-down
   P4: Phase 4 one card per turn
   P5: Phase 5 synthesis
-  P1 --> P2: 5+ questions, set_significator
-  P1 --> P2: querent picks a court card
+  P1 --> P2: 5+ questions and set_significator, or querent picks a court card
+  P2 --> P1: Significator cleared
   P2 --> P3: heart named, at most 4 answers, deal_spread
   P3 --> P4: turned event
   P4 --> P4: next card

@@ -6,4 +6,4 @@ flowchart TB
   can -->|"yes, event"| lw["load(weekStart)"]
   can -->|"yes, wake"| ln["load(null)<br/>re-anchor to logical today"]
   can -->|"no"| skip["skipped"]
-  drag["drag or tap edit"] --> st["saveTimer 600ms"] --> fl["flushUpdates<br/>nulls saveTimer first"] --> pt["PATCH /api/hq<br/>merge-by-id"]
+  drag["drag: scheduled_day, order"] --> st["saveTimer 600ms"] --> fl["flushUpdates<br/>nulls saveTimer first"] --> pt["PATCH /api/hq<br/>bulk per-id updates"]

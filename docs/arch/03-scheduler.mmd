@@ -3,7 +3,7 @@ flowchart TB
     morning["morning _roll_and_schedule"]
     execchat["exec chat tools<br/>card_schedule.apply_schedule"]
     drop["POST /api/rd/id/schedule<br/>card_schedule.drop_on_day"]
-    hq["PATCH /api/hq<br/>clamp_to_window=True"]
+    hq["PATCH /api/rd, card moved into hq<br/>_apply_patch_schedule<br/>clamp_to_window=True"]
   end
   s2d["scheduler.schedule_to_day"]
   morning --> s2d

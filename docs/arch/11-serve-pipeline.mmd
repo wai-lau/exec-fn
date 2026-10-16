@@ -14,11 +14,12 @@ flowchart TD
   K --> B{"baked layout<br/>key matches?"}
   B -- "yes" --> AL["_apply_graph_layout<br/>x/y baked, physics off"]
   B -- "no or relayout=1" --> N["keep physics:<br/>browser stabilises"]
-  AL --> LT{"lite=1?"}
-  N --> LT
+  AL --> HD["head script: LAYOUT_KEY,<br/>LAYOUT_CACHED, OCCLUDE_MIN,<br/>WAVE_MIN"]
+  N --> HD
+  HD --> LT{"lite=1?"}
   LT -- "yes" --> PR["_prune_for_lite (600)<br/>_fix_graph_stats"]
   LT -- "no" --> R
   PR --> R["_restyle_graph_nodes<br/>(shapes by type)<br/>_drop_graph_tooltips"]
   R --> BO["cover markup in body"]
-  BO --> X["_externalise_boot<br/>MUST run last on node JSON"]
-  X --> J["inject chrome, nav, overlay JS/CSS<br/>_defer_scripts"]
+  BO --> X["_externalise_boot<br/>after every node-JSON edit<br/>(tall bake appended)"]
+  X --> J["inject chrome, nav, overlay JS/CSS<br/>_defer_scripts (cover stays sync)"]

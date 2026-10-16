@@ -10,5 +10,5 @@ flowchart LR
     msys --> p2
   end
   subgraph exec["chat._build_chat_system_prompt"]
-    etools["tools = _chat_tools()"] --> estatic["block 1: _CHAT_STATIC_PREFIX<br/>MARKED"] --> evol["block 2: volatile tail<br/>TODAY, log, cards, context,<br/>nudge, ACTIONS YOU JUST TOOK<br/>(no marker)"]
+    etools["tools = _chat_tools()"] --> estatic["block 1: _CHAT_STATIC_PREFIX<br/>MARKED"] --> evol["block 2: volatile tail<br/>TODAY, log, cards, context,<br/>nudge, ACTIONS YOU JUST TOOK,<br/>per-pass rules (chat_passes)<br/>(no marker)"]
   end

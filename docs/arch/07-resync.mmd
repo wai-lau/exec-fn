@@ -7,4 +7,4 @@ flowchart TD
   O["panel reopened<br/>mid-answer"] --> F["execFollowRun"] --> R
   R["execResync: 'still answering' line"] --> B["wait: sidecar free<br/>and no own stream"]
   B --> H["execLoadHistory(true)<br/>replace transcript"]
-  B -->|"15 min cap"| G["give up"]
+  B -->|"15 min cap: replay anyway"| H

@@ -5,7 +5,7 @@ flowchart TB
     m1["chat.css"] --> m2["chat-msg.css"] --> m3["chat-doc.css"]
   end
   subgraph tarot["/tarot"]
-    t1["chat.css"] --> t2["chat-msg.css"] --> t3["chat-reader.css"]
+    t1["chat.css"] --> t2["chat-msg.css"] --> t3["chat-reader.css"] --> t4["voice-ui.css"]
   end
   subgraph panel["Exec panel on /rd and /hq"]
     p1["chat-msg.css"] --> p2["voice-ui.css"] --> p3["exec-term.css"] --> p4["exec-bubble.css"]
@@ -14,3 +14,4 @@ flowchart TB
   msg -.-> t2
   msg -.-> p1
   vui -.-> p2
+  vui -.-> t4

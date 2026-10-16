@@ -6,6 +6,8 @@ flowchart LR
       rest["GET /api/hosaka/voices, /health"]
       ws["WS /ws/hosaka<br/>cookie-gated"]
       mode["GET/POST /api/hosaka/mode, /mode/stream<br/>owner-only"]
+      pres["WS /ws/hosaka/presence<br/>cookie-gated"]
+      synth["tarot/voice_synth.py<br/>openings, nightly probe, warm<br/>no cookie, no browser"]
     end
     piper["hosaka-piper container<br/>glados, port 8123"]
   end
@@ -18,6 +20,8 @@ flowchart LR
   browser --> rest
   browser <-->|"audio frames"| ws
   browser --> mode
+  browser <-->|"count"| pres
+  synth -->|"ws /v1/audio/stream"| tunnel
   ws -->|"backend piper"| piper
   ws -->|"other backends"| tunnel
   rest --> piper
