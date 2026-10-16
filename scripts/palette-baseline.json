@@ -1,4 +1,10 @@
 {
+  "asp-acd-hsl": [
+    "1"
+  ],
+  "asp-arc-hsl": [
+    "1"
+  ],
   "asp-bad-hsl": [
     "0.45",
     "1"
@@ -22,6 +28,9 @@
     "1"
   ],
   "asp-blue-ink-hsl": [
+    "1"
+  ],
+  "asp-frz-hsl": [
     "1"
   ],
   "asp-good-hsl": [
