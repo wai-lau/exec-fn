@@ -7,5 +7,5 @@ flowchart TD
     D --> G{"_recent_entries since watermark<br/>(drops undone advanced)<br/>any commentable?"}
     G -- no --> E["end"]
     G -- yes --> TH["push thinking true<br/>generate_encouragement (opus)"]
-    TH --> OK["watermark = now, only on success"]
+    TH --> OK["watermark = now, only on success<br/>push thinking false"]
     OK --> C["append_monitor_comment role=monitor<br/>push comment over /api/monitor/stream"]

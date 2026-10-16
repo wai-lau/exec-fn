@@ -20,4 +20,6 @@ sequenceDiagram
     WS-->>B: end
   else upstream dies mid-utterance
     WS-->>B: error "tts upstream closed mid-utterance"
+  else send or connect fails
+    WS-->>B: error "tts upstream unreachable"
   end

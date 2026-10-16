@@ -27,11 +27,11 @@ flowchart LR
   status --> sdcp
   frame --> hub
   video --> hub
-  health --> tunnel
-  http --> tunnel
-  ws --> tunnel
-  hub --> tunnel
-  sdcp --> tunnel
+  health -->|":80 GET /"| tunnel
+  http -->|":80"| tunnel
+  ws -->|":3030, 5s open timeout"| tunnel
+  hub -->|":3031 /video"| tunnel
+  sdcp -->|":3030"| tunnel
   tunnel --- p80
   tunnel --- p3030
   tunnel --- p3031

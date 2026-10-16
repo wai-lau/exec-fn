@@ -22,9 +22,10 @@ cron). In this part of the file:
 1. [Deployment](#1-deployment) — how a request reaches code (`01-deployment`),
    and what `scripts/deploy.sh` decides (`01-deploy-flow`)
 2. [Module graph](#2-module-graph) — what imports what (`02-module-graph`)
+3. [Morning pipeline + scheduling](#3-morning-pipeline--scheduling) — the 4:30
+   sequence (`03-morning`) and `schedule_to_day` (`03-scheduler`)
 
-Later sections (morning pipeline, TTS, LLM call sites, printer, `/cc`, …) carry
-their own. noodle's diagram lives in `apps/noodle/ARCHITECTURE.md`.
+Later sections (TTS, LLM call sites, printer, `/cc`, …) carry their own. noodle's diagram lives in `apps/noodle/ARCHITECTURE.md`.
 
 ---
 
@@ -56,9 +57,9 @@ else pulls it in. `httpx` and `httpx2` are both in the lock on purpose.
 token; a declared-but-unmounted compose volume counts as unused and
 `docker volume prune` would eat it). The rmapi binary itself is gone.
 
-**Secrets** (`.env`): `API_KEY`, `ANTHROPIC_API_KEY`, `TURNSTILE_SITE_KEY`,
-`TURNSTILE_SECRET` (the guest gate is a Turnstile challenge; `GUEST_KEY` is
-retired). Cron cannot see the container env: `entrypoint.sh` writes only
+**Secrets** (`.env`, among others): `API_KEY`, `ANTHROPIC_API_KEY`,
+`TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET` (the guest gate is a Turnstile
+challenge; `GUEST_KEY` is retired). Cron cannot see the container env: `entrypoint.sh` writes only
 `API_KEY` and `ANTHROPIC_API_KEY` to `/run/cron_env`.
 
 **Cron:** `api/exec-fn.cron` is baked to `/etc/cron.d/exec-fn` — one job,
@@ -70,7 +71,7 @@ The other jobs are HOST crons or in-process loops (CLAUDE.md, Cron).
 file globs `apps/*/tests/*.py`, `apps/*/scripts/*.py`, `apps/*/scripts/*/*.py`
 (§1e).
 
-History: [ARCHAEOLOGY.md §1](ARCHAEOLOGY.md).
+History: [ARCHAEOLOGY.md §1](ARCHAEOLOGY.md#1-deployment).
 
 ---
 
@@ -87,6 +88,9 @@ same block. The `/ws/` location is untouched.
   **TWICE** (one try per peer, so a single-server upstream can never retry),
   `max_fails=0`, and `location /` sets `proxy_next_upstream error timeout http_502`,
   `_tries 3`, `_timeout 20s`, `proxy_connect_timeout 3s`.
+- **A 502/504 serves `web/errors/loading.html`** from nginx itself
+  (`error_page` + an `internal` alias into `/exec-fn`); the page reloads once the
+  app answers.
 - **`non_idempotent` is NOT set** — a retried POST/PATCH would apply twice.
 - **`http_503` is NOT retried** — the app returns a real 503 when the home box
   or printer is down; retrying only delays an honest answer.
@@ -103,7 +107,7 @@ same block. The `/ws/` location is untouched.
   capped at 3 x 10MB (`docker-compose.yml` `logging:`), `/security` collapses
   noodle paths to `<slug>`, and `bootstrap.sh` writes the same conf.d file.
 
-History: [ARCHAEOLOGY.md §1](ARCHAEOLOGY.md).
+History: [ARCHAEOLOGY.md §1](ARCHAEOLOGY.md#1-deployment).
 
 ---
 
@@ -222,7 +226,7 @@ clear a rebase blocker with `git checkout -- graphify-out/`); never `git pull` o
 the droplet tree. `routes_nightfall` reads its `/app/nightfall` assets lazily in
 `build_nightfall_html()`, so a stale mount degrades `/nightfall` alone.
 
-History: [ARCHAEOLOGY.md §1](ARCHAEOLOGY.md) (submodule migration, deploy.sh, the
+History: [ARCHAEOLOGY.md §1](ARCHAEOLOGY.md#1-deployment) (submodule migration, deploy.sh, the
 sudo-git ownership mess, the httpx2 502).
 
 ---
@@ -230,7 +234,7 @@ sudo-git ownership mess, the httpx2 502).
 ## 2. Module graph
 
 Intra-project imports only (stdlib / fastapi / anthropic omitted), checked
-2026-10-15 against an `ast` walk of `api/**/*.py`; rerun a walk after structural
+2026-10-16 against an `ast` walk of `api/**/*.py`; rerun a walk after structural
 changes. Solid arrow = top-level import; **dashed = late (in-function) import**,
 the usual way a cycle is avoided (`chat`, `nudge`, `scheduler` all reach each
 other this way).
@@ -241,8 +245,10 @@ other this way).
   (`public` / `protected` / `guest_protected`) and mounts `routes_chat`,
   `routes_nightfall`, `tarot.routes`, `mtg.routes` and the noodle app's routers;
   every other `routes_*` module imports `routers` for its tier and is imported by
-  `main` (which also imports `routes_aspira` from the spire app,
-  `security_headers`, `asset_version` and `log_masking`, undrawn).
+  `main` (except the unlinked `routes_emet`, which imports `routers` but nothing
+  imports it; `main` also imports `routes_aspira` from the spire app,
+  `security_headers`, `asset_version` and `log_masking`, undrawn; `routes_views`
+  also imports `security`, undrawn).
 - **App submodules** (`apps/spire/api`, `apps/noodle/api`) sit outside `api/`;
   `app_paths` puts them on `sys.path`. Not drawn (§1e); `noodle` imports no other
   app module.
@@ -257,24 +263,31 @@ other this way).
   `openings_gen`, `openings_loop`, `voice_synth`) and `mtg/*` (5: `routes -> agent
   -> prompt/tools -> lookup`). `LEAF` = four route modules (`routes_graph`,
   `routes_printer`, `routes_tts`, `routes_zombo`) and their own leaves
-  (`graph_*`, `printer_*`, `tts_routing`, `gpu_mode_client`), each importing
-  `routers` and imported by `main`.
+  (`graph_*`, `printer_*`, `tts_routing`, `gpu_mode_client`); the four route
+  modules import `routers` and are imported by `main`. `tarot/*` also imports
+  `tts_routing` and `gpu_mode_client` (the `TAROT --> LEAF` edge).
 - `chat` is NOT imported by `routes_chat` (it goes through `chat_passes`).
-- `scheduler` is reached at runtime from `card_schedule`, `morning`, `chat` and
-  `nudge` only by late import, so no static edge; the runtime path is in §3.
+- `scheduler` is reached from `card_schedule`, `morning`, `chat`, `nudge`,
+  `nudge_loop` and `routes_api` only by late import (`hq` imports it at top
+  level); the runtime path is in §3.
+- `morning` reaches `gcal` and `recalibration` by `__import__` inside its steps
+  (dashed).
+
+History: [ARCHAEOLOGY.md §2](ARCHAEOLOGY.md#2-module-graph).
 
 ---
+
 ## 3. Morning pipeline + scheduling
 
 ### 3a. Morning cron sequence
 
-`morning_cron.sh` (in-container cron, 4:30 AM ET) POSTs `/api/morning` with `Bearer API_KEY`; the route runs `morning.build_morning()` on a thread, then ends the Exec panel's sidecar thread.
+`morning_cron.sh` (in-container cron, 4:30 AM ET) POSTs `/api/morning` with `Bearer API_KEY`; `routes_morning.api_morning` runs `morning.build_morning()` on a thread, then ends the Exec panel's sidecar thread.
 
 ![Morning pipeline sequence](docs/arch/03-morning.svg)
 
 - **Each step is isolated** (`_run_step`): a failure lands in `errors[<step>]`, the rest still run. Steps: `retrospective`, `recalibrate`, `purge_stale`, `gcal_import`, `prune_cron` (drops `data/cron/*.log` older than 30 days).
 - **Sidecar thread**: the panel's thread lives in the cc sidecar (§7f), not `chat.json`, so deleting `chat.json` alone left the panel on yesterday's conversation. The route calls `cc_client.new_conversation()` after `build_morning()`; the sidecar archives before dropping its pointer and refuses (500) if the archive fails, surfacing as `errors.cc_new`.
-- **Errors are posted, not buried**: any entry in `errors`, or a crash of `build_morning()`, goes through `routes_api._post_morning_errors` — a `monitor` message in the fresh `chat.json` plus a `{comment}` push (panel replays it, Discord DMs it). A clean morning posts nothing. The route also pushes `{cards_changed}`.
+- **Errors are posted, not buried**: any entry in `errors`, or a crash of `build_morning()`, goes through `routes_morning._post_morning_errors` — a `monitor` message in the fresh `chat.json` plus a `{comment}` push (panel replays it, Discord DMs it). A clean morning posts nothing. The route also pushes `{cards_changed}`.
 - **Roll/layout block** runs under `_RD_LOCK`: `_roll_and_schedule` (past `scheduled_day` on rd/hq cards -> today, except `no_rollover`; dated rd cards inside the window -> hq via `schedule_to_day`, a past-due `no_rollover` card is left alone), restack of carryover + unpositioned today cards, `layout_day` from `AUTOSTACK_ANCHOR` (10:00), then `nudge_deadlines.morning_reconcile`.
 
 ### rd.json concurrency — `helpers._RD_LOCK`
@@ -293,13 +306,13 @@ All `dir_start_min` / `scheduled_day` logic lives here. Window = `SCHED_WINDOW_D
 
 ![schedule_to_day decision flow](docs/arch/03-scheduler.svg)
 
-- **`schedule_to_day`** is the one rd→hq promoter (no I/O, mutates the card). Beyond the window: stays in `rd` with `due_date` only (`scheduled_day` cleared) — unless `clamp_to_window=True` (the `PATCH /api/hq` manual move), which clamps to the last window day. An overdue target clamps to today. `dir_start_min` is set only when the target is today; any other day clears it.
-- **Callers**: morning `_roll_and_schedule`; exec chat tools (`create_card` / `schedule_card` / reschedule → `exec_tools.run_tool` → `chat_tools._handle_tool` → `card_schedule.apply_schedule`); `POST /api/rd/{id}/schedule` (`card_schedule.drop_on_day`); `PATCH /api/hq`.
+- **`schedule_to_day`** is the one rd→hq promoter (no I/O, mutates the card). Beyond the window: stays in `rd` with `due_date` only (`scheduled_day` cleared) — unless `clamp_to_window=True` (a manual move into `hq` via `PATCH /api/rd`), which clamps to the last window day. An overdue target clamps to today. `dir_start_min` is set only when the target is today; any other day clears it.
+- **Callers**: morning `_roll_and_schedule`; exec chat tools (`create_card` / `schedule_card` / reschedule → `exec_tools.run_tool` → `chat_tools._handle_tool` → `card_schedule.apply_schedule`); `POST /api/rd/{id}/schedule` (`card_schedule.drop_on_day`); `PATCH /api/rd` (`routes_api._apply_patch_schedule`: a card moved into the `hq` column, with `clamp_to_window=True`). `PATCH /api/hq` (`hq.bulk_update_scheduled_days`) does NOT call it: it sets `scheduled_day` directly, and for today takes `place_card_today`.
 - **`dir_start_min`**: minutes from midnight, the card BLOCK's start (= prep start) for a card scheduled today. Block = `[dir_start_min, +estimated_time]`; the event block is its final `work` minutes. A **timed** `due_date` pins it: `dir_start_min = event_time - prep` (`timed_start_min`), so prep finishes at the event time. Timeless cards stack forward (`place_card_today`: next free slot >= now, snapped to 15 min, after the last placed card; morning `layout_day` from 10:00). An explicit `dir_start_min` argument wins.
 - **Dragging the master block** (hq today column, `saveStartTime` in `web/hq-board.js`) retimes the due TIME to `block_start + prep`, keeping the due DATE; cards with no due_date just move. Between-column drags (`/api/hq`) only touch `scheduled_day`, never the due date.
 - **`prep_time`**: of `estimated_time`, the decomposed **prep** minutes; `work = estimated_time - prep_time` is the atomic **event** (class, concert, appointment) — **only when `prep_time > 0`**. With `prep_time = 0` the whole time is decomposed and `ensure_event_block` (`nudge_deadlines.py`) adds no event node. Auto-filled at creation (exec `create_card`, `_card_brief`); edited as `cd-prep` + `cd-dur` in the card dialog (`fmtDuration` `35m`/`6h`, `parseDuration` also accepts `90`, `1h30m`); "recalculate" rebuilds the graph to that split. null for reminders.
 
-History: [ARCHAEOLOGY.md §3](ARCHAEOLOGY.md).
+History: [ARCHAEOLOGY.md §3](ARCHAEOLOGY.md#3-morning-pipeline--scheduling).
 ## 4. TTS (text-to-speech)
 
 Every voice in the app — the `/hosaka` SPEAK page, the `/tarot` reader, and the Exec panel — streams through **one same-origin proxy** (`routes_tts.py`) to one of **two upstreams**: the **home GPU box** (kokoro, chatterbox + RVC; SSH reverse tunnel) or **`hosaka-piper`**, an always-on CPU container on this droplet (`glados`). The browser only talks same-origin, so the session/guest cookie carries auth on the WebSocket handshake (HTTP basic auth does not ride a WS upgrade reliably on mobile).
@@ -311,7 +324,7 @@ Every voice in the app — the `/hosaka` SPEAK page, the `/tarot` reader, and th
 - **Home upstream**: `TTS_UPSTREAM` (default `172.17.0.1:8123`), the Docker bridge gateway → host loopback → SSH tunnel to the home box. `tts-box/` (systemd user service, tunnel unit, port watchdog) lives on the home box and keeps it alive; see `tts-box/README.md`.
 - **Piper upstream**: `TTS_PIPER_UPSTREAM` (default `hosaka-piper:8123`), a compose service (`docker-compose.yml`, image `hosaka-piper:latest`, no published ports, pronunciation lexicon bind-mounted read-only). `tts_routing.pick_upstream` sends an utterance with `backend == "piper"` there, everything else to the home box.
 - **Voices**: `/api/hosaka/voices` queries both upstreams concurrently and merges (`merge_voices`: piper voices from piper, the rest from home; an upstream error yields `[]`).
-- **Health**: `/api/hosaka/health` → `{ok, home, piper}`, 200 if EITHER answers (glados alone is still ok), else 503. Liveness (`_live`) is a real `/v1/voices` response, **never a bound port** — the tunnel listener stays bound with the home box off. `/hosaka` shows "Wai's GPU offline -- glados only" when `home` is false (`applyHealth` in `tts.js`).
+- **Health**: `/api/hosaka/health` → `{ok, home, piper}`, 200 if EITHER answers (glados alone is still ok), else 503. Liveness (`_live`) is a real `/v1/voices` response, **never a bound port** — the tunnel listener stays bound with the home box off. `/hosaka` shows "Wai's GPU offline -- glados only" when `home` is false (`applyHealth` in `tts.js`). Probe timeouts: 3s (`_live`), 5s (voices), 4s (mode fetch), 15s (mode switch).
 
 **Every utterance ends in a terminal frame.** Normally the upstream's own `{"type":"end"}`/`{"type":"error"}` clears `busy[url]`. If the upstream stream just ends mid-utterance (home box crash, tunnel drop, server restart), `_pump_to_client`'s `finally` synthesizes `{"type":"error","detail":"tts upstream closed mid-utterance"}` and evicts the dead connection so the next utterance reconnects. Load-bearing for `/tarot`: its typewriter paces off the audio clock and waits on a terminal frame. The guard is the pure `tts_routing.died_mid_utterance` (unit-tested), which fires **only** for the live connection on that url — a stale socket `_ws_dispatch` cut on purpose to start a new utterance must not error the one that replaced it. A failed send/connect answers `{"type":"error","detail":"tts upstream unreachable"}` for that utterance only and evicts the connection; a live glados connection survives a home-box death.
 
@@ -328,7 +341,7 @@ Client-side belts (a frame can also be lost browser↔droplet): `hosaka-audio.js
 
 ### 4b-ii. GPU-mode owner control
 
-`GET`/`POST /api/hosaka/mode` and `GET /api/hosaka/mode/stream` are on **`protected`** (owner-only; guests must never flip the GPU). They proxy the home-box `gpu-mode` service at `GPU_MODE_UPSTREAM` (default `172.17.0.1:8124`, over the same tunnel) with `Authorization: Bearer $GPU_MODE_TOKEN` (must match the home box; set in the droplet `.env`). GET returns `homo`/`emo`/`idle`/`gone` (`gone` = box unreachable). POST `{"action": "homo"|"emo"|"idle", "force"?: bool}` (else 400).
+`GET`/`POST /api/hosaka/mode` and `GET /api/hosaka/mode/stream` are on **`protected`** (owner-only; guests must never flip the GPU). They proxy the home-box `gpu-mode` service at `GPU_MODE_UPSTREAM` (default `172.17.0.1:8124`, over the same tunnel) with `Authorization: Bearer $GPU_MODE_TOKEN` (must match the home box's token; read from the environment, empty by default). GET returns `homo`/`emo`/`idle`/`gone` (`gone` = box unreachable). POST `{"action": "homo"|"emo"|"idle", "force"?: bool}` (else 400).
 
 - **Kill-switch guard**: `emo` and `idle` stop hosaka-server and cut active listeners. `needs_user_confirm` checks `_audio_conns` (every open `/ws/hosaka` socket — incl. `/tarot` and Exec voice, not just `/hosaka`-page `_presence`) and returns `409 {detail:"active_users", count}` unless `force`. `homo` never needs confirmation.
 - **Reported mode is corrected against reality**: the box's `/mode` is its *intent* and outlives the truth (hosaka-server dies, box still says `homo`). `_current_mode()` probes `/mode` and `_live(TTS_UPSTREAM)` concurrently and `gpu_mode_client.effective_mode` reports `idle` for a claimed `homo` with no live TTS. Only `homo` is second-guessed (under `emo`/`idle` a failing probe is expected; `gone` says it all). A `homo` switch sets a 90s grace (`_HOMO_GRACE_S`) assuming live, since models must load before `/v1/voices` answers.
@@ -345,7 +358,7 @@ All share `web/hosaka-audio.js` (`HosakaAudio.createPlayer()`): `AudioContext`, 
 | `/tarot` reader | `tarot-voice.js` | `nicole` | kokoro | **home GPU box** |
 | Exec panel + bubble | `exec-voice.js` / `exec-voice-listener.js` | `glados` | piper | **this droplet** |
 
-**The last column is the difference that matters.** Exec keeps its voice with the home machine asleep; only `/tarot` speaks from the tunnel and can lose its voice (§14d).
+**The last column is the difference that matters.** Exec keeps its voice with the home machine asleep; only `/tarot` speaks from the tunnel and can lose its voice (§14d, §14e).
 
 - **`web/voice-narrator.js`** sits above the player for the two narrating surfaces (`/tarot`, Exec panel): player lifecycle, persisted on/off, unlock, utterance queue, and the CONTROLLER (`elapsed()`, `duration()`, `ended`, `ok`) a typewriter paces to. `exec-voice.js` / `tarot-voice.js` are thin bindings (config + what is theirs: replay glyph, home-box probe, canned opening). The control is **`web/voice-ui.js` + `voice-ui.css`**: one `.voice-mute` element, one `data-on` contract. `/tarot` overrides the star glyph's size/factor in `tarot.css` (`.voice-mute.spread-btn .voice-glyph`) because that page has no `[x]` beside it.
 - **OFF means off**: nothing synthesized, no socket opens, `speak()` returns a DEAD controller, every caller reveals at its own pace now. One flag.
@@ -367,8 +380,8 @@ All share `web/hosaka-audio.js` (`HosakaAudio.createPlayer()`): `AudioContext`, 
 History: [ARCHAEOLOGY.md §4](ARCHAEOLOGY.md).
 ## 5. LLM call sites + prompt caching
 
-Every Claude call goes through the `anthropic` SDK with a pay-per-token
-`ANTHROPIC_API_KEY` (no subscription). Where a large, byte-stable system
+Every Claude call in this section goes through the `anthropic` SDK with a pay-per-token
+`ANTHROPIC_API_KEY` (no subscription); the Exec panel's own agent and the rolling title run on the `/cc` sidecar's subscription login instead (§7). Where a large, byte-stable system
 prefix is **reused across turns**, a `cache_control: {type: ephemeral}`
 marker (5-min TTL) lets repeat requests read that prefix at ~0.1x.
 Models: `claude-opus-4-8` everywhere except `card_llm.parse_date_natural` and `gcal._haiku_classify_batch` (`claude-haiku-4-5`).
@@ -387,7 +400,7 @@ prefix = 4096 tokens** — shorter silently caches nothing
 
 ![Cached prompt layouts: tarot, MTG, Exec](docs/arch/05-llm-calls.svg)
 
-| Call site | Model | Cached prefix | Tokens | Reuse pattern |
+| Call site | Model | Cached prefix | Tokens (measured 2026-10-14) | Reuse pattern |
 |-----------|-------|---------------|-------:|---------------|
 | `tarot/agent.py` `stream_chat` | opus-4-8 | `build_system(spread_type)` + `TOOLS` | 8,797 (no spread) / 13,514 (three-card) | every turn of a reading |
 | `mtg/agent.py` pass 1 | opus-4-8 | `SYSTEM` + `TOOLS` | 7,223 | across research tool-loop iterations + cross-question |
@@ -402,8 +415,7 @@ endpoint (not re-checkable from source). All four clear the 4096 floor;
 **two-block** system list — marked static block (identity + `EXEC_VOICE` +
 global rules) and an unmarked volatile tail (`_turn_context`: TODAY, stage,
 activity log, boards, 7-day schedule, context, active-nudge block, ACTIONS
-YOU JUST TOOK). `TODAY` must stay in the tail. The tools alone are under
-4096, so the static text lifts the prefix over the floor. `run_turn` is used by
+YOU JUST TOOK). `TODAY` must stay in the tail. `run_turn` is used by
 `routes_chat` (legacy `/api/chat`) and `discord_bot`; the Exec panel itself runs on the sidecar (§7).
 
 **ACTIONS YOU JUST TOOK:** after a tool round the system prompt is rebuilt
@@ -427,11 +439,13 @@ History reaches the model flattened (`sanitize_history_for_api` strips past
 
 - **Pass 1, ACT** — tools on, `messages.create` (not streamed), **text discarded**; only `tool_use` blocks are kept. Loops until no tool calls (`_MAX_ACT_ROUNDS` 4), the action diff rebuilt each round. No action needed → no tool, no text.
 - **Pass 2, REPLY** — same tools, **`tool_choice: none`**; sees every tool_result plus ACTIONS YOU JUST TOOK; the only streamed pass. If a requested action is MISSING it answers `[redo: <action>]`, which is buffered and **never shown**, attached to the closing user message as an `[auto-check, not from Wai]` block, and pass 1 re-runs. `_MAX_REDOS` 2; the last reply pass is not offered the redo and must say plainly what was not done. `strip_notes` removes auto-check blocks before `_save_chat`.
-- Cost: an action turn adds one non-streamed call before any text (~9s to first text vs ~2.3s on a question; one-off 2026-09-24 measurements). Both passes share tools + static block, so the second reads the cache the first wrote.
+- Cost: an action turn adds one non-streamed call before any text (roughly 9s to first text vs 2.3s on a question; one-off measurements 2026-09-24). Both passes share tools + static block (each pass's rules go in the volatile tail, `chat_passes._system`), so the second reads the cache the first wrote.
 
 `chat_store.assistant_content_blocks` converts an API message to storable text + `tool_use` dicts. Pinned by `tests/test_chat_passes.py`.
 
-### Uncached (measured, left alone)
+### Uncached (left alone)
+
+Sizes below are approximate figures from when the sites were audited (no date recorded, not re-checkable from source); the call sites themselves are as listed.
 
 | Call site | Why |
 |-----------|-----|
@@ -440,13 +454,11 @@ History reaches the model flattened (`sanitize_history_for_api` strips past
 | `card_llm` classify / parse-date | one-shot per card; no system / tiny volatile system |
 | `morning.py`, `chat._dedupe_context` | daily one-shot; prompt lives in the user message |
 | `gcal._haiku_classify_batch` | no system block; tiny instructions in the user message |
-| `tarot/openings_gen.generate_texts` | `voice_preamble()` ~1.5K < 4096; 24 calls, one per hour, minutes apart |
+| `tarot/openings_gen.generate_texts` | `voice_preamble()` ~1.5K < 4096; one call per hour of the day (24), each producing that hour's whole batch |
 
 **Verifying:** response `usage` reports `cache_creation_input_tokens` (~1.25x) and `cache_read_input_tokens` (~0.1x). Two identical requests with `cache_read` still 0 means a silent invalidator is back in the prefix.
 
----
-
-### 5d. Where the marker goes
+### Where the marker goes
 
 The marker always goes on a byte-stable block; the volatile part lives elsewhere.
 
@@ -456,11 +468,6 @@ The marker always goes on a byte-stable block; the volatile part lives elsewhere
 
 History — the incidents behind the rules above: [ARCHAEOLOGY.md §5](ARCHAEOLOGY.md).
 
----
-### 5-notes. From CLAUDE.md (moved 2026-09-27)
-
-CLAUDE.md's prompt-caching paragraph is now an index into this section; its content is folded into §5 above.
-
 ## 6. Printer (ELEGOO Centauri Carbon) — two-tier reverse proxy
 
 `/printer` serves the printer's **own** web UI (an Angular SPA with a live
@@ -469,7 +476,7 @@ everywhere: the browser talks only to the droplet, so the full `session`
 cookie rides every sub-request incl. the websocket handshake, and nothing
 weaker than the owner reaches a machine that can heat a nozzle.
 
-The page also has a **guest tier — read-only, by routing** (Turnstile guests; linked from the public landing). The rule is not "filter what a guest may send", it is "a guest has no route that carries their bytes to the LAN":
+The page also has a **guest tier — read-only, by routing** (Turnstile guests; on the landing wheel and the guest nav). The rule is not "filter what a guest may send", it is "a guest has no route that carries their bytes to the LAN":
 
 | Route | Owner | Guest | Why |
 |-------|-------|-------|-----|
@@ -481,7 +488,7 @@ The page also has a **guest tier — read-only, by routing** (Turnstile guests; 
 | `GET /api/printer/status` | ✓ | ✓ | one-way read; the printer pushes it unasked |
 | `GET /api/printer/health` | ✓ | ✓ | one-way liveness GET |
 
-Routers (`routes_printer.py`): `/printer`, health, status on `guest_protected`; `/printer/video`, `/printer/frame` on `public` with the tier checked in-handler (`_has_view_access`); `/printer/{path}` on `protected`; `/ws/printer` on `public` with a `session`-cookie `hmac.compare_digest` check (closes `1008` before `accept()`).
+Routers (`routes_printer.py`): `/printer`, health, status on `guest_protected`; `/printer/video`, `/printer/frame` on `public` with the tier checked in-handler (`_has_view_access`); `/printer/{path}` on `protected`; `/ws/printer` on `public` with a `session`-cookie `hmac.compare_digest` check (closes `1008` before `accept()`; unlike the HTTP routes it does not accept the admin bearer). "Owner" for the in-handler checks (`_is_owner`) = the `session` cookie or the admin bearer; "guest" = a valid `guest_session` cookie.
 
 The two guest-reachable readers are **server-opened singletons**, not relays of anything a viewer said: `printer_camera.py` holds ONE upstream MJPEG stream (the printer allows ~4), and `printer_status.py` holds ONE SDCP socket that **sends no frame, ever** — the printer pushes status on its own and `public_status()` whitelists it (no `MainboardID`/`TaskId`/`Filename`).
 
@@ -515,7 +522,9 @@ The SPA assumes it is the origin. Pure helpers in `printer_proxy.py` (no I/O; `t
 | `"VideoUrl":"<ip>:3031/video"` in the SDCP reply (cmd 386) | `rewrite_ws_text` (printer→browser text frames) → `/printer/video` |
 | any `http://<lan-ip>[:80]/` in a frame (task `Thumbnail` cmd 321, `TimeLapseVideoUrl`) | `rewrite_ws_text` → `/printer/` (other ports untouched) |
 
-Relative URLs (hashed CSS/JS, lazy chunks, `assets/i18n/…`, fonts) resolve against the rewritten base and need nothing. **Deliberately not rewritten:** the WebRTC signalling socket (`ws://<host>:8883`, only when the printer advertises `VIDEO_WEBRTC`; this unit does not) — pinned by a regression test; wiring it means a fourth tunnel port + relay.
+Only `text/html` and JavaScript content types are rewritten (`rewrite_kind`); everything else streams untouched.
+
+Relative URLs (hashed CSS/JS, lazy chunks, `assets/i18n/…`, fonts) resolve against the rewritten base and need nothing. **Deliberately not rewritten:** the WebRTC signalling socket (`ws://<host>:8883`, only when the printer advertises `VIDEO_WEBRTC`; the unit tested reported only FILE_TRANSFER / PRINT_CONTROL / VIDEO_STREAM) — pinned by a regression test; wiring it means a fourth tunnel port + relay.
 
 **Headers are allowlists both ways** (`upstream_request_headers` / `client_response_headers`): the session cookie and bearer never reach the printer; `accept-encoding: identity` so bodies arrive rewritable; `content-length`/`content-encoding` dropped on the way back, a request `content-length` forwarded (the printer's HTTP server is not trusted with chunked). Every response is `Cache-Control: private, no-cache` and `CacheControlMiddleware` (main.py) skips `/printer/`. Only a root-relative `Location` survives, re-rooted; any other redirect target is dropped.
 
@@ -525,12 +534,8 @@ Relative URLs (hashed CSS/JS, lazy chunks, `assets/i18n/…`, fonts) resolve aga
 
 - **`/printer/{path}`** streams non-HTML/JS bodies both directions (`StreamingResponse` over `httpx` down, `request.stream()` up, write timeout unbounded for gcode uploads); HTML/JS are read whole, rewritten, re-served. Timeouts: connect 4s, read 60s (`_HTTP_TIMEOUT`).
 - **`/printer/video`** relays `multipart/x-mixed-replace` with `X-Accel-Buffering: no`; the content type is excluded from `GZipMiddleware`. `main.py` passes the exclusion list to `GZipMiddleware` explicitly (newer starlette binds the kwarg default at import time) and lists both prefix and `type/*` spellings.
-- **`/ws/printer`** accepts first, then dials the printer (like `/ws/hosaka`), so a vanished browser never strands an upstream socket and a down printer is a clean `1011` the SPA retries. Two pumps (`_pump_to_client` rewrites text; `_pump_to_upstream` forwards text + bytes) under `asyncio.wait(FIRST_COMPLETED)`; either side closing tears down both.
+- **`/ws/printer`** accepts first, then dials the printer (like `/ws/hosaka`), so a vanished browser never strands an upstream socket and a down printer (5s `open_timeout`) is a clean `1011` the SPA retries. Two pumps (`_pump_to_client` rewrites text; `_pump_to_upstream` forwards text + bytes) under `asyncio.wait(FIRST_COMPLETED)`; either side closing tears down both.
 - **Liveness** (`/api/printer/health`): tunnel ports stay bound while the printer is off (accept-then-reset), so only a real HTTP answer from the SPA shell counts (the `/api/hosaka/health` rule); own timeout 2s connect / 3s total (`_HEALTH_TIMEOUT`). Upstream failures degrade to 503 or a closed socket, never 500.
-
-### 6d. The tunnel and its env
-
-See the port/env table in §6a. `routes_printer.py` serves every route; the pure rewrite helpers live in `printer_proxy.py`.
 
 ### 6e. The wrapper page
 
@@ -544,10 +549,6 @@ See the port/env table in §6a. `routes_printer.py` serves every route; the pure
 - **`printer.css` keeps the CRT stack at `--z-modal` IN FRONT** for both tiers (not `z-index:-1` like `/rd`); layers are `pointer-events:none` so the SPA stays clickable.
 - **The Exec link-bubble drags across the iframe**: `exec-bubble-drag.js` flags a live mouse drag `html.exec-drag`; `printer.css` drops the frame's `pointer-events` meanwhile.
 - **Scrollbar**: `web/printer-frame.css` re-declares `--green-hsl`/`--radius-pill` in its own `:root` and writes the rules as `html ::-webkit-scrollbar` with `!important` on every declaration (the SPA ships its own grey bar under that selector, inline copy lands after our `<link>`). chrome.css is deliberately not injected (globals fight antd). Wrapper styles stay in `printer.css`; `printer-frame.css` is only for the proxied document.
-
-### 6f. What gets rewritten, exactly
-
-The table in §6b is the full rule set. Only `text/html` and JS bodies are rewritten; everything else streams untouched. Socket frames printer→browser pass `rewrite_ws_text`. Header allowlists, ETag/`REWRITE_VERSION` and redirect handling: §6b.
 
 ### 6g. The camera hub
 
@@ -571,10 +572,7 @@ The table in §6b is the full rule set. Only `text/html` and JS bodies are rewri
 
 History — the incidents behind the rules above: [ARCHAEOLOGY.md §6](ARCHAEOLOGY.md).
 
----
-### 6-notes. From CLAUDE.md (moved 2026-09-27)
-
-CLAUDE.md's `/printer` page row and the `ANY /printer/{path}` / `GET /printer/video` API rows are now indexes into §6; their content is folded into the tier table, §6b, §6c and §6g above. Nav label `3DP`; route, icon and internal key stay `printer`.
+Nav label `3DP`; route, icon and internal key stay `printer`.
 ## 7. `/cc` — the Exec panel's agent (Claude Code, host-side sidecar)
 
 Owner-only. The `/cc` PAGE is gone (folded into the Exec panel 2026-09-29, §7g); `/api/cc/*` and the sidecar behind them remain, and the panel on `/rd` + `/hq` is their client. This section is the **exec-fn side**: routes, transport, the panel UI. Summary + invariants: CLAUDE.md's `/cc` row. The sidecar itself (`claude-box/`, submodule `wai-lau/cc-sidecar`) has its own `ARCHITECTURE.md`, cited here as `claude-box S-N`; the agent's `cwd` is a private scratch sandbox, **not** a checkout of exec-fn.
@@ -632,7 +630,7 @@ The agent gets Exec's card tools as `mcp__exec__*`; the sidecar relays (claude-b
 The agent IS Exec. The sidecar assembles the system prompt (claude-box S-9: Exec's prompt + operating rules + `cc-context.md`); this side owns the container pieces:
 
 1. **Exec's static prompt** — `chat._CHAT_STATIC_PREFIX`, served at `/api/exec/prompt`. One source for every surface. Its `LENGTH` rule: a confirmation, yes/no or single fact gets one line; one action gets one line; only an open question earns more.
-2. **The board rides in the message, not the prompt**, so the system prompt stays byte-stable (cacheable). `/api/cc/query` prepends `exec_context.wrap()`: an `<exec-context>…</exec-context>` block holding `chat._turn_context("planning")` (today, activity log, selected tasks, ideas pool, 7-day schedule, known context, open nudges) plus the last `RECENT_PUSHES` = 5 nudges/monitor comments (`exec_panel.recent_pushes`; they live only in chat.json, which the agent never reads, so without it a reply to a comment answers something Exec never said). The sidecar treats the block on the LATEST message as authoritative and strips it from history/title/archive. **The tag is a contract**: `exec_context.OPEN/CLOSE` ↔ `CONTEXT_BLOCK` in `claude-box/exec-tools.mjs`, pinned by `tests/test_exec_context.py`. The block is re-sent every user turn (~4K tokens) and accumulates until the 4:30 new-chat or compaction.
+2. **The board rides in the message, not the prompt**, so the system prompt stays byte-stable (cacheable). `/api/cc/query` prepends `exec_context.wrap()`: an `<exec-context>…</exec-context>` block holding `chat._turn_context("planning")` (today, activity log, selected tasks, ideas pool, 7-day schedule, known context, open nudges) plus the last `RECENT_PUSHES` = 5 nudges/monitor comments (`exec_panel.recent_pushes`; they live only in chat.json, which the agent never reads, so without it a reply to a comment answers something Exec never said). The sidecar treats the block on the LATEST message as authoritative and strips it from history/title/archive. **The tag is a contract**: `exec_context.OPEN/CLOSE` ↔ `CONTEXT_BLOCK` in `claude-box/exec-tools.mjs`, pinned by `tests/test_exec_context.py`. The block is re-sent on every user turn and stays in the stored transcript (the sidecar strips it for display).
 3. **Board scope** (`api/exec_board.py`, both paths): EVERY rd + hq card, plus archives/exile cards whose latest logged move there is within 7 days and which are still in that column. Cards carry no move time, so the window is read from `activity_log.json` + the dated `activity_log_YYYYMMDD.json` rotations, matched by id (title fallback).
 
 ### 7f. The Exec panel on the sidecar
@@ -674,7 +672,7 @@ The list renders **oldest first, most recent at the BOTTOM** (the sidecar return
 
 Mounted at the TOP of the panel by `execStatusMount`, in the panel's own flow (slides with it). Metrics only: the conversation-title band was dropped, but `execTitleRefresh` still hits `/api/cc/title` after each `exec:reply-done`, because that request generates the cached title `/list` names rows by. The model is tracked (it decides ctx's window: 1M for a `[1m]` model else 200K) but not shown.
 
-**Five equal columns, always all five** (`grid-template-columns: repeat(5, 1fr)`, missing values render 0 so the row never jumps): `ctx:N%` (white) · `(base:N%)` (grey) · `5h:N%` (pink) · its reset (mint, e.g. `(2h02m)`) · `7d:N%` (cyan). Each has a gauge (`.cs-bar`): ONE pill that extends on a darker full-width track (5px, `--radius-pill`) in `currentColor`; `min-width: 5px`, **no fill element at all for zero**. The reset box gauges how much of the 5h window has BURNED (`execBurned`) so all five mean "more filled = less left"; no reset time = empty. (The five colours are grandfathered in `raw-color-baseline.json`.)
+**Five equal columns, always all five** (`grid-template-columns: repeat(5, 1fr)`, missing values render 0 so the row never jumps): `ctx:N%` (white) · `(base:N%)` (grey) · `5h:N%` (pink) · its reset (mint, e.g. `(2h02m)`) · `7d:N%` (cyan). Each has a gauge (`.cs-bar`): ONE pill that extends on a darker full-width track (5px, `--radius-pill`) in `currentColor`; `min-width: 5px`, **no fill element at all for zero**. The reset box gauges how much of the 5h window has BURNED (`execBurned`) so all five mean "more filled = less left"; no reset time = empty.
 
 **Every figure is REPORTED, never estimated**: model from the SDK `init` frame, context from `done.ctxTokens`, windows from `GET /api/cc/limits` (sidecar `usage.mjs`, claude-box S-14; fetched on load and each `exec:reply-done`, not polled). `base` is the smallest total input ever seen (`localStorage` `exec.ctxbase`); the whole state is cached under `exec.status` as a first paint (12h TTL; a window already past its reset is dropped). `/new` zeroes ctx (`exec:conversation-new`); base and windows survive. The reset countdown re-renders every 60s.
 
@@ -692,7 +690,7 @@ Cached in `data/cc_titles.json` per session, regenerated every `_EVERY` = 4 mess
 
 ### 7k. A run outlives its caller — the page side
 
-Hanging up (minimize, close, lock the phone) never aborts a run; the sidecar half is claude-box S-11. The page picks the reply back up **from the transcript** (`web/exec-resync.js`), text only: the voice stops with the stream. `execResync()` posts a `still answering` line, waits until the sidecar is free AND no turn of the page's own is streaming, then `execLoadHistory(true)` replaces the transcript — only once the replay is in hand (a failed fetch leaves the screen alone). Capped at `EXEC_RESYNC_MAX_MS` (15 min).
+Hanging up (minimize, close, lock the phone) never aborts a run; the sidecar half is claude-box S-11. The page picks the reply back up **from the transcript** (`web/exec-resync.js`), text only: the voice stops with the stream. `execResync()` posts a `still answering` line, waits until the sidecar is free AND no turn of the page's own is streaming, then `execLoadHistory(true)` replaces the transcript — only once the replay is in hand (a failed fetch leaves the screen alone). The wait is capped at `EXEC_RESYNC_MAX_MS` (15 min); past it the replay still runs.
 
 ![How the page resyncs a cut turn](docs/arch/07-resync.svg)
 
@@ -739,7 +737,7 @@ Full-width Sunday-first grid of the CURRENT MONTH only, no weekday row, 4-6 rows
 
 Each day is the zero-padded day number over a centred row of dots, one per card landing on that day (`scheduled_day`, else the `due_date` date part). Every dot is rendered, then `fitCalDots` decides how many fit.
 
-- **Books and EXILED cards are excluded; archived cards count, but only on days already past** (a card finished EARLY would dot a day nothing happened on; a recurring card would double-book the future, since archiving clones the next occurrence).
+- **Books and EXILED cards are excluded; archived cards count, but never after today** (a card finished EARLY would dot a day nothing happened on; a recurring card would double-book the future, since archiving clones the next occurrence).
 - **Archiving PRESERVES `scheduled_day`** (`_apply_patch_schedule`, `routes_api.py`): leaving hq clears it, except into archives, where the field is the only record of the day it happened. Inert elsewhere (`get_week_data` takes `column == "hq"`, the rollover takes `("rd", "hq")`, nudges need hq).
 - Colour = the card's category hue (`dotColor()`) at full opacity, except **Interfacing and Hobby**, two adjacent warms a 4px dot cannot separate: `_DOT_COLOR` gives Interfacing `--orange-hsl @1` and Hobby `--orange-glow-hsl @0.8` (split by VALUE as well as hue; both already in the palette baseline). The CARDS keep Coral.
 - **A dot is as wide as the card is important**: `dotUnits()` wisp 1 · idea 2 · plan 3 · commitment 4 (unknown → idea). A **reminder is forced to wisp** (same override as `cardStyle`; also catches gcal imports with `size: null`). A multi-unit dot is a stadium via `--radius-pill` (`--radius-round`'s 50% would draw an ellipse). Dots never shrink (`flex: 0 0 auto`).
@@ -810,9 +808,9 @@ Items stay **upright** (gondolas hang level); the arc shows in the SPACING inste
 
 ### 9b. `DTH = (π/2)/K` is the load-bearing choice
 
-`K` is how many slots reach the **seam** (where an item wraps from the bottom back to the top). A seam at exactly 90° means `cos θ` = 0: **an item is fully transparent at the instant it teleports**, so the ring closes with no pop for any `K`. (A stale header comment in `landing-wheel.js` still says `DTH = PI / n`; the code is `(π/2)/K`.)
+`K` is how many slots reach the **seam** (where an item wraps from the bottom back to the top). A seam at exactly 90° means `cos θ` = 0: **an item is fully transparent at the instant it teleports**, so the ring closes with no pop for any `K`.
 
-**`K` is solved for** (`wheelGeometry`, re-run on resize and by a `ResizeObserver` on every item): it walks `K` down from `ceil(n/2)` and takes the largest that neither collides the front pair nor pushes the outermost lit item's centre past `vh/2 · WHEEL_REACH` (1.12) — up to `2K−1` items lit. **`K` never passes `n/2`** (two offsets would name the same item). Even `n`: a spoke sits on the seam, already invisible. Odd `n`: the seam falls BETWEEN slots so `K` rounds UP — it lights every item AND narrows `DTH`, tightening the front spacing. At 11 sections `K`=6, `DTH`=15°, all 11 lit at every resting position on phone and desktop viewports.
+**`K` is solved for** (`wheelGeometry`, re-run on resize and by a `ResizeObserver` on every item): it walks `K` down from `ceil(n/2)` and takes the largest that neither collides the front pair nor pushes the outermost lit item's centre past `vh/2 · WHEEL_REACH` (1.12) — up to `2K−1` items lit. **`K` never passes `n/2`** (two offsets would name the same item). Even `n`: a spoke sits on the seam, already invisible. Odd `n`: the seam falls BETWEEN slots so `K` rounds UP — it lights every item AND narrows `DTH`, tightening the front spacing. At 11 sections the walk starts at `K`=6 (`DTH`=15°, `2K−1` = 11 lit); it only steps lower when the front pair would collide or the rim overshoots.
 
 ### 9c. Spacing
 
@@ -844,7 +842,7 @@ History: [ARCHAEOLOGY.md §9](ARCHAEOLOGY.md).
 
 ## 10. The CRT effect stack (`_CRT_FX`)
 
-**Who gets it.** `_render_page`, the landing, `/graph`, and both login screens (`/login` reads the raw static shell, `/guest` the bare one; neither picks the stack up from anywhere else). `_CRT_FX` (`pages.py`) is five divs plus `web/crt-zoom.js`. Layers are `position:fixed`, `pointer-events:none`, at `--z-modal`, so they sit over a form without taking a click. Defined in `chrome.css`.
+**Who gets it.** `_render_page` (unless `crt=False`: `/spire`), the landing, `/graph`, and both login screens (`/login` reads the raw static shell, `/guest` the bare one; neither picks the stack up from anywhere else). `_CRT_FX` (`pages.py`) is five divs plus `web/crt-zoom.js`. Layers are `position:fixed`, `pointer-events:none`, at `--z-modal`, so they sit over a form without taking a click. Defined in `chrome.css`.
 
 **Paint order = DOM order, and it is load-bearing:**
 
@@ -878,7 +876,7 @@ Scanline geometry is `calc(N * var(--crt-u))`, `--crt-u = 1px * var(--crt-scale)
 
 ### 10c. Dimming on the dense pages
 
-`/rd`, `/hq` and `/mtg` keep all five layers ON TOP at `--z-modal`, **dimmed to 0.75** via the shared `web/crt-dim.css` (linked from `rd.html`, `hq.html`, `mtg.html`): `.cyber-bg`/`.cyber-lines`/`.cyber-scan` at `opacity: .75`; glass `blur(calc(var(--blur-2xs) * 0.75))`; punch `brightness(0.8875) contrast(1.375)`. (The header comment in `crt-dim.css` still describes the older 0.5 values.) `/tarot` stays at full strength — its CRT is the mood.
+`/rd`, `/hq` and `/mtg` keep all five layers ON TOP at `--z-modal`, **dimmed to 0.75** via the shared `web/crt-dim.css` (linked from `rd.html`, `hq.html`, `mtg.html`): `.cyber-bg`/`.cyber-lines`/`.cyber-scan` at `opacity: .75`; glass `blur(calc(var(--blur-2xs) * 0.75))`; punch `brightness(0.8875) contrast(1.375)`. `/tarot` stays at full strength — its CRT is the mood.
 
 **Dim with `opacity`, never by rewriting gradient alphas** — a scaled alpha lands off the palette snap scale and the lint rejects it. Paint order is untouched, so the backdrop panes still cache; a card DRAG is the one thing that dirties them per frame.
 
@@ -914,20 +912,20 @@ chrome.css, the cyber-fx bg, the nav (guest nav for non-admins, full nav for adm
 
 **`_externalise_boot` lifts every inline `<body>` script into one external payload**, served by `GET /graph/boot.js?v=<md5 16>` (guest tier, `immutable`, `X-Payload-Bytes` = decoded length). `_PAYLOADS` keeps the last `_PAYLOAD_MAX` (6) digests; an unknown hash renders both lite variants once and looks again. The payload is bracketed with `__GP_PAYLOAD_START`/`__GP_PAYLOAD_MS` and carries `window.GRAPH_LAYOUT_TALL`. The shell gets `window.GRAPH_BOOT_URL` instead of a `<script src>`: **`web/graph-cover.js` fetches the payload itself** so the bar tracks real bytes (it falls back to injecting the tag; graph-overlay.js injects it if the loader never ran). `_defer_scripts` then defers every same-origin `src` script **except graph-cover.js** (the one script that must be live while the payload is on the wire); deferred scripts run in document order, so vis → payload → overlay stack keeps its old order.
 
-**TRAP: `_externalise_boot` MUST run last in `_render`** (after the node-JSON edits and after the head/body injection step reads the body scripts). Every scrub/drop/merge is a string edit on the inline node JSON, and `graph_layout_key` hashes that same text; run first, they all no-op on a 9KB shell, the key comes back empty, and the served payload is the RAW unredacted artifact. Check the served PAYLOAD, not the page.
+**TRAP: `_externalise_boot` MUST run after every node-JSON edit** (last of the data transforms, immediately before the `</head>`/`</body>` chrome injections, so it lifts only graphify's own scripts and not ours; `_defer_scripts` is the final step). Every scrub/drop/merge is a string edit on the inline node JSON, and `graph_layout_key` hashes that same text; run first, they all no-op on a 9KB shell, the key comes back empty, and the served payload is the RAW unredacted artifact. Check the served PAYLOAD, not the page.
 
-**Loading cover** (`web/graph-cover.js`, `gpCover`): static markup `_GRAPH_BOOT` first in `<body>` with an indeterminate `.gp-indet` marquee; milestones `FETCHED` 0.35 → `BUILT` 0.6 → `PLACED` 0.75 → `DRAWN` 0.9 → 1.0 at reveal, eased by `transition: width 280ms` (never a timed creep). `LOAD_CAP` 180s failsafe; `READY_CAP` 3s / `DRAWN_CAP` 0.8s in graph-overlay.js lift the cover unconditionally. `#gp-pulse` backing store caps at DPR 2 (`graph-surface.js`).
+**Loading cover** (`_GRAPH_BOOT` markup, `gpCover`): see "Cover and loading bar" in §11f.
 
 **Opt-in variants** (a phone gets the FULL graph by default):
 
 - **`?lite=1`** — `_prune_for_lite` keeps the busiest `_LITE_NODES` (600) by degree plus edges among them, via `_prune_graph_nodes`. Runs AFTER `_apply_graph_layout` (survivors keep baked x/y; the layout key still hashes the full graph) and `_fix_graph_stats` re-runs. `?full=1` is not read by the server today — lite is opt-in only. The bake never renders lite.
 - **`?pack=1`** (client, `graph-lattice.js`) — shelf-packs the communities as rigid tiles to the viewport aspect; the stretch is skipped while it runs. Off by default.
 
-**Client geometry order** (`snapToGrid` in `graph-lattice.js`): `__GP_PRESNAP` is captured FIRST (the bake reads it), then `packCommunities` (opt-in) → `useBakedAspect` (picks the nearer of the wide/tall bake by log distance, all-or-nothing) → `stretchToViewport` (different x/y factors, area preserved) → quantise onto a lattice with ONE `cell` on both axes (`cell` from node count and the pre-pack cloud). `cols/rows` is therefore the cloud's bbox aspect; `nodeBounds` pads by the largest node radius. The opening view is `contain * FIT_MARGIN` (0.8), the same expression the outward zoom wall uses. Tapping a node centres it beside the info panel (`centreBesidePanel`, measured correction, no animation). Cascade and overlay: §11f.
+Client geometry (the snap, lattice, opening view, cascade, overlay): §11f.
 
 **Shape carries TYPE, colour carries community** (`_TYPE_SHAPES`, `graph_geometry.py`): `code` → `triangle`, `rationale` → `hexagon`, `document` → `triangleDown`. No `circle`/`ellipse`/`box`/`text` in the set — vis draws those with the label inside and ignores `size`, which would discard the degree encoding. The per-node `shape` must be named in graphify's DataSet mapper (same explicit-field trap as baked x/y); the global `nodes: { shape }` is `_TYPE_SHAPES["code"]` as fallback. The overlay glyph (`web/graph-glyph.js`) mirrors vis's own triangle offset (1.15x radius, y shifted 0.275): change shapes in `_TYPE_SHAPES` alone.
 
-**Any change to drop/merge code changes `graph_layout_key` and misses the bake** → every visitor pays the ~30s browser stabilisation until `scripts/graph-layout.py` is re-run by hand (takes ~20s). The nightly covers graphify rebuilds only.
+**Any change to the node/edge drop code changes `graph_layout_key` and misses the bake** (the key hashes surviving ids + edge pairs; community/colour/size/label edits do not move it) → every visitor pays the ~30s browser stabilisation until `scripts/graph-layout.py` is re-run by hand (~20s). The nightly covers graphify rebuilds only.
 
 History: [ARCHAEOLOGY.md §11](ARCHAEOLOGY.md#11-graph)
 
@@ -945,7 +943,7 @@ Order in `_render` (all in `graph_scrub.py`):
 | `_drop_graph_orphan_nodes()` | nodes no surviving edge touches | would otherwise still be parsed, built and walked per redraw |
 | `_drop_graph_small_islands()` | connected components under `min_size` 5 | pairs of files referencing only each other read as rim specks |
 
-Every drop goes through `_prune_graph_nodes`, which also removes dangling `RAW_EDGES`, emptied `LEGEND` rows and any `hyperedges` referencing a removed node.
+Every NODE drop (all but `_drop_graph_inferred_edges`, which filters `RAW_EDGES` directly) goes through `_prune_graph_nodes`, which also removes dangling `RAW_EDGES`, emptied `LEGEND` rows and any `hyperedges` referencing a removed node.
 
 **Ordering rule:** inferred edges → orphans → islands. Dropping edges splits components and orphans nodes, so each later pass must measure the graph the previous one left. `_fix_graph_stats` (the `#stats` header) runs after all of it.
 
@@ -981,7 +979,7 @@ History: [ARCHAEOLOGY.md §11](ARCHAEOLOGY.md#11-graph)
 - **Nodes** (`_node_color`): fill `_GRAPH_BG` `#000000` (keep equal to `--bg-hsl`), border = community colour at `_NODE_OPACITY` alpha; highlight border `#ffffff`; hover keeps the full-strength colour (read by the info-panel stripe). The unlit baseline is the BORDER alpha, never the node `opacity` option (that would make the fill translucent, killing occlusion). `_restyle_graph_nodes` also sets global `borderWidth: 2` and repoints `nb.color.background` → `nb.color.border` in `showInfo()`.
 - **Labels** (`_label_graph_nodes`): site mono font (`_NODE_FONT`, size 12), any label over `_LABEL_MAX` (20) chars → `[ redacted ]` (graph-overlay.js `isRedacted` matches it and the server's `[redacted]`).
 - **Tooltips** (`_drop_graph_tooltips`): strips the unquoted `title: x.title,` from both DataSet mappers (`_TOOLTIP_FIELD_RE`); the data arrays keep their JSON-quoted `title`, and the click panel reads `label`/`_*` fields.
-- **Physics** (`_tune_graph_physics`, graph_layout.py): replaces graphify's `physics:` block (matched whole, anchored on the following `interaction:` key) with one-shot `forceAtlas2Based` — `theta 0.8`, `gravitationalConstant -628`, `centralGravity 0.025`, `springLength 30`, `springConstant 0.22`, `damping 0.9`, `avoidOverlap 1`, `maxVelocity 50`, `minVelocity 4`, `stabilization { iterations 300, updateInterval 20, fit true }`. Edges become `smooth: false` (`selectionWidth: 3` kept). graph.html's `stabilizationIterationsDone` handler then turns physics off. `_render` also sets `layout: { improvedLayout: false }`. Iteration count 300 was walked 270→370→300→325→300; nothing above 300 shows in the picture. Raising it does NOT invalidate the bake (the key hashes ids and edges, not coordinates).
+- **Physics** (`_tune_graph_physics`, graph_layout.py): replaces graphify's `physics:` block (matched whole, anchored on the following `interaction:` key) with one-shot `forceAtlas2Based` — `theta 0.8`, `gravitationalConstant -628`, `centralGravity 0.025`, `springLength 30`, `springConstant 0.22`, `damping 0.9`, `avoidOverlap 1`, `maxVelocity 50`, `minVelocity 4`, `stabilization { iterations 300, updateInterval 20, fit true }`. Edges become `smooth: false` (`selectionWidth: 3` kept). graph.html's `stabilizationIterationsDone` handler then turns physics off. `_render` also sets `layout: { improvedLayout: false }`. Nothing above 300 iterations shows in the picture (walked 270→370→300→325→300); raising it does NOT invalidate the bake (the key hashes ids and edges, not coordinates).
 - **Stats** (`_fix_graph_stats`): rewrites the `#stats` header (graphify bakes PRE-scrub counts) after the drops and again after the lite prune.
 - All array transforms use a **per-line anchored** array regex (`_array_re`): a non-greedy `[.*?]` truncates at a `];` inside a node title.
 
@@ -996,7 +994,7 @@ Stabilising ~300 forceAtlas2 iterations takes seconds on a desktop and ~30s on a
 - **Key** = md5 of sorted node ids + sorted `from>to` edge pairs (`_layout_key`), read back off the rendered page (`window.GRAPH_LAYOUT_KEY`) so writer and reader can't disagree. Identical across guest/admin (they differ only by nav).
 - **Hit:** `_apply_graph_layout()` writes x/y into `RAW_NODES`, adds `x: n.x, y: n.y` to graphify's DataSet mapper (it lists fields explicitly), and replaces the physics block with `physics: { enabled: false }`. The overlay is told via `window.GRAPH_LAYOUT_CACHED` (no `stabilizationIterationsDone` fires with physics off, and that event reveals the page).
 - **Every failure is a no-op** (missing/unreadable file, key mismatch → `read_graph_layout` returns None) that falls back to browser stabilisation: a stale layout is worse than a slow one.
-- **Two bakes**, because vis has no per-axis gravity: `_BAKES` = `pos` target aspect **1.60** @ 1440x900 (baked into `RAW_NODES`), `tall` **0.50** @ 430x932 (rides in the PAYLOAD as `GRAPH_LAYOUT_TALL`, so the 9KB no-cache shell stays small). The script injects `_SHAPE_JS`: on each `stabilizationProgress` it squeezes the cloud toward the target by `(target/current)^_SHAPE_RATE`, `_SHAPE_RATE` **0.2**, split across x and y so area is preserved. It undershoots (springs pull back): wide reaches ~1.25, tall ~0.74. The client picks the nearer bake (`useBakedAspect`) and stretches the rest.
+- **Two bakes**, because vis has no per-axis gravity: `_BAKES` = `pos` target aspect **1.60** @ 1440x900 (baked into `RAW_NODES`), `tall` **0.50** @ 430x932 (rides in the PAYLOAD as `GRAPH_LAYOUT_TALL`, so the 9KB no-cache shell stays small). The script injects `_SHAPE_JS`: on each `stabilizationProgress` it squeezes the cloud toward the target by `(target/current)^_SHAPE_RATE`, `_SHAPE_RATE` **0.2**, split across x and y so area is preserved. It undershoots (springs pull back); each run logs `target -> got` per bake. The client picks the nearer bake (`useBakedAspect`) and stretches the rest.
 - **Reads `window.__GP_PRESNAP`** (captured before any pack/stretch/quantise) rather than `network.getPositions()`, else the client snap is baked back in. It waits for body class `gp-loaded`, fetches with `Authorization: Bearer <API_KEY from .env>`, and both bakes must return the same key.
 - **Cron:** host `/etc/cron.d/exec-fn-graphify` → `0 5 * * *` `scripts/graphify-daily.sh` (as `wai-root`): graphify rebuild (600MB `RLIMIT_AS`, `GRAPHIFY_VIZ_NODE_LIMIT=8000`), a hard failure if no fresh `graph.html` was written (previous one restored from `.graph.html.prev`), then the bake. A bake failure is logged and NON-fatal. Log: `data/cron/…__graphify.log`.
 - **TRAP: cron has no session bus**, so `systemd-run --user` fails with "Failed to connect to bus" unless the job exports `XDG_RUNTIME_DIR=/run/user/$(id -u)`. The `MemoryMax=700M` scope is not optional (WebKit is 200–400MB; the OOM killer picks by badness, §17).
@@ -1034,7 +1032,7 @@ The server decides everything it can (11b/11d); the client adds the firing anima
 
 `graph-overlay.js`: `patchInfoPanel()` wraps graph.html's `showInfo()` (retries until it exists; redacted nodes get Type/Source blanked and neighbours removed; **opens** the panel and moves the toggle glyph; writes the label into the `<h3>` and removes the duplicate first `.field` by TEXT match, never position), `addToggle()` (the node-info collapse button), `setupZoomLimits()` (hard walls, clamps in place), `watchWake()` (on `visibilitychange` + `persisted` `pageshow`: `graphPulseDraw.resize()` + `network.redraw()`; **never reloads** — a /graph reload is a black page for the whole load), `centreBesidePanel()` (tap centres the node in the space beside the panel; next frame, no animation — animated pans are full vis redraws).
 
-**Opening view**: `contain x FIT_MARGIN` (0.8) — the same expression `setupZoomLimits` clamps the outward wall to, so the page opens at the furthest zoom-out and the first gesture can only go inward. The cover lifts after vis's `afterDrawing`, then the pulse's first PAINTED frame (`graphPulse.init(onReady)`); `READY_CAP` 3s and `DRAWN_CAP` 800ms are floors. `snapToGrid` writes `network.body.nodes[id].x/y` directly and calls `network.redraw()` ONCE (`moveNode` per node queued one vis redraw per node: 160 draws/16s).
+**Opening view**: `contain x FIT_MARGIN` (0.8) — the same expression `setupZoomLimits` clamps the outward wall to, so the page opens at the furthest zoom-out and the first gesture can only go inward. The cover lifts after vis's `afterDrawing`, then the pulse's first PAINTED frame (`graphPulse.init(onReady)`); `READY_CAP` 3s (from the camera move) and `DRAWN_CAP` 800ms (from `afterDrawing`) lift it unconditionally, whichever lands first. `gpCover.CAP` (`LOAD_CAP` 180s) declares failure only if `network` never appeared, else it reveals. `snapToGrid` writes `network.body.nodes[id].x/y` directly and calls `network.redraw()` ONCE (`moveNode` per node queued one vis redraw per node: 160 draws/16s).
 
 **Trap — palette lint**: it reads source with whitespace stripped, so any colour-function name followed by `(` (code OR comment) reads as a new raw colour. That is why the helper is `hueChan` and `sat()` returns hex. Rename or reword; never baseline.
 
@@ -1049,7 +1047,7 @@ The server decides everything it can (11b/11d); the client adds the firing anima
 
 | Rule | Value |
 |---|---|
-| Ambient clock | one iteration per `ITER_MS` 1s, `ITER_LIFE` 2s; never gated on whether anything is lit; `MAX_LIVE` 8 (safety bound) |
+| Ambient clock | one iteration per `ITER_MS` 1s, `ITER_LIFE` 2s; never gated on whether anything is lit, but skipped while audio capture is on (`graphAudio.driving()`); `MAX_LIVE` 8 (safety bound) |
 | Burst | `SEEDS_PER_ITER` 8 (caller may ask, `MAX_SEEDS` 20); extras drawn from the first seed's `near` pool, weighted, with replacement, `SEED_TRIES` 4/seed |
 | Stagger | one seed per `min(SEED_STAGGER_MS 100, SEED_WINDOW_MS 800 / want)`; a staggered seed is claimed in `seen` at once, queued `seed:true`, lights unconditionally and lights NO edge |
 | One event | all seeds share the iteration's `seen` + queue |
@@ -1059,9 +1057,9 @@ The server decides everything it can (11b/11d); the client adds the firing anima
 | Envelope | `ATTACK_MS` 280 rise, then `(1-t)^DECAY_POW` 0.85 (concave); multiplied by the hit's strength |
 | Edges | the edge a cascade crossed lights for `EDGE_DUR` 900; an edge only ever varies in SATURATION, never hue (tinted from the from-node) |
 | Saturated layer | a duplicate pass (halos, outline, edge) in the node's community colour, `SAT_MULT` 3 x as long: white flash decaying into a coloured afterglow. Colour computed ONCE per node at `index()` (`pos[id].c`); envelope is the model's own `satLevel` |
-| Unlit baseline | `_NODE_OPACITY` 0.2 for nodes AND edges (`graph_style.py`); `opacity` keeps colours, `size` and hit-testing; edge opacity must be written PER EDGE (a global `edges.color.opacity` is outranked) |
+| Unlit baseline | `_NODE_OPACITY` 0.2 (`graph_style.py`) as the node BORDER's alpha and as each edge's `color.opacity`; the node `opacity` option is not used (it would thin the fill and kill occlusion); edge opacity must be written PER EDGE (a global `edges.color.opacity` is outranked) |
 
-**A lit node is an OUTLINE and a HALO, never a fill** — the interior stays black (`A_FILL` is retired). Paint order (diagram above) is the implementation; under `'lighter'` additive layers commute, so the order only decides where the non-additive passes land: halos -> `clearNodes` (`destination-out`: erases only the overlay's own pixels, NOT a bg fill, which would hide vis's unlit layer below) -> `punchNodes` (opaque bg fill on nodes at/above `GRAPH_OCCLUDE_MIN` only) -> outlines -> wavefront (`source-atop`: lands only on nodes) -> edges (`destination-over`: paint beneath, so a big node's opaque interior occludes them and a small node's cleared interior shows them). Cost: where an edge crosses a halo it reads slightly dimmer.
+**A lit node is an OUTLINE and a HALO, never a fill** — the interior stays black (`A_FILL` is retired). Paint order (diagram above) is the implementation; under `'lighter'` additive layers commute, so the order only decides where the non-additive passes land: halos -> `clearNodes` (`destination-out`: erases only the overlay's own pixels, NOT a bg fill, which would hide vis's unlit layer below) -> `punchNodes` (opaque bg fill on nodes above `GRAPH_OCCLUDE_MIN` only) -> outlines (charge, white, saturated) -> wavefront (`graphRing.draw`: on a scratch layer, masked `destination-in` to the canvas's own pixels so it lands only on nodes, then blended `saturation`) -> edges (`destination-over`: paint beneath, so a big node's opaque interior occludes them and a small node's cleared interior shows them). Cost: where an edge crosses a halo it reads slightly dimmer.
 
 **The node fill must be the real page background**: `graphSurface.bg()` reads the computed body bg; `_GRAPH_BG` (`graph_style.py:195`) must equal `--bg-hsl` (`#000000`). A wrong or `transparent` bg shows as navy shapes / duplicated rotated nodes / bright hub centres (`setBg` is the single gate).
 
@@ -1106,14 +1104,12 @@ Static markup `_GRAPH_BOOT` at the top of `<body>`; `gpCover` names the phase (`
 
 #### Lattice (`graph-lattice.js`)
 
-The layout is snapped to a lattice at serve time, every load (the snap is NOT cached; ~0.1s). `CELLS_PER_NODE` 2.21484375 (a density, not a count). Sequence: `__GP_PRESNAP` captured BEFORE any reshaping (the nightly baker reads it) -> `packCommunities` (opt-in `?pack=1` only) -> `useBakedAspect` (picks the wide bake `BAKE_WIDE` 1.6 or the tall bake `BAKE_TALL` 0.5 from `window.GRAPH_LAYOUT_TALL` by log distance; all-or-nothing) -> `stretchToViewport` (area-preserving, skipped under `?pack=1`; reshapes positions so `cols/rows` follows the window) -> snap with ONE `cell` on both axes (equal horizontal and vertical step) -> `nearestFree` (ring search; real distance first, ties broken toward the cloud's CENTRE so collisions fill inward). **Snap ONCE** (re-snapping a snapped bake produced moire groups). `nodeBounds` pads by the largest node radius. Bakes: `scripts/graph-layout.py` `_BAKES` (wide 1.60 @1440x900, tall 0.50 @430x932), nudging toward the target aspect between stabilisation intervals (`_SHAPE_RATE` 0.2); iterations 300 (`graph_layout.py`).
+The layout is snapped to a lattice in the browser, every load (the snap is NOT cached). `CELLS_PER_NODE` 2.21484375 (a density, not a count). Sequence: `__GP_PRESNAP` captured BEFORE any reshaping (the nightly baker reads it) -> `packCommunities` (opt-in `?pack=1` only) -> `useBakedAspect` (picks the wide bake `BAKE_WIDE` 1.6 or the tall bake `BAKE_TALL` 0.5 from `window.GRAPH_LAYOUT_TALL` by log distance; all-or-nothing) -> `stretchToViewport` (area-preserving, skipped under `?pack=1`; reshapes positions so `cols/rows` follows the window) -> snap with ONE `cell` on both axes (equal horizontal and vertical step) -> `nearestFree` (ring search; real distance first, ties broken toward the cloud's CENTRE so collisions fill inward). **Never bake the snapped positions** (the bake reads `__GP_PRESNAP`; baking the snap back in produced moire groups). `nodeBounds` pads by the largest node radius.
 
 #### Traps (one-liners)
 
-- Any change to the drop/merge code changes `graph_layout_key` -> the bake MISSES until `scripts/graph-layout.py` re-runs (11e).
-- `_externalise_boot` MUST run last in `_render` (11a); `_cached` keys on the artifact AND `graph-layout.json` `(mtime_ns, size)`.
-- Shape says TYPE, colour says community: `_TYPE_SHAPES` (`graph_geometry.py:19`) code = triangle, rationale = hexagon, document = triangleDown; no `circle` (vis's label-inside family ignores `size`). The overlay copies vis's triangle offset math; a centred triangle lit a glyph a third of a radius off.
-- Node sizes 12..88 (`_SIZE_MIN/_SIZE_MAX`); both ends move together (the RATIO is the encoding); the biggest hub (88) must stay under the lattice step.
+Server-side traps (drop code vs the bake key, `_externalise_boot` order, `_TYPE_SHAPES`, size range, `_GRAPH_BG`) are in 11a/11d/11e, not repeated here.
+
 - `graph-pulse.js` and `graph-pulse-draw.js` sit near the 500-line cap — new effects go in their own file (the ring/glow precedent: an effect with its own register and passes owns its pixels; `graph-lit` stays a model because its flash feeds five passes).
 - `node --check` only parses and `no-undef` is off for `web/**` (shared global scope): dead or undefined references survive lint.
 
@@ -1121,21 +1117,19 @@ History: [ARCHAEOLOGY.md §11](ARCHAEOLOGY.md#11-graph)
 
 ---
 
-### 11g. Field notes (moved verbatim from CLAUDE.md 2026-09-27)
+### 11g. Field notes
 
-Folded into 11a-f; the live rules are there, the incident narratives are in the archaeology. Server-side facts that live only here:
+Everything live is in 11a-f; incident narratives are in the archaeology. What lives only here:
 
-- Guest-gated (Turnstile; was public until 2026-07-03). Applied per request, COMPUTED once per artifact: `_cached()` memoises rendered bytes per auth tier x `lite`, keyed on the artifact `(mtime_ns, size)` and `graph-layout.json`'s; cold render under a lock in `asyncio.to_thread`; `run_graph_warm_loop` renders all four `(guest, lite)` variants at startup and on change (warm TTFB ~0.05-0.13s).
-- First paint is the static cover; `_externalise_boot` lifts graphify's inline scripts into one external `defer` file `/graph/boot.js?v=<hash>` (same guest tier, `immutable`), `_defer_scripts` defers every other same-origin `src` (FCP 1304 -> 387ms).
-- `?lite=1` (OPT-IN, never the phone default): `_prune_for_lite` keeps the busiest `_LITE_NODES` 600 by degree and their edges, AFTER `_apply_graph_layout` so `graph_layout_key` still hashes the full graph; `_fix_graph_stats` re-runs after it. The nightly `?relayout=1` bake is never lite.
-- Edges: unlit opacity = `_EDGE_OPACITY` (= `_NODE_OPACITY` 0.2), width `_EDGE_WIDTH` 3, colour inherits from the from-node. Communities hard-capped at `_MAX_COMMUNITIES` 14; islands under 5 nodes dropped after the inferred-edge/orphan drops.
-- The baked layout falls back to browser stabilisation on EVERY failure (a stale layout is worse than a slow one); `window.GRAPH_LAYOUT_CACHED` tells the overlay whether `stabilizationIterationsDone` will fire. The bake's cron has no session bus: export `XDG_RUNTIME_DIR` or `systemd-run --user` fails nightly.
-- Keep `_GRAPH_BG` equal to `--bg-hsl`.
+- Guest-gated (Turnstile) since 2026-07-03; before that public.
+- Measured: lifting graphify's inline scripts out of the body (`_externalise_boot` + `_defer_scripts`) took FCP from 1304ms (`routes_graph.py` comment) to 387ms; a warm render is ~0.05-0.13s TTFB against 2.5-2.9s cold.
+- `window.GRAPH_LAYOUT_CACHED` tells the overlay whether `stabilizationIterationsDone` will fire (it will not with a baked layout; that event reveals the page).
 
 History: [ARCHAEOLOGY.md §11](ARCHAEOLOGY.md#11-graph)
+
 ## 12. The bottom nav
 
-Fixed to every page. Labels are **fixed 3-char codes** (`_NAV_LABELS` in `api/pages.py`); none is non-ASCII today, but the glyph machinery stays (§12a).
+Fixed to the bottom of every page that carries one (`/spire` passes `show_nav=False`; `/recruiter` has none). Labels are **fixed 3-char codes** (`_NAV_LABELS` in `api/pages.py`); none is non-ASCII today, but the glyph machinery stays (§12a).
 
 | Code | Route | Tier |
 |---|---|---|
@@ -1184,7 +1178,7 @@ Detected in the `_build_nav` script by `navigator.standalone` or `display-mode: 
 
 ### 12c. The Exec bubble is not a nav entry
 
-A floating draggable bubble (`#exec-bubble`, `guru-pink.png`, `exec-bubble.js` + `exec-bubble-drag.js`) injected by `_build_nav()`. No `/exec` route; guests get none.
+A floating draggable bubble (`#exec-bubble`, `guru-pink.png`, `exec-bubble.js` + `exec-bubble-drag.js`) injected by `_build_nav()`. No `/exec` route; guests and `/spire` (owner; it sat on the build buttons) get none.
 
 - **`/rd`, `/hq`**: tap toggles the Exec panel; `?exec=open` opens it on load.
 - **Every other non-guest page**: same bubble (exec-bubble.css, shared drag + `exec-bpos`), but a tap NAVIGATES to `/hq?exec=open` (`exec-link.js`). A `<div>`, not an `<a>`, so a drag cannot fire a click; nav via `location.href` stays in-app under standalone.
@@ -1212,7 +1206,7 @@ Why: the native root scrollbar is top-layer and painted the styled pill (and its
 
 ![Click-outside origin recorded on the way down](docs/arch/12-click-outside.svg)
 
-A bubble-phase `panel.contains(e.target)` test is wrong for any panel containing a control that removes itself: `document` is the last stop, so exec-choices' `retireAnswers()` has already detached the tapped button and the panel closes under the tap. `exec-bubble.js` records the origin on the way DOWN:
+A bubble-phase `panel.contains(e.target)` test is wrong for any panel containing a control that removes itself: `document` is the last stop, so exec-choices' `retireAnswers()` has already detached the tapped button and the panel closes under the tap. `exec-bubble.js` records the origin on the way DOWN (panel OR bubble counts as inside):
 
 ```js
 let fromInside = false;
@@ -1225,7 +1219,7 @@ document.addEventListener('click', closeIfOutside);     // bubble: act on the fl
 
 A property of the mechanism: any later self-detaching control is covered. Testing: the open panel spans the whole viewport (empty region passes clicks through), so there is no "outside" (x, y) — dispatch at a target the panel does not contain, and assert the old predicate reads false alongside the panel staying open. `exec-todos.js` is immune (checkbox defers `li.remove()` by 180ms).
 
-History: [ARCHAEOLOGY.md §12](ARCHAEOLOGY.md).
+History: [ARCHAEOLOGY.md §12](ARCHAEOLOGY.md#12-the-bottom-nav)
 
 ---
 
@@ -1237,14 +1231,14 @@ Source of truth is `scripts/pre-commit`; `.git/hooks/pre-commit` symlinks to it 
 
 | Check | Fires when | What it rejects |
 |---|---|---|
-| inline-script syntax | always (every `api/templates/*.html`) | `node --check` failure in an inline `<script>` |
+| inline-script syntax | always (every `api/templates/*.html`, not just staged) | `node --check` failure in an inline `<script>` |
 | ruff | staged `.py` | lint |
 | stylelint | staged `web/*.css` (not `web/vendor/`), if stylelint installed | lint |
 | `scripts/lint-colors.py` | any css / web-js / template staged | a new colour or alpha (§13a) |
 | `scripts/lint-scale.py` | any `web/*.css` staged | a raw literal on a governed property (§13b) |
 | shellcheck (`--severity=warning`) | staged `.sh` | lint |
 | **mermaid render** | staged `.mmd` | `scripts/render-mermaid.py` failure; re-renders each to the `.svg` beside it and `git add`s the SVG (below) |
-| ESLint | always on template inline scripts; staged `web/*.js` | errors; `max-lines-per-function: 100` (ratchet: only touched files) |
+| ESLint | template inline scripts (every template, whenever the host has `node_modules`; skipped with a note in a tooling-only copy); staged `web/*.js` | errors; `max-lines-per-function: 100` (ratchet: only touched files) |
 | `scripts/lint-swallowed.py` | staged top-level `web/*.js` | code after a mid-line `//` (swallowed code broke /spire 3x) |
 | 500-line cap | staged `.py`/`.js` (not node_modules/graphify-out/web/vendor) | any file over 500 lines (no allowlist; `LINE_CAP_ALLOW` is empty) |
 | no-multiline-inline-JS/CSS | staged templates | a multi-line inline `<script>`/`<style>` (one-liners ok) |
@@ -1315,22 +1309,22 @@ Every route on `protected` must be admin-**ONLY**: refused for anonymous AND gue
 
 ### 13f. The Claude Code guard set (`.claude/hooks/`, registered in `.claude/settings.json`)
 
-Separate from the git hook: these fire only when committing/editing THROUGH Claude Code. exec-fn owns every hook (§1e). **Every one fails open** — a parse error, missing file or bad payload exits 0.
+Separate from the git hook: these fire only when committing/editing THROUGH Claude Code. exec-fn owns every hook (§1e). **Every one fails open** (a parse error, missing file or bad payload exits 0) except `session-start.sh`, which runs `set -euo pipefail` but only in the web sandbox.
 
 ![Claude Code hooks by event](docs/arch/13-claude-hooks.svg)
 
 | Hook | Event / matcher | Does |
 |---|---|---|
 | `docs-commit-guard.sh` | PreToolUse Bash (`git commit` / `git -C <dir> commit`) | Denies a commit that stages `api/*.py` or `api/templates/*.html` without `CLAUDE.md`/`ARCHITECTURE.md`/`ARCHAEOLOGY.md`; opt-out token `[skip-docs]` in the message. Judges the index of the repo the commit RUNS in (`commit_repo.py`). |
-| `git-stash-guard.sh` | PreToolUse Bash, `if: Bash(git stash*)` | Blocks `git stash` (stales bind mounts → 502). |
+| `git-stash-guard.sh` | PreToolUse Bash, `if: Bash(git stash*)` | Blocks `git stash` (stales bind mounts → 502); `git stash list` / `show` pass. |
 | `nightfall-build-guard.py` | PreToolUse Bash | Denies a webpack build missing `NODE_ENV=production` (asset URLs 404 → silent black screen) or not run in the background. |
-| `dead-file-guard.sh` | PreToolUse Edit/Write/NotebookEdit | Denies edits to `nightfall-src/components/Netmap.tsx` (dead; only Netmap3D renders). |
+| `dead-file-guard.sh` | PreToolUse Edit/Write/NotebookEdit (reads `tool_input.file_path`, so in practice Edit/Write) | Denies edits to `nightfall-src/components/Netmap.tsx` (dead; only Netmap3D renders). |
 | `push-after-commit.sh` | PostToolUse Bash (after a commit) | Pushes when HEAD is ahead; see below. |
 | `deploy-healthcheck.sh` | PostToolUse Bash (commit, push, `docker compose up/restart`, SSH deploy, `scripts/deploy.sh`) | `curl https://wai-lau.net/` up to 5 tries; 200/301/302 = healthy. |
 | `session-context.sh` | SessionStart | States droplet-vs-local from the hostname (`main` + `/exec-fn`), reinstalls the graphify post-commit hook if missing, re-attaches a detached submodule HEAD to master (only when exactly `origin/master`), sets `core.hooksPath=scripts` for shim'd submodules. |
 | `session-start.sh` | SessionStart | Web sandbox only (`CLAUDE_CODE_REMOTE=true`): installs Python deps + ruff + npm devDeps. |
 
-**`push-after-commit.sh`** pushes in the repo the commit ran in; on rejection it discards `graphify-out` drift, `pull --rebase`s and pushes again (never stash). Skips a detached HEAD, a mid-rebase tree and a branch with no upstream (publishing a new branch stays deliberate). For a submodule commit it then bumps the parent's gitlink in its own `chore(apps): bump <path> to <sha>` commit (commits ONLY that path; forward-only — never rolls a submodule back) and pushes the parent, submodule FIRST (`push.recurseSubmodules=check`).
+**`push-after-commit.sh`** pushes in the repo the commit ran in; on rejection it discards `graphify-out` drift, `pull --rebase`s and pushes again (never stash). Skips `--dry-run`; a mid-rebase tree is left alone silently; a detached HEAD or a branch with no upstream is skipped with a note (publishing a new branch stays deliberate). The parent bump is refused with a note when the recorded SHA is not an ancestor of the checkout's. For a submodule commit it then bumps the parent's gitlink in its own `chore(apps): bump <path> to <sha>` commit (commits ONLY that path; forward-only — never rolls a submodule back) and pushes the parent, submodule FIRST (`push.recurseSubmodules=check`).
 
 ![push-after-commit flow](docs/arch/13-push-after-commit.svg)
 
@@ -1448,11 +1442,11 @@ An in-process asyncio loop (`_run_nudge_loop`, `nudge_loop.py`; lifespan-started
 
 ![Nudge tick loop](docs/arch/15-tick-loop.svg)
 
-- **`_eligible`** = `decomposable()` (column `hq`, not reminder/book) AND `scheduled_day == today`. No-Rollover cards are NOT excluded. (`decomposable`'s docstring mentions `is_dir_card`; the code no longer checks it.)
+- **`_eligible`** = `decomposable()` (column `hq`, not reminder/book) AND `scheduled_day == today`. No-Rollover cards are NOT excluded.
 - **Anchor** (`nudge_deadlines.active_anchor`): the active node's back-scheduled `deadline` minus its own duration (`est_min` x category factor; factor is 1.0 while recalibration is gated off, §15g).
 - **First nudge** = the placement. While `stage == nudging` and `last_nudge_at` is empty, `next_nudge_at` tracks the anchor each tick (`_arm_nudge`), so dragging the card moves the nudge.
-- **Fire** (`_fire_nudge`): decompose first if the card has no graph (one LLM call -> graph + first chunk + nudge text), else `nudge_text_sync`. Sets `stage=awaiting`, `awaiting_reply=true`, clears `next_nudge_at`. Delivery = `append_monitor_comment(text, card_id=)` + `push_to_monitor({comment, card_id})` + `{cards_changed}` — the monitor pipe, zero frontend.
-- **Failure backoff**: 300s per-card in-memory retry delay (`_NUDGE_FAIL_BACKOFF_SEC`); `_nudges_inflight` prevents a double fire.
+- **Fire** (`_fire_nudge`): `nudge_text_sync` for the active step. (Its decompose-first branch for a graph-less card is unreachable from the tick: `_scan_due_nudges` skips cards with no graph and the plan pass builds one first.) Sets `stage=awaiting`, `awaiting_reply=true`, clears `next_nudge_at`. Delivery = `append_monitor_comment(text, card_id=)` + `push_to_monitor({comment, card_id})` + `{cards_changed}` — the monitor pipe, zero frontend.
+- **Failure backoff**: an exception in any of the three passes sets a 300s per-card in-memory retry delay (`_NUDGE_FAIL_BACKOFF_SEC`); `_nudges_inflight` prevents a double run.
 - **Tick order**: triage pass, plan pass, fire pass (diagram). Every `rd.json` read-modify-write holds `_RD_LOCK`, never across the LLM call (reload + re-check after it).
 
 **`card["nudge"]` fields** (`default_nudge_state`, lazy, absent on most cards):
@@ -1468,7 +1462,7 @@ An in-process asyncio loop (`_run_nudge_loop`, `nudge_loop.py`; lifespan-started
 | `auto_deadline` | staggered deadline for a today card with no fixed one (`assign_auto_deadlines`; stacks by `_lead` from now, in `order`) |
 | `triage_pending` | title/notes changed (`routes_api._flag_triage`, `chat_tools`) -> next tick runs `triage_sync` and rebuilds the plan only if `needs_update`; a result is dropped (flag kept) if the graph's done-state moved during the LLM call |
 | `version` | `1` |
-| `window_deadline`, `redecompose_count`, `redecompose_at` | **vestigial**: `window_deadline` is only ever set to `None`; the `redecompose_*` metrics are never incremented (still read by `chat.py:125` and `nudge_llm.py:215`) |
+| `window_deadline`, `redecompose_count`, `redecompose_at` | **vestigial**: `window_deadline` is only ever set to `None`; the `redecompose_*` metrics are never incremented (`redecompose_count` is still read by `chat.py:125` and `nudge_llm.py:215`) |
 
 `tl_offset` = a step's start offset in minutes from the card's `dir_start_min` (set when placed on the timeline or edited in the dialog).
 
@@ -1498,10 +1492,10 @@ A step nudges **exactly once**, at its start (`_due_nudge`). No reply -> `awaiti
 
 ![Nudge stage state machine](docs/arch/15-nudge-stages.svg)
 
-- `advance_chunk` (chat tool / timeline tap-done) marks the step done, `stage=nudging`, and re-arms `next_nudge_at = now + window_for(card)`; all steps done -> `stage=resolved` (never archives — Wai archives).
+- `advance_chunk` (the chat tool, `chat_tools._tool_advance_chunk`) marks the step done, clears `awaiting_reply`, sets `stage=nudging` and `next_nudge_at = now + window_for(card)`; no open step left -> `stage=resolved` (never archives — Wai archives). A **timeline tap-done** is different: it only PATCHes the card with the node's `done` flag (the client recomputes `active_node`) and logs `advanced` (§16a); it does not touch `stage`, `awaiting_reply` or `next_nudge_at`, so the next nudge waits for a chat reply or the chat tool.
 - A reply **without** advance (any exec-chat turn) re-arms the *same* step one window out (`clear_awaiting_focused`, focused = most recently nudged awaiting card).
 - **`window_for`** = `clamp(round(_lead * 2.6), 45, 240)` min (`NUDGE_WINDOW_MULT/MIN/MAX`); `_lead` = `estimated_time` (default 90) x category factor.
-- `record_consequences` -> `stage=consequences`; `reschedule_after_consequences` -> `stage=idle` (keeps graph); `archive_card` -> `resolved`.
+- `record_consequences` -> `stage=consequences` (from any stage); `reschedule_after_consequences` -> `stage=idle` (keeps graph); `archive_card` -> `resolved`; `exile_card` leaves `stage` alone. The 4:30 reconcile (§15f) moves any live stage to `nudging` or `idle`.
 
 ### 15e. A nudge ASKS whether the step is done; it never asserts that it isn't
 
@@ -1536,9 +1530,9 @@ The nudge's final line is `[Sent it | Not yet | Doing it now]`; `web/exec-choice
 
 ### 15f. Due-date protection
 
-`schedule_card` refuses to defer or unschedule an active-nudge card (`card_schedule._ACTIVE_NUDGE_STAGES`). `record_consequences` -> `reschedule_after_consequences` (hard-fails without a recorded answer) is the **only** later-day path.
+`card_schedule.nudge_resched_blocked` refuses to move an active-nudge card (`_ACTIVE_NUDGE_STAGES`: nudging/awaiting/consequences, plus the never-assigned `stalled`) to a LATER day or unschedule it — for `schedule_card` and the `/rd` calendar drop alike — **until `consequences.answer` is recorded**; with an answer the guard lifts. `record_consequences` -> `reschedule_after_consequences` (hard-fails without a recorded answer) is the intended later-day path.
 
-**Morning (4:30)** `morning_reconcile`: for every card whose stage is not `idle`/`resolved` it clears `awaiting_reply`, `last_nudge_*`, `auto_deadline`; placed-today cards -> `nudging` with a fresh first nudge at the restacked anchor; others -> `idle`. Never leaves a past-dated `next_nudge_at`.
+**Morning (4:30)** `morning_reconcile`: for every card whose stage is not `idle`/`resolved` it clears `awaiting_reply`, `last_nudge_*`, `auto_deadline`; cards `_eligible` today (hq, `scheduled_day == today`) -> `nudging` with a fresh first nudge at the re-anchored time; others -> `idle`. Also clears `window_deadline`. Never leaves a past-dated `next_nudge_at`.
 
 ### 15g. Lateness recalibration — built, GATED OFF
 
@@ -1573,7 +1567,7 @@ A move to archives/exile (`to_col`), a book-card update (`updated` + `is_book`),
 - **Watermark** `_monitor_last_comment_ts`: init = last activity-log entry's `ts` (`_init_monitor_ts`), compared strictly `>` so a `--reload` never re-comments. **Advanced only after the LLM call succeeds** (a 429/529 must not drop the batch).
 - Context = profile.json + hq cards + books in progress + today's schedule (`_build_context`).
 - **Recurring cards**: archiving logs a `revived` entry too; not significant alone but rides the same batch, `_entry_line` renders it as context and the system prompt tells the model to read it as normal recurrence — never resurrection/undeath/clerical error.
-- Subscribers get `{thinking}` / `{comment}` on `/api/monitor/stream` SSE; the comment is written to `chat.json` as `role=monitor`. The same stream carries `{cards_changed:true}` on any server-side `rd.json` rewrite (nudge fire/build/triage, `PATCH /api/rd`, Discord and web exec tool rounds via `chat_passes` / `routes_exec`); `exec-bubble.js` relays it as a `window` `exec:cards-changed` event so open boards refetch.
+- Subscribers get `{thinking}` / `{comment}` on `/api/monitor/stream` SSE; the comment is written to `chat.json` as `role=monitor`. The same stream carries `{cards_changed:true}` on server-side `rd.json` rewrites (nudge fire/build/triage, `POST /api/rd/{id}/schedule`, the morning route, Discord and web exec tool rounds via `chat_passes` / `routes_exec`; NOT `PATCH /api/rd`, whose caller already has the data); `exec-bubble.js` relays it as a `window` `exec:cards-changed` event so open boards refetch.
 
 ### 16c. chat.json is ONE chronological stream
 
@@ -1589,11 +1583,11 @@ History: [ARCHAEOLOGY.md §16](ARCHAEOLOGY.md#16-the-exec-monitor).
 
 ## 17. Memory is the scarce resource on this box
 
-1967MB RAM + **5GB swap** (`/swapfile` 1G, prio -2, draining; `/swapfile3` 4G, `pri=10`; both in `/etc/fstab`). Swap is 2x RAM because spikes are whole processes: a WebKit launch is 200-400MB, every CLI subprocess (chat turn, title call) ~300MB, against ~650MB available at rest. `vm.swappiness` stays default 60 **deliberately** (idle interactive sessions belong on disk). Retire the 1G file with `sudo swapoff /swapfile && sudo rm /swapfile` once near 0 — a swapoff must fit every live page, so do it while the 4G file has room.
+1967MB RAM + **5GB swap** (`/swapfile` 1G, prio -2, draining; `/swapfile3` 4G, `pri=10`; both in `/etc/fstab`). Swap is 2x RAM because spikes are whole processes: a WebKit launch is 200-400MB, every CLI subprocess (chat turn, title call) ~300MB, against ~650MB available at rest. `vm.swappiness` is left at the default 60. Retire the 1G file with `sudo swapoff /swapfile && sudo rm /swapfile` once near 0 — a swapoff must fit every live page, so do it while the 4G file has room.
 
 ### 17a. What the pressure actually is
 
-Not the test suite (browser suites run serially; `conftest.py` launches ONE WebKit per pytest session) and not the containers (api ~148MB, hosaka-piper ~57MB). It is the **baseline**: two Claude Code sessions + daemon ~890MB, tmux ~146MB, against ~180MB for app + sidecar. Top consumers: an interactive `claude` (~400MB), tmux (~216MB).
+Not the test suite (`conftest.py` launches ONE WebKit per pytest session) and not the containers. It is the **baseline**: interactive `claude` sessions (~400MB each) and tmux dominate; the app + sidecar are small beside them. (Per-process figures drift; measure with `free -m` / `ps`.)
 
 ### 17b. The OOM killer picks by badness score, not culprit
 
@@ -1620,17 +1614,17 @@ An uncapped spike shoots `dbus-daemon` or uvicorn's python rather than the cause
 | 05:45 | `tarot/openings_loop.py` (`RUN_AT = (5, 45)`) | **not cron** — in-process loop; its `__tarotvoice.log` is the stamp |
 
 - **One file per JOB, not per day** — the writers are different uids (container root, host root, host `wai-root`); whoever created a shared daily file would lock the others out.
-- Host cron lines `mkdir -p` the dir and escape the date `$(date +\%F)` — **a bare `%` is a newline to crontab**.
+- The host cron line that builds its own log path (security) `mkdir -p`s the dir and escapes the date `$(date +\%F)` — **a bare `%` is a newline to crontab**; the graphify and ccprobe scripts `mkdir` and stamp their own `LOG`.
 - `morning_cron.sh` tees to that file and `/var/log/exec-fn.log` and reports **`${PIPESTATUS[0]}`, not `$?`** (through a pipe `$?` is `tee`'s status).
 - `morning._prune_cron_logs` keeps 30 days (string compare on the filename).
 
 ### 17d. The nightly graphify rebuilds its own output
 
-`scripts/graphify-daily.sh` (as `wai-root`, 05:00): rebuild (`_rebuild_code(force=True)`, 1800s alarm, RLIMIT_AS 600MB), then the **/graph layout bake** (`scripts/graph-layout.py`, `MemoryMax=700M`, non-fatal on failure). Sits between 04:30 morning and 05:10 security so they never contend. Guarded by `flock` on `/tmp/graphify-daily.lock` (graphify has its own too); logs to `data/cron/…__graphify.log`.
+`scripts/graphify-daily.sh` (as `wai-root`, 05:00): rebuild (`_rebuild_code(force=True)`, 1800s alarm, RLIMIT_AS 600MB), then the **/graph layout bake** (`scripts/graph-layout.py` under `systemd-run --user --scope -p MemoryMax=700M`; cron has no session bus so the script exports `XDG_RUNTIME_DIR`; a bake failure is non-fatal). Sits between 04:30 morning and 05:10 security so they never contend. Guarded by `flock` on `/tmp/graphify-daily.lock` (graphify has its own too); logs to `data/cron/…__graphify.log`.
 
-- **graphify-out is gitignored** (`/graphify-out/`): generated, served from disk, never committed or pushed. Before each rebuild the script copies `graph.html` to `graphify-out/.graph.html.prev`; if the rebuild writes no fresh `graph.html` it restores that copy (stale graph beats a 404) and skips the bake.
+- **graphify-out is gitignored** (`/graphify-out/`): generated, served from disk, never committed or pushed. Before each rebuild the script copies `graph.html` to `graphify-out/.graph.html.prev`; if the rebuild writes no fresh `graph.html` the script logs FAILED, restores that copy (stale graph beats a 404), skips the bake and **exits 1**; it also logs viz headroom and warns within 10% of the ceiling.
 - **graphify REFUSES to emit `graph.html` past a node ceiling (default 5000) and only logs a skip, exit 0** — so `/graph` 404s behind a "healthy" nightly. `GRAPHIFY_VIZ_NODE_LIMIT=8000` is exported in the script; **it must stay above the repo's node count**. The RLIMIT is the real guard: too big should die of `MemoryError` and log, not be skipped silently.
-- **`.graphifyignore` must skip the trees `_GRAPH_DROP_PREFIXES` drops at serve time** (`api/data/`, `api/tarot/book/`, `nightfall-incident/nightfall-src/`) — graphify does not read `.gitignore`, and runtime data (e.g. `spire-perflog/`) inflates the node count. Keep both lists in step.
+- **`.graphifyignore` must skip the trees `_GRAPH_DROP_PREFIXES` drops at serve time** (`api/data/`, `api/tarot/book/`, `nightfall-incident/nightfall-src/`; `web/vendor/` is covered by `**/vendor/`) — graphify does not read `.gitignore`, and runtime data (e.g. `spire-perflog/`) inflates the node count. Keep both lists in step.
 - The per-commit path is off via `GRAPHIFY_SKIP_HOOK=1` in `~wai-root/.zshenv`, **not** by deleting `.git/hooks/post-commit` (untracked; `session-context.sh` reinstalls it). **Never a stash** (bind-mount outages).
 
 History: [ARCHAEOLOGY.md §17](ARCHAEOLOGY.md#17-memory-is-the-scarce-resource-on-this-box).
@@ -1639,10 +1633,10 @@ History: [ARCHAEOLOGY.md §17](ARCHAEOLOGY.md#17-memory-is-the-scarce-resource-o
 
 `uvicorn --reload` silently falls back to polling `StatReload` without `watchfiles`. Two fixes, both live:
 
-1. **`tmpfs: /app/nightfall/nightfall-src`** in `docker-compose.yml` — an empty tmpfs masking the game's source tree inside the `./nightfall-incident` bind (Docker mounts shallowest-first, so it lands on top; host copy untouched, webpack still builds against it). **Removing it costs ~40% of a core.**
+1. **`tmpfs: /app/nightfall/nightfall-src`** in `docker-compose.yml` — an empty tmpfs masking the game's source tree inside the `./nightfall-incident` bind (Docker mounts shallowest-first, so it lands on top; host copy untouched, webpack still builds against it). Under the old StatReload poller its absence cost 44% of a core; under inotify it still keeps the watched-directory count down.
 2. **`watchfiles`** in `api/requirements.in` (locked `watchfiles==1.2.0`) -> inotify backend, ~0% idle; it is also what makes `entrypoint.sh`'s `--reload-exclude 'apps/*/tests/*.py'` / `'apps/*/scripts/…'` globs take effect (§1e).
 
-Traps: a bind mount cannot be partially excluded — masking a subpath with a deeper mount is the only lever (`.dockerignore` governs the build context, not runtime binds). `fs.inotify.max_user_watches` is **15,052**; a future mount that re-inflates the tree (it was 363 directories after masking) would exhaust it and fail more quietly than the poller did.
+Traps: a bind mount cannot be partially excluded — masking a subpath with a deeper mount is the only lever (`.dockerignore` governs the build context, not runtime binds). `fs.inotify.max_user_watches` is **15,052**; a future mount that re-inflates the tree (363 directories after masking, as measured then) would exhaust it and fail more quietly than the poller did.
 ## 18. The typewriter and the shared chat surfaces
 
 Shared across `/mtg`, `/tarot` and the Exec panel (`/cc` folded into the panel): look = `chat-msg.css` (+ shell files), stream bubble + caret = `chat-dom.js` (`chatStreamDiv`, `chatCaret`), reveal = `typewriter.js`, voice = `voice-narrator.js` + `voice-ui.js` + `voice-util.js`, mic = `voice-input.js` (engine + `bindComposer`). **One copy cannot drift** — a copy is a fix you will forget to apply.
@@ -1660,24 +1654,24 @@ Shared across `/mtg`, `/tarot` and the Exec panel (`/cc` folded into the panel):
 
 ### 18a-ii. With the voice on, the narrator sets the pace
 
-Those speeds are the SILENT pace (`twGuess`). When narrating, **`twAudio`** keeps the per-character weights for shape but rescales the total to the measured utterance. All three surfaces now call it; they differ only in render target and fallback speed (`tarot-stream.js` binds it with `leadMs: 350`).
+Those speeds are the SILENT pace (`twGuess`). When narrating, **`twAudio`** keeps the per-character weights for shape but rescales the total to the measured utterance. Only the two surfaces that speak call it, `/tarot` and the Exec panel (`/mtg` has no voice and is `twGuess` only); they differ only in render target and fallback speed (`tarot-stream.js` binds it with `leadMs: 350`).
 
 - **`leadMs`** (default 0; `/tarot` 350): reveal runs ahead of the voice by a CONSTANT offset, `(el + leadS) / dur` — not a multiplier (proportional lead finishes early). Only moves the target char, never the stall watchdogs.
 - **Text buffers while a voice is coming**: `push()` on a narrating surface doesn't start a reveal; it starts when the utterance does (typing at 5 under a voice races the audio).
 - **Syntax costs ZERO reveal time** (`twWeights`): jumped in one frame (18b) and `VoiceUtil.stripMarkdown` never speaks it.
-- **Every failure path ends at the guessed pace** (a hung reveal freezes the page): dead controller (voice off, never unlocked, upstream gone) types immediately; `FIRST_AUDIO_MS` 12000 (cold synth was 10.3s measured, §14d); `STALL_MS` 2500 with `el` capped at what was buffered.
+- **Every failure path ends at the guessed pace** (a hung reveal freezes the page): dead controller (voice off, never unlocked, upstream gone) types immediately; `FIRST_AUDIO_MS` 12000 (first synth from a fully-off GPU box measured 10.3s, 2026-09-20); `STALL_MS` 2500 with `el` capped at what was buffered.
 - A QUEUED utterance (`voice-narrator.js` queues so a monitor comment can't cut off a reply) takes the guessed pace.
-- **Narration starts with the reveal, not after it**: in `execStreamResponse()` (`exec-stream.js`), `speakAndPace(text)` (calls `execVoice.speak`) sits BEFORE `await t.typer.done()` once the read loop ends. Safe because `speak()` is fire-and-forget. `addMsg()` (nudges, monitor) renders instantly and speaks immediately.
+- **Narration starts with the reveal, not after it**: in `execStreamResponse()` (`exec-stream.js`), `speakAndPace(text)` (calls `execVoice.speak`) sits BEFORE `await t.typer.done()` once the read loop ends. Safe because `speak()` is fire-and-forget. `addMsg()` (nudges, monitor) renders instantly and speaks immediately; a bubble closed mid-turn by a tool frame (`execBubbles.close`) is also settled and spoken at once, unpaced.
 
 ### 18b. Everything that is SYNTAX rather than prose is jumped
 
-`twJump`, largest form first: fenced block, table opening, link tail, whole image `![alt](url)`, then `#`/`>`/list/`---` (block ones only at a line start) and `**` `__` `*` `_` `` ` `` `~~` `[` anywhere.
+`twJump` order: table opening (line start only), fenced block, link tail, then block markers `#`/`>`/list/`---` (line start only), then inline: whole image `![alt](url)` and `***` `**` `__` `~~` `*` `_` `` ` `` `[` anywhere.
 
 | Jump | Rule |
 |---|---|
 | `twLinkTail` — a link's `](url)` tail | waits for the closing paren; label is the only part read |
-| `twTableHead` — a table's opening | header + separator revealed together, body rows type like prose; line start only |
-| `twFenceEnd` — a fenced block | jumped **whole, never typed**; while unclosed everything available is revealed each frame (89-char SVG reply: 18 frames, not 89) |
+| `twTableHead` — a table's opening | header + separator revealed together, body rows type like prose; line start only; checked FIRST |
+| `twFenceEnd` — a fenced block | jumped **whole, never typed**; while unclosed everything available is revealed at once |
 
 ### 18c. The waiting indicator is a solid blinking block
 
@@ -1760,11 +1754,11 @@ History: [ARCHAEOLOGY.md §19](ARCHAEOLOGY.md).
 
 ![Auth tiers and 401 routing](docs/arch/20-auth-tiers.svg)
 
-- `session` (`POST /login`, `API_KEY`) = full. `guest_session` (`POST /guest`, Cloudflare Turnstile via `auth.verify_turnstile`, secret `TURNSTILE_SECRET`) = guest set: `/mtg`, `/tarot`, `/nightfall`, `/hosaka`, `/graph`, `/UI`, `/security`, `/printer` (read-only), `/zombo` (unlinked), `/noodle`, `/spire` (`/aspira` 301s to it). Pages only, never control routes; the landing/recruiter/login pages are the only open ones.
+- `session` (`POST /login`, `API_KEY`) = full. `guest_session` (`POST /guest`, Cloudflare Turnstile via `auth.verify_turnstile`, secret `TURNSTILE_SECRET`) = guest set: `/mtg`, `/tarot`, `/nightfall`, `/hosaka`, `/graph`, `/UI`, `/security`, `/printer` (read-only), `/zombo` (unlinked), `/noodle`, `/spire` (`/aspira` 301s to it). Pages only, never control routes. Open (no cookie): the landing, `/recruiter`, the login/guest pages and `/noodle/<slug>` polls.
 - Guest token = `sha256("guest:"+TURNSTILE_SECRET)` (`auth.GUEST_SESSION_TOKEN`); `require_guest_auth` takes only `session`/`guest_session` cookies + the admin bearer, no guest bearer. `GET /guest` renders the widget and auto-submits on solve (`web/guest_login.js` `onGuestVerified`); `GET /guest-login` 302s to `/guest`.
-- Both cookies `HttpOnly`, `SameSite=Lax`, `Secure`, **`Max-Age` 400 days** (`auth.SESSION_MAX_AGE`). Tokens are `sha256` of env values, so restart-stable; rotating `API_KEY` is the only revocation (invalidates every session).
+- Both cookies `HttpOnly`, `SameSite=Lax`, `Secure`, **`Max-Age` 400 days** (`auth.SESSION_MAX_AGE`). Tokens are `sha256` of env values (`session:`+`API_KEY`, `guest:`+`TURNSTILE_SECRET`), so restart-stable; revocation is rotating the secret: `API_KEY` kills owner sessions only, `TURNSTILE_SECRET` kills guest sessions only.
 - **Three places that must stay in sync** or a gated page bounces guests to the admin login: `_GUEST_NEXT_ALLOWED` (routes_views.py; other `next` values clamp to `/mtg`), the 401 handler's prefix tuple in `main.py` (`/mtg /tarot /hosaka /graph /UI /security /nightfall /zombo /aspira /spire`, with `/printer` and `/noodle` matched EXACTLY so owner-only sub-paths still go to `/login`), and the router tiers (`public` / `protected` / `guest_protected`, `routers.py`).
-- Both login forms carry a visually-hidden `username` input for password managers.
+- The owner login form (`web/index.html`) carries a `username` input for password managers.
 - **Security headers, every response** (`api/security_headers.py`): `Strict-Transport-Security: max-age=31536000` (no includeSubDomains/preload), `X-Frame-Options: SAMEORIGIN` (printer iframe), `X-Content-Type-Options: nosniff`; a response that sets its own value keeps it. `CacheControlMiddleware` doesn't overwrite a page's `no-store`. Pinned by `tests/test_smoke.py::test_every_response_carries_the_security_headers`.
 
 ### 20b. `/hq`
@@ -1774,40 +1768,40 @@ History: [ARCHAEOLOGY.md §19](ARCHAEOLOGY.md).
 ![/hq sync paths](docs/arch/20-hq-sync.svg)
 
 - Three reload paths (`hq-board.js`), all gated by `hqCanReload()` = not dragging, no `saveTimer`, no `_hqSaving`: monitor SSE `{cards_changed}` -> `exec:cards-changed` -> `load(weekStart)`; SSE re-open (`exec-bubble.js` `src.onopen` after the first); wake after >30s hidden or bfcache `pageshow` -> `load(null)` (re-anchors to logical-today after the 4:30 rollover).
-- **`flushUpdates()` must null `saveTimer` as its first statement** (flip `_hqSaving` around the PATCH) or every later reload is silently skipped.
+- **`flushUpdates()` must null `saveTimer` as its first statement** (flip `_hqSaving` around the PATCH) or every later reload is silently skipped. Drags save `{id, scheduled_day, order}` rows via `PATCH /api/hq` (`hq.bulk_update_scheduled_days`); card-edit and task-done saves go through `PATCH /api/rd` (§20h).
 - Board GET is `cache: 'no-store'` (iOS serves a woken tab its stale copy).
 - Today timeline: **16h view window** (`TL_VIEW_MIN`, hq-core.js) zoomed to fill, rest scrolls.
 - Breakdown card = **spine view** (`createGroup`, hq-groups.js): thin spine (tap -> dialog, drag -> move group) + the CURRENT step (`currentStep`) stretched to the card's whole time (`renderTaskBlock`), DONE steps greyed (`.dir-sub.done`) above it, future steps hidden. Tapping a task toggles done (`wireTaskDone`, click-only). Spine height spans ALL steps.
 
 ### 20c. `/debug`
 
-Profile notes + cron archive + activity log + mtg log + saved tarot readings, on the shared **document theme** (chrome.css `.doc-card` / `.doc-h2` / `.doc-chip`, raw palette tokens, no `--doc-*` layer). `/debug`, `/UI`, `/mtg`, `/tarot` chat, `/security` use it; `/rd`, `/hq` stay dense; `/recruiter` has its own `--cv-*` palette. Moltbook plumbing outside the page is deliberately kept (`morning.py` log rotation, `graph_scrub._drop_graph_moltbook_nodes`).
+Profile notes + cron archive + activity log + mtg log + saved tarot readings, on the shared **document theme** (chrome.css `.doc-card` / `.doc-h2` / `.doc-chip`, raw palette tokens, no `--doc-*` layer). `/debug`, `/UI`, `/security` use it (also reused in `rd.css`/`printer.css`); `/mtg` has its own palette in `chat-doc.css`, `/tarot` the reader mood; `/rd`, `/hq` stay dense; `/recruiter` has its own `--cv-*` palette. Moltbook plumbing outside the page is deliberately kept (`morning.py` log rotation, `graph_scrub._drop_graph_moltbook_nodes`).
 
 ### 20d. `/security`
 
-**Guest-gated.** One long page from `data/security.json` via `security.py` `render_security()` (inline-SVG charts, `_render_page("security", …, guest=…)`). Top to bottom: origin map (hero; `dotmap(zoom=1.2)`, dot size = volume, bright = SSH-login bots, dim = web scanners), scanner traffic by country | networks hosting the bots, common endpoints (top 404 probes). **No owner-identifying data** (no owner IP, attacker-IP table, usernames/bans). **No UA-based "human vs bot" split** (bots spoof UAs, the "human" bucket inverts the point). The JSON is written OUT-OF-BAND by the **host** cron `api/scripts/security/refresh.py` (root, outside the container; parses `/var/log/{auth,nginx/access,fail2ban}.log*`, geolocates via ip-api.com cached in `data/geo_cache.json`, atomic write, gitignored); `SECURITY_OWNER_IP` feeds only owner-hit accounting. Missing JSON -> "not generated yet". Chart colours: green shades only (`G`/`GDIM`/`GHI`, concrete `hsl` since SVG `fill=` can't resolve `var()`); panels FLAT (`.spanel`, the page is one `.doc-card`). Nav icon `sentinel`.
+**Guest-gated.** One long page from `data/security.json` via `security.py` `render_security()` (inline-SVG charts, `_render_page("security", …, guest=…)`). Top to bottom: origin map (hero; `dotmap(zoom=1.2)`, dot size = volume, bright = SSH-login bots, dim = web scanners), scanner traffic by country | networks hosting the bots, common endpoints (top 404 probes). **No owner-identifying data** (no owner IP, attacker-IP table, usernames/bans). **No UA-based "human vs bot" split** (bots spoof UAs, the "human" bucket inverts the point). The JSON is written OUT-OF-BAND by the **host** cron `api/scripts/security/refresh.py` (root, outside the container; parses `/var/log/{auth,nginx/access,fail2ban}.log*`, geolocates via ip-api.com cached in `data/geo_cache.json`, atomic write, gitignored); `SECURITY_OWNER_IP` feeds only owner-hit accounting. Missing JSON -> "not generated yet" (the code string says the cron refreshes "hourly"; it is daily 05:10 — stale text in `security.py:104`). Chart colours: green shades only (`G`/`GDIM`/`GHI`, concrete `hsl` since SVG `fill=` can't resolve `var()`); panels FLAT (`.spanel`, the page is one `.doc-card`). Nav icon `sentinel`.
 
 ### 20e. `/UI` and `/api/ui/usage`
 
 `/UI` — **Guest-gated**, case-sensitive, read-only palette + scale moodboard (edit tokens in chrome.css). Colour tables two per row (hue-ordered, neutrals last, 4 columns padded; card colours = wisp/idea/plan/commitment, non-card `-hsl` = used alpha steps; same-HSL tokens merge, max 4 variations; `SIZE_ALPHA` wisp .15 / idea .25 / plan .8 / commitment 1 in `web/ui.js`). Scale tokens render in the same table format by family (radius, font-family/size/weight/tracking, line-height, blur); spacing, z-layers, `--doc-*` are not shown. One `▼` usage toggle per card (`<details>`, `.clr-usedet`). Admin cookie -> full nav, else guest nav.
 
-`GET /api/ui/usage` — **Public**. `{counts, alphas, alpha_counts, sites}`: `var(--X)` counts, used alphas per `-hsl` token, per-alpha counts, and `sites` (`{token: {α: {site-label: n}}}`, site = nearest CSS selector else filename) across templates, web assets and **all `api/*.py`** (inline CSS in Python would otherwise misflag tokens unused); chrome.css `:root` excluded; bare `hsl(var(--X-hsl))` = α 1.
+`GET /api/ui/usage` — **Public**. `{counts, alphas, alpha_counts, sites}`: `var(--X)` counts, used alphas per `-hsl` token, per-alpha counts, and `sites` (`{token: {α: {site-label: n}}}`, site = nearest CSS selector else filename) across templates, web assets and **all `api/*.py`** (parent and app-submodule dirs alike) (inline CSS in Python would otherwise misflag tokens unused); chrome.css `:root` excluded; bare `hsl(var(--X-hsl))` = α 1.
 
 ### 20f. `/nightfall` save slots
 
-Guest-or-full. **Saves are scoped PER CALLER** (`gamesave_store.py`): owner at `data/gamesave_<slot>.json` (permanent, never swept); each guest under `data/gamesave_guests/`, keyed to an opaque `nf_save` cookie (HttpOnly/Secure/Lax, 400-day) minted on the PAGE response (not lazily — `wai-save-sync.js` fires three slot POSTs in parallel). Path component is `sha256(id)[:32]`, so a hostile cookie can't traverse or hit an owner file. Guest saves untouched 90 days are swept on a write counter (`_SWEEP_EVERY` 200, `routes_nightfall.py`, `sweep_stale_guest_saves`); POST bodies cap 64KB -> 413. Pinned by `tests/test_gamesave_store.py`.
+Guest-or-full. **Saves are scoped PER CALLER** (`gamesave_store.py`): owner at `data/gamesave_<slot>.json` (permanent, never swept); each guest under `data/gamesave_guests/`, keyed to an opaque `nf_save` cookie (HttpOnly/Secure/Lax, 400-day) minted on the PAGE response (not lazily — `wai-save-sync.js` fires three slot POSTs in parallel). Bearer-key callers count as the owner (`save_identity`). Path component is `sha256(id)[:32]`, so a hostile cookie can't traverse or hit an owner file. Guest saves untouched 90 days are swept on a write counter (`_SWEEP_EVERY` 200, `routes_nightfall.py`, `sweep_stale_guest_saves`); POST bodies cap 64KB -> 413. Pinned by `tests/test_gamesave_store.py`.
 
 ### 20g. `/recruiter`
 
-**Public**, static résumé, built from the bare shell (`recruiter_page()` in routes_views.py, `templates/recruiter.html`, `web/recruiter.css`), no nav/fx in light mode. **Light** = plain professional résumé: `--font-doc`, ink headings via page-local `--cv-accent`, plain bullets, skills as a list, no animation; CTA -> Google Doc PDF export. **Dark toggle** (`#cv-theme`, `recruiter.js`, persisted in localStorage `cv-theme`) flips `html.cv-dark` (token overrides), injects the full 5-layer CRT stack in `_CRT_FX` order (bg -> lines -> blur -> crt -> scan), and starts the summary type-out (dark-only; torn down on switch back). Linked from the bottom nav (`cv`, `data-file` icon) and the landing.
+**Public**, static résumé, built from the bare shell (`recruiter_page()` in routes_views.py, `templates/recruiter.html`, `web/recruiter.css`), no nav/fx in light mode. **Light** = plain professional résumé: `--font-doc`, ink headings via page-local `--cv-accent`, plain bullets, skills as a list, no animation; CTA -> the static `web/wai-lau-resume.pdf` download. **Dark toggle** (`#cv-theme`, `recruiter.js`, persisted in localStorage `cv-theme`) flips `html.cv-dark` (token overrides), injects the full 5-layer CRT stack in `_CRT_FX` order (bg -> lines -> blur -> crt -> scan), and starts the summary type-out (dark-only; torn down on switch back). Linked from the bottom nav (`cv`, `data-file` icon) and the landing.
 
 ### 20h. `PATCH /api/rd`
 
-Source query param (rd/Exec/hq/dirs). Atomic write. **Merge-by-id, NOT whole-array replace** (`helpers._merge_cards`): clients send only touched cards with only the fields they own (rd.js `{id,column,order}`; card-dialog the edited card incl. `nudge`; hq timeline the mutated card); the server shallow-merges onto disk by id, so omitted fields (esp. server-owned `card["nudge"]`) survive. A sent `nudge` replaces wholesale. Unknown id = new card. Side-effects run on the merged list: `_apply_patch_schedule` (routes_api.py: hq<->rd moves; re-pin `dir_start_min` to `event_time - prep` via `scheduler.timed_start_min` when a timed due_date or `prep_time` changes, a plain drag is left alone), recurring revival on archived `recur_type` cards, monitor debounce if significant.
+`?source=` query param (`rd` default / `Exec` / `hq`; `dirs` is a legacy label in `monitor._SRC_LABELS`). Atomic write. **Merge-by-id, NOT whole-array replace** (`helpers._merge_cards`): clients send only touched cards with only the fields they own (rd.js `{id,column,order}`; card-dialog the edited card incl. `nudge`; hq timeline the mutated card); the server shallow-merges onto disk by id, so omitted fields (esp. server-owned `card["nudge"]`) survive. A sent `nudge` replaces wholesale. Unknown id = new card. Side-effects run on the merged list: `_apply_patch_schedule` (routes_api.py: hq<->rd moves; re-pin `dir_start_min` to `event_time - prep` via `scheduler.timed_start_min` when a timed due_date or `prep_time` changes, a plain drag is left alone), recurring revival on archived `recur_type` cards, monitor debounce if significant.
 
 ### 20i. The card dialog
 
-**The dialog NEVER scrolls itself** (`web/card-dialog.js`, shared by rd/hq/dirs): `.cd-box` flex column `overflow:hidden`, `.cd-body` the only scroller, `.cd-actions` a pinned footer. Footer stays on screen via: overlay sized `dvh` with `vh` fallback (iOS `vh` = LARGE viewport; check **430x700** too); overlay pads by `var(--nav-h, 56px)` (nav is at `--z-top` over z-index 50); `body:has(.cd-ov.open) #exec-bubble` hidden. **Scrollbars are SILVER** (`--gray-hsl / 0.45` on `.cd-body`, notes `textarea`, card-graph `.cg-scroll`) because the dialog is tinted to the card colour; Firefox needs `.cd-box, .cd-box *` inside the same `@supports not selector(::-webkit-scrollbar)` guard chrome.css uses. CSS lives in a JS template literal — **no backticks in its comments**.
+**The dialog NEVER scrolls itself** (`web/card-dialog.js`, loaded by rd.html + hq.html): `.cd-box` flex column `overflow:hidden`, `.cd-body` the only scroller, `.cd-actions` a pinned footer. Footer stays on screen via: overlay sized `dvh` with `vh` fallback (iOS `vh` = LARGE viewport; check **430x700** too); overlay pads by `var(--nav-h, 56px)` (nav is at `--z-top` over z-index 50); `body:has(.cd-ov.open) #exec-bubble` hidden. **Scrollbars are SILVER** (`--gray-hsl / 0.45` on `.cd-body`, notes `textarea`, card-graph `.cg-scroll`) because the dialog is tinted to the card colour; Firefox needs `.cd-box, .cd-box *` inside the same `@supports not selector(::-webkit-scrollbar)` guard chrome.css uses. CSS lives in a JS template literal — **no backticks in its comments**.
 
 ---
 

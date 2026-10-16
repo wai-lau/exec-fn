@@ -1,11 +1,16 @@
 flowchart TD
-  c["git commit ran"] --> ah{"HEAD ahead<br/>of upstream?"}
+  c["git commit ran<br/>(not --dry-run)"] --> st{"repo state"}
+  st -->|"mid-rebase"| quiet["leave alone, silent"]
+  st -->|"detached HEAD<br/>or no upstream"| skip["skip, note why"]
+  st -->|"normal branch"| ah{"HEAD ahead<br/>of upstream?"}
   ah -->|no| done["nothing"]
-  ah -->|"detached, no upstream,<br/>mid-rebase"| skip["skip, say why"]
   ah -->|yes| push["git push"]
-  push -->|ok| sub{"commit was in<br/>a submodule?"}
+  push -->|ok| sub{"commit ran in<br/>a submodule?"}
   push -->|rejected| rb["checkout graphify-out,<br/>pull --rebase, push"]
-  rb --> sub
+  rb -->|ok| sub
+  rb -->|fails| hand["note: resolve by hand"]
   sub -->|no| done
-  sub -->|yes| bump["bump parent gitlink only,<br/>forward only, own commit"]
+  sub -->|yes| anc{"recorded SHA is an<br/>ancestor of new HEAD?"}
+  anc -->|no| nb["no bump, note"]
+  anc -->|yes| bump["bump parent gitlink only,<br/>own commit"]
   bump --> pp["push parent"]
