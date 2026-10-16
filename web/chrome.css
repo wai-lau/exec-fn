@@ -310,9 +310,9 @@
    a discrete content change (card drag, chat line) re-blurs that one frame only,
    never continuously. The sweep on top stays sharp + plain-alpha (NO blend mode --
    a blend on the animated layer is the same per-frame-readback trap as the old
-   under-glass blur, see .cyber-scan). Dense boards (/rd,/hq) keep the stack on
-   top like everywhere else, but halve it (opacity .5 on the colour layers, both
-   filters pulled halfway to identity) — see the head of rd.css/hq.css. */
+   under-glass blur, see .cyber-scan). Dense pages (/rd, /hq, /mtg) keep the stack on
+   top like everywhere else, but dim it (opacity .75 on the colour layers, both
+   filters pulled a quarter of the way to identity) — see crt-dim.css. */
 .cyber-blur {
   position: fixed; inset: 0; width: 100vw; z-index: var(--z-modal); pointer-events: none;
   backdrop-filter: blur(var(--blur-2xs));
@@ -324,10 +324,10 @@
    Kept below the animated sweep for the exact reason the glass is: its backdrop
    (bg + lines + blur + static content) never animates, so the compositor runs the
    brightness/contrast pass ONCE and re-composites the cached texture — idle
-   ...contrast 1.5 -> 1.25 (2026-09-21): it multiplies whatever green is left,
-   so dropping the stripe alone left the punch doing half the tinting. — idle
    per-frame readback cost 0. Over the sweep it would re-fire every frame (the
-   backdrop-filter trap). Dense boards halve it like the rest of the stack. */
+   backdrop-filter trap). Contrast is 1.5 (was 1.25 until 2026-09-21: it
+   multiplies whatever green is left, so dropping the stripe alone left the
+   punch doing half the tinting). Dense pages dim it like the rest (crt-dim.css). */
 .cyber-crt {
   position: fixed; inset: 0; width: 100vw; z-index: var(--z-modal); pointer-events: none;
   backdrop-filter: brightness(0.85) contrast(1.5);

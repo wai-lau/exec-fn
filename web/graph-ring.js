@@ -37,11 +37,11 @@ var graphRing = (function () {
 
   // WHAT COUNTS AS BIG ENOUGH TO THROW IS THE SERVER'S ANSWER, shipped as
   // `window.GRAPH_WAVE_MIN` — a HIGHER cut than `GRAPH_OCCLUDE_MIN`, and
-  // deliberately its own number. The two were one for a while and came apart
-  // because they answer different questions about the same distribution: being
-  // SOLID is "big enough that an edge should stop here" (the top fifth), where
-  // throwing a front is an EVENT, and at 300x one of them fills the screen (the
-  // top tenth).
+  // deliberately its own number, even while both sit at the 0.90 percentile
+  // (graph_geometry._OCCLUDE_PCTL / _WAVE_PCTL): they answer different questions
+  // about the same distribution — being SOLID is "big enough that an edge should
+  // stop here", where throwing a front is an EVENT, and at 300x one of them
+  // fills the screen.
   //
   // Read, never recomputed. A percentile derived again here would be a second
   // chance to disagree with the server about the node sitting exactly on the
