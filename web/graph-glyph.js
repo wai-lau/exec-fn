@@ -156,8 +156,9 @@ var graphGlyph = (function () {
         ctx.arc(x, gy, r, 0, Math.PI * 2);
         return;
       }
-      // Anything this does not recognise draws as the hexagon, which is
-      // graph_style's own global default for a type it has no shape for.
+      // Anything this does not recognise draws as the hexagon. (The server's
+      // global default is _TYPE_SHAPES["code"], a triangle; this is only the
+      // client's last-resort fallback.)
       polygon(x, gy, r, 6, turn || 0);
     },
   };

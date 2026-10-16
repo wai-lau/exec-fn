@@ -379,7 +379,7 @@ var graphPulseDraw = (function () {
       // anything else is drawn. Under 'lighter' additive layers COMMUTE, so what
       // the order actually decides is where the three NON-additive passes land:
       // the destination-out clear, the opaque punch, and the source-atop front.
-      // The six-pass order and what each step forces: CLAUDE.md §/graph.
+      // The six-pass order and what each step forces: ARCHITECTURE.md §11f.
       ctx.fillStyle = INK;
       ctx.strokeStyle = INK;
       var id;
