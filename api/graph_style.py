@@ -335,21 +335,14 @@ def _fix_graph_stats(page: str) -> str:
 # the font stack resolves to, and the overlay repaints once document.fonts is
 # ready so the first paint isn't the fallback.
 _NODE_FONT = {"size": 12, "color": "#ffffff", "face": "Iosevka Mayukai Monolite"}
-# A label longer than this is a docstring-derived phrase rather than a symbol
-# name -- long enough to leak prose onto a guest-visible page, and far too long
-# to read on the canvas. Blanked, same as _redact_graph_nodes' hand-picked ids.
-_LABEL_MAX = 20
 
 
 def _label_graph_nodes(page: str) -> str:
-    """Give every node the site label font and blank any label over `_LABEL_MAX`
-    characters to "[ redacted ]". graph-overlay.js's `isRedacted` matches that
-    exact string (and the server-side "[redacted]") so the node-info panel still
-    withholds Type/Source/neighbours for them. No-op if RAW_NODES is absent."""
+    """Give every node the site label font. Long labels never reach here --
+    `_drop_graph_redacted_nodes` already cut them. No-op if RAW_NODES is
+    absent."""
     def _relabel(nodes):
         for n in nodes:
-            if len(str(n.get("label") or "")) > _LABEL_MAX:
-                n["label"] = "[ redacted ]"
             n["font"] = dict(_NODE_FONT)
         return nodes
 

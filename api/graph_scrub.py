@@ -6,7 +6,8 @@ request against its embedded RAW_NODES / RAW_EDGES / LEGEND arrays (same
 survives-rebuild rationale as the improvedLayout patch in routes_views). These
 transforms live here:
 
-- `_redact_graph_nodes`: blank a few leaky per-node summaries to "[redacted]".
+- `_drop_graph_redacted_nodes`: cut the nodes whose label would only ever read
+  "[redacted]" -- a few leaky summaries and every label over `_LABEL_MAX`.
 - `_drop_graph_prefixed_nodes`: cut whole source trees (the Pollack tarot
   reference book, vendored libs, the nightfall game's own React source).
 - `_drop_graph_moltbook_nodes`: cut the moltbook heartbeat plumbing.
@@ -32,12 +33,17 @@ from collections import Counter
 
 # graphify bakes a per-node "rationale" summary from each symbol's docstring. A
 # few of those leak internals we don't want on the now-public /graph — e.g. the
-# bearer-auth design + the EXEC_SAY_KEY key name. Scrub their label+title to
-# "[redacted]" at serve time so the redaction survives /graphify rebuilds. Kept
-# deliberately small — the graph is otherwise just benign codebase structure.
+# bearer-auth design + the EXEC_SAY_KEY key name. Dropped at serve time so it
+# survives /graphify rebuilds. Kept deliberately small — the graph is otherwise
+# just benign codebase structure.
 _GRAPH_REDACT_IDS = {
     "api_auth_rationale_47",  # bearer-auth scheme + EXEC_SAY_KEY name
 }
+
+# A label longer than this is a docstring-derived phrase (a rationale, a doc
+# heading, a test name) rather than a symbol name -- long enough to leak prose
+# onto a guest-visible page, and far too long to read on the canvas.
+_LABEL_MAX = 20
 
 # Whole source trees that are indexed but are not this codebase's structure.
 # One tuple rather than three near-identical passes, because the argument is the
@@ -130,16 +136,26 @@ def _sub_json_array(page: str, name: str, transform) -> str:
     )
 
 
-def _redact_graph_nodes(page: str) -> str:
-    """Blank the label+title of every _GRAPH_REDACT_IDS node to "[redacted]" in
-    graphify's embedded RAW_NODES array."""
-    def _redact(nodes):
-        for n in nodes:
-            if n.get("id") in _GRAPH_REDACT_IDS:
-                n["label"] = n["title"] = "[redacted]"
-        return nodes
+def _drop_graph_redacted_nodes(page: str) -> str:
+    """Drop every node in `_GRAPH_REDACT_IDS` and every node whose label runs
+    over `_LABEL_MAX`, with their dangling references.
 
-    return _sub_json_array(page, "RAW_NODES", _redact)
+    These used to be KEPT with the label blanked to "[redacted]". Once spire and
+    noodle came in as submodules (2026-10-14) that was 1,838 of 6,082 served
+    nodes and 2,876 edges -- 30% of the graph drawn, simulated and walked every
+    frame to show the word "redacted". Must run BEFORE
+    `_drop_graph_inferred_edges` (which recomputes degree) and the orphan/island
+    passes (which sweep up whatever this strands). No-op if RAW_NODES is absent."""
+    nodes = _read_array(page, "RAW_NODES")
+    if not nodes:
+        return page
+    drop_ids = {
+        n.get("id")
+        for n in nodes
+        if n.get("id") in _GRAPH_REDACT_IDS
+        or len(str(n.get("label") or "")) > _LABEL_MAX
+    }
+    return _prune_graph_nodes(page, drop_ids)
 
 
 def _prune_graph_nodes(page: str, drop_ids) -> str:
