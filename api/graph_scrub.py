@@ -11,6 +11,8 @@ transforms live here:
 - `_drop_graph_prefixed_nodes`: cut whole source trees (the Pollack tarot
   reference book, vendored libs, the nightfall game's own React source).
 - `_drop_graph_moltbook_nodes`: cut the moltbook heartbeat plumbing.
+- `_drop_graph_noise_nodes`: cut tests, scripts, data/docs files and built
+  bundles -- true structure, not worth the frame time.
 - `_drop_graph_inferred_edges`: cut the dashed low-confidence edges (and
   recompute the baked per-node degree against what survives).
 - `_drop_graph_small_islands`: cut components under `min_size` nodes.
@@ -90,6 +92,17 @@ _GRAPH_LIB_LABELS = {
     "HTTPAuthorizationCredentials", "BackgroundTasks", "Any", "Optional",
     "datetime", "date", "timedelta", "timezone",
 }
+
+# /graph is visual candy, not documentation: what earns a node is app code that
+# runs. These are cut at serve time ONLY (graphify still extracts them, so they
+# are NOT mirrored in .graphifyignore). Measured 2026-10-17 after the redacted
+# drop: 3,792 served nodes, ~400 of them spire's balance simulator alone.
+#   path segments  tests, scripts, a built nightfall bundle, Claude Code config
+#   file suffixes  data/docs (json, md) and test files
+_GRAPH_NOISE_SEGMENTS = ("tests", "scripts", "static", ".claude")
+_GRAPH_NOISE_ROOTS = ("nightfall-incident/",)
+_GRAPH_NOISE_SUFFIXES = (".json", ".md", ".test.js", ".test.mjs", "conftest.py")
+_GRAPH_NOISE_NAME_PREFIX = "test_"
 
 # moltbook is a separate side-ledger (heartbeat log) wired into exec-fn through a
 # single read-only route + its data file. It's noise on the public codebase
@@ -282,6 +295,31 @@ def _drop_graph_moltbook_nodes(page: str) -> str:
         ).lower()
     }
     return _prune_graph_nodes(page, drop_ids)
+
+
+def _is_graph_noise(src: str) -> bool:
+    """True when `src` (a node's source_file) is a test, script, data/doc file,
+    built bundle or anything else under `_GRAPH_NOISE_*`."""
+    parts = src.split("/")
+    return (
+        src.startswith(_GRAPH_NOISE_ROOTS)
+        or src.endswith(_GRAPH_NOISE_SUFFIXES)
+        or parts[-1].startswith(_GRAPH_NOISE_NAME_PREFIX)
+        or any(p in _GRAPH_NOISE_SEGMENTS for p in parts[:-1])
+    )
+
+
+def _drop_graph_noise_nodes(page: str) -> str:
+    """Drop every node whose source_file `_is_graph_noise`, with its dangling
+    references. Must run BEFORE `_drop_graph_inferred_edges` (degree) and the
+    orphan/island passes. No-op if RAW_NODES is absent."""
+    nodes = _read_array(page, "RAW_NODES")
+    if not nodes:
+        return page
+    return _prune_graph_nodes(page, {
+        n.get("id") for n in nodes
+        if _is_graph_noise(str(n.get("source_file") or ""))
+    })
 
 
 def _drop_graph_small_islands(page: str, min_size: int = 5) -> str:
