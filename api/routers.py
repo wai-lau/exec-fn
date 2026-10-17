@@ -52,3 +52,21 @@ def _noodle_owner(request):
 
 noodle_pages.set_nav(_noodle_nav)
 noodle_pages.set_owner(_noodle_owner)
+
+
+# The vote page's Subresource-Integrity resolver (noodle pages.set_sri): the
+# served bytes for a root-relative /x.js, resolved the SAME way the static mount
+# and asset_version do (app_paths.web_dirs, parent web/ then each app's). noodle
+# cannot import app_paths (its isolation test), so the root hands this in.
+def _noodle_sri_bytes(url: str):
+    rel = url.lstrip("/")
+    if ".." in rel.split("/"):
+        return None
+    for d in app_paths.web_dirs():
+        f = d / rel
+        if f.is_file():
+            return f.read_bytes()
+    return None
+
+
+noodle_pages.set_sri(_noodle_sri_bytes)
