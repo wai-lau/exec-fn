@@ -27,7 +27,7 @@ from pages import (
 )
 from auth import SESSION_TOKEN
 from graph_scrub import (
-    _drop_graph_redacted_nodes, _drop_graph_prefixed_nodes, _drop_graph_moltbook_nodes,
+    _drop_graph_redacted_nodes, _drop_graph_noise_nodes, _drop_graph_prefixed_nodes, _drop_graph_moltbook_nodes,
     _drop_graph_library_nodes, _drop_graph_inferred_edges, _drop_graph_orphan_nodes,
     _drop_graph_small_islands,
     _read_array, _prune_graph_nodes,
@@ -252,6 +252,8 @@ def _render(page: str, guest: bool, relayout: bool = False, lite: bool = False) 
     # book, vendored libs, and the nightfall game's own React source.
     page = _drop_graph_prefixed_nodes(page)
     page = _drop_graph_moltbook_nodes(page)
+    # Tests, scripts, data/doc files, built bundles: real, but not the picture.
+    page = _drop_graph_noise_nodes(page)
     # Drop imported library/framework symbols (BaseModel, Request, ...) — not our
     # code, just clutter.
     page = _drop_graph_library_nodes(page)

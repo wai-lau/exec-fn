@@ -936,6 +936,7 @@ Order in `_render` (all in `graph_scrub.py`):
 | Function | Drops | Why |
 |---|---|---|
 | `_drop_graph_redacted_nodes()` | DROP ids in `_GRAPH_REDACT_IDS` + every label over `_LABEL_MAX` (20) | a few docstring summaries leak internals (bearer-auth scheme, `EXEC_SAY_KEY` name); long labels are prose, not symbols. Was a blank-to-`[redacted]` until 2026-10-17: after the spire/noodle submodules landed it kept 1,838 of 6,082 nodes on the canvas just to say "redacted" and /graph lagged; dropping them took the served graph to 3,792 nodes / 5,802 edges |
+| `_drop_graph_noise_nodes()` | DROP nodes from tests, `scripts/` (spire's balance sim ~400), `static/`, `.claude/`, `nightfall-incident/` (built bundle + saves), any `.json`/`.md`, `test_*`/`*.test.js` | /graph is visual candy, not docs: 3,792 → 2,685 nodes / 4,286 edges (2026-10-17). Serve-time only, NOT in `.graphifyignore` |
 | `_drop_graph_prefixed_nodes()` | `source_file` under `_GRAPH_DROP_PREFIXES` | table below |
 | `_drop_graph_moltbook_nodes()` | substring `moltbook` in id+label+source_file | heartbeat plumbing rides inside routes_views.py |
 | `_drop_graph_library_nodes()` | `file_type == code` AND (no `source_file` OR label in `_GRAPH_LIB_LABELS`) | external symbols: `BaseModel`, `Request`, `WebSocket`, `FastAPI`, `Path`, `datetime`, … |
