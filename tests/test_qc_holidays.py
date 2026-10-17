@@ -25,7 +25,7 @@ pytestmark = pytest.mark.skipif(shutil.which("node") is None, reason="node not i
 def _holidays(year: int) -> set[str]:
     out = subprocess.run(
         ["node", "-e",
-         f"global.window={{}};require({json.dumps(os.path.abspath(_JS))});"
+         f"global.window={{}};(0,eval)(require('fs').readFileSync({json.dumps(os.path.abspath(_JS))},'utf8'));"
          f"console.log(JSON.stringify([...window.QcHolidays.qcHolidays({year})]))"],
         capture_output=True, text=True, check=True,
     )
