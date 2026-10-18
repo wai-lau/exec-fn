@@ -14,6 +14,7 @@ httpx won't replay over plain-HTTP localhost, so these set it as a raw header.
 """
 import hashlib
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -193,8 +194,13 @@ class _ExemptBrowser:
                 route.continue_(headers=headers)
                 return
             resp = route.fetch(headers=headers)
-            route.fulfill(response=resp, headers={k: v for k, v in resp.headers.items()
-                                                  if k.lower() != "content-security-policy"})
+            hdrs = {k: v for k, v in resp.headers.items() if k.lower() != "content-security-policy"}
+            # The vote page ALSO bakes its CSP into a <meta>; that no-eval policy
+            # blocks wait_for_function even with the header gone (WebKit enforces a
+            # meta CSP regardless of bypass_csp), so strip the tag from the
+            # document too. A page without one is unchanged.
+            body = re.sub(rb'(?i)<meta http-equiv="Content-Security-Policy"[^>]*>', b"", resp.body())
+            route.fulfill(response=resp, headers=hdrs, body=body)
         ctx.route(self._origin + "/**", _route)
         return ctx
 
