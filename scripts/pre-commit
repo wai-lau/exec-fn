@@ -219,7 +219,9 @@ fi
 
 # ── Max-lines (500) on staged .py + .js — no file over the cap. ──
 LINE_CAP=500
-LINE_CAP_ALLOW=""
+# allowlist (paths as the committing repo stages them): /spire's changelog is DATA, one line a change, and grows by design
+# (owner, 2026-10-20: "allow overcap on changelog")
+LINE_CAP_ALLOW="web/aspira-changelog.js"
 cap_fail=0
 CAP_FILES=$(printf '%s\n' "$STAGED" | grep -E '\.(py|js)$' | grep -vE '^(node_modules|graphify-out|web/vendor)/' || true)
 for f in $CAP_FILES; do
