@@ -376,6 +376,23 @@ if [ -n "$VOICE_CHANGED" ]; then
   fi
 fi
 
+# ── noodle smoke (WebKit) — a noodle commit that touches the page or server. ──
+# Makes a poll with real typing + taps, votes as host and guest, and reopens
+# the SAVED old poll (api/data/noodle-smoke-poll.json) to prove polls made on
+# older code still open. ~20s. Skips cleanly like the suites above.
+if [ "$REPO_NAME" = "noodle" ]; then
+  NOODLE_CHANGED=$(printf '%s\n' "$STAGED" | grep -E '^web/|^api/|^tests/test_noodle_browser_smoke\.py$' || true)
+  if [ -n "$NOODLE_CHANGED" ]; then
+    if [ -z "$PYTEST" ]; then
+      echo "NOTE: skipping noodle smoke — no pytest venv."
+    elif ! SMOKE_BASE_URL="${SMOKE_BASE_URL:-http://localhost:8080}" run_capped "$PYTEST" "$REPO_ROOT/tests/test_noodle_browser_smoke.py" -q; then
+      echo ""
+      echo "noodle smoke failed — commit blocked. A poll cannot be made, voted on, or an old one reopened."
+      exit 1
+    fi
+  fi
+fi
+
 # Docs reminder (non-blocking): substantive source changed but docs not staged.
 # The hook can't judge necessity — it just nudges so route/pipeline/schema/data/
 # naming changes don't ship with stale CLAUDE.md / ARCHITECTURE.md / ARCHAEOLOGY.md.
