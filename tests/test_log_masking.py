@@ -14,8 +14,9 @@ def test_slugs_and_tokens_are_masked_and_nothing_else():
     m = log_masking.mask
     assert m(f"/noodle/{SLUG}?t=abc.def") == "/noodle/<slug>?t=<token>"
     assert m(f"/api/noodle/{SLUG}/vote") == "/api/noodle/<slug>/vote"
+    assert m(f"/noodle-tc/{SLUG}?t=abc.def") == "/noodle-tc/<slug>?t=<token>"   # the second front end
     assert m(f"/noodle/{SLUG}?x=1&t=tok&y=2") == "/noodle/<slug>?x=1&t=<token>&y=2"
-    for keep in ("/noodle", "/api/noodle-polls/new", "/rd", "/api/noodle-polls/created"):
+    for keep in ("/noodle", "/noodle-tc", "/api/noodle-polls/new", "/rd", "/api/noodle-polls/created"):
         assert m(keep) == keep
 
 
