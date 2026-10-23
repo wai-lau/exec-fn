@@ -6,7 +6,7 @@ audit 2026-10-14; nginx masks its own log the same way:
 import logging
 import re
 
-_SLUG = re.compile(r"(/(?:api/)?noodle/)[A-Za-z0-9_-]{22}")
+_SLUG = re.compile(r"(/(?:api/)?noodle(?:-tc)?/)[A-Za-z0-9_-]{22}")
 _TOKEN = re.compile(r"([?&]t=)[^&\s]*")
 
 
