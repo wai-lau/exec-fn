@@ -7,6 +7,7 @@ import re, sys, glob
 
 STMT = re.compile(r"(;|(?<=\)))\s*[A-Za-z_$][\w$]*(\.[\w$]+|\[[^\]]*\])*\s*([+\-*/|&]?=)(?!=)\s*\S"
                   r"|;\s*[A-Za-z_$][\w$.]*\([^()]*\)\s*;"
+                  r"|(?<=\))\s*[A-Za-z_$][\w$]*(\.[\w$]+)+\([^()]*\)\s*;"  # a member call after a closed paren: `(prose) e.fleet.push(m);` (2026-10-26: a boss's fleet lost its push)
                   r"|\b(uniform|attribute|varying)\s+(float|vec[234]|mat[234]|sampler2D)\s+\w+\s*[;,]"
                   r"|^\s*[^,]*?\s[A-Za-z_$][\w$]*:\s*[^,]*\([^()]*\)[^,]*,\s*[A-Za-z_$][\w$]*:\s")  # object fields: `a: f(x), b: ...` (2026-10-14: a slow log lost secs/frames/avgMs)
 
