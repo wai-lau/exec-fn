@@ -9,7 +9,8 @@
     "0 1px 2px hsl(150deg 14% 15% / 0.05), 0 10px 34px hsl(150deg 14% 15% / 0.07)",
     "0 2px 16px hsl(var(--pink-hsl) / 0.12)",
     "0 2px 22px hsl(var(--pink-hsl) / 0.25)",
-    "inset 0 0 0 1px hsl(var(--tc-cream))"
+    "inset 0 0 0 1px hsl(var(--tc-cream) / 0.7)",
+    "none"
   ],
   "z-index": [
     "-1",
@@ -19,7 +20,6 @@
     "19",
     "25",
     "3",
-    "30",
     "4",
     "41",
     "5",
@@ -28,12 +28,14 @@
     "8",
     "9991",
     "9995",
+    "auto",
     "var(--z-bubble)",
     "var(--z-max)",
     "var(--z-modal)",
     "var(--z-nav)",
     "var(--z-overlay)",
     "var(--z-raised)",
+    "var(--z-sticky)",
     "var(--z-top)"
   ]
 }
