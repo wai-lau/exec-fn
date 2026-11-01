@@ -353,6 +353,7 @@ Loop internals, the breakdown UI, the tone rules and the recalibration design: *
 7. Archive `moltbook-heartbeat.log` → `moltbook-heartbeat_YYYYMMDD.log`, reset to `""`
 8. Roll past-dated `scheduled_day` on rd/hq cards forward to today (skip `no_rollover` cards — a missed fixed occurrence stays in the past), auto-promote rd cards with a `due_date` inside the 7-day window to hq (rd->hq via `schedule_to_day`), then `scheduler.layout_day()` autostacks carryover + unpinned timeless today cards from 10 AM while pinning timed cards at `event_time - prep` (preserves cards already placed for today), then `nudge.morning_reconcile()` re-anchors nudge state to the fresh layout
 9. Clear `chat.json`, then (in the route, `routes_morning.api_morning`) end the Exec panel's sidecar thread via `cc_client.new_conversation()` — archives first; a failure lands in `errors.cc_new`. Any morning error (or a crash) is also posted to the Exec chat as a monitor message (`_post_morning_errors`)
+9b. Stamp `data/nightly.json` → every open nav page reloads (`GET /api/nightly`, `web/nightly-reload.js`). **ARCHITECTURE.md §3a**
 10. Dedupe `profile.json` notes
 
 ---

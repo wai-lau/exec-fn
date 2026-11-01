@@ -19,7 +19,7 @@ for _k in ("API_KEY", "TURNSTILE_SITE_KEY", "TURNSTILE_SECRET"):
 import routes_morning as routes_api  # noqa: E402
 
 
-def _run(monkeypatch, cc_result, morning=None):
+def _run(monkeypatch, cc_result, morning=None, stamp=None):
     calls = []
     posted = []
 
@@ -35,6 +35,7 @@ def _run(monkeypatch, cc_result, morning=None):
     monkeypatch.setattr(routes_api, "append_monitor_comment", lambda _t: None)
     monkeypatch.setattr(routes_api.cc_client, "new_conversation", fake_new)
     monkeypatch.setattr(routes_api, "push_to_monitor", fake_push)
+    monkeypatch.setattr(routes_api, "_NIGHTLY", stamp or Path(os.devnull) / "x")
     return asyncio.run(routes_api.api_morning()), calls, posted
 
 
@@ -86,3 +87,15 @@ def test_gcal_invalid_grant_error_carries_regrant_link():
     fix = routes_api._morning_error_fix("gcal_import", "('invalid_grant: Token has been expired or revoked.', {})")
     assert "https://wai-lau.net/api/gcal/auth" in fix
     assert routes_api._morning_error_fix("gcal_import", "timeout") == ""
+
+
+def test_morning_moves_the_nightly_stamp(monkeypatch, tmp_path):
+    """Open pages reload when /api/nightly's stamp moves (web/nightly-reload.js)."""
+    stamp = tmp_path / "nightly.json"
+    monkeypatch.setattr(routes_api, "_NIGHTLY", stamp)
+    assert routes_api.api_nightly() == {"at": None}   # never run: no reload
+    _run(monkeypatch, {"ok": True}, stamp=stamp)
+    first = routes_api.api_nightly()["at"]
+    assert first
+    _run(monkeypatch, {"ok": True}, stamp=stamp)
+    assert routes_api.api_nightly()["at"] != first

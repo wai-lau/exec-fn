@@ -1,14 +1,19 @@
 """The 4:30 AM morning route (`POST /api/morning`) and its error report into
 the Exec chat. The pipeline itself is morning.py; this is the HTTP edge."""
 import asyncio
+import json
+from datetime import datetime, timezone
 
 from fastapi import HTTPException
 
-from routers import protected
+from routers import protected, public
 from morning import build_morning
+from helpers import DATA_DIR
 import cc_client
 from monitor_sse import push_to_monitor
 from chat_store import append_monitor_comment
+
+_NIGHTLY = DATA_DIR / "nightly.json"
 
 
 @protected.post("/api/morning")
@@ -27,7 +32,27 @@ async def api_morning():
         await _post_morning_errors(result["errors"])
     # Tell any open board to refresh (rollover re-laid the day).
     await push_to_monitor({"cards_changed": True})
+    # ...and every open page to reload (web/nightly-reload.js): a tab left
+    # open overnight kept yesterday's Exec transcript in its DOM.
+    _mark_nightly()
     return result
+
+
+def _mark_nightly() -> None:
+    try:
+        _NIGHTLY.write_text(json.dumps({"at": datetime.now(timezone.utc).isoformat()}))
+    except OSError:
+        pass   # a missed reload must never fail the morning
+
+
+@public.get("/api/nightly")
+def api_nightly():
+    """When the last morning run finished — pages reload when it moves. Public:
+    a timestamp, and guest + owner pages both reload."""
+    try:
+        return json.loads(_NIGHTLY.read_text())
+    except (OSError, ValueError):
+        return {"at": None}
 
 
 def _morning_error_fix(step: str, msg) -> str:

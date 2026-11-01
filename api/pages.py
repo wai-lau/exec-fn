@@ -301,7 +301,8 @@ def _build_nav(active=None, guest=False):
                   '<script src="/exec-bubble-drag.js?v=7"></script>'
                   '<script src="/exec-link.js?v=2"></script>'
                   + voice_listener)
-    return nav + script + bubble
+    # Every nav page, guest or owner, reloads after the morning run (§3a).
+    return nav + script + bubble + '<script src="/nightly-reload.js?v=1"></script>'
 
 
 _index_cache: tuple[float, str, str] | None = None  # (mtime, no_form, bare)
