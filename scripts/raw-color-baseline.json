@@ -51,6 +51,7 @@
     "rgb(r,g,b)",
     "rgba(\"+(r|0)",
     "rgba(\"+[0,1,2].map(i=>math.round(mix(i)",
+    "rgba(\"+rgb+\",\"+a.tofixed(3)",
     "rgba(\"+rgb+\",\"+m[3]+\")",
     "rgba(0,0,0,0.08)",
     "rgba(0,0,0,0.18)",
