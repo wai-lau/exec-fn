@@ -16,10 +16,19 @@
 (function () {
   const SR = 24000; // upstream PCM rate
 
+  // How long the session stays held after the last sound drains. Long enough
+  // to bridge a queued Exec utterance or a slow chunk, short enough that her
+  // music comes back before she notices it went.
+  const RELEASE_MS = 2000;
+
   // iOS mutes the Web Audio API under the Ring/Silent switch. Looping a silent
   // HTMLMediaElement (in-gesture) moves the page's audio session to "playback",
   // which the switch does NOT mute -- so buffer output is then audible even in
-  // silent mode. Kept looping so the session stays in that category.
+  // silent mode. Looping only WHILE SOMETHING PLAYS: "playback" is also the
+  // category that stops every other app's audio, and the first tap anywhere
+  // on a nav page unlocks the Exec player, so a loop left running took her
+  // music away on every page for as long as the tab lived. release() pauses
+  // it; a later play() needs no gesture once the element has played in one.
   function enableSilentModePlayback(S) {
     if (!S.silentEl) {
       S.silentEl = document.createElement("audio");
@@ -58,6 +67,26 @@
     s.connect(S.ctx.destination);
     s.start(0);
     S.unlockedOnce = true; // a gesture ran this; the player may now speak
+    scheduleRelease(S);    // a bare unlock has nothing to say yet
+  }
+
+  // Give the audio session back: pause the silent loop and suspend the
+  // context. speak()/speakBuffer() take it again through unlock().
+  function release(S) {
+    S.releaseTimer = 0;
+    if (S.streaming || S.sources.length) return;
+    if (S.silentEl) S.silentEl.pause();
+    if (S.ctx && S.ctx.state === "running") S.ctx.suspend().catch(() => {});
+  }
+
+  function scheduleRelease(S) {
+    clearTimeout(S.releaseTimer);
+    S.releaseTimer = setTimeout(() => release(S), RELEASE_MS);
+  }
+
+  function holdSession(S) {
+    clearTimeout(S.releaseTimer);
+    S.releaseTimer = 0;
   }
 
   function flush(S) {
@@ -69,6 +98,7 @@
       }
     }
     S.sources = [];
+    if (!S.streaming) scheduleRelease(S);
     S.playhead = 0;
     S.startTime = null;
     S.bufferedDur = 0;
@@ -79,6 +109,8 @@
   // (speakBuffer, one whole utterance) so both keep the same playhead, the same
   // gain node and the same elapsed()/audioDuration() clock.
   function scheduleBuffer(S, buf) {
+    holdSession(S);
+    if (S.ctx.state === "suspended") S.ctx.resume().catch(() => {});
     const src = S.ctx.createBufferSource();
     src.buffer = buf;
     src.connect(S.gainNode);
@@ -93,6 +125,7 @@
     S.sources.push(src);
     src.onended = () => {
       S.sources = S.sources.filter((x) => x !== src);
+      if (!S.sources.length && !S.streaming) scheduleRelease(S);
     };
     if (S.cur && S.cur.onChunk) S.cur.onChunk(S.bufferedDur);
   }
@@ -103,6 +136,13 @@
     const buf = S.ctx.createBuffer(1, f32.length, SR);
     buf.getChannelData(0).set(f32);
     scheduleBuffer(S, buf);
+  }
+
+  // The utterance's terminal frame arrived: nothing more is coming, so the
+  // session may go once what is buffered has played out.
+  function endStream(S) {
+    S.streaming = false;
+    if (!S.sources.length) scheduleRelease(S);
   }
 
   // Concurrent speak() calls (fire-and-forget callers like exec-voice.js carry
@@ -134,6 +174,7 @@
         // a superseded one closing late must not fail the utterance that already
         // moved to its replacement.
         if (S.ws !== sock) return;
+        endStream(S);
         const cur = S.cur;
         S.cur = null;
         if (cur && cur.onStatus) cur.onStatus({ type: "error", detail: "voice connection lost" });
@@ -146,6 +187,7 @@
           } catch {
             return;
           }
+          if (msg.type === "end" || msg.type === "error") endStream(S);
           if (S.cur && S.cur.onStatus) S.cur.onStatus(msg);
           return;
         }
@@ -164,9 +206,16 @@
   //   onFirstAudio(at)   -- first PCM chunk scheduled (ctx clock)
   //   onChunk(seconds)   -- running buffered duration after each chunk
   async function speak(S, req) {
+    S.streaming = true;    // before unlock(), so its release timer stands down
     unlock(S);
+    holdSession(S);
     if (S.ctx.state === "suspended") await S.ctx.resume();
-    if (!S.ws || S.ws.readyState !== WebSocket.OPEN) await openSocket(S);
+    try {
+      if (!S.ws || S.ws.readyState !== WebSocket.OPEN) await openSocket(S);
+    } catch (e) {
+      endStream(S);
+      throw e;
+    }
     flush(S);
     S.cur = { onStatus: req.onStatus, onFirstAudio: req.onFirstAudio, onChunk: req.onChunk };
     S.ws.send(
@@ -187,6 +236,7 @@
   // scheduled, because a file is fully buffered by definition.
   async function speakBuffer(S, req) {
     unlock(S);
+    holdSession(S);
     if (S.ctx.state === "suspended") await S.ctx.resume();
     flush(S);
     S.cur = { onStatus: req.onStatus };
@@ -210,6 +260,8 @@
       playhead: 0,      // next free time on the schedule (ctx clock)
       sources: [],      // scheduled buffer sources, for flush()
       silentEl: null,
+      streaming: false, // an utterance's terminal frame is still to come
+      releaseTimer: 0,  // pending release() of the audio session
       unlockedOnce: false, // a user-gesture unlock has run at least once
       cur: null,        // current utterance {onStatus, onFirstAudio, onChunk}
       startTime: null,  // ctx clock time the current utterance begins

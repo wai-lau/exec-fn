@@ -139,8 +139,11 @@ const tarotMusic = (() => {
     startPlayback().catch(() => arm());
   }
 
+  // Stopping the music gives the audio session back too: the silent loop is
+  // what holds it in "playback", the category that silences her other apps.
   function stop() {
     if (el) el.pause();
+    if (silentEl) silentEl.pause();
   }
 
   function setOn(v) {
