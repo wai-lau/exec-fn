@@ -43,14 +43,16 @@ def fulfill_sse(body: str):
 _marked = fulfill_js("window.marked={use(){},parse:s=>s};")
 
 # Fake HosakaAudio: a player that records speak() reqs instead of streaming PCM.
-# unlock() flips the gesture flag so execVoice.ready() turns true after a tap.
+# unlock() flips the gesture flag so execVoice.ready() turns true after a tap,
+# and counts itself: a voice that is off must never take the audio session.
 _FAKE_HOSAKA = """
 window.__execSpoken = [];
+window.__unlocks = 0;
 window.HosakaAudio = {
   createPlayer: function (opts) {
     var unlocked = false;
     return {
-      unlock: function () { unlocked = true; },
+      unlock: function () { unlocked = true; window.__unlocks++; },
       speak: function (req) { window.__execSpoken.push(req); return Promise.resolve(); },
       flush: function () {},
       setVolume: function () {},
@@ -100,10 +102,22 @@ def open_rd(browser, base_url, admin_headers):
 
 
 def _open_panel(pg):
-    # A real tap opens the panel AND unlocks the fake player (gesture).
+    # Opening the panel is NOT a request for audio: it must leave the session
+    # alone (it used to unlock, which paused Wai's music on every open).
     pg.click("#exec-bubble")
     pg.wait_for_selector("#exec-panel.open", timeout=4000)
-    assert pg.evaluate("() => window.execVoice && window.execVoice.ready()")
+    assert not pg.evaluate("() => window.execVoice.ready()")
+    assert pg.evaluate("() => window.__unlocks") == 0
+
+
+def _pass_gate(pg):
+    """Exec has a line and no gesture yet: the tap-to-hear overlay asks."""
+    pg.wait_for_selector("#voice-gate:not([hidden])", timeout=8000)
+    pg.click("#voice-gate .vg-go")
+    assert pg.is_hidden("#voice-gate")
+    assert pg.evaluate("() => window.execVoice.ready()")
+    # A tap on the overlay is an answer to Exec, not a click outside the panel.
+    assert pg.is_visible("#exec-panel.open")
 
 
 def _spoken(pg):
@@ -115,6 +129,7 @@ def test_assistant_reply_is_spoken_in_glados(open_rd):
     _open_panel(pg)
     pg.fill("#exec-minput", "hello")
     pg.keyboard.press("Control+Enter")  # bare Enter is a newline; 3 in a row send
+    _pass_gate(pg)
     pg.wait_for_function("() => (window.__execSpoken || []).length >= 1", timeout=8000)
     spoken = _spoken(pg)
     assert len(spoken) == 1
@@ -130,6 +145,7 @@ def test_speak_strips_markdown_and_brackets(open_rd):
     pg = open_rd()
     _open_panel(pg)
     pg.evaluate("() => window.execVoice.speak('**bold** [ skip me ] words `code`')")
+    _pass_gate(pg)
     pg.wait_for_function("() => (window.__execSpoken || []).length >= 1", timeout=4000)
     assert _spoken(pg)[0]["input"] == "bold words code"
 
@@ -142,6 +158,7 @@ def test_speak_drops_a_table_and_keeps_snake_case_whole(open_rd):
     _open_panel(pg)
     pg.evaluate(r"""() => window.execVoice.speak(
         'Edit dir_start_min here.\n\n| col | col |\n|---|---|\n| 1 | 2 |\n\nThen rerun.')""")
+    _pass_gate(pg)
     pg.wait_for_function("() => (window.__execSpoken || []).length >= 1", timeout=4000)
     said = _spoken(pg)[0]["input"]
     assert "dir_start_min" in said
@@ -156,6 +173,21 @@ def test_muted_player_stays_silent(open_rd):
     pg.evaluate("() => window.execVoice.speak('You should not hear this.')")
     pg.wait_for_timeout(800)
     assert _spoken(pg) == []
+    # Off asks for no tap and takes no audio session.
+    assert pg.query_selector("#voice-gate:not([hidden])") is None
+    assert pg.evaluate("() => window.__unlocks") == 0
+
+
+def test_skip_drops_the_line_and_leaves_the_audio_alone(open_rd):
+    pg = open_rd()
+    _open_panel(pg)
+    pg.evaluate("() => window.execVoice.speak('Not now.')")
+    pg.wait_for_selector("#voice-gate:not([hidden])", timeout=4000)
+    pg.click("#voice-gate .vg-skip")
+    pg.wait_for_timeout(500)
+    assert _spoken(pg) == []
+    assert pg.evaluate("() => window.__unlocks") == 0
+    assert pg.is_visible("#exec-panel.open")
 
 
 # ── voice off (was /cc's test; /cc folded into the panel 2026-09-29) ──────
@@ -172,3 +204,5 @@ def test_voice_off_stays_silent_and_still_shows_the_reply(open_rd):
         """() => [...document.querySelectorAll('#exec-term .msg.assistant .msg-body')]
                  .some(b => b.innerText.includes('It is'))""", timeout=10000)
     assert _spoken(pg) == []
+    assert pg.query_selector("#voice-gate:not([hidden])") is None
+    assert pg.evaluate("() => window.__unlocks") == 0

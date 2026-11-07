@@ -56,7 +56,10 @@
     mk.className = "msg-mark";
     mk.textContent = role === "probe" ? "~" : ">";
     mk.title = "replay voice";
-    mk.addEventListener("click", function () { narrator.speak(text); });
+    mk.addEventListener("click", function () {
+      narrator.unlock();   // the tap is the gesture; a no-op with the voice off
+      narrator.speak(text);
+    });
     return mk;
   }
 

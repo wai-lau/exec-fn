@@ -44,6 +44,9 @@ window.execVoice = (function () {
     stripBrackets: true,
     // The mics dim their dot while Exec talks and light it again on this.
     idleEvent: "exec:voice-idle",
+    // Exec takes the audio session only when it has a line to say, and asks
+    // for the tap then (voice-gate.js) -- never on a tap anywhere.
+    tapGate: "tap to hear Exec",
   });
 
   // Build the on/off toggle for a surface to place: the panel drops it in its

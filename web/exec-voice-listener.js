@@ -9,9 +9,8 @@
   "use strict";
   if (!window.execVoice) return; // TTS scripts didn't load
 
-  // Persisted-on but no gesture yet -> unlock on the first tap/keypress so a
-  // nudge narrates without needing the chat panel (iOS audio-unlock rule).
-  execVoice.armUnlock();
+  // No unlock-on-first-tap here: the narrator is tap-gated, so a nudge that
+  // arrives before any gesture asks for one itself (voice-gate.js).
 
   // Same SSE channel the exec bubble subscribes to; we only voice the comments
   // (the {thinking} pings drive the panel's typing dots, which don't exist here).

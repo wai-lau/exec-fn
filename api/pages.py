@@ -247,6 +247,7 @@ def _build_nav(active=None, guest=False):
         # engine /tarot runs, so the `$` prompt is the mic.
         bubble = ('<script src="/hosaka-audio.js?v=7"></script>'
                   '<script src="/voice-util.js?v=2"></script>'
+                  '<script src="/voice-gate.js?v=1"></script>'
                   '<script src="/voice-narrator.js?v=2"></script>'
                   '<script src="/voice-ui.js?v=1"></script>'
                   '<script src="/exec-voice.js?v=7"></script>'
@@ -289,6 +290,7 @@ def _build_nav(active=None, guest=False):
         voice_pre = (
             '<script src="/hosaka-audio.js?v=7"></script>'
             '<script src="/voice-util.js?v=2"></script>'
+            '<script src="/voice-gate.js?v=1"></script>'
             '<script src="/voice-narrator.js?v=2"></script>'
             '<script src="/voice-ui.js?v=1"></script>'
             '<script src="/exec-voice.js?v=7"></script>'

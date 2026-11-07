@@ -1,0 +1,35 @@
+/* The "tap to hear" overlay (voice-gate.js). Above the Exec panel and the CRT
+   stack: it is the one thing on the page asking for a tap. */
+
+#voice-gate {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-max);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  background: hsl(var(--scrim-hsl) / 0.45);
+  cursor: pointer;
+}
+
+#voice-gate[hidden] { display: none; }
+
+/* Solid ground under the words: the scrim is light enough that the page's own
+   text reads straight through it. */
+#voice-gate button {
+  background: hsl(var(--bg-hsl));
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  color: hsl(var(--green-hsl) / 1);
+  padding: var(--space-2) var(--space-3);
+}
+
+#voice-gate .vg-go { font-size: var(--fs-xl); }
+
+#voice-gate .vg-skip {
+  font-size: var(--fs-2xs);
+  color: hsl(var(--green-hsl) / 0.8);
+}

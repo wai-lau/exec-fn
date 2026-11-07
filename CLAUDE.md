@@ -117,6 +117,8 @@ Nav: `R&D` · `HQ` · `DBG` · `BOT` · `GPH` · `UIX` · `12AM` · `SPR` (`/spi
 
 **Which voice, and from which machine, is the load-bearing difference.** Exec speaks **`glados` on `piper`, which is a container on THIS droplet** — its voice works with the home box asleep. `/tarot` speaks **`nicole` on `kokoro`, from the home GPU box over the SSH tunnel**, and is the only surface that can lose its voice (hence `tarotVoice.probeHome()` and the offline note). Exec keeps the `exec.voice` localStorage key; `/tarot` keeps `tarot.voice`.
 
+**Exec asks before taking the audio session** — no unlock on a random tap or with the voice off; a line to say with no gesture yet shows the `[ tap to hear Exec ]` overlay (`web/voice-gate.js`), because iOS's silent-switch loop pauses Wai's music. **ARCHITECTURE.md §4c**.
+
 **OFF means off, not muted** (changed 2026-09-20 — the `/tarot` button used to be a volume mute that kept narrating and kept pacing the reveal to audio nobody could hear). Nothing is synthesized, no socket opens, `speak()` returns a DEAD controller, and the surface types at its own fast pace. One flag, no second state to keep in sync.
 
 **Voice goes both ways on both surfaces.** `voice-input.js` is the mic engine + `bindComposer`; `exec-mic.js`/`tarot-mic.js` are thin bindings. A final result ARMS a send 1s out (`SEND_DELAY_MS`) rather than sending. **The mic drops everything heard while a reply streams or the narrator `isSpeaking()`** — else the page answers its own narration. **ARCHITECTURE.md §4c, §7k-bis**.

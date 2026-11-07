@@ -45,22 +45,53 @@
   // nothing speaks until the first interaction. Arm a one-shot unlock on the
   // first tap/keypress anywhere — synchronously, inside that gesture, which is
   // the iOS rule — so the next turn narrates without a manual toggle.
+  //
+  // A TAP-GATED narrator (Exec) arms nothing: a tap anywhere is not a request
+  // for audio, and taking the session pauses her music (voice-gate.js). It asks
+  // for its own tap when it has a line to say.
   function armUnlock(S, after) {
+    if (S.tapGate) return;
     function fire() {
       document.removeEventListener("pointerdown", fire, true);
       document.removeEventListener("keydown", fire, true);
-      ensurePlayer(S).unlock();
+      unlock(S);
       if (after) after();
     }
     document.addEventListener("pointerdown", fire, true);
     document.addEventListener("keydown", fire, true);
   }
 
+  // OFF never touches the audio session: no context, no silent loop, so a
+  // page with the voice off leaves whatever else is playing alone.
+  function unlock(S) {
+    if (S.on) ensurePlayer(S).unlock();
+  }
+
   function setOn(S, v) {
     S.on = v;
     localStorage.setItem(S.lsKey, v ? "1" : "0");
-    if (v) ensurePlayer(S).unlock();   // turning it on is a gesture -> iOS unlock
+    unlock(S);   // turning it on is a gesture -> iOS unlock
     if (S.player) S.player.setVolume(v ? S.gain : 0);
+    if (!v) dropGated(S);
+  }
+
+  function dropGated(S) {
+    S.gated = [];
+    if (window.VoiceGate) VoiceGate.hide();
+  }
+
+  // A line to say and no gesture behind the player yet: hold it and ask for the
+  // tap. The CALLER gets a dead controller and types at its own pace, so a
+  // reveal never waits on a tap that may never come; the voice follows the tap.
+  function gate(S, text) {
+    S.gated.push(text);
+    VoiceGate.show(S.tapGate, function () {
+      unlock(S);   // inside the click: the iOS rule
+      const lines = S.gated;
+      S.gated = [];
+      if (ready(S)) lines.forEach(function (t) { say(S, t, newCtl(S)); });
+    }, function () { S.gated = []; });
+    return deadCtl(S);
   }
 
   // The controller a caller polls: the typewriter paces its reveal off
@@ -152,8 +183,12 @@
   // controller and not a byte synthesized.
   function speak(S, md) {
     const text = spoken(S, md);
-    if (!S.on || !text || !ready(S)) return deadCtl(S);
-    const ctl = newCtl(S);
+    if (!S.on || !text) return deadCtl(S);
+    if (!ready(S)) return S.tapGate && window.VoiceGate ? gate(S, text) : deadCtl(S);
+    return say(S, text, newCtl(S));
+  }
+
+  function say(S, text, ctl) {
     if (S.queue && S.speaking) { S.queued.push({ text, ctl }); return ctl; }
     return doSpeak(S, text, ctl);
   }
@@ -188,6 +223,9 @@
       queue: !!cfg.queue,
       stripBrackets: !!cfg.stripBrackets,
       idleEvent: cfg.idleEvent || null,
+      // The overlay's words, or null: see armUnlock() and gate().
+      tapGate: cfg.tapGate || null,
+      gated: [],
       player: null,
       // ON by default; "0" in localStorage turns the narrator OFF — really off,
       // not merely silent. Nothing is synthesized, no socket opens, and the
@@ -204,7 +242,7 @@
       speak: (md) => speak(S, md),
       speakClip: (buf) => speakClip(S, buf),
       ready: () => ready(S),
-      unlock: () => ensurePlayer(S).unlock(),
+      unlock: () => unlock(S),
       armUnlock: (after) => armUnlock(S, after),
       isOn: () => S.on,
       setOn: (v) => setOn(S, v),

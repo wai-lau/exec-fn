@@ -37,8 +37,11 @@
       S.silentEl.playsInline = true;
       S.silentEl.setAttribute("playsinline", "");
     }
-    S.silentEl.play().catch(() => {
-      /* no gesture / unsupported -- audio still works with the switch off */
+    S.silentEl.play().catch((e) => {
+      // Refused for want of a gesture: the earlier unlock no longer counts, so
+      // the narrator's next line asks for a tap again (voice-gate.js). Any other
+      // failure is an unsupported element -- audio still works with the switch off.
+      if (e && e.name === "NotAllowedError") S.unlockedOnce = false;
     });
   }
 

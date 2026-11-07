@@ -90,7 +90,10 @@
     // Why it has to be capture: ARCHITECTURE.md §12.
     let fromInside = false;
     function markOrigin(e) {
-      fromInside = panel.contains(e.target) || bubble.contains(e.target);
+      // The "tap to hear" overlay sits over the panel, not in it, and a tap
+      // there is an answer to Exec, not a dismissal (voice-gate.js).
+      fromInside = panel.contains(e.target) || bubble.contains(e.target) ||
+        !!(e.target.closest && e.target.closest('#voice-gate'));
     }
     function closeIfOutside() {
       if (!isOpen) return;
@@ -108,7 +111,6 @@
   function openPanel() {
     isOpen = true;
     panel.classList.add('open');
-    if (window.execVoice) execVoice.unlock(); // opening via bubble tap = a gesture
     markRead();
     if (msgInput) msgInput.focus();
     setTimeout(function () { if (msgInput) msgInput.focus(); }, 240);
