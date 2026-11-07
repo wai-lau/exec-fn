@@ -35,7 +35,11 @@ def test_shim_is_the_canonical_copy(rel):
 @pytest.mark.parametrize("rel", SHIMMED)
 def test_tooling_copy_is_gitignored(rel):
     ignore = (_repo(rel) / ".gitignore").read_text().split()
-    assert "/.exec-fn/" in ignore or ".exec-fn/" in ignore, f"{rel}/.gitignore lacks /.exec-fn/"
+    # Without the trailing slash too: a repo whose .exec-fn is a SYMLINK into the
+    # parent (spire's peer worktrees) needs `/.exec-fn`, since `dir/` only
+    # matches a real directory.
+    ok = {"/.exec-fn/", ".exec-fn/", "/.exec-fn", ".exec-fn"}
+    assert ok & set(ignore), f"{rel}/.gitignore lacks /.exec-fn"
 
 
 def test_tooling_paths_exist():
