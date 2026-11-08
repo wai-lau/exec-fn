@@ -57,13 +57,14 @@ function renderCard(c, dayIso) {
   const titleC = bg ? (dark ? 'inherit' : 'rgba(0,0,0,0.85)') : 'hsl(var(--green-hsl) / 0.8)';
   const metaC  = bg ? (dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.5)') : 'hsl(var(--green-hsl) / 0.45)';
 
-  const over = (dayIso && isOverdue(c, dayIso)) ? '<span class="hq-overdue">!</span>' : '';
+  const over = (dayIso && isOverdue(c, dayIso)) ? '<span class="hq-overdue" title="overdue">!</span>' : '';
   const reminder = c.is_reminder ? '<span style="opacity:0.35;font-size:0.6rem"> [rem]</span>' : '';
   const recur = c.recur_type ? `<span style="opacity:0.45">${RECUR_LABEL[c.recur_type]||'↺'}</span>` : '';
-  const dueC = (dayIso && isOverdue(c, dayIso)) ? 'hsl(var(--orange-glow-hsl) / 1)' : metaC;
+  const late = !!(dayIso && isOverdue(c, dayIso));
   // on its own day the date is the row's label already: show the time alone
   const dueTxt = !c.due_date ? '' : (dayIso && c.due_date.startsWith(dayIso)) ? c.due_date.slice(11) : c.due_date.slice(5).replace('T',' ');
-  const due = dueTxt ? `<span class="hq-due" style="color:${dueC}">${dueTxt}</span>` : '';
+  // overdue: the .overdue chip (hq.css) carries its own colour, readable on any fill
+  const due = dueTxt ? `<span class="hq-due${late ? ' overdue' : ''}"${late ? '' : ` style="color:${metaC}"`}>${dueTxt}</span>` : '';
   const metaHtml = (recur || due) ? `<div class="hq-card-meta" style="color:${metaC}">${recur}${due}</div>` : '';
   const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const notesHtml = c.notes ? `<div class="hq-card-notes" style="color:${metaC}">${esc(c.notes)}</div>` : '';

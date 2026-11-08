@@ -71,7 +71,14 @@ body { overflow: hidden !important; background: transparent !important; }
 
 .hq-card-notes { font-size: var(--fs-sm); opacity: 0.88; margin-top: var(--space-1-5); line-height: var(--lh-snug); overflow-wrap: break-word;
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.hq-overdue { position: absolute; top: 4px; right: 6px; font-size: var(--fs-2xs); color: hsl(var(--orange-hsl) / 1); }
+
+/* overdue = a chip on the page background, so it reads on ANY card fill (bare
+   orange text vanished on the orange Interfacing cards) */
+.hq-overdue, .hq-due.overdue {
+  background: hsl(var(--bg-hsl)); color: hsl(var(--orange-glow-hsl) / 1);
+  border-radius: var(--radius-1); padding: 0 var(--space-1);
+}
+.hq-overdue { position: absolute; top: 4px; right: 6px; font-size: var(--fs-2xs); font-weight: var(--fw-bold); }
 .sortable-ghost { opacity: 0.4; }
 
 .hq-unschedule {
