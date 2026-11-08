@@ -180,7 +180,7 @@ function renderCol(col) {
     ? `<span class="col-hdr-label">${collapsed ? `▶ <span style="opacity:0.35">${count}</span>` : `${label} <span style="opacity:0.35">(${count})</span>`}</span>
        ${!collapsed ? `<button class="done-toggle" onclick="${toggle}(event)">▼</button>` : ''}`
     : col === 'rd'
-      ? `<span class="col-hdr-label">${label} <span style="opacity:0.35">(${count})</span></span><input id="rd-search" type="text" placeholder="...search" autocomplete="off" spellcheck="false">`
+      ? `<span class="col-hdr-label">${label} <span style="opacity:0.35">(${count})</span></span><input id="rd-search" type="text" placeholder="search" autocomplete="off" spellcheck="false">`
       : `<span class="col-hdr-label">${label} <span style="opacity:0.35">(${count})</span></span>`;
   const hideFromMain = col === 'rd' || col === 'hq';
   const floatSoon = col === 'rd' || col === 'hq';

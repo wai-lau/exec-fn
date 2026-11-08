@@ -143,9 +143,12 @@ body { overflow: hidden !important; background: transparent !important; }
   background: none; border: none; outline: none;
   color: hsl(var(--green-hsl) / 0.45); font-family: var(--font-mono);
   font-weight: var(--fw-normal); font-size: var(--fs-sm); line-height: var(--lh-none); padding: 0; width: 0; flex: 0 1 7em; min-width: 0;
-  text-align: right; align-self: center; height: var(--fs-sm);
+  text-align: right; align-self: center; height: var(--fs-sm); margin-left: var(--space-2-5);
 }
-#rd-search::placeholder { color: hsl(var(--green-hsl) / 0.12); }
+
+/* 0.45, not 0.12: at 0.12 the placeholder was invisible, and its leading
+   dots ran straight into the "(23)" count. margin-left keeps the two apart. */
+#rd-search::placeholder { color: hsl(var(--green-hsl) / 0.45); }
 #rd-search:focus { color: hsl(var(--green-hsl) / 1); }
 .card.search-hide { display: none; }
 
