@@ -1,4 +1,4 @@
-/* global cardStyle, chipStyle, bookBarColors */
+/* global cardStyle, chipStyle, bookBarColors, calToast */
 const COLS = ['rd','hq','archives','exile'];
 
 function esc(s) {
@@ -140,14 +140,28 @@ async function save() {
   // (esp. the nudge loop's server-owned subtree, rewritten independently
   // every ~30s — a stale full-card snapshot here would silently clobber it).
   const payload = cards.map(c => ({id: c.id, column: c.column, order: c.order}));
-  await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards: payload})});
+  await patchRd(payload);
+}
+
+// Every board write goes through here so a failed one is SAID, not swallowed:
+// an unchecked fetch read a 500 or a dropped connection as saved, and the next
+// reload silently put the card back. Toast + reload so the board shows what
+// actually stuck (calToast lives in rd-calendar.js, same scope).
+async function patchRd(payload) {
+  try {
+    const r = await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards: payload})});
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+  } catch (e) {
+    calToast('save failed (' + e.message + ') - board reloaded');
+    await load();
+  }
 }
 
 // Reminders-bar drag toggles is_reminder on one card without moving it between
 // board columns — a separate minimal patch so it doesn't need to ride along
 // on save(), which under the merge-patch contract owns only column/order.
 async function patchReminderFlag(id, flag) {
-  await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards: [{id, is_reminder: flag}]})});
+  await patchRd([{id, is_reminder: flag}]);
 }
 
 function toggleArchives(e) { if (e) e.stopPropagation(); archivesCollapsed = !archivesCollapsed; buildBoard(); }
