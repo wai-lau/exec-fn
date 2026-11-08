@@ -177,7 +177,7 @@ function renderCol(col) {
   const toggle = isArchives ? 'toggleArchives' : (isExile ? 'toggleExile' : null);
   const label = COL_LABELS[col] || col;
   const hdr = toggle
-    ? `<span class="col-hdr-label">${collapsed ? '▶' : label} <span style="opacity:0.35">(${count})</span></span>
+    ? `<span class="col-hdr-label">${collapsed ? `▶ <span style="opacity:0.35">${count}</span>` : `${label} <span style="opacity:0.35">(${count})</span>`}</span>
        ${!collapsed ? `<button class="done-toggle" onclick="${toggle}(event)">▼</button>` : ''}`
     : col === 'rd'
       ? `<span class="col-hdr-label">${label} <span style="opacity:0.35">(${count})</span></span><input id="rd-search" type="text" placeholder="...search" autocomplete="off" spellcheck="false">`
