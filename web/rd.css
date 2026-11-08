@@ -124,6 +124,10 @@ body { overflow: hidden !important; background: transparent !important; }
 .card-foot { display: flex; justify-content: space-between; align-items: baseline; margin-top: var(--space-1-5); }
 .card-badge { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: var(--tracking-wide); opacity: 0.6; }
 .card-due { font-size: var(--fs-2xs); }
+
+/* Overdue: a dark chip, the same one /hq uses (.hq-due.overdue). Bare orange
+   text vanished on an orange card; the chip's own fill reads on any card. */
+.card-due.overdue, .rem-due.overdue { background: hsl(var(--bg-hsl)); color: hsl(var(--orange-glow-hsl) / 1); border-radius: var(--radius-1); padding: 0 var(--space-1); font-weight: var(--fw-bold); }
 .sortable-ghost { opacity: 0.2; }
 
 #rd-search {

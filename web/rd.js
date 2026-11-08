@@ -110,19 +110,20 @@ function renderCard(c) {
   const tc     = !hasStyle ? 'hsl(var(--green-hsl) / 0.45)' : dark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.8)';
   const displayDate = c.due_date;
   const urgent = isUrgent(displayDate);
-  const overdue = c.column === 'rd' && isOverdue(displayDate);
+  // late in either live column -- hq holds overdue work too (rolled-over cards)
+  const overdue = (c.column === 'rd' || c.column === 'hq') && isOverdue(displayDate);
   const dueSoon = !overdue && isDueSoon(displayDate);
   const dateLabel = displayDate ? fmtDate(c.due_date) : '';
   const RECUR_LABEL = {week:'↺wk', 'bi-week':'↺2wk', month:'↺mo', holiday:'↺yr', birthday:'↺bday'};
   const recurBadge = c.recur_type ? `<span style="opacity:0.55;margin-left:4px">${RECUR_LABEL[c.recur_type]||'↺'}</span>` : '';
   const reminderBadge = c.is_reminder ? `<span style="opacity:0.4;font-size:0.55rem;margin-left:4px">[reminder]</span>` : '';
-  const dateC = overdue ? 'hsl(var(--orange-glow-hsl) / 1)' : dueSoon ? (bright ? 'rgba(0,90,0,0.95)' : 'hsl(var(--green-hsl) / 1)') : bright ? (urgent ? 'rgba(0,0,0,1)' : 'rgba(30,30,30,0.75)') : (urgent && dark ? 'hsl(var(--green-hsl) / 1)' : tc);
+  const dateC = dueSoon ? (bright ? 'rgba(0,90,0,0.95)' : 'hsl(var(--green-hsl) / 1)') : bright ? (urgent ? 'rgba(0,0,0,1)' : 'rgba(30,30,30,0.75)') : (urgent && dark ? 'hsl(var(--green-hsl) / 1)' : tc);
   return `<div class="card${hasStyle ? '' : ' plain'}" data-id="${c.id}" data-title="${(c.title||'').replace(/"/g,'&quot;')}" data-notes="${(c.notes||'').replace(/"/g,'&quot;')}" style="${bg}${border}">
     <div class="card-title" style="color:${titleC};${bright ? 'font-weight:700;' : ''}">${esc(c.title)}${reminderBadge}</div>
     ${(c.notes||c.description) ? `<div class="card-desc" style="color:${tc}">${esc(c.notes||c.description)}</div>` : ''}
     <div class="card-foot">
       <div class="card-badge" style="color:${tc}">${recurBadge}</div>
-      ${displayDate ? `<div class="card-due"${dueSoon ? ' data-invert="1"' : ` style="color:${dateC}"`}>${dateLabel}</div>` : ''}
+      ${displayDate ? `<div class="card-due${overdue ? ' overdue' : ''}"${dueSoon ? ' data-invert="1"' : overdue ? ' title="overdue"' : ` style="color:${dateC}"`}>${overdue ? '! ' : ''}${dateLabel}</div>` : ''}
     </div>
   </div>`;
 }
@@ -203,7 +204,9 @@ function renderCol(col) {
 
 
 function _remChipHtml(c) {
-  const date = c.due_date ? ` <span style="opacity:0.45;font-size:0.9em">${c.due_date.slice(5)}</span>` : '';
+  const date = !c.due_date ? ''
+    : isOverdue(c.due_date) ? ` <span class="rem-due overdue" title="overdue">! ${c.due_date.slice(5)}</span>`
+    : ` <span style="opacity:0.45;font-size:0.9em">${c.due_date.slice(5)}</span>`;
   const {color, bg, border} = chipStyle(c);
   const title = esc(c.title);
   return `<div class="rem-item" data-id="${c.id}" style="color:${color};background:${bg};border:1px solid ${border}">${title}${date}</div>`;
