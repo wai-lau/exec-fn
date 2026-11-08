@@ -23,8 +23,10 @@ function fmtDate(iso) {
   return `${mm}/${dd}`;
 }
 
+// A date-only "2026-11-08" parses as UTC midnight -- 19:00 the evening before
+// in ET -- so pin it to local midnight; a dated-and-timed one is local already.
 function isUrgent(iso) {
-  return iso && (new Date(iso) - new Date()) / 86400000 <= 3;
+  return iso && (new Date(iso.includes('T') ? iso : iso + 'T00:00:00') - new Date()) / 86400000 <= 3;
 }
 
 function isOverdue(iso) {
