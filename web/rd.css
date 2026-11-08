@@ -71,10 +71,11 @@ body { overflow: hidden !important; background: transparent !important; }
 .col.col-collapsed .col-list { pointer-events: none; overflow: hidden; }
 
 /* A collapsed column is 38px wide, too narrow for "▶ (25)" on one line -- the
-   count clipped to "▶ (2" on a phone. Stacked upright it fits any count; the
-   rest of the collapsed column is empty anyway. */
+   count clipped to "▶ (2" on a phone. ▶ on top, the bare count under it, fits
+   three digits. Not writing-mode upright: the pixel font has no vertical
+   advances, so its stacked digits painted over each other ("25" read "5"). */
 .col.col-collapsed .col-hdr { justify-content: center; padding-inline: 0; letter-spacing: normal; }
-.col.col-collapsed .col-hdr-label { flex: 0 0 auto; writing-mode: vertical-rl; text-orientation: upright; }
+.col.col-collapsed .col-hdr-label { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: var(--space-1); }
 .drag-active .col-group { flex: 4 !important; }
 .drag-active .col.col-collapsed { flex: 1 !important; overflow: visible !important; }
 .drag-active .col.col-collapsed .col-list { pointer-events: auto !important; overflow-y: auto !important; min-height: 40px; }
