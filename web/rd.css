@@ -132,7 +132,11 @@ body { overflow: hidden !important; background: transparent !important; }
 /* gap + wrap: on a narrow card the recur badge and the date ran into each other
    ("↺WK11/19 18:00"); now they keep a gap, and the date wraps under if need be */
 .card-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0 var(--space-2); margin-top: var(--space-1-5); }
-.card-badge { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: var(--tracking-wide); opacity: 0.6; }
+
+/* No opacity of its own: it already takes the card's muted text colour (tc,
+   inline), and stacking 0.6 on the span's 0.55 on top left black at ~26% --
+   invisible on a bright cyan card. Now it reads exactly like the due date. */
+.card-badge { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: var(--tracking-wide); }
 .card-due { font-size: var(--fs-2xs); margin-left: auto; white-space: nowrap; }
 
 /* Overdue: a dark chip, the same one /hq uses (.hq-due.overdue). Bare orange

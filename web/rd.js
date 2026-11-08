@@ -124,7 +124,7 @@ function renderCard(c) {
   const dueSoon = !overdue && isDueSoon(displayDate);
   const dateLabel = displayDate ? fmtDate(c.due_date) : '';
   const RECUR_LABEL = {week:'↺wk', 'bi-week':'↺2wk', month:'↺mo', holiday:'↺yr', birthday:'↺bday'};
-  const recurBadge = c.recur_type ? `<span style="opacity:0.55;margin-left:4px">${RECUR_LABEL[c.recur_type]||'↺'}</span>` : '';
+  const recurBadge = c.recur_type ? `<span style="margin-left:4px">${RECUR_LABEL[c.recur_type]||'↺'}</span>` : '';
   const reminderBadge = c.is_reminder ? `<span style="opacity:0.4;font-size:0.55rem;margin-left:4px">[reminder]</span>` : '';
   const dateC = dueSoon ? (bright ? 'rgba(0,90,0,0.95)' : 'hsl(var(--green-hsl) / 1)') : bright ? (urgent ? 'rgba(0,0,0,1)' : 'rgba(30,30,30,0.75)') : (urgent && dark ? 'hsl(var(--green-hsl) / 1)' : tc);
   return `<div class="card${hasStyle ? '' : ' plain'}" data-id="${c.id}" data-title="${(c.title||'').replace(/"/g,'&quot;')}" data-notes="${(c.notes||'').replace(/"/g,'&quot;')}" style="${bg}${border}">
