@@ -21,7 +21,6 @@ function buildSchedule(cards) {
   _tlWrapH = wrap.clientHeight;
   TL_PX = (_tlWrapH || TL_VIEW_MIN) / TL_VIEW_MIN;
   if (_nowInterval) { clearInterval(_nowInterval); _nowInterval = null; }
-  if (_nowRaf) { cancelAnimationFrame(_nowRaf); _nowRaf = null; }
 
   scheduleCards = cards;
   cards.forEach(c => { c._startMin = c.dir_start_min != null ? c.dir_start_min : TL_START; });
@@ -81,7 +80,7 @@ function buildSchedule(cards) {
   applyColumnLayout(cards, track);
   currentTrack = track;
 
-  setupNowIndicator(wrap, track);
+  setupNowIndicator(wrap);
 
   tlWrap.appendChild(track);
   tlWrap.appendChild(labels);   // labels on the RIGHT of the track (right of the hour lines)
@@ -124,8 +123,9 @@ function buildSchedule(cards) {
 
 // Current-time indicator + past "hider" overlay. Cover + now-line live on the
 // column (not the scrolling track) so they bleed to the screen top/side, under
-// the date; the clock rides inside the track. Sets the module-level now timers.
-function setupNowIndicator(wrap, track) {
+// the date. The clock sits in today's header, never over a card (it used to ride
+// the now-line and covered the very card in progress). Sets the module-level timer.
+function setupNowIndicator(wrap) {
   const col = wrap.parentElement;
   col.querySelectorAll('.tl-past, .tl-now-line').forEach(e => e.remove());
   const pastOverlay = document.createElement('div');
@@ -136,10 +136,7 @@ function setupNowIndicator(wrap, track) {
   nowLine.className = 'tl-now-line';
   nowLine.style.display = 'none';
   col.appendChild(nowLine);
-  const nowClock = document.createElement('div');
-  nowClock.className = 'tl-now-clock';
-  nowClock.style.display = 'none';
-  track.appendChild(nowClock);
+  const nowClock = document.getElementById('hq-now-clock');
 
   // the track scrolls inside the wrap; project the now-minute into the column's
   // coordinate space so the cover/line follow the scroll while spanning the
@@ -148,7 +145,6 @@ function setupNowIndicator(wrap, track) {
     const m = nowMinutes();
     if (m < TL_START || m > TL_END) {
       nowLine.style.display = 'none';
-      nowClock.style.display = 'none';
       pastOverlay.style.display = 'none';
       return;
     }
@@ -167,19 +163,14 @@ function setupNowIndicator(wrap, track) {
     else if (screenY > headerH) coverH = screenY;
     pastOverlay.style.display = coverH > 0 ? '' : 'none';
     pastOverlay.style.height = coverH + 'px';
-    // clock rides inside the track (scrolls naturally, clipped by the wrap)
-    nowClock.style.display = '';
-    nowClock.style.top = (nowY - 16) + 'px';
   }
-  positionNow();
-  _nowInterval = setInterval(positionNow, 60000);
-  (function tick() {
+  // Once a second, never per frame: the CRT stack's backdrop-filter panes re-read
+  // the whole viewport on every frame something under them changes, and the old
+  // rAF centisecond clock changed every frame, forever. Scrolling the timeline
+  // re-places the line/cover itself (onscroll, so rebuilds never stack listeners).
+  function tick() {
     const n = new Date();
-    const h  = String(n.getHours()).padStart(2,'0');
-    const mi = String(n.getMinutes()).padStart(2,'0');
-    const s  = String(n.getSeconds()).padStart(2,'0');
-    const cs = String(Math.floor(n.getMilliseconds()/10)).padStart(2,'0');
-    nowClock.textContent = `${h} : ${mi} : ${s} : ${cs}`;
+    if (nowClock) nowClock.textContent = `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
     positionNow();
     _nowRaf = requestAnimationFrame(tick);
   })();
@@ -228,7 +219,7 @@ function dayCellHtml(day, today) {
   const dayLabel = fmtDay(day).split(',')[0];
   const dateLabel = fmtDay(day).replace(/^[^,]+, /, '');
   const hdr = `<div class="hq-col-hdr${isToday?' today-hdr':''}">
-      <div class="hq-day-name">${dayLabel} <span class="hq-date">${dateLabel}</span></div>
+      <div class="hq-day-name">${dayLabel} <span class="hq-date">${dateLabel}</span>${isToday ? ' <span class="hq-now-clock" id="hq-now-clock"></span>' : ''}</div>
     </div>`;
   // today renders as a timeline instead of a card list
   if (isToday) {
@@ -367,7 +358,7 @@ async function flushUpdates() {
       method: 'PATCH',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({updates}),
-    });
+    }));
     setStatus('saved');
     setTimeout(() => setStatus(''), 1500);
   } catch(e) {

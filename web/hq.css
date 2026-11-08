@@ -153,18 +153,19 @@ body.hq-dragging .hq-unschedule.drag-over {
 }
 .tl-meal-label { font-family: var(--font-mono); font-weight: var(--fw-bold); font-size: var(--fs-sm); color: rgba(255,255,255,0.16); }
 .tl-empty { position: absolute; top: 16px; left: 8px; opacity: 0.3; font-family: monospace; font-size: var(--fs-sm); pointer-events: none; }
-.tl-past { position: absolute; left: 0; right: 0; top: 0; background: hsl(var(--bg-hsl) / 0.45); pointer-events: none; z-index: 6; }
+.tl-past { position: absolute; left: 0; right: 0; top: 0; background: hsl(var(--bg-hsl) / 0.25); pointer-events: none; z-index: 6; }
 
 /* shown/hidden via inline style from positionNow — keep display
    out of these classes or style.display='' falls back to hidden */
-.tl-now-line { position: absolute; left: 0; right: 0; border-top: 3px solid #fff; box-shadow: 0 0 4px #000, 0 2px 4px #000; pointer-events: none; z-index: 7; }
+.tl-now-line { position: absolute; left: 0; right: 0; border-top: 2px solid #fff; box-shadow: 0 0 4px #000, 0 2px 4px #000; pointer-events: none; z-index: 7; }
 
-.tl-now-clock {
-  position: absolute; left: 0; right: 0; text-align: center;
+/* the clock lives in today's header beside the date, never over a card
+   (it rode the now-line and covered the card in progress) */
+.hq-now-clock {
+  margin-left: var(--space-1-5);
   font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: var(--fw-normal);
-  color: hsl(var(--orange-hsl) / 1);
+  letter-spacing: normal; color: hsl(var(--orange-hsl) / 1);
   text-shadow: 0 0 8px hsl(var(--orange-glow-hsl) / 1), 0 0 20px hsl(var(--orange-glow-hsl) / 0.6);
-  pointer-events: none; z-index: 7;
 }
 
 /* faint placeholder showing where a dragged block will land (Sortable-style) */

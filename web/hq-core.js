@@ -18,7 +18,6 @@ const SNAP     = 15;
 let currentTrack = null;
 let scheduleCards = [];
 let _nowInterval = null;
-let _nowRaf = null;
 function snapMin(v) { return Math.round(v / SNAP) * SNAP; }
 function nowMinutes() {
   const n = new Date();
