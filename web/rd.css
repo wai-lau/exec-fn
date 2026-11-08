@@ -363,3 +363,11 @@ body { overflow: hidden !important; background: transparent !important; }
   border-radius: var(--radius-pill);
   border: 1px solid hsl(var(--gray-hsl) / 0.45);
 }
+
+/* Phone: the bars + calendar took 321px of 932 (and of 700 on a small phone)
+   before the first card. A tighter cell -- smaller date, half the padding --
+   gives that height back to the board; the 5px grid rules stay (see .cal-d). */
+@media (width <= 600px) {
+  #rd-calendar { font-size: var(--fs-xl); }
+  .cal-d { padding: var(--space-1) 0; }
+}
