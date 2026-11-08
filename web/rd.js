@@ -102,6 +102,13 @@ function paintDueSoonDates() {
   });
 }
 
+// The card's two-line preview of its notes, minus the "[2026-10-19 11:41] "
+// stamps Exec prefixes onto a note -- they spent half the preview on a date
+// nobody needs on the board. The full note (stamps and all) is in the dialog.
+function notePreview(c) {
+  return String(c.notes || c.description || '').replace(/\[\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}\]\s*/g, '').trim();
+}
+
 function renderCard(c) {
   const {bg, border, dark} = cardStyle(c);
   const hasStyle = !!bg;
@@ -120,7 +127,7 @@ function renderCard(c) {
   const dateC = dueSoon ? (bright ? 'rgba(0,90,0,0.95)' : 'hsl(var(--green-hsl) / 1)') : bright ? (urgent ? 'rgba(0,0,0,1)' : 'rgba(30,30,30,0.75)') : (urgent && dark ? 'hsl(var(--green-hsl) / 1)' : tc);
   return `<div class="card${hasStyle ? '' : ' plain'}" data-id="${c.id}" data-title="${(c.title||'').replace(/"/g,'&quot;')}" data-notes="${(c.notes||'').replace(/"/g,'&quot;')}" style="${bg}${border}">
     <div class="card-title" style="color:${titleC};${bright ? 'font-weight:700;' : ''}">${esc(c.title)}${reminderBadge}</div>
-    ${(c.notes||c.description) ? `<div class="card-desc" style="color:${tc}">${esc(c.notes||c.description)}</div>` : ''}
+    ${notePreview(c) ? `<div class="card-desc" style="color:${tc}">${esc(notePreview(c))}</div>` : ''}
     <div class="card-foot">
       <div class="card-badge" style="color:${tc}">${recurBadge}</div>
       ${displayDate ? `<div class="card-due${overdue ? ' overdue' : ''}"${dueSoon ? ' data-invert="1"' : overdue ? ' title="overdue"' : ` style="color:${dateC}"`}>${overdue ? '! ' : ''}${dateLabel}</div>` : ''}
