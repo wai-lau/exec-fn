@@ -172,12 +172,28 @@ function setupNowIndicator(wrap) {
     const n = new Date();
     if (nowClock) nowClock.textContent = `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
     positionNow();
-    _nowRaf = requestAnimationFrame(tick);
-  })();
+  }
+  tick();
+  _nowInterval = setInterval(tick, 1000);
+  wrap.onscroll = positionNow;
+}
+
+// A failed save must SAY so: #hq-status is hidden, so failures go to the
+// toast. fetch() resolves on a 4xx/5xx, so a bad status is thrown here.
+function saveOk(r) {
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r;
+}
+function saveFailed(e) {
+  setStatus('save error: ' + e.message);
+  showToast('save failed (' + e.message + ') - reload to see what stuck');
 }
 
 async function saveStartTime(cardId, startMin) {
-  const rd = await (await fetch('/api/rd')).json();
+  try { await _saveStartTime(cardId, startMin); } catch (e) { saveFailed(e); }
+}
+async function _saveStartTime(cardId, startMin) {
+  const rd = await (await saveOk(await fetch('/api/rd'))).json();
   const allCards = rd.cards || [];
   const card = allCards.find(x => x.id === cardId);
   if (!card) return;
@@ -194,22 +210,22 @@ async function saveStartTime(cardId, startMin) {
   // Merge-patch contract: send only the one mutated card, not the whole
   // fetched snapshot — the server shallow-merges by id, preserving every
   // other card's server-owned nudge state that this snapshot doesn't carry.
-  await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards: [card]})});
+  saveOk(await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards: [card]})}));
 }
 
 async function saveEstimatedTime(cardId, mins) {
   setStatus('saving...');
   try {
-    const rd = await (await fetch('/api/rd')).json();
+    const rd = await (await saveOk(await fetch('/api/rd'))).json();
     const allCards = rd.cards || [];
     const card = allCards.find(c => c.id === cardId);
     if (card) {
       card.estimated_time = mins;
-      await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards: [card]})});
+      saveOk(await fetch('/api/rd', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cards: [card]})}));
     }
     setStatus('saved');
     setTimeout(() => setStatus(''), 1200);
-  } catch(e) { setStatus('save error: ' + e.message); }
+  } catch(e) { saveFailed(e); }
 }
 
 function dayCellHtml(day, today) {
@@ -354,7 +370,7 @@ async function flushUpdates() {
   setStatus('saving...');
   _hqSaving = true;
   try {
-    await fetch('/api/hq', {
+    saveOk(await fetch('/api/hq', {
       method: 'PATCH',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({updates}),
@@ -362,7 +378,7 @@ async function flushUpdates() {
     setStatus('saved');
     setTimeout(() => setStatus(''), 1500);
   } catch(e) {
-    setStatus('save error: ' + e.message);
+    saveFailed(e);
   } finally {
     _hqSaving = false;
   }

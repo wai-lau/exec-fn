@@ -45,16 +45,19 @@ function fmtClock(min) {
 
 // Persist a single field on one card without clobbering the rest: refetch the
 // authoritative rd.json, mutate, PATCH. Used for sub-step time/size/done.
+// A failure reaches the toast via saveOk/saveFailed (hq-board.js, same scope).
 async function patchCard(cid, mutate) {
-  const rd = await (await fetch('/api/rd')).json();
-  const cards = rd.cards || [];
-  const card = cards.find(x => x.id === cid);
-  if (!card) return;
-  mutate(card);
-  // Merge-patch contract: send only the one card we touched, not the whole
-  // board snapshot — the server shallow-merges by id, so a stale full-array
-  // PATCH would otherwise clobber other cards' server-owned nudge state.
-  await fetch('/api/rd', {method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({cards: [card]})});
+  try {
+    const rd = await (await saveOk(await fetch('/api/rd'))).json();
+    const cards = rd.cards || [];
+    const card = cards.find(x => x.id === cid);
+    if (!card) return;
+    mutate(card);
+    // Merge-patch contract: send only the one card we touched, not the whole
+    // board snapshot — the server shallow-merges by id, so a stale full-array
+    // PATCH would otherwise clobber other cards' server-owned nudge state.
+    saveOk(await fetch('/api/rd', {method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({cards: [card]})}));
+  } catch (e) { saveFailed(e); }
 }
 // Lock every still-default sub-step to an explicit offset so editing one never
 // shifts the others (a default start = the running sum of prior steps' estimates,
