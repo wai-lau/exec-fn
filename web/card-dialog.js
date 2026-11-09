@@ -70,11 +70,11 @@ body:has(.cd-ov.open) #exec-bubble { display:none !important; }
    (they were ~24px: under half a fingertip). Scoped to .cd-actions so the
    inline breakdown/recalculate buttons keep their small size. */
 .cd-actions .cd-btn { min-height:40px; font-size:var(--fs-sm); padding:0 var(--space-5); }
-/* done = the one filled button: a dark chip with a full green rule, the same
-   trick as the overdue chip, so it reads on every card tint (.cd-dark and
-   .cd-bright both repaint .cd-btn with !important at 0,2,0 -- so this needs
-   the !important AND the extra class; without it done went black-on-black). */
-.cd-actions .cd-btn.cd-btn-done { background:hsl(var(--bg-hsl)) !important; color:hsl(var(--green-hsl) / 1) !important; border-color:hsl(var(--green-hsl) / 1) !important; opacity:1 !important; font-weight:700; }
+/* done = the primary action, marked quietly: the dialog's own text colour, a
+   full-strength border and bold, where the others wear a faded rule. (A dark
+   filled chip was tried and read as too loud.) .cd-dark/.cd-bright repaint
+   .cd-btn with !important at 0,2,0, hence the !important + the extra class. */
+.cd-actions .cd-btn.cd-btn-done { border-color:currentColor !important; opacity:1 !important; font-weight:700; }
 </style>
 <div class="cd-ov" id="cd-modal" onclick="if(event.target===this)cdSave()">
   <div class="cd-box">
