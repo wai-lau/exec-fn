@@ -223,8 +223,12 @@ body.hq-dragging .hq-unschedule.drag-over {
 }
 .dir-sub:active { cursor: grabbing; }
 .dir-sub.plain { background: color-mix(in srgb, hsl(var(--green-hsl)) 20%, hsl(var(--bg-hsl))); border-color: hsl(var(--green-hsl) / 0.12); }
-.dir-sub.done { opacity: 0.45; }
-.dir-sub.done .dir-sub-title { text-decoration: line-through; }
+
+/* A done step is history: one centred line, never a wrapped paragraph. A
+   15-min step is ~13px tall, and its title wrapping to 37px showed only the
+   top half of the first line ("find the") -- at 0.45, close to unreadable. */
+.dir-sub.done { opacity: 0.6; padding-block: 0; justify-content: center; }
+.dir-sub.done .dir-sub-title { text-decoration: line-through; line-height: var(--lh-none); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .dir-sub-del {
   position: absolute; top: 0; left: 2px; z-index: 6;
