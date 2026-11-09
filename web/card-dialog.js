@@ -65,6 +65,16 @@ body:has(.cd-ov.open) #exec-bubble { display:none !important; }
 .cd-bright select option { background:#eee; color:#111; }
 .cd-bright .cd-btn { border-color:rgba(0,0,0,0.3) !important; color:rgba(0,0,0,0.65) !important; }
 .cd-bright .cd-btn:hover { border-color:rgba(0,0,0,0.7) !important; color:rgba(0,0,0,0.9) !important; }
+/* Footer actions: exile alone at the LEFT edge, done at the RIGHT -- the two
+   that end a card's life used to sit side by side, a mis-tap apart. 40px tall
+   (they were ~24px: under half a fingertip). Scoped to .cd-actions so the
+   inline breakdown/recalculate buttons keep their small size. */
+.cd-actions .cd-btn { min-height:40px; font-size:var(--fs-sm); padding:0 var(--space-5); }
+/* done = the one filled button: a dark chip with a full green rule, the same
+   trick as the overdue chip, so it reads on every card tint (.cd-dark and
+   .cd-bright both repaint .cd-btn with !important at 0,2,0 -- so this needs
+   the !important AND the extra class; without it done went black-on-black). */
+.cd-actions .cd-btn.cd-btn-done { background:hsl(var(--bg-hsl)) !important; color:hsl(var(--green-hsl) / 1) !important; border-color:hsl(var(--green-hsl) / 1) !important; opacity:1 !important; font-weight:700; }
 </style>
 <div class="cd-ov" id="cd-modal" onclick="if(event.target===this)cdSave()">
   <div class="cd-box">
@@ -148,13 +158,11 @@ body:has(.cd-ov.open) #exec-bubble { display:none !important; }
     <div id="cd-graph" style="display:none"></div>
     </div>
     <div class="cd-actions">
-      <div style="display:flex;gap:8px">
-        <button class="cd-btn cd-btn-exile" onclick="cdExile()">exile</button>
-        <button class="cd-btn" style="border-color:hsl(var(--green-hsl) / 0.45);color:hsl(var(--green-hsl) / 0.8)" onclick="cdDone()">done</button>
-      </div>
+      <button class="cd-btn cd-btn-exile" onclick="cdExile()">exile</button>
       <div style="display:flex;gap:8px">
         <button class="cd-btn" onclick="cdChat()">chat</button>
         <button class="cd-btn" onclick="cdSave()">save</button>
+        <button class="cd-btn cd-btn-done" onclick="cdDone()">done</button>
       </div>
     </div>
   </div>
