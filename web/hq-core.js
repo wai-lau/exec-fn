@@ -66,11 +66,13 @@ function renderCard(c, dayIso) {
   // overdue: the .overdue chip (hq.css) carries its own colour, readable on any fill
   const due = dueTxt ? `<span class="hq-due${late ? ' overdue' : ''}"${late ? '' : ` style="color:${metaC}"`}>${dueTxt}</span>` : '';
   const metaHtml = (recur || due) ? `<div class="hq-card-meta" style="color:${metaC}">${recur}${due}</div>` : '';
-  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // titles too, not just notes: a gcal import puts OTHER people's invite titles
+  // (and an http:// .ics feed's) onto this owner-only page
+  const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const notesHtml = c.notes ? `<div class="hq-card-notes" style="color:${metaC}">${esc(c.notes)}</div>` : '';
   return `<div class="hq-card${bg ? '' : ' plain'}" data-id="${c.id}" data-due="${c.due_date||''}" style="${bg}${border}">
     ${over}
-    <div class="hq-card-title" style="color:${titleC}">${c.title}${reminder}</div>
+    <div class="hq-card-title" style="color:${titleC}">${esc(c.title)}${reminder}</div>
     ${metaHtml}
     ${notesHtml}
   </div>`;
