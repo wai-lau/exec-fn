@@ -122,8 +122,9 @@ def _build_context() -> tuple[str, str, str, str]:
 def _by_exec(e: dict) -> bool:
     """Logged inside one of Exec's own tool calls (helpers.LOG_ACTOR). Exec
     already reported it in its reply, so the monitor neither triggers on it nor
-    mentions it."""
-    return e.get("actor") == "exec"
+    mentions it. Same for the morning pipeline's own moves (auto-archiving a
+    passed No-Rollover card): not Wai's doing, nothing to remark on."""
+    return e.get("actor") in ("exec", "morning")
 
 
 def _is_commentable(e: dict) -> bool:

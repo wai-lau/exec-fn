@@ -95,6 +95,46 @@ def _purge_stale_notes(profile_path) -> None:
     profile_path.write_text(json.dumps(profile, indent=2))
 
 
+def _archive_passed_no_rollover(cards: list, today_iso: str) -> list:
+    """Archive every rd/hq No-Rollover card whose day has passed; returns the
+    activity-log entries for the moves.
+
+    A fixed occurrence that is over is done, not pending: left in hq it sat
+    outside the visible week, /hq's auto-placer (consult_oracle) handed it a
+    later day -- the rollover the flag forbids -- and archiving it by hand then
+    recorded THAT day (2026-11-10: "Board games with Jesse", due Nov 8, archived
+    under Nov 10). Its day is scheduled_day, else the due date; scheduled_day is
+    kept (stamped from the due date when missing) as the record of the day it
+    happened. Same moves as the archive_card tool: the nudge block is resolved
+    and a recurring card revives its next occurrence."""
+    from helpers import recurring_clone
+    entries = []
+    for c in list(cards):
+        if not c.get("no_rollover") or c.get("column") not in ("rd", "hq"):
+            continue
+        day = c.get("scheduled_day") or (c.get("due_date") or "")[:10]
+        if not day or day >= today_iso:
+            continue
+        from_col = c["column"]
+        c["column"] = "archives"
+        c["scheduled_day"] = day
+        c.pop("dir_start_min", None)
+        n = c.get("nudge")
+        if n:
+            n["stage"] = "resolved"
+            n["awaiting_reply"] = False
+            n["next_nudge_at"] = None
+        entries.append({"action": "moved", "title": c.get("title", ""), "source": "morning",
+                        "from_col": from_col, "to_col": "archives", "id": c["id"],
+                        "is_reminder": bool(c.get("is_reminder")), "category": c.get("category")})
+        clone = recurring_clone(c, cards)
+        if clone:
+            cards.append(clone)
+            entries.append({"action": "revived", "title": c.get("title", ""), "source": "morning",
+                            "id": c["id"], "next_due": clone["due_date"]})
+    return entries
+
+
 def _roll_and_schedule(cards: list, today_iso: str) -> set:
     """Roll past-dated scheduled_day forward; auto-schedule rd cards due
     within the 7-day window (rd->hq) on their due day. Returns ids needing
@@ -179,6 +219,7 @@ def build_morning() -> dict:
     with _RD_LOCK:
         rd = _load_rd()
         cards = rd.get("cards", [])
+        auto_archived = _archive_passed_no_rollover(cards, today_iso)
         restack = _roll_and_schedule(cards, today_iso)
         # Restack carryover + any today card missing a position; preserve pre-placed today cards.
         restack |= {c["id"] for c in cards if is_dir_card(c, today_iso) and c.get("dir_start_min") is None}
@@ -186,6 +227,15 @@ def build_morning() -> dict:
         from nudge_deadlines import morning_reconcile
         morning_reconcile(cards, today_iso)
         _save_rd(rd)
+    if auto_archived:
+        # actor=morning: the monitor must not congratulate Wai on moves she
+        # did not make (monitor._by_exec).
+        from helpers import _append_rd_log_batch, LOG_ACTOR
+        token = LOG_ACTOR.set("morning")
+        try:
+            _append_rd_log_batch(auto_archived)
+        finally:
+            LOG_ACTOR.reset(token)
 
     if chat_path.exists():
         chat_path.unlink()
