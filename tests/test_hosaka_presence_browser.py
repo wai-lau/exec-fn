@@ -18,7 +18,7 @@ import re
 
 import pytest
 
-from conftest import TURNSTILE_SECRET
+from conftest import API_KEY
 
 pytest.importorskip("playwright.sync_api")
 
@@ -53,19 +53,20 @@ def _wait_for(page, want: int, what: str):
 
 
 @pytest.fixture
-def guest_context(browser, base_url):
-    """A WebKit context carrying the guest_session cookie a Turnstile solve sets."""
-    if not TURNSTILE_SECRET:
-        pytest.skip("TURNSTILE_SECRET not set (env or .env) — cannot mint guest cookie")
-    token = hashlib.sha256(f"guest:{TURNSTILE_SECRET}".encode()).hexdigest()
+def owner_context(browser, base_url):
+    """A WebKit context carrying the owner `session` cookie: /hosaka has been
+    owner-only since 2026-11-10 (/tarot accepts the same cookie)."""
+    if not API_KEY:
+        pytest.skip("API_KEY not set (env or .env) — cannot mint session cookie")
+    token = hashlib.sha256(f"session:{API_KEY}".encode()).hexdigest()
     ctx = browser.new_context()
-    ctx.add_cookies([{"name": "guest_session", "value": token, "url": base_url}])
+    ctx.add_cookies([{"name": "session", "value": token, "url": base_url}])
     yield ctx
     ctx.close()
 
 
-def test_hosaka_excludes_self_and_counts_tarot(guest_context, base_url):
-    hosaka = guest_context.new_page()
+def test_hosaka_excludes_self_and_counts_tarot(owner_context, base_url):
+    hosaka = owner_context.new_page()
     hosaka.goto(f"{base_url}/hosaka")
     hosaka.wait_for_selector("#tts-presence")
     # The page's own socket must not be in its own count, so a lone viewer
@@ -74,14 +75,14 @@ def test_hosaka_excludes_self_and_counts_tarot(guest_context, base_url):
 
     # A /tarot reader speaks through the same backend: +1 other, from a page
     # that renders no count itself.
-    tarot = guest_context.new_page()
+    tarot = owner_context.new_page()
     tarot.goto(f"{base_url}/tarot")
     tarot.wait_for_selector("#terminal")
     _wait_for(hosaka, baseline + 1, "a /tarot reader must count as another person")
     assert tarot.locator("#tts-presence").count() == 0, "/tarot renders no count of its own"
 
     # And a second /hosaka viewer is another other -- still not counting self.
-    second = guest_context.new_page()
+    second = owner_context.new_page()
     second.goto(f"{base_url}/hosaka")
     second.wait_for_selector("#tts-presence")
     _wait_for(hosaka, baseline + 2, "a second /hosaka viewer must count as another person")
@@ -92,7 +93,7 @@ def test_hosaka_excludes_self_and_counts_tarot(guest_context, base_url):
     _wait_for(hosaka, baseline, "closing the other tabs must drop them from the count")
 
 
-def test_presence_module_failure_does_not_take_the_page_offline(guest_context, base_url):
+def test_presence_module_failure_does_not_take_the_page_offline(owner_context, base_url):
     """A missing presence module must not disable Speak.
 
     mountPresence() runs in the same DOMContentLoaded handler as the health
@@ -100,7 +101,7 @@ def test_presence_module_failure_does_not_take_the_page_offline(guest_context, b
     its false default: every voice greyed out, "TTS server offline" shown while
     both upstreams were up. Block the script and prove the page still comes up.
     """
-    page = guest_context.new_page()
+    page = owner_context.new_page()
     page.route("**/hosaka-presence.js*", lambda route: route.abort())
     errors = []
     page.on("pageerror", lambda e: errors.append(str(e)))

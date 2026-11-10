@@ -333,11 +333,12 @@ Client-side belts (a frame can also be lost browser↔droplet): `hosaka-audio.js
 
 ### 4b. Auth — guest-or-full
 
-`/hosaka` and `/api/hosaka/{voices,health}` are on **`guest_protected`**. `WS /ws/hosaka` and `WS /ws/hosaka/presence` are on the `public` router but close `1008` before `accept()` unless a `session` **or** `guest_session` cookie matches (this is what lets guests hear the `/tarot` reader).
+`/hosaka` and `/api/hosaka/voices` are on **`protected`** (owner-only since 2026-11-10); `/api/hosaka/health` stays on **`guest_protected`** (`tarotVoice.probeHome()` needs it). `WS /ws/hosaka` and `WS /ws/hosaka/presence` are on the `public` router but close `1008` before `accept()` unless a `session` **or** `guest_session` cookie matches (this is what lets guests hear the `/tarot` reader).
 
 | Endpoint | Router | Reachable by |
 |----------|--------|--------------|
-| `GET /hosaka`, `GET /api/hosaka/voices`, `/health` | `guest_protected` | full + guest |
+| `GET /hosaka`, `GET /api/hosaka/voices` | `protected` | full only |
+| `GET /api/hosaka/health` | `guest_protected` | full + guest |
 | `WS /ws/hosaka`, `/ws/hosaka/presence` | `public` + cookie check | full + guest (else `1008`) |
 
 ### 4b-ii. GPU-mode owner control
@@ -1144,7 +1145,7 @@ Fixed to the bottom of every page that carries one (`/spire` passes `show_nav=Fa
 | `12AM` | `/nightfall` | guest |
 | `SPR` | `/spire` | guest-gated (app submodule `apps/spire`; nav key `aspira`) |
 | `MTG` · `TRT` | `/mtg` · `/tarot` | guest |
-| `HSK` | `/hosaka` | guest-or-full |
+| `HSK` | `/hosaka` | owner |
 | `3DP` | `/printer` | guest read-only / owner control |
 | `NDL` | `/noodle` | guest (app submodule `apps/noodle`; poll pages are public by link) |
 | `CV` | `/recruiter` | public |
@@ -1758,7 +1759,7 @@ History: [ARCHAEOLOGY.md §19](ARCHAEOLOGY.md).
 
 ![Auth tiers and 401 routing](docs/arch/20-auth-tiers.svg)
 
-- `session` (`POST /login`, `API_KEY`) = full. `guest_session` (`POST /guest`, Cloudflare Turnstile via `auth.verify_turnstile`, secret `TURNSTILE_SECRET`) = guest set: `/mtg`, `/tarot`, `/nightfall`, `/hosaka`, `/graph`, `/UI`, `/security`, `/printer` (read-only), `/zombo` (unlinked), `/noodle`, `/spire` (`/aspira` 301s to it). Pages only, never control routes. Open (no cookie): the landing, `/recruiter`, the login/guest pages and `/noodle/<slug>` polls.
+- `session` (`POST /login`, `API_KEY`) = full. `guest_session` (`POST /guest`, Cloudflare Turnstile via `auth.verify_turnstile`, secret `TURNSTILE_SECRET`) = guest set: `/mtg`, `/tarot`, `/nightfall`, `/graph`, `/UI`, `/security`, `/printer` (read-only), `/zombo` (unlinked), `/noodle`, `/spire` (`/aspira` 301s to it). Pages only, never control routes. Open (no cookie): the landing, `/recruiter`, the login/guest pages and `/noodle/<slug>` polls.
 - Guest token = `sha256("guest:"+TURNSTILE_SECRET)` (`auth.GUEST_SESSION_TOKEN`); `require_guest_auth` takes only `session`/`guest_session` cookies + the admin bearer, no guest bearer. `GET /guest` renders the widget and auto-submits on solve (`web/guest_login.js` `onGuestVerified`); `GET /guest-login` 302s to `/guest`.
 - Both cookies `HttpOnly`, `SameSite=Lax`, `Secure`, **`Max-Age` 400 days** (`auth.SESSION_MAX_AGE`). Tokens are `sha256` of env values (`session:`+`API_KEY`, `guest:`+`TURNSTILE_SECRET`), so restart-stable; revocation is rotating the secret: `API_KEY` kills owner sessions only, `TURNSTILE_SECRET` kills guest sessions only.
 - **Three places that must stay in sync** or a gated page bounces guests to the admin login: `_GUEST_NEXT_ALLOWED` (routes_views.py; other `next` values clamp to `/mtg`), the 401 handler's prefix tuple in `main.py` (`/mtg /tarot /hosaka /graph /UI /security /nightfall /zombo /aspira /spire`, with `/printer` and `/noodle` matched EXACTLY so owner-only sub-paths still go to `/login`), and the router tiers (`public` / `protected` / `guest_protected`, `routers.py`).

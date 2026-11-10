@@ -217,7 +217,7 @@ def test_scan_did_not_swallow_the_guest_tier():
     """`protected` is a suffix of `guest_protected`; an unanchored regex reports
     every guest route as admin and the suite then 'passes' by testing nothing
     real. Known guest routes must land in the guest bucket, not the admin one."""
-    for known in [("GET", "/mtg"), ("GET", "/tarot"), ("GET", "/hosaka")]:
+    for known in [("GET", "/mtg"), ("GET", "/tarot"), ("GET", "/api/hosaka/health")]:
         assert known in TIERS["guest_protected"], f"{known} not seen as guest"
         assert known not in TIERS["protected"], f"{known} misfiled as admin"
 

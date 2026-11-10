@@ -47,10 +47,11 @@ async def _broadcast_mode(mode: str) -> None:
         await q.put(mode)
 
 
-@guest_protected.get("/hosaka", response_class=HTMLResponse)
-async def tts_page(request: Request):
-    is_full_auth = request.cookies.get("session") == SESSION_TOKEN
-    return _render_page("hosaka", _tmpl("tts.html"), full_height=True, guest=not is_full_auth)
+# Owner-only since 2026-11-10 (was guest-or-full). /api/hosaka/health and the
+# two sockets stay guest-or-full: /tarot's reader narrates through them.
+@protected.get("/hosaka", response_class=HTMLResponse)
+async def tts_page():
+    return _render_page("hosaka", _tmpl("tts.html"), full_height=True)
 
 
 async def _get_voices(upstream: str):
@@ -59,7 +60,7 @@ async def _get_voices(upstream: str):
         return r.json()
 
 
-@guest_protected.get("/api/hosaka/voices")
+@protected.get("/api/hosaka/voices")
 async def tts_voices():
     async def safe(upstream: str):
         try:

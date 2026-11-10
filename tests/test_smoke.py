@@ -14,13 +14,15 @@ from conftest import API_KEY, TURNSTILE_SECRET, HTML_ACCEPT
 # Public — no auth, must render. Only the front doors + login bootstrap stay open.
 PUBLIC_PAGES = ["/", "/recruiter", "/login", "/guest"]
 # require_auth — no auth redirects to /login; admin Bearer renders.
-PROTECTED_PAGES = ["/rd", "/hq", "/debug"]
+# /hosaka moved guest->owner 2026-11-10 (its health probe + sockets stay guest:
+# /tarot narrates through them).
+PROTECTED_PAGES = ["/rd", "/hq", "/debug", "/hosaka"]
 # require_guest_auth — no auth redirects to /guest; guest or admin Bearer renders.
 # /graph, /UI, /security, /nightfall moved public->guest 2026-07-03; /printer
 # owner->guest 2026-08-30 (READ-ONLY for guests — see the tier tests below).
 # /zombo is UNLINKED (no nav entry, no landing spoke) but still gated: unlisted
 # is not a tier, so it is asserted here like every other guest page.
-GUEST_PAGES = ["/mtg", "/tarot", "/hosaka", "/graph", "/UI", "/security", "/nightfall",
+GUEST_PAGES = ["/mtg", "/tarot", "/graph", "/UI", "/security", "/nightfall",
                "/printer", "/zombo", "/noodle", "/noodle-tc", "/spire"]
 
 
@@ -47,6 +49,13 @@ def test_guest_login_alias_redirects(client):
 def test_protected_redirects_without_auth(client, path):
     r = client.get(path, headers=HTML_ACCEPT)
     assert r.status_code == 302, f"{path} -> {r.status_code} (expected login redirect)"
+    assert r.headers["location"].startswith("/login")
+
+
+@pytest.mark.parametrize("path", PROTECTED_PAGES)
+def test_protected_refuses_guest_cookie(client, guest_cookie, path):
+    r = client.get(path, headers={**guest_cookie, **HTML_ACCEPT})
+    assert r.status_code == 302, f"{path} -> {r.status_code} with guest cookie"
     assert r.headers["location"].startswith("/login")
 
 

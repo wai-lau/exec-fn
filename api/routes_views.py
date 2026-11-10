@@ -29,7 +29,7 @@ from security import render_security, load_security_data
 
 # ── public: landing + auth ──────────────────────────────────────────────────
 
-_GUEST_NEXT_ALLOWED = {"/mtg", "/tarot", "/nightfall", "/hosaka", "/graph", "/UI", "/security",
+_GUEST_NEXT_ALLOWED = {"/mtg", "/tarot", "/nightfall", "/graph", "/UI", "/security",
                        "/printer", "/zombo", "/noodle", "/noodle-tc", "/spire"}
 
 
@@ -54,16 +54,15 @@ _LANDING_SCRIPT = '<script src="/crt-lite.js?v=2"></script><script src="/landing
 
 # Landing nav icons ordered by icon hue: recruiter 36° (Sentinel orange "file"
 # tile) -> security 36° (same orange, with a blue secondary that leans it
-# toward what follows) -> hosaka 50° (amber radar) -> graph 171° (teal) ->
+# toward what follows) -> graph 171° (teal) ->
 # nightfall 194° (cyan) -> printer 206° (blue bitman tile) -> ui 226° (blue) ->
 # mtg 261° (purple) -> tarot 351° (pink). aspira (the green Tower sprite, ~150°)
-# sits between hosaka and graph.
-_LANDING_HUE_ORDER = ["recruiter", "security", "hosaka", "aspira", "graph", "nightfall", "noodle", "printer", "ui", "mtg", "tarot"]
+# sits between security and graph. (hosaka left the landing 2026-11-10: owner-only.)
+_LANDING_HUE_ORDER = ["recruiter", "security", "aspira", "graph", "nightfall", "noodle", "printer", "ui", "mtg", "tarot"]
 
 # The name each section goes by, shown under its nav code. Not the code and not
 # a sentence -- the thing's own title. One per _LANDING_HUE_ORDER section.
 _LANDING_BLURBS = {
-    "hosaka": "Hosaka",
     "printer": "Thermoplastic Extruder",
     "graph": "Construct Graph",
     "nightfall": "The Nightfall Incident",
@@ -78,7 +77,6 @@ _LANDING_BLURBS = {
 
 # One plain line under each title saying what the thing actually is.
 _LANDING_DESCS = {
-    "hosaka": "Text-to-speech studio.",
     "printer": "Spinning a web over forty slices of concrete.",
     "graph": "Files and functions as nodes, referenced by edges.",
     "nightfall": "Archive of one of my favourite Flash games.",

@@ -64,7 +64,7 @@ _APPLE_WEBAPP_META = (
 _NAV_LINKS = ["rd", "hq", "debug", "security", "graph", "ui", "nightfall", "aspira", "mtg", "tarot", "hosaka", "printer", "noodle", "recruiter"]
 _NAV_HREFS = {"rd": "/rd", "hq": "/hq", "debug": "/debug", "security": "/security", "graph": "/graph", "ui": "/UI", "nightfall": "/nightfall", "aspira": "/spire", "mtg": "/mtg", "tarot": "/tarot", "hosaka": "/hosaka", "printer": "/printer", "noodle": "/noodle", "recruiter": "/recruiter"}
 
-_GUEST_NAV_LINKS = ["security", "graph", "nightfall", "aspira", "mtg", "tarot", "hosaka", "printer", "ui", "noodle", "recruiter"]
+_GUEST_NAV_LINKS = ["security", "graph", "nightfall", "aspira", "mtg", "tarot", "printer", "ui", "noodle", "recruiter"]
 
 def _nav_icon(name: str, alt: str) -> str:
     """One nav icon, as the outline SVG in web/icons/ rather than the 27x27 PNG
