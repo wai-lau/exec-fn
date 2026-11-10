@@ -133,11 +133,19 @@ def _strip_comments(text):
     return lintkit.strip_comments(text)
 
 
+# A custom property that only ALIASES a palette token (`--tc-gray:
+# var(--gray-hsl);`, noodle's palette sheets) draws nothing: the colour is
+# used wherever the alias is read, with that use's own alpha. Not a usage
+# (owner, 2026-11-10: "exempt this from the color linter if needed"). The
+# second deliberate divergence from /api/ui/usage.
+_ALIAS = re.compile(r"--[\w-]+\s*:\s*var\(--[\w-]+-hsl\)\s*(?=[;}])")
+
+
 def usage():
     """Per-token used alphas {token: {alpha_key}}, mirroring /api/color/usage."""
     out = {}
     for p in _scan_paths():
-        text = _strip_comments(p.read_text())
+        text = _ALIAS.sub("", _strip_comments(p.read_text()))
         if p.name == "chrome.css":
             text = re.sub(r":root\s*\{[^}]*\}", "", text)  # drop definitions
         for m in _USE.finditer(text):
