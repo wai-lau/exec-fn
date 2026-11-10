@@ -138,8 +138,8 @@ def test_every_open_question_stays_tappable(open_panel):
     """Both nudges keep their own answers AND their own card actions."""
     rows = _rows(open_panel())
     assert rows == [
-        ["Packed", "Not yet", "archive", "exile"],
-        ["Got it", "Not yet", "archive", "exile"],
+        ["Packed", "Not yet", "exile", "archive"],
+        ["Got it", "Not yet", "exile", "archive"],
     ]
 
 
@@ -157,7 +157,7 @@ def test_answer_carries_a_reference_to_its_question(open_panel):
     assert text.endswith("Not yet")
     # Answering retires that question's answers; its card actions and the OTHER
     # question both stay live.
-    assert _rows(pg) == [["archive", "exile"], ["Got it", "Not yet", "archive", "exile"]]
+    assert _rows(pg) == [["exile", "archive"], ["Got it", "Not yet", "exile", "archive"]]
 
 
 def test_older_done_patches_its_own_card(open_panel):
@@ -171,7 +171,7 @@ def test_older_done_patches_its_own_card(open_panel):
         "cards": [{"id": "card-climbing", "column": "archives"}]
     }
     # The tapped row is gone; the newest nudge is untouched.
-    assert _rows(pg) == [["Got it", "Not yet", "archive", "exile"]]
+    assert _rows(pg) == [["Got it", "Not yet", "exile", "archive"]]
 
 
 def test_chat_reply_naming_a_card_gets_card_actions(open_panel):
@@ -181,7 +181,7 @@ def test_chat_reply_naming_a_card_gets_card_actions(open_panel):
     before the message renders, so the id stays out of Wai's sight.
     """
     pg = open_panel(_CHAT_HISTORY)
-    assert _rows(pg) == [["Got it", "Not yet", "archive", "exile"]]
+    assert _rows(pg) == [["Got it", "Not yet", "exile", "archive"]]
     body = pg.text_content("#exec-term .msg.assistant .msg-body")
     assert "card-poster" not in body and "[" not in body
 

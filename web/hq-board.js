@@ -411,7 +411,15 @@ function consult_oracle() {
     counts[day] = (weekData.days[day] || []).length;
   }
 
+  const stranded = [];
   for (const card of unsched) {
+    // A No-Rollover card whose day has passed keeps that day: re-placing it is
+    // the rollover the flag forbids, and archiving it afterwards recorded the
+    // new day. The 4:30 run archives it (morning._archive_passed_no_rollover).
+    if (card.no_rollover && card.scheduled_day && card.scheduled_day < today) {
+      stranded.push(card);
+      continue;
+    }
     const day = targetDays.reduce((a, b) => counts[a] <= counts[b] ? a : b);
     counts[day]++;
     // Place locally so buildBoard renders it this paint — never leave a
@@ -420,7 +428,7 @@ function consult_oracle() {
     (weekData.days[day] = weekData.days[day] || []).push(card);
     queueUpdate(card.id, day, false);
   }
-  weekData.unscheduled = [];
+  weekData.unscheduled = stranded;
 }
 
 async function load(start) {

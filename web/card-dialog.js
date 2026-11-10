@@ -65,8 +65,11 @@ body:has(.cd-ov.open) #exec-bubble { display:none !important; }
 .cd-bright select option { background:#eee; color:#111; }
 .cd-bright .cd-btn { border-color:rgba(0,0,0,0.3) !important; color:rgba(0,0,0,0.65) !important; }
 .cd-bright .cd-btn:hover { border-color:rgba(0,0,0,0.7) !important; color:rgba(0,0,0,0.9) !important; }
-/* Footer actions: exile alone at the LEFT edge, done at the RIGHT -- the two
-   that end a card's life used to sit side by side, a mis-tap apart. 40px tall
+/* Footer actions: exile alone at the LEFT edge, done in the RIGHT group -- the
+   two that end a card's life used to sit side by side, a mis-tap apart. Order
+   is exile, chat, done, save: save holds the corner, done stays the marked
+   one, and the Exec panel's card actions (exec-choices.js CARD_ACTIONS) keep
+   the same exile-then-done order. 40px tall
    (they were ~24px: under half a fingertip). Scoped to .cd-actions so the
    inline breakdown/recalculate buttons keep their small size. */
 .cd-actions .cd-btn { min-height:40px; font-size:var(--fs-sm); padding:0 var(--space-5); }
@@ -161,8 +164,8 @@ body:has(.cd-ov.open) #exec-bubble { display:none !important; }
       <button class="cd-btn cd-btn-exile" onclick="cdExile()">exile</button>
       <div style="display:flex;gap:8px">
         <button class="cd-btn" onclick="cdChat()">chat</button>
-        <button class="cd-btn" onclick="cdSave()">save</button>
         <button class="cd-btn cd-btn-done" onclick="cdDone()">done</button>
+        <button class="cd-btn" onclick="cdSave()">save</button>
       </div>
     </div>
   </div>

@@ -39,9 +39,10 @@ window.execChoices = (function () {
   // `done`; here it says `archive`, because here it sits beside a step's
   // answers, and `done` read as "this step is done" -- the tap meant to mark one
   // prep step archived the whole interview card (2026-10-14).
+  // Order matches the dialog's footer: exile first, then done/archive.
   const CARD_ACTIONS = [
-    { label: 'archive', column: 'archives' },
     { label: 'exile', column: 'exile' },
+    { label: 'archive', column: 'archives' },
   ];
   // Anchored to the LAST line, and required to carry a '|' OR to be a lone
   // `card=` cell, so an ordinary [bracketed] sys note, a markdown link, or a
