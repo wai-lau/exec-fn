@@ -218,17 +218,31 @@ if [ -n "$SWALLOW_FILES" ]; then
 fi
 
 # ── Max-lines (500) on staged .py + .js — no file over the cap. ──
+# Repos in LINE_CAP_ALL_REPOS cap EVERY staged text file (docs, css, html,
+# json, ...); binaries are skipped. Other repos keep .py/.js only.
+# ARCHITECTURE.md §13 (docs/architecture/13-pre-commit-hooks.md).
 LINE_CAP=500
 # allowlist (paths as the committing repo stages them): /spire's changelog is DATA, one line a change, and grows by design
 # (owner, 2026-10-20: "allow overcap on changelog")
-LINE_CAP_ALLOW="web/aspira-changelog.js"
+# mtg/data/mtg_rules.txt is WotC's Comprehensive Rules, vendored verbatim and replaced whole per edition
+# (owner, 2026-11-10: exempt it -- the OPEN-QUESTIONS.md answer)
+LINE_CAP_ALLOW="web/aspira-changelog.js mtg/data/mtg_rules.txt"
+# owner, 2026-11-10: "add a 500 line limit to every file, including docs"
+# spire joins once its own split lands (no file over 500 bar the changelog).
+LINE_CAP_ALL_REPOS="exec-fn"
 cap_fail=0
-CAP_FILES=$(printf '%s\n' "$STAGED" | grep -E '\.(py|js)$' | grep -vE '^(node_modules|graphify-out|web/vendor)/' || true)
+case " $LINE_CAP_ALL_REPOS " in
+  *" $REPO_NAME "*) CAP_FILES=$(printf '%s\n' "$STAGED" | grep -vE '^(node_modules|graphify-out|web/vendor)/' || true) ;;
+  *) CAP_FILES=$(printf '%s\n' "$STAGED" | grep -E '\.(py|js)$' | grep -vE '^(node_modules|graphify-out|web/vendor)/' || true) ;;
+esac
 for f in $CAP_FILES; do
   case " $LINE_CAP_ALLOW " in *" $f "*) continue ;; esac
+  # a staged submodule bump is a gitlink (no blob to count); binaries have no lines
+  [ "$(git ls-files -s -- "$f" | cut -c1-6)" = "160000" ] && continue
+  git show ":$f" | grep -Iq . || continue
   n=$(git show ":$f" | wc -l)
   if [ "$n" -gt "$LINE_CAP" ]; then
-    echo "$f: $n lines > $LINE_CAP — split it (no .py/.js over $LINE_CAP lines)."
+    echo "$f: $n lines > $LINE_CAP — split it on a real seam (no file over $LINE_CAP lines)."
     cap_fail=1
   fi
 done
