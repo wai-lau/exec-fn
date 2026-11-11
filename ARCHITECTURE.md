@@ -11,6 +11,13 @@ history ends with a link to it.
 Where a paragraph here names the incident that produced a rule, that is because
 the rule is the point; the incident is written up in full over there.
 
+## The whole system on one page
+
+![Every moving part: visitors, nginx, the api container, the droplet's other processes, the home box and outside services](docs/arch/00-overview.svg)
+
+Source `docs/arch/00-overview.mmd`. Each box has its own section and
+diagram below; this one only shows what talks to what.
+
 ## The diagrams
 
 Each section embeds its own diagrams as `![alt](docs/arch/<NN>-<topic>.svg)`.
