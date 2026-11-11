@@ -111,7 +111,7 @@ Separate from the git hook: these fire only when committing/editing THROUGH Clau
 
 No inline JS/CSS in templates (extract to `web/<page>.{js,css}`; a one-line `onclick=` stays). No `.py`/`.js` over 500 lines — split on a real seam: modules, or same-global-scope files loaded in order (`web/` JS shares globals, so ESLint `no-undef`/`no-unused-vars` are off for `web/**`). Existing splits: `main.py` → `pages.py` + `routers.py` + `routes_views.py` + `routes_api.py` + `routes_graph.py`; `graph_scrub` + `graph_style`; `nudge` + `nudge_deadlines` + `nudge_llm` + `nudge_loop`; `monitor_sse`; `hq-core/drag/groups/board.js` (`hq-drag.js` = shared pointer wiring + floating-ghost drag); `graph-audio.js` → `graph-norm.js`; `tarot-view/voice/stream/chat.js` (`tarot-stream.js` = `streamResponse()` + the audio-paced typewriter).
 
-Since 2026-11-10 (owner: "add a 500 line limit to every file, including docs") exec-fn caps every text file, not just code: `ARCHITECTURE.md` / `ARCHAEOLOGY.md` are indexes over `docs/architecture/` + `docs/archaeology/` (one file per `## N.` section), and `web/chrome.css` → `chrome.css` + `crt.css`; spire joins `LINE_CAP_ALL_REPOS` once its own split lands.
+Since 2026-11-10 (owner: "add a 500 line limit to every file, including docs") exec-fn caps every text file, not just code: `ARCHITECTURE.md` / `ARCHAEOLOGY.md` are indexes over `docs/architecture/` + `docs/archaeology/` (one file per `## N.` section), and `web/chrome.css` → `chrome.css` + `crt.css`.
 
 History: [ARCHAEOLOGY.md §13](../archaeology/13-pre-commit-hooks.md).
 

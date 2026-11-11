@@ -49,7 +49,7 @@ docker compose up -d --build
 
 **UPDATE CLAUDE.md** when routes, pipelines, data files, schemas, or naming conventions change — **as an INDEX, one short line + a pointer to the ARCHITECTURE.md section.** Measurements, traps, tuning values and incident stories go in ARCHITECTURE.md / ARCHAEOLOGY.md, never appended to an existing CLAUDE.md row. Pre-commit blocks CLAUDE.md over **140k chars** (Claude Code stops loading it past 150k; it hit 211k on 2026-09-27).
 
-**NO INLINE JS/CSS in templates; 500-line cap on every text file in exec-fn, docs included (`.py`/`.js` only in other repos; spire joins once listed); 100-line per-function cap on staged `web/*.js`.** Extract to `web/<page>.{js,css}` (a one-liner handler may stay inline); split an oversized file on a real seam — modules, or same-global-scope files loaded in order. Enforced by pre-commit. Existing splits: **ARCHITECTURE.md §13**.
+**NO INLINE JS/CSS in templates; 500-line cap on every text file in exec-fn, docs included (`.py`/`.js` only in other repos); 100-line per-function cap on staged `web/*.js`.** Extract to `web/<page>.{js,css}` (a one-liner handler may stay inline); split an oversized file on a real seam — modules, or same-global-scope files loaded in order. Enforced by pre-commit. Existing splits: **ARCHITECTURE.md §13**.
 
 ---
 

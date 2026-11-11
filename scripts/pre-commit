@@ -228,7 +228,6 @@ LINE_CAP=500
 # (owner, 2026-11-10: exempt it -- the OPEN-QUESTIONS.md answer)
 LINE_CAP_ALLOW="web/aspira-changelog.js mtg/data/mtg_rules.txt"
 # owner, 2026-11-10: "add a 500 line limit to every file, including docs"
-# spire joins once its own split lands (no file over 500 bar the changelog).
 LINE_CAP_ALL_REPOS="exec-fn"
 cap_fail=0
 case " $LINE_CAP_ALL_REPOS " in
