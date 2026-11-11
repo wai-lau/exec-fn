@@ -1280,6 +1280,8 @@ Allowed `(color, alpha)` pairs are **DERIVED from usage** (same extraction `/api
 
 **To add a colour or alpha**: make the change, eyeball it on `/UI`, run `python3 scripts/lint-colors.py --update`, commit the baseline.
 
+**Not a usage — an ALIAS** (`_ALIAS`, 2026-11-10): a custom property whose whole value is one bare token (`--tc-gray: var(--gray-hsl);`) draws nothing; the colour is used wherever the alias is read, at that read's alpha. Counting it as an alpha-1 use blocked noodle's palette sheets (owner: "exempt this from the color linter if needed"). This is the lint's second deliberate divergence from `/api/ui/usage` (the first: comments stripped). Only the bare form is exempt — `var(--x-hsl) / 0.5` or anything around it still counts.
+
 ### 13b. The scale lint (`scripts/lint-scale.py`)
 
 The same move for every other design choice. Tokens live in chrome.css's second `:root`: `--space-*`, `--radius-*`, `--font-*`, `--fs-*` (4 sizes: 2xs/sm/xl/3xl; fluid `clamp()` stays bespoke), `--fw-*` (2: normal/bold), `--lh-*`, `--tracking-*` (em), `--blur-*`, `--z-*`. Border-width, duration and easing tokens were dropped as unused.

@@ -331,8 +331,12 @@ def test_noodle_pages_keep_their_csp_and_no_store(client, guest_cookie, noodle_s
     assert "script-src 'self'" in vote["content-security-policy"]
     assert "frame-ancestors 'none'" in vote["content-security-policy"]
     assert vote["cache-control"] == "no-store", "the site middleware must not turn it into no-cache"
-    page = client.get("/noodle", headers={**guest_cookie, **HTML_ACCEPT}).headers
-    assert page["content-security-policy"] == "frame-ancestors 'none'" and page["cache-control"] == "no-store"
+    # both start pages: the vote page's strict policy since 2026-11-10 (no
+    # site nav, so no inline script)
+    for start in ("/noodle", "/noodle-tc"):
+        page = client.get(start, headers={**guest_cookie, **HTML_ACCEPT}).headers
+        assert page["content-security-policy"] == vote["content-security-policy"], start
+        assert page["cache-control"] == "no-store", start
 
 
 def test_noodle_drafts_need_their_token(client, guest_cookie):
