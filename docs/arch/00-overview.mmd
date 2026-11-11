@@ -1,0 +1,58 @@
+flowchart TB
+  %% One-page map of every moving part. Detail lives in the per-section diagrams.
+
+  owner["Wai (owner)<br/>browser + phone"]
+  guest["Guests<br/>Turnstile login"]
+
+  nginx["nginx on the droplet<br/>TLS for wai-lau.net"]
+
+  subgraph app["api container  (FastAPI, uvicorn --reload)"]
+    direction LR
+    pages["Pages<br/>/rd /hq + Exec panel<br/>/tarot /mtg /hosaka /printer<br/>/graph /security /UI /debug<br/>/spire /noodle /nightfall (submodules)"]
+    loops["Background loops<br/>nudge tick 30s<br/>monitor comments<br/>tarot openings<br/>Discord bot"]
+    morning["cron 4:30<br/>morning pipeline"]
+  end
+
+  data[("api/data  (JSON files)<br/>rd.json cards + nudges<br/>profile, chat, logs, saves, polls")]
+
+  subgraph host["Same droplet, outside the api container"]
+    direction LR
+    sidecar["cc-agent sidecar<br/>Claude Code speaking as Exec"]
+    piper["piper container<br/>Exec voice (glados)"]
+    hostcron["host crons 5:00-5:20<br/>graphify, security, cc probe"]
+  end
+
+  subgraph home["Home box  (via SSH reverse tunnels)"]
+    direction LR
+    tts["GPU TTS<br/>/tarot voice (nicole)"]
+    printer["3D printer<br/>SPA, controls, camera"]
+  end
+
+  subgraph ext["Outside services"]
+    direction LR
+    anthropic["Anthropic API<br/>Opus + Haiku"]
+    gcal["Google Calendar"]
+    discord["Discord"]
+    turnstile["Cloudflare Turnstile"]
+  end
+
+  owner --> nginx
+  guest --> nginx
+  nginx --> pages
+
+  pages <--> data
+  loops <--> data
+  morning --> data
+
+  pages <-->|"Exec panel, card tools"| sidecar
+  pages --> piper
+  hostcron -->|"graph + security json"| data
+
+  pages --> tts
+  pages --> printer
+
+  pages --> anthropic
+  loops --> anthropic
+  morning --> gcal
+  loops <--> discord
+  pages --> turnstile
