@@ -15,7 +15,7 @@ Source of truth is `scripts/pre-commit`; `.git/hooks/pre-commit` symlinks to it 
 | **mermaid render** | staged `.mmd` | `scripts/render-mermaid.py` failure; re-renders each to the `.svg` beside it and `git add`s the SVG (below) |
 | ESLint | template inline scripts (every template, whenever the host has `node_modules`; skipped with a note in a tooling-only copy); staged `web/*.js` | errors; `max-lines-per-function: 100` (ratchet: only touched files) |
 | `scripts/lint-swallowed.py` | staged top-level `web/*.js` | code after a mid-line `//` (swallowed code broke /spire 3x) |
-| 500-line cap | staged `.py`/`.js` (not node_modules/graphify-out/web/vendor) | any file over 500 lines (no allowlist; `LINE_CAP_ALLOW` is empty) |
+| 500-line cap | in a repo listed in `LINE_CAP_ALL_REPOS` (exec-fn): EVERY staged text file, docs included (binaries + submodule gitlinks skipped); elsewhere staged `.py`/`.js`. Never node_modules/graphify-out/web/vendor | any file over 500 lines, bar `LINE_CAP_ALLOW` (spire's `web/aspira-changelog.js`, vendored `mtg/data/mtg_rules.txt`) |
 | no-multiline-inline-JS/CSS | staged templates | a multi-line inline `<script>`/`<style>` (one-liners ok) |
 | fixture resolution (§13e) | staged `tests/*.py` or `api/*.py` | stale/renamed fixture reference |
 | page smoke + admin-tier guard (§13d) | staged `api/*.py` or templates | a broken route; a `protected` route open to guest/anon |
@@ -110,6 +110,8 @@ Separate from the git hook: these fire only when committing/editing THROUGH Clau
 ### 13g. Size rules (what the cap enforces, how to split)
 
 No inline JS/CSS in templates (extract to `web/<page>.{js,css}`; a one-line `onclick=` stays). No `.py`/`.js` over 500 lines — split on a real seam: modules, or same-global-scope files loaded in order (`web/` JS shares globals, so ESLint `no-undef`/`no-unused-vars` are off for `web/**`). Existing splits: `main.py` → `pages.py` + `routers.py` + `routes_views.py` + `routes_api.py` + `routes_graph.py`; `graph_scrub` + `graph_style`; `nudge` + `nudge_deadlines` + `nudge_llm` + `nudge_loop`; `monitor_sse`; `hq-core/drag/groups/board.js` (`hq-drag.js` = shared pointer wiring + floating-ghost drag); `graph-audio.js` → `graph-norm.js`; `tarot-view/voice/stream/chat.js` (`tarot-stream.js` = `streamResponse()` + the audio-paced typewriter).
+
+Since 2026-11-10 (owner: "add a 500 line limit to every file, including docs") exec-fn caps every text file, not just code: `ARCHITECTURE.md` / `ARCHAEOLOGY.md` are indexes over `docs/architecture/` + `docs/archaeology/` (one file per `## N.` section), and `web/chrome.css` → `chrome.css` + `crt.css`; spire joins `LINE_CAP_ALL_REPOS` once its own split lands.
 
 History: [ARCHAEOLOGY.md §13](../archaeology/13-pre-commit-hooks.md).
 
