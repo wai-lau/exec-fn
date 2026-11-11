@@ -1,7 +1,7 @@
 /* CRT stack at REDUCED strength — the dense, text-heavy pages.
 
    The five `cyber-*` layers ride OVER the content at `--z-modal` on every page
-   (chrome.css). That is the look, and it stays; but on a page you READ rather
+   (crt.css). That is the look, and it stays; but on a page you READ rather
    than glance at — a packed board, a chat transcript — full strength costs
    legibility. So the three colour layers drop to opacity .75 and both
    backdrop-filter panes are pulled a quarter of the way back toward identity

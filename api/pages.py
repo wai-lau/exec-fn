@@ -10,7 +10,10 @@ import app_paths
 _TMPL = Path("/app/templates")
 _STATIC_INDEX = Path("/app/static/index.html")
 
-_CHROME_LINK = '<link rel="stylesheet" href="/chrome.css?v=84">'
+# chrome.css = tokens + base + nav; crt.css = the CRT stack (_CRT_FX's layers),
+# split out 2026-11-10 for the 500-line cap. Always linked together, in this order.
+_CHROME_LINK = ('<link rel="stylesheet" href="/chrome.css?v=84">'
+                '<link rel="stylesheet" href="/crt.css?v=1">')
 # Preload the two site woff2 subsets so they fetch in parallel with the
 # stylesheet instead of after the @font-face is discovered. crossorigin is
 # required for the preload to match the font fetch (fonts are always CORS).
@@ -38,7 +41,7 @@ _FAVICON = '<link rel="icon" type="image/png" href="/favicon.png?v=7">'
 # 100% static, so the compositor blurs once and caches it instead of re-blurring
 # every frame — the sweep-under-glass was the whole reason the old pane cost
 # 233ms/frame. cyber-crt sits UNDER the sweep for the same reason (static backdrop
-# = cached brightness/contrast pass, idle readback cost 0). See chrome.css.
+# = cached brightness/contrast pass, idle readback cost 0). See crt.css.
 _CRT_FX = (
     '<div class="cyber-bg"></div><div class="cyber-lines"></div>'
     '<div class="cyber-blur"></div><div class="cyber-crt"></div>'

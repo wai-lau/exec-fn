@@ -47,7 +47,7 @@
 
 /* dark mode: flip the page-local tokens to a green-on-black terminal, the same
    brand hues the rest of the site runs on. The full CRT stack
-   (.cyber-bg/-lines/-blur/-crt/-scan from chrome.css, same 5 layers + order as
+   (.cyber-bg/-lines/-blur/-crt/-scan from crt.css, same 5 layers + order as
    _CRT_FX) is added by recruiter.js when dark, matching every other page.
    Toggled via html.cv-dark. */
 html.cv-dark {

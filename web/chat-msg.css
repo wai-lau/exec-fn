@@ -201,7 +201,7 @@
    cheap only while nothing beneath them animates. A one-character element
    pulsing forever re-fires both panes every frame for the whole time the mic is
    open -- reported as the page freezing while voice mode was on, and exactly
-   the trap chrome.css warns about for .cyber-scan. A colour change is one
+   the trap crt.css warns about for .cyber-scan. A colour change is one
    repaint; an animation is one per frame, forever. */
 #input-prompt[data-live="true"],
 #exec-prompt[data-live="true"] { color: hsl(var(--green-hsl)); }

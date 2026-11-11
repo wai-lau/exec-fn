@@ -1,0 +1,116 @@
+/* The CRT effect stack (ARCHITECTURE.md §10) — split out of chrome.css
+   2026-11-10 (500-line cap), rules verbatim. Linked right after chrome.css by
+   pages._CHROME_LINK, so it loads wherever chrome.css does and ahead of every
+   page sheet (crt-dim.css overrides these). Tokens still live in chrome.css. */
+
+/* Ambient CRT stack — injected on every page via _render_page as four fixed,
+   pointer-events:none layers. Paint order (DOM order in _CRT_FX, all same z):
+   bg (phosphor overlay) → lines (black scanline gaps, hard-light) → blur (glass)
+   → scan (sweep beam). The glass blurs the static bg+lines+content composite; the
+   ONLY animated layer (scan) sits ABOVE it so the blur's backdrop never animates
+   and the compositor caches it. nightfall composes separately, never gets the
+   markup. */
+
+/* 1. scanline gaps — black lines multiplied onto the content. A TRIANGLE ramp
+   (black peak @ 0.8 at 0/4px, fading to transparent at 0.75px each side, so a
+   1.5px-wide symmetric spike per 4px period) instead of a hard 1px stop: the
+   pure-triangle profile is near single-frequency, so it barely aliases against
+   the pixel grid — no low-frequency moiré band every N lines on zoom. Shoulder
+   widened from 0.25px → 0.75px 2026-08-31 (the hairline read too faint); opacity
+   stays 0.8 (a brief bump to full-opacity black was reverted). Still a triangle,
+   so still moiré-safe. */
+.cyber-lines {
+  position: fixed; inset: 0; width: 100vw; z-index: var(--z-modal); pointer-events: none;
+  mix-blend-mode: hard-light;
+  background: repeating-linear-gradient(0deg,
+    hsl(var(--bg-hsl) / 0.45) 0, transparent calc(0.75 * var(--crt-u)),
+    transparent calc(3.25 * var(--crt-u)), hsl(var(--bg-hsl) / 0.45) calc(4 * var(--crt-u)));
+}
+
+/* 2. Ono-Sendai overlay — phosphor green peaking in the gap BETWEEN the black
+   lines (triangle, peak at 2px, same 4px period, opposite phase) + a centre
+   glow. Soft profile = uniform, no moiré.
+   NO blend mode (was plus-lighter): every full-viewport mix-blend layer forces
+   the whole screen to re-blend whenever anything under it changes, and three of
+   them cost 3x baseline frame time. Plain alpha at the same 0.45 is visually
+   near-identical on a black ground — the stripe contrast comes from the
+   hard-light lines above, which is the ONE blend layer left.
+   Stripe alpha 0.45 -> 0.25 (2026-09-21): the green tint read heavy across
+   every page. One step DOWN the snap scale, not a freehand value -- an
+   off-scale alpha is lint-rejected, and rescaling these gradients is also
+   how the dense-board dimming was told not to do it (see crt-dim.css, which
+   dims with opacity for that reason). The two 0.06 glows are already the
+   lowest non-zero step on the scale and are left alone. */
+.cyber-bg {
+  position: fixed; inset: 0; width: 100vw; z-index: var(--z-modal); pointer-events: none;
+  background:
+    repeating-linear-gradient(0deg,
+      transparent 0,
+      hsl(var(--cat-social-h) calc(var(--cat-social-s) - 40%) calc(var(--cat-social-l) + 25%) / 0.45) calc(2 * var(--crt-u)),
+      transparent calc(4 * var(--crt-u))),
+    radial-gradient(circle at 50% 45%,
+      hsl(var(--cat-social-h) calc(var(--cat-social-s) - 40%) calc(var(--cat-social-l) + 25%) / 0.06), transparent 70%);
+}
+
+/* 3. sweep beam. Also NO blend mode (was overlay, which on a dark backdrop only
+   ever lifted the bright glyphs): plain alpha in the same phosphor hue as the
+   overlay above. This is the one ANIMATED layer, so a blend mode here re-blended
+   the whole viewport every frame, forever -- 110ms/frame in WebKit by itself. */
+.cyber-scan {
+  position: fixed; left: 0; right: 0; top: 0; width: 100vw; height: 480px; z-index: var(--z-modal); pointer-events: none;
+  background: linear-gradient(
+    hsl(var(--cat-social-h) calc(var(--cat-social-s) - 40%) calc(var(--cat-social-l) + 25%) / 0) 0%,
+    hsl(var(--cat-social-h) calc(var(--cat-social-s) - 40%) calc(var(--cat-social-l) + 25%) / 0.06) 50%,
+    hsl(var(--cat-social-h) calc(var(--cat-social-s) - 40%) calc(var(--cat-social-l) + 25%) / 0) 100%);
+  animation: cyber-sweep 7s linear infinite;
+}
+
+@keyframes cyber-sweep { 0%{transform:translateY(-480px)} 100%{transform:translateY(100vh)} }
+
+/* 4. CRT glass — a backdrop-filter pane that blurs the whole composite behind it
+   into a phosphor haze. This USED to be the single most expensive thing on the
+   site (233ms/frame WebKit, ~45% of frame time) and was removed 2026-08-30 --
+   NOT because backdrop-filter is inherently slow, but because it sat UNDER the
+   animated .cyber-scan sweep: a full-viewport backdrop-filter must read back and
+   re-blur its backdrop whenever ANY pixel under it changes, and the perpetual
+   sweep dirtied it every single frame forever. Reinstated 2026-08-31 with the fix
+   that makes it cheap: the glass is now painted ABOVE bg+lines (DOM order in
+   _CRT_FX), and the ONLY animated layer, .cyber-scan, is painted ABOVE the glass.
+   So the glass's backdrop (bg + lines + static page content) never animates -> the
+   compositor blurs it ONCE on first paint / resize and re-composites the cached
+   texture every frame after. Per-frame readback cost = 0 while the page is idle;
+   a discrete content change (card drag, chat line) re-blurs that one frame only,
+   never continuously. The sweep on top stays sharp + plain-alpha (NO blend mode --
+   a blend on the animated layer is the same per-frame-readback trap as the old
+   under-glass blur, see .cyber-scan). Dense pages (/rd, /hq, /mtg) keep the stack on
+   top like everywhere else, but dim it (opacity .75 on the colour layers, both
+   filters pulled a quarter of the way to identity) — see crt-dim.css. */
+.cyber-blur {
+  position: fixed; inset: 0; width: 100vw; z-index: var(--z-modal); pointer-events: none;
+  backdrop-filter: blur(var(--blur-2xs));
+}
+
+/* 5. CRT phosphor punch — a brightness/contrast backdrop-filter over the same
+   static composite as .cyber-blur (painted right after it, UNDER .cyber-scan).
+   Pumps the phosphor greens without touching the palette (a filter, not a colour).
+   Kept below the animated sweep for the exact reason the glass is: its backdrop
+   (bg + lines + blur + static content) never animates, so the compositor runs the
+   brightness/contrast pass ONCE and re-composites the cached texture — idle
+   per-frame readback cost 0. Over the sweep it would re-fire every frame (the
+   backdrop-filter trap). Contrast is 1.5 (was 1.25 until 2026-09-21: it
+   multiplies whatever green is left, so dropping the stripe alone left the
+   punch doing half the tinting). Dense pages dim it like the rest (crt-dim.css). */
+.cyber-crt {
+  position: fixed; inset: 0; width: 100vw; z-index: var(--z-modal); pointer-events: none;
+  backdrop-filter: brightness(0.85) contrast(1.5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cyber-lines, .cyber-bg, .cyber-scan { animation: none !important; }
+}
+
+/* crt-lite.js measured this machine too slow to composite the stack: keep the
+   static scanlines + tint, drop the two backdrop-filter panes and the sweep. */
+html.crt-lite .cyber-blur,
+html.crt-lite .cyber-crt,
+html.crt-lite .cyber-scan { display: none; }

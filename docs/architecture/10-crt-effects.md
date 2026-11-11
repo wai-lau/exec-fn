@@ -1,6 +1,6 @@
 ## 10. The CRT effect stack (`_CRT_FX`)
 
-**Who gets it.** `_render_page` (unless `crt=False`: `/spire`), the landing, `/graph`, and both login screens (`/login` reads the raw static shell, `/guest` the bare one; neither picks the stack up from anywhere else). `_CRT_FX` (`pages.py`) is five divs plus `web/crt-zoom.js`. Layers are `position:fixed`, `pointer-events:none`, at `--z-modal`, so they sit over a form without taking a click. Defined in `chrome.css`.
+**Who gets it.** `_render_page` (unless `crt=False`: `/spire`), the landing, `/graph`, and both login screens (`/login` reads the raw static shell, `/guest` the bare one; neither picks the stack up from anywhere else). `_CRT_FX` (`pages.py`) is five divs plus `web/crt-zoom.js`. Layers are `position:fixed`, `pointer-events:none`, at `--z-modal`, so they sit over a form without taking a click. Defined in `web/crt.css` (split out of `chrome.css` 2026-11-10; `_CHROME_LINK` links both, chrome first).
 
 **Paint order = DOM order, and it is load-bearing:**
 
@@ -30,7 +30,7 @@ Scanline geometry is `calc(N * var(--crt-u))`, `--crt-u = 1px * var(--crt-scale)
 
 **The cached-composite argument holds only on a GPU.** With software compositing both backdrop panes re-run on the CPU every frame anything moves, and the sweep moves every frame. Without the panes + sweep the landing goes from ~5fps to 60fps on a throttled software renderer; the blend layer and the wheel's blur were measured and are NOT the cost.
 
-`web/crt-lite.js` (loaded on `/` only, via `_LANDING_SCRIPT`) times up to `SAMPLES` 30 frames or `WINDOW_MS` 1.2s, starting 500ms after `load`; a median over `SLOW_MS` 25ms adds `html.crt-lite`, and chrome.css hides `.cyber-blur`, `.cyber-crt`, `.cyber-scan` (static scanlines + tint stay). The verdict is kept in localStorage `crt.lite` (a timestamp) for 7 days. Headless WebKit/Chromium on the droplet are software-composited and go lite — clear `localStorage['crt.lite']` and pre-empt the check when the full stack is under test.
+`web/crt-lite.js` (loaded on `/` only, via `_LANDING_SCRIPT`) times up to `SAMPLES` 30 frames or `WINDOW_MS` 1.2s, starting 500ms after `load`; a median over `SLOW_MS` 25ms adds `html.crt-lite`, and crt.css hides `.cyber-blur`, `.cyber-crt`, `.cyber-scan` (static scanlines + tint stay). The verdict is kept in localStorage `crt.lite` (a timestamp) for 7 days. Headless WebKit/Chromium on the droplet are software-composited and go lite — clear `localStorage['crt.lite']` and pre-empt the check when the full stack is under test.
 
 ### 10c. Dimming on the dense pages
 
