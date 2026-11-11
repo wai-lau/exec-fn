@@ -49,7 +49,7 @@ staged="$(git diff --cached --name-only 2>/dev/null)"
 has_src="$(printf '%s\n' "$staged" | grep -E '^api/.*\.py$|^api/templates/.*\.html$' || true)"
 [ -n "$has_src" ] || exit 0
 
-has_docs="$(printf '%s\n' "$staged" | grep -E '^CLAUDE\.md$|^ARCHITECTURE\.md$|^ARCHAEOLOGY\.md$' || true)"
+has_docs="$(printf '%s\n' "$staged" | grep -E '^CLAUDE\.md$|^ARCHITECTURE\.md$|^ARCHAEOLOGY\.md$|^docs/(architecture|archaeology)/' || true)"
 [ -n "$has_docs" ] && exit 0
 
 reason="This commit stages API source (api/*.py or api/templates/*.html) but does not stage CLAUDE.md, ARCHITECTURE.md or ARCHAEOLOGY.md. Before committing: review the staged diff (git diff --cached) and, if routes / pipelines / schemas / data files / naming changed, write the detail into ARCHITECTURE.md (present design: mechanisms, measurements, traps) or ARCHAEOLOGY.md (a fixed bug / history) and \`git add\` it. CLAUDE.md is an INDEX, not the place for detail: touch it only for a new route, file, rule or term, and then with ONE short line pointing at the ARCHITECTURE.md section. Never append paragraphs to an existing CLAUDE.md row (pre-commit rejects CLAUDE.md over 140000 chars). If no docs change is warranted, add the literal token [skip-docs] to the commit message. Then re-run the commit."

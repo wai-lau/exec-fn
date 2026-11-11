@@ -1,0 +1,39 @@
+## 12. The bottom nav
+
+Current design: [ARCHITECTURE.md §12](../architecture/12-bottom-nav.md).
+
+**While the panel is open the bubble is HIDDEN** (`body:has(#exec-panel.open) #exec-bubble { display: none }`, exec-bubble.css — the same rule the card dialog already applies for the same reason). Bubble and panel are both at `--z-bubble`, so DOM order decides and the bubble wins it: wherever it rests it is ABOVE the panel and swallows every tap inside its 50px circle — and the tap it swallows is `togglePanel()`, i.e. CLOSE. At phone width the panel is full-screen and the bubble's resting corner (right 14px, bottom `--nav-h + 10`) lands squarely on the tail of the last choice row and on the composer's `#exec-mute` / `#exec-ph-close`: measured at 430x932, bubble `366..416 x 807..857` over a choice row at `12..418 x 808..841`. So tapping the last answer of a nudge MINIMISED the panel instead of answering it (reported 2026-09-18). The bubble's job is to OPEN; the panel closes from its own `[x]`, or a tap outside where there is an outside — on a phone the panel covers the screen, so `[x]` is the close.
+
+The second half of the same failure is **WebKit touch adjustment**: a tap that lands on no clickable element snaps to the nearest one within ~10px, and the composer's `[x]` is a 29x19 target directly under the transcript's last line (`[x]` at `389..418 x 841..860` against a row ending at 841). `#exec-term` therefore carries `var(--space-2)` of BOTTOM padding as a tap guard, not as rhythm — without it a tap aimed at the last answer, landing a few px low, still closed the panel. Pinned by `tests/test_exec_bubble_overlap_browser.py` (WebKit, 430x932): nothing of the bubble may intersect the open panel, every choice button must be the topmost element at its own left/centre/right, and tapping the row's last answer must send it and leave the panel open.
+
+(The standalone `/directives` timeline page was removed — that timeline now lives in the hq today column.)
+
+### Moved out of ARCHITECTURE.md (2026-10-15 pass)
+
+**GPH in the guest nav (2026-09-21).** The §12 table and CLAUDE.md both said `GPH` was a guest-nav entry while `_GUEST_NAV_LINKS` omitted it, so the public landing offered `/graph` to a visitor with no nav entry to leave by. `tests/test_landing_nav_parity.py` now pins it, both sides scraped from rendered markup rather than a hand list, so a new section is covered the day it is added.
+
+**The `/cc` star (2026-09-21 to 2026-09-29).** `/cc` wore `✦` (U+2726), absent from the ASCII-only 04b25 font, so the fallback face varied per device. The page folded into the Exec panel on 2026-09-29; the detection machinery stayed. Measurements of the star: at `--fs-2xs` the ink was 6.1px; ink 9.0px at `scale(1.48)`, same as the M of MTG two slots along; square, so 9.0px tall against the caps' 11.3px (width is the match, one glyph cannot have both). Measured 2026-09-21 at 430x932 by clipping a screenshot per label and counting green pixels at 3x DPR (letters ink 910.04-921.04, star 911.09-919.76, centres 0.12px apart). Canvas `measureText` reported the glyph ~30% off what it painted. A first baseline nudge, `vertical-align:-0.05em`, did nothing (label is a flex item). An older doc version quoted `translateY(0.3px) scale(1.9)`; the shipped rule is `scale(1.48)`.
+
+**Icon tracing: how it got here.** Colour mode arrived 2026-09-21: tile dropped, every other colour painted as itself, ink taking the tile colour. It returns for free what the line-art path needs an interior pass, a colour quantiser, a despeckler, per-icon floors and hand-drawn glyphs to reconstruct (all remain, for the eight `LINE_ART` icons only). Fourteen icons trace in colour. At 20px the PNGs were mush (tile read, art did not). A first version ran Chaikin corner-cutting to round the staircases off: 120KB for the set against 26KB, and smoothing a pixel grid is the opposite of keeping it.
+
+The outline alone was not the icon: flat-colour features (the boss's mouth, watchman's iris, wardenpp's badge, golem-stone's panels, the wizard's moon) are invisible to a darkest-cluster pass, hence the interior pass. Three things make it work rather than produce noise, each learned by producing noise: it runs only on pixels enclosed by the outline (the drop shadow lies outside); colour is quantised first (sources shade by DITHERING, a stippled iris is never one region at full depth); a region under the size floor is merged into its nearest neighbour rather than dropped (dropping inked a line only where both sides survived, so every removed speck punched a hole in the line past it). Against the tile the ink goes on the art's side whatever the luminance says (data-file's near-white pages on orange made the TILE the darker side, and a darker-side rule drew the silhouette onto the background where a "never ink the tile" guard deleted it). `GLYPH_ONLY` icons: data-doctor's cross is five red cells smeared across an isometric face, laser-satellite's dice have dithered facets, data-file's back sheets only traced as slivers. A drawn glyph marked `solid` occludes earlier ones (without it three closed sheets are three wireframes). Named glyphs: watchman's iris is dithered green-on-olive with a two-cell pupil; the boss's mouth is a 6px red band too small to survive the floor that calms his stippled skin; data-file writes its text as grey blocks, noise at icon size. `NO_INTERIOR` for watchman and bitman/printer (the same biting sphere). `DESPECKLE_OUTLINE` counts all eight neighbours or a diagonal outline is deleted as speckle. Ink = DARKEST cluster, not everything darker than the tile (the loose test fills the subject solid and turns dither into thousands of one-pixel squares); data-file/data-doctor are flat vector art with no outline, so their line is derived from where colour regions meet. `ICON_COLOUR` e.g. `turbo` (yellow bolt on blue tile); `ICON_ACCENT` e.g. data-doctor's red cross, wardenpp's gold rank crosses, wizard's moon and stars.
+
+**Standalone refresh (2026-09-26).** The guest nav renders `F5` server-side in every mode: a guest is the visitor likeliest to be on a phone watching a page that has stopped updating, with no idea a reload is the fix.
+
+**Bubble z-order.** The bubble used to be `--z-max` with an `.exec-under-fx` opt-in only the link-bubble pages passed, so on `/rd`+`/hq` (where it is actually used) it painted on top of the monitor. The class is gone; the base rule carries `--z-bubble`. Measured: `elementFromPoint` at the bubble's centre returns the bubble on `/rd` and `/debug` despite the fx layers.
+
+**Bubble hidden while panel open (2026-09-18).** At phone width the bubble's resting corner sat on the tail of the last choice row and on the composer's mute/`[x]`; answering a nudge minimised the panel instead (the swallowed tap was `togglePanel()`).
+
+**Mic prompt arm.** The `.mic` prompt is a `<span>`; it had to be added to the panel's first-gesture keyboard arm (`exec-bubble.js`; the old `cc-input.js` went with the page), which `preventDefault()`s a pointerdown on anything not a control and ate the first tap on it.
+
+**Composer height.** It was 33px against an 18.6px message line (6px row padding, plus `#exec-mute` and `#exec-ph-close` carrying their own vertical padding) before the zero-height rule.
+
+**Touch Enter (2026-10-05).** On touch the composer's Enter became a newline with the third consecutive Enter sending.
+
+**Voice off semantics.** Exec voice is `glados` on `piper` (a container on the droplet), so it works with the home box asleep; voice goes both ways via `exec-mic.js` on `voice-input.js` (drops anything heard while a reply streams or `execVoice.isSpeaking()`, else the panel transcribes its own narration; closing the panel ends the session).
+
+**Page scroll** was introduced because the native root scrollbar is top-layer and painted its pill over the fixed nav.
+
+
+---
+
