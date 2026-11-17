@@ -315,3 +315,17 @@ body.hq-dragging .hq-unschedule.drag-over {
   font-size: var(--fs-2xs); font-weight: var(--fw-bold);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+
+/* reminders: thin lines at the top of their day (hq-board.js remLinesHtml),
+   the R&D reminders-bar look; the row's cards take the height left over */
+.hq-row-body { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.hq-row-body .hq-list-row { flex: 1; min-height: 0; }
+
+.hq-rems { flex-shrink: 0; display: flex; flex-direction: column; font-family: var(--font-bit); font-size: var(--fs-2xs); }
+
+.hq-rem {
+  cursor: pointer; opacity: 0.85; padding: var(--space-0-5) var(--space-2-5);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.hq-rem:hover { opacity: 1; }

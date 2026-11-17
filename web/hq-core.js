@@ -52,13 +52,18 @@ function isOverdue(card, dayIso) {
 
 // Day cards are not sized by duration — they grow to fit their content
 // (title, meta, notes) so all the info is visible.
+// Escape card text before it goes into markup: a gcal import puts OTHER people's
+// invite titles (and an http:// .ics feed's) onto this owner-only page.
+function hqEsc(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 function renderCard(c, dayIso) {
   const {bg, border, dark} = cardStyle(c);
   const titleC = bg ? (dark ? 'inherit' : 'rgba(0,0,0,0.85)') : 'hsl(var(--green-hsl) / 0.8)';
   const metaC  = bg ? (dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.5)') : 'hsl(var(--green-hsl) / 0.45)';
 
   const over = (dayIso && isOverdue(c, dayIso)) ? '<span class="hq-overdue" title="overdue">!</span>' : '';
-  const reminder = c.is_reminder ? '<span style="opacity:0.35;font-size:0.6rem"> [rem]</span>' : '';
   const recur = c.recur_type ? `<span style="opacity:0.45">${RECUR_LABEL[c.recur_type]||'↺'}</span>` : '';
   const late = !!(dayIso && isOverdue(c, dayIso));
   // on its own day the date is the row's label already: show the time alone
@@ -66,13 +71,10 @@ function renderCard(c, dayIso) {
   // overdue: the .overdue chip (hq.css) carries its own colour, readable on any fill
   const due = dueTxt ? `<span class="hq-due${late ? ' overdue' : ''}"${late ? '' : ` style="color:${metaC}"`}>${dueTxt}</span>` : '';
   const metaHtml = (recur || due) ? `<div class="hq-card-meta" style="color:${metaC}">${recur}${due}</div>` : '';
-  // titles too, not just notes: a gcal import puts OTHER people's invite titles
-  // (and an http:// .ics feed's) onto this owner-only page
-  const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const notesHtml = c.notes ? `<div class="hq-card-notes" style="color:${metaC}">${esc(c.notes)}</div>` : '';
+  const notesHtml = c.notes ? `<div class="hq-card-notes" style="color:${metaC}">${hqEsc(c.notes)}</div>` : '';
   return `<div class="hq-card${bg ? '' : ' plain'}" data-id="${c.id}" data-due="${c.due_date||''}" style="${bg}${border}">
     ${over}
-    <div class="hq-card-title" style="color:${titleC}">${esc(c.title)}${reminder}</div>
+    <div class="hq-card-title" style="color:${titleC}">${hqEsc(c.title)}</div>
     ${metaHtml}
     ${notesHtml}
   </div>`;

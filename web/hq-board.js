@@ -239,12 +239,12 @@ function dayCellHtml(day, today) {
     </div>`;
   // today renders as a timeline instead of a card list
   if (isToday) {
-    return `<div class="hq-col today-col${isWeekend?' weekend':''}" data-day="${day}">${hdr}
+    return `<div class="hq-col today-col${isWeekend?' weekend':''}" data-day="${day}">${hdr}${remLinesHtml(day)}
       <div class="hq-tl-wrap" id="hq-tl-wrap"><span style="opacity:0.3;padding:12px;font-size:0.75rem">loading…</span></div>
     </div>`;
   }
-  const cards = weekData.days[day] || [];
-  return `<div class="hq-col${isWeekend?' weekend':''}" data-day="${day}">${hdr}
+  const cards = (weekData.days[day] || []).filter(c => !c.is_reminder);
+  return `<div class="hq-col${isWeekend?' weekend':''}" data-day="${day}">${hdr}${remLinesHtml(day)}
     <div class="hq-list" id="hq-list-${day}">${cards.map(c=>renderCard(c,day)).join('')}</div>
   </div>`;
 }
@@ -257,11 +257,24 @@ function dayRowHtml(day, today) {
   const isWeekend = dow === 0 || dow === 6;
   const dayLabel = fmtDay(day).split(',')[0];
   const dateLabel = fmtDay(day).replace(/^[^,]+, /, '');
-  const cards = weekData.days[day] || [];
+  const cards = (weekData.days[day] || []).filter(c => !c.is_reminder);
   return `<div class="hq-col hq-row${isWeekend?' weekend':''}" data-day="${day}">
     <div class="hq-row-label"><span class="hq-day-name">${dayLabel}</span> <span class="hq-date">${dateLabel}</span></div>
-    <div class="hq-list hq-list-row" id="hq-list-${day}">${cards.map(c=>renderCard(c,day)).join('')}</div>
+    <div class="hq-row-body">${remLinesHtml(day)}
+      <div class="hq-list hq-list-row" id="hq-list-${day}">${cards.map(c=>renderCard(c,day)).join('')}</div>
+    </div>
   </div>`;
+}
+
+// Reminders are a note that a day exists, not work: one thin line each at the
+// top of their day, styled like the R&D reminders bar (chipStyle), never a card.
+function remLinesHtml(day) {
+  const rems = (weekData.days[day] || []).filter(c => c.is_reminder);
+  if (!rems.length) return '';
+  return `<div class="hq-rems">${rems.map(c => {
+    const {color, bg, border} = chipStyle(c);
+    return `<div class="hq-rem" data-id="${c.id}" style="color:${color};background:${bg};border-bottom:1px solid ${border}">${hqEsc(c.title)}</div>`;
+  }).join('')}</div>`;
 }
 
 function buildBoard() {
@@ -283,6 +296,9 @@ function buildBoard() {
   initSortable(days);
   document.querySelectorAll('.hq-card').forEach(el => {
     el.addEventListener('click', () => { if (!_hqDragging) openCardDialog(el.dataset.id, () => load(weekStart), 'hq'); });
+  });
+  document.querySelectorAll('.hq-rem').forEach(el => {
+    el.addEventListener('click', () => openCardDialog(el.dataset.id, () => load(weekStart), 'hq'));
   });
   // build the today timeline (drop target + blocks)
   const todayCards = (weekData.days[today] || []).filter(c => !c.is_reminder && !c.is_book);
