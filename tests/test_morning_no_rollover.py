@@ -49,7 +49,12 @@ def test_today_future_dateless_and_rolling_cards_are_left_alone():
     assert [c["column"] for c in cards] == ["hq", "rd", "rd", "hq", "exile"]
 
 
-def test_recurring_card_revives_its_next_occurrence():
+def test_recurring_card_revives_its_next_occurrence(monkeypatch):
+    # the clone's next date is advanced past the REAL clock (helpers._now_et),
+    # so pin it to TODAY or the test breaks once the wall date passes 11-15
+    import helpers
+    from datetime import datetime
+    monkeypatch.setattr(helpers, "_now_et", lambda: datetime.fromisoformat(TODAY + "T05:00"))
     cards = [_card("a", scheduled_day="2026-11-08", due_date="2026-11-08", recur_type="week")]
     entries = morning._archive_passed_no_rollover(cards, TODAY)
     assert len(cards) == 2
