@@ -273,7 +273,10 @@ function remLinesHtml(day) {
   if (!rems.length) return '';
   return `<div class="hq-rems">${rems.map(c => {
     const {color, bg, border} = chipStyle(c);
-    return `<div class="hq-rem" data-id="${c.id}" style="color:${color};background:${bg};border-bottom:1px solid ${border}">${hqEsc(c.title)}</div>`;
+    // outlined like an idea card: the category's card border, else the chip's
+    const cat = _catKey(c);
+    const line = cat ? `var(--card-${cat}-border)` : border;
+    return `<div class="hq-rem" data-id="${c.id}" style="color:${color};background:${bg};border-color:${line}">${hqEsc(c.title)}</div>`;
   }).join('')}</div>`;
 }
 
