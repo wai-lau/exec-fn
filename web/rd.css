@@ -333,8 +333,8 @@ body { overflow: hidden !important; background: transparent !important; }
    day shows its weight, not just its count.
 
    Upright, not lying down: the calendar is half the row wide, so a cell holds
-   only a few pills across. They stand side by side, bottom-aligned like a bar
-   chart, and WRAP onto further rows; the cell (and the calendar, and --cal-h)
+   only a few pills across. They stand side by side, top-aligned (a lone pill
+   lies down instead), and WRAP onto further rows; the cell (and the calendar, and --cal-h)
    grows to hold every card rather than clipping the day.
 
    Shape is a stadium: two semicircles with a rectangle between them, no seam.
@@ -344,7 +344,7 @@ body { overflow: hidden !important; background: transparent !important; }
 .cal-dots {
   --cal-dot: 5px;  /* circle diameter = one unit of length */
 
-  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: center;
+  display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: center;
   gap: var(--space-1); min-height: var(--space-2);
   padding: 0 var(--space-1);
 }
@@ -358,6 +358,12 @@ body { overflow: hidden !important; background: transparent !important; }
 .cal-dots i.cal-u2 { height: calc(var(--cal-dot) * 2); }
 .cal-dots i.cal-u3 { height: calc(var(--cal-dot) * 3); }
 .cal-dots i.cal-u4 { height: calc(var(--cal-dot) * 4); }
+
+/* A lone pill lies down: there is nothing beside it to make room for. */
+.cal-dots i:only-child { height: var(--cal-dot); }
+.cal-dots i.cal-u2:only-child { width: calc(var(--cal-dot) * 2); }
+.cal-dots i.cal-u3:only-child { width: calc(var(--cal-dot) * 3); }
+.cal-dots i.cal-u4:only-child { width: calc(var(--cal-dot) * 4); }
 
 /* ── notes (right half of the calendar row) ──────────────────────────────────
    The Exec panel's todo list, mounted here on /rd instead of in the panel

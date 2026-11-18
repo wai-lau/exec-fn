@@ -12,7 +12,7 @@ LEFT-HALF Sunday-first grid of the CURRENT MONTH only (the right half is the not
 
 ### 8b. Pills — one per card, sized by importance
 
-Each day is the zero-padded day number over upright pills, one per card landing on that day (`scheduled_day`, else the `due_date` date part). **Every card is shown**: the pills stand side by side, bottom-aligned, and WRAP, so a busy day makes its row (and the calendar, and `--cal-h`, and the board's top inset) taller. Upright since 2026-11-18, when the calendar went to half width — lying down, a half-width cell held one or two.
+Each day is the zero-padded day number over upright pills, one per card landing on that day (`scheduled_day`, else the `due_date` date part). **Every card is shown**: the pills stand side by side, top-aligned, and WRAP, so a busy day makes its row (and the calendar, and `--cal-h`, and the board's top inset) taller. Upright since 2026-11-18, when the calendar went to half width — lying down, a half-width cell held one or two. A day with ONE pill lays it horizontally (`:only-child`), since nothing beside it needs the room.
 
 - **Books and EXILED cards are excluded; archived cards count, but never after today** (a card finished EARLY would dot a day nothing happened on; a recurring card would double-book the future, since archiving clones the next occurrence).
 - **Archiving PRESERVES `scheduled_day`** (`_apply_patch_schedule`, `routes_api.py`): leaving hq clears it, except into archives, where the field is the only record of the day it happened. Inert elsewhere (`get_week_data` takes `column == "hq"`, the rollover takes `("rd", "hq")`, nudges need hq).
