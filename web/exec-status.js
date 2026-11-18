@@ -5,37 +5,24 @@
  * row of this statusbar (excl folder and user)"). It was the /cc page's until
  * that page folded into the panel, 2026-09-29.
  *
- * Everything here is REPORTED by the sidecar, never estimated: the model comes
- * from the SDK's init frame, the context size from the input side of the last
- * result (prompt + cache reads), and the 5h / 7d windows from the subscription's
- * usage endpoint. A status line that guessed would be worse than none.
+ * Everything here is REPORTED, never estimated: the terminal's own figures, or
+ * the subscription's usage endpoint via the sidecar. A status line that guessed
+ * would be worse than none.
  *
  * Loaded before exec-bubble.js, same global scope; the stream hands it every
  * SSE frame (execStatusOn) and the panel mounts it (execStatusMount).
  */
 'use strict';
 
-// Claude's context window, by model id. [1m] is the million-token variant; the
-// rest sit at 200K. Wrong only if a model ships with a new window and this is
-// not updated -- at which point the percentage is off, not the page.
-const CC_CTX_1M = 1000000;
-const EXEC_CTX_DEFAULT = 200000;
 const EXEC_SEVEN_DAY_S = 7 * 86400;
 
-// windows/credits from the sidecar; alts/snoozeUntil from the host
-// (scripts/term-status.sh via /api/cc/limits).
-const execStatusState = { model: '', ctx: 0, base: 0, windows: {}, credits: null, alts: null, snoozeUntil: 0 };
+// All from /api/cc/limits: the terminal status line's own figures while it is
+// writing them, else the sidecar's (routes_cc._term_status). No ctx/base: Wai,
+// 2026-11-18, "no need for context and base".
+const execStatusState = { windows: {}, credits: null, alts: null, snoozeUntil: 0 };
 
-// The statusline script's definition, mirrored: `base` is the SMALLEST total
-// input ever observed -- system prompt + tools + standing context, the floor a
-// conversation can never go below -- and it persists, because the first turn
-// after a /new is the only time you see it cleanly. localStorage here is the
-// analogue of the script's ~/.claude/cache/statusline_baseline_global.
-const EXEC_BASE_KEY = 'exec.ctxbase';
-// EVERY slot is cached, not just base. The model arrives with the first reply,
-// the windows with the first fetch and the context with the first result -- so
-// a freshly opened page had an empty bar until it was spoken to, which reads as
-// broken rather than as waiting. The cache is a first paint, replaced by live
+// The windows are cached: a freshly opened page had an empty bar until the
+// first fetch landed, which reads as broken rather than as waiting. The cache is a first paint, replaced by live
 // numbers the moment any of them land.
 const EXEC_STATE_KEY = 'exec.status';
 // How long a cached paint is worth showing before the page would rather show
@@ -48,11 +35,8 @@ function execStateLoad() {
     const raw = JSON.parse(localStorage.getItem(EXEC_STATE_KEY) || '{}');
     if (!raw || typeof raw !== 'object') return;
     // A cached number is a first paint, not a fact. Anything older than the TTL
-    // is dropped whole rather than shown: a context figure from yesterday's
-    // conversation is not "slightly stale", it is about something else.
+    // is dropped whole rather than shown.
     if (!raw.at || Date.now() - raw.at > EXEC_CACHE_TTL_MS) return;
-    execStatusState.model = raw.model || '';
-    execStatusState.ctx = raw.ctx || 0;
     const wins = raw.windows && typeof raw.windows === 'object' ? raw.windows : {};
     // A window whose reset has already passed has rolled over; its utilization
     // describes a period that is finished, so it goes rather than misinforms.
@@ -67,23 +51,9 @@ function execStateSave() {
   try {
     localStorage.setItem(EXEC_STATE_KEY, JSON.stringify({
       at: Date.now(),
-      model: execStatusState.model,
-      ctx: execStatusState.ctx,
       windows: execStatusState.windows,
     }));
   } catch { /* private mode: the bar just does not survive a reload */ }
-}
-
-function execBaseLoad() {
-  try { return parseInt(localStorage.getItem(EXEC_BASE_KEY) || '0', 10) || 0; } catch { return 0; }
-}
-
-function execBaseNote(total) {
-  if (!total) return;
-  if (!execStatusState.base || total < execStatusState.base) {
-    execStatusState.base = total;
-    try { localStorage.setItem(EXEC_BASE_KEY, String(total)); } catch { /* private mode */ }
-  }
 }
 
 /* A conversation's hue (the /list rows, exec-sessions.js), the way the terminal's status line colours a title: a hash of the title
@@ -99,10 +69,6 @@ function execHue(text) {
     h = Math.imul(h, 0x01000193) >>> 0;
   }
   return h % 360;
-}
-
-function execCtxWindow(model) {
-  return /\[1m\]/i.test(model || '') ? CC_CTX_1M : EXEC_CTX_DEFAULT;
 }
 
 /** 7320000 -> `2h02m`, 540000 -> `9m`. The CLI shows time-to-reset the same way. */
@@ -159,15 +125,19 @@ function execPill(cls, text) {
 
 /* Same items, order and colours as the terminal's row 2: 7d used/pace cap,
  * the snooze, 5h and its reset, credits (only while a window is at 100%, i.e.
- * while they are being spent), ctx and its base, other sessions. A value the
+ * while they are being spent), other sessions. A value the
  * page has no number for is left out, as the terminal leaves it out. */
 function execStatusRender() {
   const bar = document.getElementById('exec-status');
   if (!bar) return;
   const row = bar.querySelector('.cs-meta');
   row.textContent = '';
-  const add = (el) => row.appendChild(el);
-  const win = execCtxWindow(execStatusState.model);
+  // Each field with its pill is one group; the groups spread evenly across
+  // the row (Wai, 2026-11-18: "space out the text equally").
+  let grp = null;
+  const group = () => { grp = row.appendChild(document.createElement('span')); grp.className = 'cs-grp'; };
+  const add = (el) => grp.appendChild(el);
+  group();
   const five = execStatusState.windows.five_hour;
   const seven = execStatusState.windows.seven_day || execStatusState.windows.seven_day_opus;
 
@@ -179,18 +149,18 @@ function execStatusRender() {
   }
   const snz = execStatusState.snoozeUntil ? execSnoozeLeft(execStatusState.snoozeUntil) : '';
   if (snz) add(execPill('cs-snooze', snz));
-  else if (seven) add(execText('cs-gap', ' '));
+  group();
   if (five && five.pct != null) add(execText('cs-5h', '5h:' + Math.round(five.pct) + '%'));
   if (five && five.resetsAt) {
     const left = execUntil(five.resetsAt * 1000 - Date.now());
     if (left) add(execPill('cs-reset', left));
   }
+  group();
   const maxed = [five, seven].some((w) => w && w.pct >= 100);
   if (maxed && execStatusState.credits) add(execPill('cs-credits', 'c:$' + execStatusState.credits));
-  // ctx always shows, as in the terminal: 0% until the conversation's first reply.
-  add(execText('cs-ctx', 'ctx:' + Math.min(100, Math.round(((execStatusState.ctx || 0) / win) * 100)) + '%'));
-  if (execStatusState.base) add(execPill('cs-base', Math.round((execStatusState.base / win) * 100) + '%'));
+  group();
   if (execStatusState.alts > 0) add(execText('cs-alts', 'alts:', String(execStatusState.alts)));
+  row.querySelectorAll('.cs-grp:empty').forEach((g) => g.remove());
 }
 
 /* The 5h / 7d windows come from /api/cc/limits, not from the stream: the SDK
@@ -217,15 +187,9 @@ async function execLimitsFetch() {
   } catch { /* offline: the bar simply omits them */ }
 }
 
-/** Every SSE frame passes through here; only three carry status. */
+/** Every SSE frame passes through here; only `limits` carries status. */
 function execStatusOn(data) {
-  if (!data) return;
-  if (data.type === 'session' && data.model) execStatusState.model = data.model;
-  else if (data.type === 'done' && data.ctxTokens) {
-    execStatusState.ctx = data.ctxTokens;
-    execBaseNote(data.ctxTokens);
-  }
-  else if (data.type === 'limits' && data.kind) {
+  if (data && data.type === 'limits' && data.kind) {
     execStatusState.windows[data.kind] = { pct: data.pct, resetsAt: data.resetsAt };
   } else return;
   execStateSave();
@@ -242,20 +206,11 @@ function execStatusMount(panel) {
   bar.innerHTML = '<span class="cs-meta"></span>';
   panel.appendChild(bar);
   execStateLoad();
-  execStatusState.base = execBaseLoad();
   execStatusRender();
   execLimitsFetch();
-  // A turn is the only thing that moves these, so refresh when one ends rather
-  // than on a timer.
+  // A turn moves the windows, so refresh when one ends as well as on the timer.
   execTermEl.addEventListener('exec:reply-done', execLimitsFetch);
   execTermEl.addEventListener('exec:reply-done', execTitleRefresh);
-  // A cleared conversation is back at the floor. base and the windows survive
-  // (they are account-wide, not conversation-wide); the context does not.
-  execTermEl.addEventListener('exec:conversation-new', () => {
-    execStatusState.ctx = 0;
-    execStateSave();
-    execStatusRender();
-  });
   // The reset and snooze countdowns are only true at the moment they are drawn,
   // and alts/snooze move without a turn: refetch (server-cached a minute) too.
   setInterval(() => { execStatusRender(); execLimitsFetch(); }, 60000);

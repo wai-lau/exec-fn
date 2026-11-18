@@ -223,9 +223,9 @@
 /* Row 2 of the Claude Code status line as it renders in Wai's terminal (read
    off ~/.claude/statusline-command.sh, not approximated), minus the folder and
    user: the same items, order and colours, the escape codes turned into hex
-   (7d truecolor cyan, 5h 256-colour 217, ctx the terminal's near-white, alts
-   208; pills black on 117 snooze / 157 reset / 245 base, and the credits
-   pill near-white on red). In the panel's own flow at its BOTTOM, under the
+   (7d truecolor cyan, 5h 256-colour 217, alts 208; pills black on 117
+   snooze / 157 reset, and the credits pill near-white on red). No ctx/base
+   (Wai, 2026-11-18). In the panel's own flow at its BOTTOM, under the
    input bar, so it slides in and out with the panel. */
 #exec-status {
   flex-shrink: 0;
@@ -234,9 +234,10 @@
   font-family: var(--font-mono); font-size: var(--fs-2xs); line-height: var(--lh-tight);
 }
 
-/* Items abut, as in the terminal: colours and pills separate them. */
+/* Groups (a field and its pill) spread evenly across the row; inside a group
+   the items abut, as in the terminal. */
 .cs-meta {
-  display: flex; flex-wrap: wrap; align-items: baseline;
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between;
   padding: var(--space-1) var(--space-4);
   white-space: pre;
 }
@@ -245,6 +246,7 @@
 /* The terminal draws a pill as a coloured block with half-block caps; here
    the caps are the rounded ends. Black text, like the terminal's. */
 .cs-pill {
+  margin-left: 1ch;   /* one space between a field and its pill */
   padding: 0 var(--space-1);
   border-radius: var(--radius-pill);
   color: #000;
@@ -255,8 +257,6 @@
 .cs-5h { color: #ffafaf; }
 .cs-reset { background: #afffaf; }
 .cs-credits { background: #e06c75; color: #dcdfe4; font-weight: var(--fw-bold); }
-.cs-ctx { color: #dcdfe4; }
-.cs-base { background: #8a8a8a; }
 .cs-alts { color: #ff8700; }
 
 /* ── the /list picker ───────────────────────────────────────────────────── */
