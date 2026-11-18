@@ -147,6 +147,30 @@ def _playwright():
     pw.stop()
 
 
+# That one live Playwright loop is RUNNING on the main thread for the rest of
+# the session, so a plain asyncio.run() in any test collected after the first
+# browser file raised "asyncio.run() cannot be called from a running event
+# loop" -- test_exec_context failed only in a mixed run (2026-11-18). While a
+# loop is running here, asyncio.run hands the coroutine to a fresh thread with
+# its own loop; with none running it is left exactly as it is.
+@pytest.fixture(autouse=True)
+def _asyncio_run_beside_playwright(monkeypatch):
+    import asyncio
+    import concurrent.futures
+
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return
+    real_run = asyncio.run
+
+    def run_in_thread(coro, **kw):
+        with concurrent.futures.ThreadPoolExecutor(1) as pool:
+            return pool.submit(real_run, coro, **kw).result()
+
+    monkeypatch.setattr(asyncio, "run", run_in_thread)
+
+
 @pytest.fixture(scope="session")
 def browser(_playwright):
     from playwright.sync_api import Error as PWError
