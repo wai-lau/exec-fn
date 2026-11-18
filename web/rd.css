@@ -390,7 +390,9 @@ body { overflow: hidden !important; background: transparent !important; }
 }
 #rd-notes #exec-todos { flex: 1 1 auto; max-height: none; border-bottom: none; padding-top: var(--space-2); }
 #rd-notes #exec-todo-list { flex: 0 1 auto; padding: 0 var(--space-2); }
-#rd-notes #exec-todo-add { padding: var(--space-0-5) var(--space-2) var(--space-2); }
+
+/* The add row leads here (the panel keeps it under the list, by its divider). */
+#rd-notes #exec-todo-add { order: -1; padding: var(--space-0-5) var(--space-2) var(--space-2); }
 
 /* Phone: the bars + calendar took 321px of 932 (and of 700 on a small phone)
    before the first card. A tighter cell -- smaller date, half the padding --
