@@ -3,10 +3,16 @@ body { overflow: hidden !important; background: transparent !important; }
 
 /* The reduced-strength CRT stack this page rides under is crt-dim.css. */
 
-/* ── top bars: reminders (left half) + books (right half) ─────────────────
-   identical chrome; only side/anchoring differs */
+/* ── top bars: books over reminders, both in the left half ────────────────
+   identical chrome; only anchoring differs. The right half, from the top of
+   the page down to the calendar's bottom edge, is the notes (#rd-notes).
+   --bars-h = the stack's height; each bar's own height is measured in rd.js
+   (0 while it is hidden). */
+:root { --bars-h: calc(var(--books-bar-h, 0px) + var(--rem-bar-h, 0px)); }
+
 .rd-reminders, .hq-books {
-  display: none; position: fixed; top: 0;
+  display: none; position: fixed; left: 0; width: 50%;
+  border-right: 1px solid hsl(var(--green-hsl) / 0.12);
   height: auto; max-height: 90px;
   flex-direction: column; align-items: stretch;
   padding: 0; gap: 0; overflow: hidden auto;
@@ -14,8 +20,8 @@ body { overflow: hidden !important; background: transparent !important; }
   background: rgba(0,0,0,0.2); border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
   font-family: var(--font-bit); font-size: var(--fs-2xs);
 }
-.rd-reminders { left: 0; width: 50%; z-index: 19; border-right: 1px solid hsl(var(--green-hsl) / 0.12); }
-.hq-books     { left: 50%; right: 0; z-index: 18; border-left: 1px solid hsl(var(--green-hsl) / 0.12); }
+.hq-books     { top: 0; z-index: 18; }
+.rd-reminders { top: var(--books-bar-h, 0); z-index: 19; }
 .rd-reminders::-webkit-scrollbar, .hq-books::-webkit-scrollbar { display: none; }
 .has-reminders .rd-reminders { display: flex; }
 .has-books .hq-books { display: flex; }
@@ -61,7 +67,7 @@ body { overflow: hidden !important; background: transparent !important; }
 /* ── board ────────────────────────────────────────────────────────────────── */
 .rd-board {
   position: fixed;
-  inset: calc(max(var(--rem-bar-h, 0px), var(--books-bar-h, 0px)) + var(--cal-h, 0px)) 0 0;
+  inset: calc(var(--bars-h) + var(--cal-h, 0px)) 0 0;
   display: flex; gap: var(--space-px); overflow: hidden;
   background: transparent;
 }
@@ -164,7 +170,7 @@ body { overflow: hidden !important; background: transparent !important; }
    Inert by design (pointer-events:none) — it is a glance, not a control. */
 #rd-calendar {
   position: fixed; z-index: var(--z-raised);
-  top: max(var(--rem-bar-h, 0px), var(--books-bar-h, 0px));
+  top: var(--bars-h);
 
   /* Left half of the row; the notes take the right half (#rd-notes). */
   left: 0; right: 50%;
@@ -310,7 +316,7 @@ body { overflow: hidden !important; background: transparent !important; }
    by reading the same bar-height vars the calendar anchors to. */
 .cal-mark {
   position: fixed; z-index: -2;
-  top: max(var(--rem-bar-h, 0px), var(--books-bar-h, 0px));
+  top: var(--bars-h);
   left: 0; right: 50%; height: var(--cal-h, 0);
   display: flex; align-items: center; justify-content: center;
   font-family: var(--font-mono); font-weight: var(--fw-bold);
@@ -367,14 +373,15 @@ body { overflow: hidden !important; background: transparent !important; }
 
 /* ── notes (right half of the calendar row) ──────────────────────────────────
    The Exec panel's todo list, mounted here on /rd instead of in the panel
-   (exec-todos.js picks this slot when it exists). Same height as the calendar,
-   whatever the month needs; the list scrolls past that. The 5px rules match
+   (exec-todos.js picks this slot when it exists). From the top of the page to
+   the calendar's bottom edge, whatever the bars and the month need; the list
+   scrolls past that. The 5px rules match
    the calendar grid, so the two halves read as one band. Two-id selectors so
    they outrank exec-bubble.css, which is injected after this sheet. */
 #rd-notes {
   position: fixed; z-index: var(--z-raised);
-  top: max(var(--rem-bar-h, 0px), var(--books-bar-h, 0px));
-  left: 50%; right: 0; height: var(--cal-h, 0);
+  top: 0;
+  left: 50%; right: 0; height: calc(var(--bars-h) + var(--cal-h, 0px));
   box-sizing: border-box;
   display: flex; flex-direction: column;
   border-left: 5px solid hsl(var(--green-hsl) / 0.12);

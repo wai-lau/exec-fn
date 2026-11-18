@@ -4,7 +4,7 @@ The board is `rd.json` in four columns (CLAUDE.md § *Terminology*). This sectio
 
 ### 8a. The grid
 
-LEFT-HALF Sunday-first grid of the CURRENT MONTH only (the right half is the notes slot, 8i), no weekday row, 4-6 rows (exactly the weeks the month spans). Out-of-month cells are blank but keep their weekend class.
+LEFT-HALF Sunday-first grid (under the books bar, then the reminders bar, both left-half too; their summed height is `--bars-h` in rd.css) of the CURRENT MONTH only (the right half is the notes slot, 8i), no weekday row, 4-6 rows (exactly the weeks the month spans). Out-of-month cells are blank but keep their weekend class.
 
 - **The last column's missing right rule is keyed off a `.cal-eow` class** the builder sets from the day, never `:nth-child(7n)` (nth-child counts every child of `#rd-calendar`; a new first child shifts it).
 - Grid lines are 5px at `0.12` (per-cell right+bottom). `background-clip: padding-box` on `.cal-d` keeps a cell's wash off its own rules, so **`.cal-d.cw` must set `background-image`/`background-color`, NOT the `background` shorthand** (it resets every longhand and undoes the clip).
@@ -62,4 +62,4 @@ History: [ARCHAEOLOGY.md §8](../archaeology/08-rd-board.md).
 
 ### 8i. The notes slot beside the calendar
 
-`#rd-notes` (fixed, `left: 50%`, `height: var(--cal-h)`) holds the Exec panel's scratch todo list on `/rd` instead of the panel. `exec-todos.js` builds into the slot at `DOMContentLoaded` whenever it exists; the panel's own later `execBuildTodos(panel)` then finds `#exec-todos` already built and adds nothing, so `/rd`'s panel has no list and `/hq`'s keeps it. No fold button in the slot. The list scrolls once it is taller than the calendar. Its overrides are two-id selectors in `rd.css` because `exec-bubble.css` is injected after it.
+`#rd-notes` (fixed, `top: 0`, `left: 50%`, `height: calc(var(--bars-h) + var(--cal-h))`, so it runs from the top of the page to the calendar's bottom edge) holds the Exec panel's scratch todo list on `/rd` instead of the panel. `exec-todos.js` builds into the slot at `DOMContentLoaded` whenever it exists; the panel's own later `execBuildTodos(panel)` then finds `#exec-todos` already built and adds nothing, so `/rd`'s panel has no list and `/hq`'s keeps it. No fold button in the slot. The list scrolls once it is taller than the calendar. Its overrides are two-id selectors in `rd.css` because `exec-bubble.css` is injected after it.
