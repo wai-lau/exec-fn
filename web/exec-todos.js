@@ -1,6 +1,7 @@
 // Exec scratch todo list — the top of the exec panel, or beside the calendar on /rd.
-// Server-persisted (exec_todos.json) and SEPARATE from rd.json cards: items
-// here are DELETED on checkbox, not archived. Built by exec-bubble.js after the
+// Server-persisted (exec_todos.json) and SEPARATE from rd.json cards. The
+// checkbox marks an item done (struck through, still there; tap again to undo);
+// the 4:30 morning run is what removes it. Built by exec-bubble.js after the
 // panel exists (window.execBuildTodos(panel)); shares the panel's global scope.
 (function () {
   'use strict';
@@ -16,13 +17,14 @@
     li.dataset.text = esc(item.text);
     var box = document.createElement('span');
     box.className = 'exec-todo-box';
-    box.textContent = '[ ]';
+    box.textContent = item.done ? '[x]' : '[ ]';
+    if (item.done) li.classList.add('done');
     var txt = document.createElement('span');
     txt.className = 'exec-todo-text';
     txt.textContent = esc(item.text);
     li.appendChild(box);
     li.appendChild(txt);
-    box.addEventListener('click', function () { checkOff(li, box); });
+    box.addEventListener('click', function () { toggleDone(li, box); });
     txt.addEventListener('click', function () { startEdit(li, txt); });
     return li;
   }
@@ -79,23 +81,24 @@
       });
   }
 
-  // Checkbox = delete. Mark done, drop on the server, then fade the row out —
-  // but only once the DELETE actually succeeds; on failure, undo the done state
-  // so the item isn't left showing "gone" while still present server-side.
-  function checkOff(li, box) {
-    if (li.classList.contains('done')) return;
-    li.classList.add('done');
-    box.textContent = '[x]';
-    var id = li.dataset.id;
-    fetch('/api/todos/' + encodeURIComponent(id), { method: 'DELETE' })
-      .then(function (r) {
-        if (!r.ok) throw new Error('delete failed');
-        setTimeout(function () { li.remove(); }, 180);
-      })
-      .catch(function () {
-        li.classList.remove('done');
-        box.textContent = '[ ]';
-      });
+  // Checkbox = done, not delete: the row stays, struck through, until the
+  // morning run clears it, and a second tap takes it back. The row flips at
+  // once and flips back if the PATCH fails, so it never shows a state the
+  // server does not hold.
+  function toggleDone(li, box) {
+    var done = !li.classList.contains('done');
+    function show(d) {
+      li.classList.toggle('done', d);
+      box.textContent = d ? '[x]' : '[ ]';
+    }
+    show(done);
+    fetch('/api/todos/' + encodeURIComponent(li.dataset.id), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ done: done }),
+    })
+      .then(function (r) { if (!r.ok) throw new Error('toggle failed'); })
+      .catch(function () { show(!done); });
   }
 
   // On failure, restore the typed text into the input instead of discarding it

@@ -164,6 +164,22 @@ def _roll_and_schedule(cards: list, today_iso: str) -> set:
     return restack
 
 
+def _purge_done_todos(path) -> None:
+    """Drop the scratch notes checked off since the last morning run. Checking
+    one only marks it done, so it stays (struck through) for the rest of the
+    day; this is where it actually leaves."""
+    if not path.exists():
+        return
+    data = json.loads(path.read_text())
+    items = data.get("items", [])
+    kept = [t for t in items if not t.get("done")]
+    if len(kept) != len(items):
+        data["items"] = kept
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(data, indent=2))
+        tmp.replace(path)
+
+
 def _prune_cron_logs(days: int = 30) -> None:
     """Keep a month of cron output and drop the rest.
 
@@ -199,6 +215,7 @@ def build_morning() -> dict:
     _run_step(errors, "purge_stale", lambda: _purge_stale_notes(profile_path))
     _run_step(errors, "gcal_import", lambda: __import__("gcal").import_gcal_cards(days_ahead=14))
     _run_step(errors, "prune_cron", _prune_cron_logs)
+    _run_step(errors, "purge_done_todos", lambda: _purge_done_todos(DATA_DIR / "exec_todos.json"))
 
     if _RD_LOG.exists():
         archive_name = DATA_DIR / f"activity_log_{_now_et().strftime('%Y%m%d')}.json"

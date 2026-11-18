@@ -181,8 +181,8 @@ File split, the jump table and the gutter rules: **ARCHITECTURE.md §18**.
 | GET | `/api/cc/exec-history` | **Owner-only.** The panel's replay: `{messages:[{role user/assistant/monitor, text, ts, card_id?}], monitorTotal}` — the /cc thread + chat.json pushes, by time (`exec_panel.py`). **ARCHITECTURE.md §7f**. |
 | GET | `/api/todos` | Exec-panel scratch todo list (`exec_todos.json`): `{items:[{id,text}]}`. |
 | POST | `/api/todos` | Add a todo. Body `{text}` → appends `{id,text}`, returns the item. 400 on empty. |
-| PATCH | `/api/todos/{id}` | Edit a todo's text. Body `{text}` → updates in place, returns the item. 400 on empty, 404 on unknown id. Tap the item text in the exec panel to inline-edit (Enter/blur commits, Escape reverts). |
-| DELETE | `/api/todos/{id}` | Delete a todo (checkbox = delete, not archive). |
+| PATCH | `/api/todos/{id}` | Edit a todo. Body `{text?, done?}` → updates in place, returns the item. `done` is the checkbox: the item stays, struck through, until the 4:30 run drops it (`morning._purge_done_todos`); `done:false` unchecks. 400 on empty text or empty body, 404 on unknown id. Tap the item text in the exec panel to inline-edit (Enter/blur commits, Escape reverts). |
+| DELETE | `/api/todos/{id}` | Delete a todo outright (the checkbox no longer calls it). |
 | GET | `/api/monitor/stream` | SSE `{thinking}`/`{comment}`, plus `{cards_changed:true}` when the server rewrites `rd.json` (nudge loop, morning, an Exec tool call, a calendar drop — not `PATCH /api/rd`) (relayed as `exec:cards-changed`) so open boards refetch. |
 | POST | `/api/monitor/flush` | Force-fire the monitor immediately if there is significant activity since the last comment (bypasses 60s debounce). |
 | POST | `/api/nudge/tick` | Manual one-shot tick of the nudge loop (the in-process asyncio loop in `main.py` runs this every 30s; started from the FastAPI lifespan hook — no cron). |
@@ -350,7 +350,7 @@ Loop internals, the breakdown UI, the tone rules and the recalibration design: *
 2. **Retrospective** — extract durable facts only (preferences, relationships, recurring habits) from the day's activity, append to `profile.json`. Never writes time-bound, event-specific, or task-status entries.
 3. **Recalibrate** — fold the day's completions into per-category lateness factors (`recalibration.recalibrate`); read before the log is archived.
 4. **Purge** — remove time-specific expired notes from `profile.json`
-5. **GCal import** — pull calendar events 14 days ahead as cards, then `prune_cron`: drop `data/cron` logs older than 30 days
+5. **GCal import** — pull calendar events 14 days ahead as cards, then `prune_cron`: drop `data/cron` logs older than 30 days, then `purge_done_todos`: drop the checked-off Exec notes
 6. Archive `activity_log.json` → `activity_log_YYYYMMDD.json`, reset to `[]` (year included so archives don't collide/overwrite across years; `/api/debug/logs` globs `activity_log_[0-9]*.json`, matching both the new 8-digit and legacy `MMDD` names)
 7. Archive `moltbook-heartbeat.log` → `moltbook-heartbeat_YYYYMMDD.log`, reset to `""`
 8. Auto-archive rd/hq `no_rollover` cards whose day has passed (on that day; recurring ones revive — **ARCHITECTURE.md §3a**), roll past-dated `scheduled_day` on the other rd/hq cards forward to today, auto-promote rd cards with a `due_date` inside the 7-day window to hq (rd->hq via `schedule_to_day`), then `scheduler.layout_day()` autostacks carryover + unpinned timeless today cards from 10 AM while pinning timed cards at `event_time - prep` (preserves cards already placed for today), then `nudge.morning_reconcile()` re-anchors nudge state to the fresh layout

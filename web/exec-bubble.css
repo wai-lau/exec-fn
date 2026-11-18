@@ -168,8 +168,9 @@ body:has(#exec-panel.open) #exec-bubble { display: none; }
 .exec-todo-box:hover { color: hsl(var(--green-hsl) / 1); }
 .exec-todo-text { flex: 1; min-width: 0; overflow-wrap: anywhere; cursor: text; }
 .exec-todo-text[contenteditable="true"] { outline: none; color: hsl(var(--green-hsl) / 1); }
-.exec-todo.done { opacity: 0; }
-.exec-todo.done .exec-todo-text { text-decoration: line-through; }
+
+/* Checked = done for today: struck through and dimmed, cleared at 4:30. */
+.exec-todo.done .exec-todo-text { text-decoration: line-through; color: hsl(var(--green-hsl) / 0.45); cursor: default; }
 
 #exec-todo-add {
   flex-shrink: 0; display: flex; align-items: center; gap: 0.5em;

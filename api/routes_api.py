@@ -377,8 +377,9 @@ async def api_context_patch(request: Request):
     return {"ok": True}
 
 
-# Exec-panel scratch todo list — a lightweight, separate list from rd.json cards
-# (these are DELETED on checkbox, not archived). Lives in exec_todos.json.
+# Exec-panel scratch todo list — a lightweight, separate list from rd.json cards.
+# Lives in exec_todos.json. The checkbox sets `done` (PATCH); the item stays,
+# struck through, until the 4:30 morning run drops it (morning._purge_done_todos).
 def _save_todos(data) -> None:
     _atomic_write_json(DATA_DIR / "exec_todos.json", data)
 
@@ -403,15 +404,24 @@ async def api_todos_add(request: Request):
 
 @protected.patch("/api/todos/{todo_id}")
 async def api_todos_edit(todo_id: str, request: Request):
+    """Body `{text?, done?}`: edit the text and/or check it off (or back on)."""
     body = await request.json()
-    text = (body.get("text") or "").strip()
-    if not text:
+    if "text" not in body and "done" not in body:
+        raise HTTPException(status_code=400, detail="nothing to change")
+    text = (body.get("text") or "").strip() if "text" in body else None
+    if text is not None and not text:
         raise HTTPException(status_code=400, detail="empty todo")
     data = _load_json("exec_todos", {"items": []})
     item = next((t for t in data.get("items", []) if t.get("id") == todo_id), None)
     if item is None:
         raise HTTPException(status_code=404, detail="todo not found")
-    item["text"] = text
+    if text is not None:
+        item["text"] = text
+    if "done" in body:
+        if body["done"]:
+            item["done"] = True
+        else:
+            item.pop("done", None)
     _save_todos(data)
     return item
 
