@@ -20,7 +20,11 @@ body { overflow: hidden !important; background: transparent !important; }
   background: rgba(0,0,0,0.2); border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
   font-family: var(--font-bit); font-size: var(--fs-2xs);
 }
-.hq-books     { top: 0; z-index: 18; }
+
+/* The 5px rule under the books is the same band that runs between the
+   calendar and the notes (#rd-notes border-left). offsetHeight counts it, so
+   --books-bar-h already includes it. */
+.hq-books     { top: 0; z-index: 18; border-bottom-width: 5px; }
 .rd-reminders { top: var(--books-bar-h, 0); z-index: 19; }
 .rd-reminders::-webkit-scrollbar, .hq-books::-webkit-scrollbar { display: none; }
 .has-reminders .rd-reminders { display: flex; }
