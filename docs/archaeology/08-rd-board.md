@@ -8,7 +8,7 @@ The reminders bar shows what is **inside a 30-day window** (plus any `pinned_rem
 
 `buildBooks()` had already solved it — when nothing is visible it creates an **empty chip** to host the button — and `buildReminders()` now does the same. A bar's `+N` must never be parented to content that may not exist.
 
-**Half-width calendar (2026-11-18).** Wai: "move the todo/quicknotes to the right of the calendar, should take up 1/2 of the row, calendar can grow in vertical length to accomodate all items within it, rotate "task things" (dots and pills) so that they are vertical to fit". The Exec todo list moved out of `/rd`'s panel into `#rd-notes`; the dots stood up and wrap. With every card now shown, `fitCalDots` and the hollow `.cal-more` ring were removed.
+**Half-width calendar (2026-11-18).** Wai: "move the todo/quicknotes to the right of the calendar, should take up 1/2 of the row, calendar can grow in vertical length to accomodate all items within it, rotate "task things" (dots and pills) so that they are vertical to fit". The Exec todo list moved out of `/rd`'s panel into `#rd-notes`; the dots stood up and wrap. With every card now shown, `fitCalDots` and the hollow `.cal-more` ring were removed. Same day, after "pills should be top aligned / if there is only 1 pill, lay it horizontally" then "rotate and bin pack them to take up the minimum area": the wrap-and-`:only-child` CSS gave way to the grid packer. Snapping to a grid made a pill cover its inner gutters too (a 4-unit pill 20 → 32px at 5px dots + 3px gaps; the phone calendar grew to 316px), so the dots went to 4px with 2px gutters.
 
 ### Moved out of ARCHITECTURE.md (2026-10-15 pass)
 

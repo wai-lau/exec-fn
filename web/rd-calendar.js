@@ -87,14 +87,14 @@ function _calCellHtml(d, dots, todayMs) {
   if (ahead >= 0 && ahead <= 6) cls.push('cw');
   if (ahead === 0) cls.push('today');
   if (typeof QcHolidays !== 'undefined' && QcHolidays.isQcHoliday(d)) cls.push('hol');
-  // Every dot is rendered: the pills stand upright and wrap, so the cell grows
-  // to hold the whole day instead of clipping it.
+  // Every pill is rendered; packCalDots() lays them out once the cell has a
+  // width, so the day grows instead of clipping.
   const day = dots[_isoLocal(d)] || [];
   // data-day marks the cell as a drop target (wireCalendarDrops); the
   // out-of-month padding cells deliberately have none.
   return `<div class="${cls.join(' ')}" data-day="${_isoLocal(d)}">
     <div class="cal-n">${String(d.getDate()).padStart(2, '0')}</div>
-    <div class="cal-dots">${day.map(d => `<i class="cal-u${d.units}" style="background:${d.color}"></i>`).join('')}</div>
+    <div class="cal-dots">${day.map(d => `<i data-u="${d.units}" style="background:${d.color}"></i>`).join('')}</div>
   </div>`;
 }
 
@@ -140,6 +140,7 @@ function buildCalendar() {
   const markEl = document.getElementById('cal-mark');
   if (markEl) markEl.textContent = calOffset === 0 ? `> ${mm} <` : calOffset < 0 ? `${mm} >>` : `<< ${mm}`;
   el.innerHTML = html;
+  packCalDots();
   wireCalendarDrops();
   _syncCalH();
 }
@@ -224,6 +225,97 @@ function calToast(msg) {
   el.classList.add('show');
   clearTimeout(_calToastTimer);
   _calToastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+// ── pack a day's pills ──────────────────────────────────────────────────────
+// A day is a grid of --cal-dot squares; a pill of length L covers L cells in
+// a line, lying down or standing up. Find the fewest rows that hold every pill
+// in the columns the cell has room for, then the fewest columns at that many
+// rows -- the smallest box, centred. Exact search (first free cell in reading
+// order: a pill across, a pill down, or leave it empty); days are small, and a
+// node cap falls back to one more row rather than ever stalling a rebuild.
+const _PACK_NODE_CAP = 20000;
+
+function _packInto(lens, rows, cols) {
+  const counts = [0, 0, 0, 0, 0];
+  lens.forEach(l => { counts[l]++; });
+  const area = lens.reduce((a, b) => a + b, 0);
+  const free = new Array(rows * cols).fill(true);
+  const out = [];
+  let nodes = 0;
+  const fits = (r, c, l, down) => {
+    for (let k = 0; k < l; k++) {
+      const rr = down ? r + k : r, cc = down ? c : c + k;
+      if (rr >= rows || cc >= cols || !free[rr * cols + cc]) return false;
+    }
+    return true;
+  };
+  const mark = (r, c, l, down, v) => {
+    for (let k = 0; k < l; k++) free[(down ? r + k : r) * cols + (down ? c : c + k)] = v;
+  };
+  function dfs(pos, spare, left) {
+    if (left === 0) return true;
+    if (++nodes > _PACK_NODE_CAP) return false;
+    while (pos < free.length && !free[pos]) pos++;
+    if (pos >= free.length) return false;
+    const r = Math.floor(pos / cols), c = pos % cols;
+    for (let l = 4; l >= 1; l--) {
+      if (!counts[l]) continue;
+      for (const down of l === 1 ? [false] : [false, true]) {
+        if (!fits(r, c, l, down)) continue;
+        mark(r, c, l, down, false); counts[l]--; out.push({r, c, l, down});
+        if (dfs(pos + 1, spare, left - 1)) return true;
+        out.pop(); counts[l]++; mark(r, c, l, down, true);
+      }
+    }
+    if (spare > 0) {
+      free[pos] = false;
+      const ok = dfs(pos + 1, spare - 1, left);
+      free[pos] = true;
+      if (ok) return true;
+    }
+    return false;
+  }
+  return dfs(0, rows * cols - area, lens.length) ? out : null;
+}
+
+function packPills(lens, maxCols) {
+  const area = lens.reduce((a, b) => a + b, 0);
+  const cols0 = Math.max(1, maxCols);
+  for (let rows = Math.ceil(area / cols0); rows <= area; rows++) {
+    let best = null, bestCols = 0;
+    for (let cols = cols0; cols >= 1 && cols * rows >= area; cols--) {
+      const got = _packInto(lens, rows, cols);
+      if (!got) break;
+      best = got; bestCols = cols;
+    }
+    if (best) return {cols: bestCols, place: best};
+  }
+  return null;
+}
+
+function packCalDots() {
+  document.querySelectorAll('#rd-calendar .cal-dots').forEach(row => {
+    const pills = [...row.querySelectorAll('i')];
+    if (!pills.length) return;
+    const cs = getComputedStyle(row);
+    const dot = parseFloat(cs.getPropertyValue('--cal-dot')) || 5;
+    const gap = parseFloat(cs.columnGap) || 0;
+    const inner = row.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const maxCols = Math.floor((inner + gap) / (dot + gap));
+    const lens = pills.map(i => Math.min(4, Math.max(1, Number(i.dataset.u) || 1)));
+    const res = packPills(lens, maxCols);
+    if (!res) return;
+    row.style.gridTemplateColumns = `repeat(${res.cols}, var(--cal-dot))`;
+    // Longest pills first, as the packer placed them; colours follow their card.
+    const byLen = [0, 1, 2, 3, 4].map(l => pills.filter((_, k) => lens[k] === l));
+    res.place.forEach(p => {
+      const el = byLen[p.l].shift();
+      el.style.gridArea = p.down
+        ? `${p.r + 1} / ${p.c + 1} / span ${p.l} / span 1`
+        : `${p.r + 1} / ${p.c + 1} / span 1 / span ${p.l}`;
+    });
+  });
 }
 
 function _syncCalH() {

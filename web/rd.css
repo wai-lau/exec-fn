@@ -334,42 +334,33 @@ body { overflow: hidden !important; background: transparent !important; }
   white-space: nowrap;
 }
 
-/* One pill per card on the day. A pill's HEIGHT is the card's importance --
-   one circle-width per size step (wisp 1 ... commitment 4, see dotUnits) -- so a
-   day shows its weight, not just its count.
+/* One pill per card on the day. A pill's LENGTH is the card's importance --
+   wisp 1 ... commitment 4 grid cells (dotUnits) -- so a day shows its weight,
+   not just its count.
 
-   Upright, not lying down: the calendar is half the row wide, so a cell holds
-   only a few pills across. They stand side by side, top-aligned (a lone pill
-   lies down instead), and WRAP onto further rows; the cell (and the calendar, and --cal-h)
-   grows to hold every card rather than clipping the day.
+   The row is a grid of --cal-dot squares with --space-1 gutters, and a pill of
+   length L spans L cells, lying down or standing up. packCalDots (rd-calendar.js)
+   sets the column count and every pill's grid-area: it rotates and bin-packs
+   the day into the fewest rows the cell's width allows, then the fewest
+   columns at that height, so the day takes the least room it can. Nothing is
+   clipped; a busy day grows its row (and --cal-h) instead.
 
    Shape is a stadium: two semicircles with a rectangle between them, no seam.
    That needs --radius-pill, NOT --radius-round: 50% is relative to each axis,
-   so it would draw a 4-tall pill as an ellipse instead of straight sides with
-   round caps. At 1 unit the box is square and resolves to a circle. */
+   so it would draw a long pill as an ellipse instead of straight sides with
+   round caps. At 1 cell the box is square and resolves to a circle. */
 .cal-dots {
-  --cal-dot: 5px;  /* circle diameter = one unit of length */
+  --cal-dot: 4px;  /* one grid cell = one unit of length */
 
-  display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: center;
-  gap: var(--space-1); min-height: var(--space-2);
-  padding: 0 var(--space-1);
+  display: grid; grid-auto-rows: var(--cal-dot); grid-auto-columns: var(--cal-dot);
+  place-content: start center;
+  gap: var(--space-0-5); min-height: var(--space-2);
 }
 
 .cal-dots i {
-  flex: 0 0 auto;
-  width: var(--cal-dot); height: var(--cal-dot);
   border-radius: var(--radius-pill);
   background: hsl(var(--green-hsl) / 1);
 }
-.cal-dots i.cal-u2 { height: calc(var(--cal-dot) * 2); }
-.cal-dots i.cal-u3 { height: calc(var(--cal-dot) * 3); }
-.cal-dots i.cal-u4 { height: calc(var(--cal-dot) * 4); }
-
-/* A lone pill lies down: there is nothing beside it to make room for. */
-.cal-dots i:only-child { height: var(--cal-dot); }
-.cal-dots i.cal-u2:only-child { width: calc(var(--cal-dot) * 2); }
-.cal-dots i.cal-u3:only-child { width: calc(var(--cal-dot) * 3); }
-.cal-dots i.cal-u4:only-child { width: calc(var(--cal-dot) * 4); }
 
 /* ── notes (right half of the calendar row) ──────────────────────────────────
    The Exec panel's todo list, mounted here on /rd instead of in the panel
