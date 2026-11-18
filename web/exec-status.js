@@ -1,6 +1,9 @@
-/* The Exec panel's status bar -- the same numbers the Claude Code status line
- * shows in a terminal, in the same shape, at the top of the panel. (It was the
- * /cc page's until that page folded into the panel, 2026-09-29.)
+/* The Exec panel's status bar -- the second row of Wai's terminal Claude Code
+ * status line (~/.claude/statusline-command.sh) less its folder and user, in
+ * the same order and colours, UNDER the input bar (Wai, 2026-11-18: "move the
+ * statusbar under the input bar and make it show what is showing in the second
+ * row of this statusbar (excl folder and user)"). It was the /cc page's until
+ * that page folded into the panel, 2026-09-29.
  *
  * Everything here is REPORTED by the sidecar, never estimated: the model comes
  * from the SDK's init frame, the context size from the input side of the last
@@ -17,10 +20,11 @@
 // not updated -- at which point the percentage is off, not the page.
 const CC_CTX_1M = 1000000;
 const EXEC_CTX_DEFAULT = 200000;
-// The subscription's short window, used to turn "1h20m left" into a gauge.
-const EXEC_FIVE_HOUR_MS = 5 * 60 * 60 * 1000;
+const EXEC_SEVEN_DAY_S = 7 * 86400;
 
-const execStatusState = { model: '', ctx: 0, base: 0, windows: {} };
+// windows/credits from the sidecar; alts/snoozeUntil from the host
+// (scripts/term-status.sh via /api/cc/limits).
+const execStatusState = { model: '', ctx: 0, base: 0, windows: {}, credits: null, alts: null, snoozeUntil: 0 };
 
 // The statusline script's definition, mirrored: `base` is the SMALLEST total
 // input ever observed -- system prompt + tools + standing context, the floor a
@@ -119,63 +123,73 @@ async function execTitleRefresh() {
   try { await fetch('/api/cc/title', { cache: 'no-store' }); } catch { /* /list keeps its last name */ }
 }
 
+/** The 7d pace cap, the terminal's formula (hooks/pace-cap.py): whole days
+ *  into the 7d window x 95/7 -- the last 5% is a snooze-only reserve. */
+function execPaceCap(resetsAt) {
+  if (!resetsAt) return null;
+  const into = Math.max(0, Date.now() / 1000 - (resetsAt - EXEC_SEVEN_DAY_S));
+  return Math.round(Math.max(1, Math.ceil(into / 86400)) * 95 / 7);
+}
+
+/** Minutes left on the snooze, rounded up, the terminal's way: `45m`, `1h05m`. */
+function execSnoozeLeft(until) {
+  const mins = Math.ceil((until * 1000 - Date.now()) / 60000);
+  if (mins <= 0) return '';
+  return mins >= 60 ? Math.floor(mins / 60) + 'h' + String(mins % 60).padStart(2, '0') + 'm' : mins + 'm';
+}
+
+function execText(cls, text, boldPart) {
+  const el = document.createElement('span');
+  el.className = cls;
+  el.append(text);
+  if (boldPart != null) {
+    const b = document.createElement('b');
+    b.textContent = boldPart;
+    el.append(b);
+  }
+  return el;
+}
+
+function execPill(cls, text) {
+  const el = document.createElement('span');
+  el.className = 'cs-pill ' + cls;
+  el.textContent = text;
+  return el;
+}
+
+/* Same items, order and colours as the terminal's row 2: 7d used/pace cap,
+ * the snooze, 5h and its reset, credits (only while a window is at 100%, i.e.
+ * while they are being spent), ctx and its base, other sessions. A value the
+ * page has no number for is left out, as the terminal leaves it out. */
 function execStatusRender() {
   const bar = document.getElementById('exec-status');
   if (!bar) return;
-  // Each field carries its own colour, the way the terminal's line does.
-  const meta = bar.querySelector('.cs-meta');
-  meta.textContent = '';
-  // FIVE boxes, always all five, in the same order every time: ctx, base, 5h,
-  // its reset, 7d. A slot that renders only once it has a value makes the row
-  // jump as numbers arrive, and an absent ctx reads as broken rather than as
-  // "no reply yet" -- so a missing value is 0, not a missing box. The model and
-  // the path are not among them: the model is still tracked (it decides which
-  // context window ctx% is measured against) but naming it in Exec's own
-  // panel says nothing.
+  const row = bar.querySelector('.cs-meta');
+  row.textContent = '';
+  const add = (el) => row.appendChild(el);
   const win = execCtxWindow(execStatusState.model);
-  const five = execStatusState.windows.five_hour || {};
-  const seven = execStatusState.windows.seven_day || execStatusState.windows.seven_day_opus || {};
-  const pctOf = (n) => (n ? Math.min(100, Math.round((n / win) * 100)) : 0);
+  const five = execStatusState.windows.five_hour;
+  const seven = execStatusState.windows.seven_day || execStatusState.windows.seven_day_opus;
 
-  // Each box also carries its own little gauge (execSeg's third argument): a bar
-  // is read at a glance where a two-digit number has to be read. The reset box
-  // gauges the window it counts down -- how much of the 5h has BURNED, so all
-  // five bars mean the same thing (more filled = less left) instead of one of
-  // them running backwards.
-  meta.appendChild(execSeg('cs-ctx', 'ctx:' + pctOf(execStatusState.ctx) + '%', pctOf(execStatusState.ctx)));
-  meta.appendChild(execSeg('cs-base', '(base:' + pctOf(execStatusState.base) + '%)', pctOf(execStatusState.base)));
-  meta.appendChild(execSeg('cs-5h', '5h:' + Math.round(five.pct || 0) + '%', five.pct || 0));
-  const left = five.resetsAt ? five.resetsAt * 1000 - Date.now() : 0;
-  meta.appendChild(execSeg('cs-reset', '(' + (five.resetsAt ? execUntil(left) || '0m' : '0m') + ')', execBurned(left)));
-  meta.appendChild(execSeg('cs-7d', '7d:' + Math.round(seven.pct || 0) + '%', seven.pct || 0));
-}
-
-/** How much of the 5h window is gone, as a percentage, from the time left on
- *  it. No reset time means nothing is known, which reads as an empty bar rather
- *  than a full one -- an unknown must never look like an alarm. */
-function execBurned(msLeft) {
-  if (!msLeft || msLeft <= 0) return 0;
-  return Math.max(0, Math.min(100, Math.round(100 - (msLeft / EXEC_FIVE_HOUR_MS) * 100)));
-}
-
-function execSeg(cls, text, pct) {
-  const el = document.createElement('span');
-  el.className = cls;
-  el.appendChild(document.createTextNode(text));
-  // ONE fill on a capacity track, not a row of marks: a pill that extends is
-  // read as a level, where ten separate ones are read by counting. A zero gets
-  // no fill element at all -- min-width would otherwise floor it at a visible
-  // pill and empty would look like a little.
-  const bar = document.createElement('b');
-  bar.className = 'cs-bar';
-  const p = Math.max(0, Math.min(100, pct || 0));
-  if (p > 0) {
-    const fill = document.createElement('i');
-    fill.style.setProperty('--cs-pct', Math.round(p));
-    bar.appendChild(fill);
+  if (seven && seven.pct != null) {
+    const cap = execPaceCap(seven.resetsAt);
+    const sd = execText('cs-7d', '7d:', String(Math.round(seven.pct)));
+    sd.append((cap != null ? '/' + cap : '') + '%');
+    add(sd);
   }
-  el.appendChild(bar);
-  return el;
+  const snz = execStatusState.snoozeUntil ? execSnoozeLeft(execStatusState.snoozeUntil) : '';
+  if (snz) add(execPill('cs-snooze', snz));
+  else if (seven) add(execText('cs-gap', ' '));
+  if (five && five.pct != null) add(execText('cs-5h', '5h:' + Math.round(five.pct) + '%'));
+  if (five && five.resetsAt) {
+    const left = execUntil(five.resetsAt * 1000 - Date.now());
+    if (left) add(execPill('cs-reset', left));
+  }
+  const maxed = [five, seven].some((w) => w && w.pct >= 100);
+  if (maxed && execStatusState.credits) add(execPill('cs-credits', 'c:$' + execStatusState.credits));
+  if (execStatusState.ctx) add(execText('cs-ctx', 'ctx:' + Math.min(100, Math.round((execStatusState.ctx / win) * 100)) + '%'));
+  if (execStatusState.base) add(execPill('cs-base', Math.round((execStatusState.base / win) * 100) + '%'));
+  if (execStatusState.alts > 0) add(execText('cs-alts', 'alts:', String(execStatusState.alts)));
 }
 
 /* The 5h / 7d windows come from /api/cc/limits, not from the stream: the SDK
@@ -187,10 +201,16 @@ async function execLimitsFetch() {
     const r = await fetch('/api/cc/limits', { cache: 'no-store' });
     if (!r.ok) return;
     const j = await r.json();
-    if (!j || !j.ok) return;     // logged out or unreachable: show nothing
-    if (j.five_hour) execStatusState.windows.five_hour = j.five_hour;
-    if (j.seven_day) execStatusState.windows.seven_day = j.seven_day;
-    if (j.seven_day_opus) execStatusState.windows.seven_day_opus = j.seven_day_opus;
+    if (!j) return;
+    // The host's figures arrive even when the sidecar has no numbers.
+    execStatusState.alts = typeof j.alts === 'number' ? j.alts : null;
+    execStatusState.snoozeUntil = j.snoozeUntil || 0;
+    if (j.ok) {
+      if (j.five_hour) execStatusState.windows.five_hour = j.five_hour;
+      if (j.seven_day) execStatusState.windows.seven_day = j.seven_day;
+      if (j.seven_day_opus) execStatusState.windows.seven_day_opus = j.seven_day_opus;
+      execStatusState.credits = j.credits || null;
+    }
     execStateSave();
     execStatusRender();
   } catch { /* offline: the bar simply omits them */ }
@@ -211,15 +231,15 @@ function execStatusOn(data) {
   execStatusRender();
 }
 
-/** Build the bar at the top of the panel and start it. Called by
- *  exec-bubble.js once the panel exists; everything above is inert until then.
- *  In the panel's own flow, not fixed: the panel is the thing that scrolls in
- *  and out, and the bar goes with it. */
+/** Build the bar at the bottom of the panel, under the input bar, and start
+ *  it. Called by exec-bubble.js once the panel exists; everything above is
+ *  inert until then. In the panel's own flow, not fixed: the panel is the
+ *  thing that scrolls in and out, and the bar goes with it. */
 function execStatusMount(panel) {
   const bar = document.createElement('div');
   bar.id = 'exec-status';
   bar.innerHTML = '<span class="cs-meta"></span>';
-  panel.insertBefore(bar, panel.firstChild);
+  panel.appendChild(bar);
   execStateLoad();
   execStatusState.base = execBaseLoad();
   execStatusRender();
@@ -235,6 +255,7 @@ function execStatusMount(panel) {
     execStateSave();
     execStatusRender();
   });
-  // The reset countdown is only true at the moment it is drawn.
-  setInterval(execStatusRender, 60000);
+  // The reset and snooze countdowns are only true at the moment they are drawn,
+  // and alts/snooze move without a turn: refetch (server-cached a minute) too.
+  setInterval(() => { execStatusRender(); execLimitsFetch(); }, 60000);
 }

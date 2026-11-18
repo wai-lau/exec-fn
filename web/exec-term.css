@@ -220,64 +220,44 @@
 
 /* ── status bar ─────────────────────────────────────────────────────────── */
 
-/* The Claude Code status line, as it renders in Wai's terminal (read off
-   ~/.claude/statusline-command.sh, not approximated): the metrics on the
-   panel's black -- ctx white, base grey, 5h pink, its reset mint, 7d cyan.
-   (The conversation-title band below it was dropped 2026-09-30.) In the
-   panel's own flow at its top, so it slides in and out with the panel. */
+/* Row 2 of the Claude Code status line as it renders in Wai's terminal (read
+   off ~/.claude/statusline-command.sh, not approximated), minus the folder and
+   user: the same items, order and colours, the escape codes turned into hex
+   (7d truecolor cyan, 5h 256-colour 217, ctx the terminal's near-white, alts
+   208; pills black on 117 snooze / 157 reset / 245 base, and the credits
+   pill near-white on red). In the panel's own flow at its BOTTOM, under the
+   input bar, so it slides in and out with the panel. */
 #exec-status {
   flex-shrink: 0;
   background: hsl(var(--bg-hsl));
-  border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
-  font-size: var(--fs-2xs); line-height: var(--lh-tight);
+  border-top: 1px solid hsl(var(--green-hsl) / 0.12);
+  font-family: var(--font-mono); font-size: var(--fs-2xs); line-height: var(--lh-tight);
 }
 
-/* Five equal columns, each value centred in its own. A flex row sized every box
-   to its text, so the numbers shifted sideways as they changed -- ctx going
-   9% -> 10% moved everything after it. On a fixed fifth each value moves only
-   within its own box, and the row reads as a gauge rather than a sentence. */
+/* Items abut, as in the terminal: colours and pills separate them. */
 .cs-meta {
-  display: grid; grid-template-columns: repeat(5, 1fr);
-  align-items: baseline;
-  padding: var(--space-1) var(--space-2);
+  display: flex; flex-wrap: wrap; align-items: baseline;
+  padding: var(--space-1) var(--space-4);
+  white-space: pre;
 }
-.cs-meta > span { text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cs-meta b { font-weight: var(--fw-bold); }
 
-/* Each box carries a little gauge under its number: ONE pill that extends,
-   riding on a darker full-width pill that shows the capacity it is a fraction
-   of. Same 5px body and same --radius-pill as /rd's calendar dots -- the
-   rounded end is the whole reading: it says "this much of that", where a
-   divided bar says "count me".
-
-   The track is the calendar's own 0.12 rule green; the fill takes the
-   segment's colour (currentColor), so a gauge belongs to the number above it
-   rather than turning the row into one green block. */
-.cs-bar {
-  display: block; height: 5px;
+/* The terminal draws a pill as a coloured block with half-block caps; here
+   the caps are the rounded ends. Black text, like the terminal's. */
+.cs-pill {
+  padding: 0 var(--space-1);
   border-radius: var(--radius-pill);
-  background: hsl(var(--green-hsl) / 0.12);
-
-  /* Side margins: edge to edge the five gauges butt together into one rule
-     across the bar, and a fill stops reading as the gauge of its own number. */
-  margin: var(--space-px) var(--space-2) 0;
+  color: #000;
 }
 
-/* min-width is what keeps a small-but-real number visible: at 4% of a 60px
-   box the fill is 2px, which at this radius renders as nothing at all. A pill
-   one body wide is the floor, and 0 renders no fill element at all -- empty
-   has to mean empty. */
-.cs-bar > i {
-  display: block; height: 100%;
-  width: calc(var(--cs-pct, 0) * 1%); min-width: 5px;
-  border-radius: var(--radius-pill);
-  background: currentcolor;
-}
-
-.cs-ctx { color: #fff; }
-.cs-base { color: #8a8a8a; }
+.cs-7d { color: #56b6c2; }
+.cs-snooze { background: #87d7ff; }
 .cs-5h { color: #ffafaf; }
-.cs-reset { color: #afffaf; }
-.cs-7d { color: #00cdcd; }
+.cs-reset { background: #afffaf; }
+.cs-credits { background: #e06c75; color: #dcdfe4; font-weight: var(--fw-bold); }
+.cs-ctx { color: #dcdfe4; }
+.cs-base { background: #8a8a8a; }
+.cs-alts { color: #ff8700; }
 
 /* ── the /list picker ───────────────────────────────────────────────────── */
 

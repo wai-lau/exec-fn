@@ -18,6 +18,8 @@ Current design: [ARCHITECTURE.md §7](../architecture/07-cc-exec-agent.md). **Th
 
 **"No voice OUTPUT on /cc yet"** was true until 2026-09-20; voice now narrates replies in Exec's glados voice over the shared narrator stack (CLAUDE.md § The voice). Kept only as a note that the line no longer applies.
 
+**Status bar → the terminal's row 2 (2026-11-18).** Wai: "in the exec chat, move the statusbar under the input bar and make it show what is showing in the second row of this statusbar (excl folder and user)". It had been five equal columns at the panel's TOP — ctx, base, 5h, reset, 7d — each with a pill gauge (`.cs-bar`, `execSeg`, `execBurned`, which gauged how much of the 5h window had burned so every bar meant "more filled = less left"). The gauges went with it; the terminal has none. The pace cap, snooze, credits and alts were new; the last two needed host-side sources because the sidecar sandbox stays sealed.
+
 ### Moved out of ARCHITECTURE.md (2026-10-15 pass)
 
 - **Busy wait (2026-09-29).** Measured: two sends 1s apart → first done in 14.1s, second `waiting` then done at 20.0s. Before this a busy sidecar answered `busy` at once and Wai had to notice and resend.

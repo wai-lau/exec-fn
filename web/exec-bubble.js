@@ -25,7 +25,7 @@
         buildBubble();
         buildPanel();
         if (window.execBuildTodos) execBuildTodos(panel);
-        // The status bar goes on top of the todos: it is about the session.
+        // The status bar goes at the bottom, under the input bar.
         execStatusMount(panel);
         wireInput();
         if (window.execMicInit) execMicInit(micHost());

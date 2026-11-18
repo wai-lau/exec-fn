@@ -12,6 +12,9 @@ safe, the way gamesave_store made /nightfall's slots safe.
 Sidecar transport, sandboxing and the one-time login live in
 /exec-fn/claude-box/README.md."""
 
+import json
+import time
+
 from fastapi import Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
@@ -19,6 +22,7 @@ import cc_client
 import cc_title
 import exec_context
 import exec_panel
+from helpers import DATA_DIR
 from routers import protected
 
 # The sidecar reads the whole body into memory before parsing; clamp here too so
@@ -91,11 +95,39 @@ async def cc_conversation_title():
     })
 
 
+# The terminal status line's host-only figures, written each minute by the host
+# cron scripts/term-status.sh. Older than this and the session count is no
+# longer a fact (the cron stopped); the snooze is an expiry time, so it stays
+# true however old the file is.
+_TERM_STATUS_FRESH_S = 180
+
+
+def _term_status() -> dict:
+    try:
+        raw = json.loads((DATA_DIR / "term_status.json").read_text())
+    except (OSError, ValueError):
+        return {}
+    out = {}
+    snooze = raw.get("snooze_until")
+    if isinstance(snooze, int) and snooze > time.time():
+        out["snoozeUntil"] = snooze
+    at = raw.get("at")
+    if isinstance(at, int) and time.time() - at < _TERM_STATUS_FRESH_S and isinstance(raw.get("alts"), int):
+        out["alts"] = raw["alts"]
+    return out
+
+
 @protected.get("/api/cc/limits")
 async def cc_limits():
-    """Subscription usage windows for the status bar. Owner-only like the rest
-    of /cc — it reports how much of Wai's own plan is spent."""
-    return JSONResponse(await cc_client.limits())
+    """The status bar's numbers: the subscription's usage windows and credits
+    (from the sidecar), plus the terminal's live session count and pace-cap
+    snooze (from the host, `_term_status`). Owner-only like the rest of /cc —
+    it reports how much of Wai's own plan is spent."""
+    # The host figures ride along even when the sidecar has no numbers: they
+    # do not depend on it.
+    data = dict(await cc_client.limits())
+    data.update(_term_status())
+    return JSONResponse(data)
 
 
 @protected.get("/api/cc/history")
