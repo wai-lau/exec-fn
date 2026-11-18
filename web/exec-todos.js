@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var listEl, inputEl;
+  var listEl, inputEl, newestFirst = false;
 
   function esc(s) { return s == null ? '' : String(s); }
 
@@ -111,7 +111,10 @@
     })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (item) {
-        if (item) {
+        if (item && newestFirst) {
+          listEl.insertBefore(renderItem(item), listEl.firstChild);
+          listEl.scrollTop = 0;
+        } else if (item) {
           listEl.appendChild(renderItem(item));
           listEl.scrollTop = listEl.scrollHeight;
         } else if (!inputEl.value) {
@@ -128,7 +131,9 @@
       .then(function (r) { return r.ok ? r.json() : { items: [] }; })
       .then(function (data) {
         listEl.innerHTML = '';
-        (data.items || []).forEach(function (item) {
+        var items = (data.items || []).slice();
+        if (newestFirst) items.reverse();
+        items.forEach(function (item) {
           listEl.appendChild(renderItem(item));
         });
       })
@@ -157,6 +162,10 @@
   window.execBuildTodos = function (panel) {
     var slot = document.getElementById('rd-notes');
     var host = slot || panel;
+    // /rd's add row leads the list, so a new note lands right under it and
+    // pushes the older ones down: newest first there. The panel's add row
+    // trails its list, so it stays oldest first, new notes at the bottom.
+    newestFirst = !!slot;
     if (!host || document.getElementById('exec-todos')) return;
     var sec = document.createElement('div');
     sec.id = 'exec-todos';
