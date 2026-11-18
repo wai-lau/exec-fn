@@ -87,15 +87,14 @@ function _calCellHtml(d, dots, todayMs) {
   if (ahead >= 0 && ahead <= 6) cls.push('cw');
   if (ahead === 0) cls.push('today');
   if (typeof QcHolidays !== 'undefined' && QcHolidays.isQcHoliday(d)) cls.push('hol');
-  // Every dot is rendered; fitCalDots() decides afterwards how many actually fit
-  // on the row. The overflow marker ships with the cell (hidden) so the fitter
-  // can measure with it in place instead of reflowing once to add it.
+  // Every dot is rendered: the pills stand upright and wrap, so the cell grows
+  // to hold the whole day instead of clipping it.
   const day = dots[_isoLocal(d)] || [];
   // data-day marks the cell as a drop target (wireCalendarDrops); the
   // out-of-month padding cells deliberately have none.
   return `<div class="${cls.join(' ')}" data-day="${_isoLocal(d)}">
     <div class="cal-n">${String(d.getDate()).padStart(2, '0')}</div>
-    <div class="cal-dots">${day.map(d => `<i class="cal-u${d.units}" style="background:${d.color}"></i>`).join('')}<b class="cal-more" hidden></b></div>
+    <div class="cal-dots">${day.map(d => `<i class="cal-u${d.units}" style="background:${d.color}"></i>`).join('')}</div>
   </div>`;
 }
 
@@ -141,7 +140,6 @@ function buildCalendar() {
   const markEl = document.getElementById('cal-mark');
   if (markEl) markEl.textContent = calOffset === 0 ? `> ${mm} <` : calOffset < 0 ? `${mm} >>` : `<< ${mm}`;
   el.innerHTML = html;
-  fitCalDots();
   wireCalendarDrops();
   _syncCalH();
 }
@@ -226,39 +224,6 @@ function calToast(msg) {
   el.classList.add('show');
   clearTimeout(_calToastTimer);
   _calToastTimer = setTimeout(() => el.classList.remove('show'), 3200);
-}
-
-// Dots are a single row that never wraps and never shrinks, so a busy day can
-// hold more than the cell is wide. Show as many whole dots as fit and mark the
-// remainder with a trailing hollow dot -- a clipped half-dot would misreport a card's
-// size, which is the one thing the dot's length is for.
-//
-// Measured rather than counted: dots are 1-4 units wide, so "how many fit" has
-// no fixed answer, and the cell width moves with the viewport.
-// Span of the visible children vs the row's own width. NOT scrollWidth: the row
-// is justify-content:center, so overflow spills out BOTH sides and scrollWidth
-// never reports it -- it read "fits" for a row nine dots too wide.
-function _dotsFit(row) {
-  const kids = [...row.children].filter(k => !k.hidden);
-  if (!kids.length) return true;
-  const first = kids[0].getBoundingClientRect();
-  const last = kids[kids.length - 1].getBoundingClientRect();
-  return (last.right - first.left) <= row.getBoundingClientRect().width + 0.5;
-}
-
-function fitCalDots() {
-  document.querySelectorAll('#rd-calendar .cal-dots').forEach(row => {
-    const more = row.querySelector('.cal-more');
-    const dots = [...row.querySelectorAll('i')];
-    dots.forEach(d => { d.hidden = false; });
-    if (more) more.hidden = true;
-    if (_dotsFit(row)) return;                 // everything fits as-is
-    if (more) more.hidden = false;             // from here on, measure WITH the marker
-    for (let i = dots.length - 1; i >= 0; i--) {
-      dots[i].hidden = true;
-      if (_dotsFit(row)) break;
-    }
-  });
 }
 
 function _syncCalH() {

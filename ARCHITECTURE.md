@@ -135,13 +135,14 @@ every `§N` reference still resolves here, then one click to the file.
 → [`docs/architecture/08-rd-board.md`](docs/architecture/08-rd-board.md)
 
 - [8a. The grid](docs/architecture/08-rd-board.md#8a-the-grid)
-- [8b. Dots — one per card, sized by importance](docs/architecture/08-rd-board.md#8b-dots--one-per-card-sized-by-importance)
+- [8b. Pills — one per card, sized by importance](docs/architecture/08-rd-board.md#8b-pills--one-per-card-sized-by-importance)
 - [8c. Three date markers, one weight](docs/architecture/08-rd-board.md#8c-three-date-markers-one-weight)
 - [8d. Holidays are computed, not tabulated](docs/architecture/08-rd-board.md#8d-holidays-are-computed-not-tabulated)
 - [8e. Drag a card onto a day to schedule it](docs/architecture/08-rd-board.md#8e-drag-a-card-onto-a-day-to-schedule-it)
 - [8f. Paging months, and the watermark](docs/architecture/08-rd-board.md#8f-paging-months-and-the-watermark)
 - [8g. Bar heights are observed, not measured once](docs/architecture/08-rd-board.md#8g-bar-heights-are-observed-not-measured-once)
 - [8h. The `+N` overflow needs a host, and the bar can be empty](docs/architecture/08-rd-board.md#8h-the-n-overflow-needs-a-host-and-the-bar-can-be-empty)
+- [8i. The notes slot beside the calendar](docs/architecture/08-rd-board.md#8i-the-notes-slot-beside-the-calendar)
 
 ## 9. The landing page — a ferris wheel, not a list
 

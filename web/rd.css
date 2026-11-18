@@ -165,7 +165,9 @@ body { overflow: hidden !important; background: transparent !important; }
 #rd-calendar {
   position: fixed; z-index: var(--z-raised);
   top: max(var(--rem-bar-h, 0px), var(--books-bar-h, 0px));
-  left: 0; right: 0;
+
+  /* Left half of the row; the notes take the right half (#rd-notes). */
+  left: 0; right: 50%;
   display: grid; grid-template-columns: repeat(7, 1fr);
 
   /* Drag/swipe sideways to page through months (wireCalendarSwipe). The cells
@@ -203,8 +205,8 @@ body { overflow: hidden !important; background: transparent !important; }
 
   /* A 1fr track's min-width is auto, so a cell whose dots are wider than its
      column silently WIDENS the column -- a busy day pushed the whole grid out
-     of square instead of overflowing. min-width:0 pins the seven columns equal
-     and lets the dot row overflow, which is what fitCalDots measures. */
+     of square instead of overflowing. min-width:0 pins the seven columns equal;
+     the pills wrap inside the cell instead (.cal-dots). */
   min-width: 0;
 
   /* Clip the cell's wash to the padding box so it never tints the cell's OWN
@@ -309,10 +311,10 @@ body { overflow: hidden !important; background: transparent !important; }
 .cal-mark {
   position: fixed; z-index: -2;
   top: max(var(--rem-bar-h, 0px), var(--books-bar-h, 0px));
-  left: 0; right: 0; height: var(--cal-h, 0);
+  left: 0; right: 50%; height: var(--cal-h, 0);
   display: flex; align-items: center; justify-content: center;
   font-family: var(--font-mono); font-weight: var(--fw-bold);
-  font-size: min(var(--cal-h, 200px), 26vw);
+  font-size: min(var(--cal-h, 200px), 13vw);
   line-height: var(--lh-none);
   color: hsl(var(--green-hsl) / 0.12);
   text-shadow: 0 0 24px hsl(var(--green-hsl) / 0.12), 0 0 8px hsl(var(--green-hsl) / 0.12);
@@ -326,23 +328,25 @@ body { overflow: hidden !important; background: transparent !important; }
   white-space: nowrap;
 }
 
-/* One dot per card on the day. A dot's LENGTH is the card's importance — one
-   circle-width per size step (wisp 1 … commitment 4, see dotUnits) — so a day
-   shows its weight, not just its count.
+/* One pill per card on the day. A pill's HEIGHT is the card's importance --
+   one circle-width per size step (wisp 1 ... commitment 4, see dotUnits) -- so a
+   day shows its weight, not just its count.
+
+   Upright, not lying down: the calendar is half the row wide, so a cell holds
+   only a few pills across. They stand side by side, bottom-aligned like a bar
+   chart, and WRAP onto further rows; the cell (and the calendar, and --cal-h)
+   grows to hold every card rather than clipping the day.
 
    Shape is a stadium: two semicircles with a rectangle between them, no seam.
    That needs --radius-pill, NOT --radius-round: 50% is relative to each axis,
-   so it would draw a 4-wide dot as an ellipse (curved along its whole length)
-   instead of straight sides with round caps. At 1 unit the box is square and
-   the pill radius resolves to the same circle as before.
-
-   Dots never shrink (a squashed dot would misreport its size), so a very heavy
-   day is clipped at the cell edge rather than bleeding into its neighbours. */
+   so it would draw a 4-tall pill as an ellipse instead of straight sides with
+   round caps. At 1 unit the box is square and resolves to a circle. */
 .cal-dots {
   --cal-dot: 5px;  /* circle diameter = one unit of length */
 
-  display: flex; align-items: center; justify-content: center;
-  gap: var(--space-1); height: var(--space-2); overflow: hidden;
+  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: center;
+  gap: var(--space-1); min-height: var(--space-2);
+  padding: 0 var(--space-1);
 }
 
 .cal-dots i {
@@ -351,22 +355,29 @@ body { overflow: hidden !important; background: transparent !important; }
   border-radius: var(--radius-pill);
   background: hsl(var(--green-hsl) / 1);
 }
-.cal-dots i.cal-u2 { width: calc(var(--cal-dot) * 2); }
-.cal-dots i.cal-u3 { width: calc(var(--cal-dot) * 3); }
-.cal-dots i.cal-u4 { width: calc(var(--cal-dot) * 4); }
+.cal-dots i.cal-u2 { height: calc(var(--cal-dot) * 2); }
+.cal-dots i.cal-u3 { height: calc(var(--cal-dot) * 3); }
+.cal-dots i.cal-u4 { height: calc(var(--cal-dot) * 4); }
 
-/* "there are more than fit" — a HOLLOW dot, not a glyph: it keeps the row's
-   rhythm (same diameter, same pill radius as a one-unit dot) instead of
-   breaking it with a character on a different baseline. Ring only, and silver
-   rather than any category hue — it stands for cards it cannot name, so it
-   must not read as one of them. Inherits --cal-dot from .cal-dots, so it
-   tracks the dot size automatically. */
-.cal-more {
-  flex: 0 0 auto;
-  width: var(--cal-dot); height: var(--cal-dot);
-  border-radius: var(--radius-pill);
-  border: 1px solid hsl(var(--gray-hsl) / 0.45);
+/* ── notes (right half of the calendar row) ──────────────────────────────────
+   The Exec panel's todo list, mounted here on /rd instead of in the panel
+   (exec-todos.js picks this slot when it exists). Same height as the calendar,
+   whatever the month needs; the list scrolls past that. The 5px rules match
+   the calendar grid, so the two halves read as one band. Two-id selectors so
+   they outrank exec-bubble.css, which is injected after this sheet. */
+#rd-notes {
+  position: fixed; z-index: var(--z-raised);
+  top: max(var(--rem-bar-h, 0px), var(--books-bar-h, 0px));
+  left: 50%; right: 0; height: var(--cal-h, 0);
+  box-sizing: border-box;
+  display: flex; flex-direction: column;
+  border-left: 5px solid hsl(var(--green-hsl) / 0.12);
+  border-bottom: 5px solid hsl(var(--green-hsl) / 0.12);
+  font-family: var(--font-mono);
 }
+#rd-notes #exec-todos { flex: 1 1 auto; max-height: none; border-bottom: none; padding-top: var(--space-2); }
+#rd-notes #exec-todo-list { flex: 0 1 auto; padding: 0 var(--space-2); }
+#rd-notes #exec-todo-add { padding: var(--space-0-5) var(--space-2) var(--space-2); }
 
 /* Phone: the bars + calendar took 321px of 932 (and of 700 on a small phone)
    before the first card. A tighter cell -- smaller date, half the padding --

@@ -1,4 +1,4 @@
-// Exec-panel scratch todo list — occupies the top half of the exec panel.
+// Exec scratch todo list — the top of the exec panel, or beside the calendar on /rd.
 // Server-persisted (exec_todos.json) and SEPARATE from rd.json cards: items
 // here are DELETED on checkbox, not archived. Built by exec-bubble.js after the
 // panel exists (window.execBuildTodos(panel)); shares the panel's global scope.
@@ -151,8 +151,13 @@
     btn.addEventListener('click', function () { set(!sec.classList.contains('folded')); });
   }
 
+  // On /rd the list lives beside the calendar (#rd-notes), not in the panel:
+  // it is built there at page load, and the panel's later call finds it
+  // already built and adds nothing. The slot is always open, so no fold.
   window.execBuildTodos = function (panel) {
-    if (!panel || document.getElementById('exec-todos')) return;
+    var slot = document.getElementById('rd-notes');
+    var host = slot || panel;
+    if (!host || document.getElementById('exec-todos')) return;
     var sec = document.createElement('div');
     sec.id = 'exec-todos';
     // The add row sits UNDER the list, right above the divider, and reads as the
@@ -167,9 +172,9 @@
           'autocorrect="off" autocapitalize="off" spellcheck="false" ' +
           'placeholder="add a note...">' +
       '</div>' +
-      '<button id="exec-todo-fold" type="button" aria-label="collapse notes"></button>';
-    panel.insertBefore(sec, panel.firstChild);
-    wireFold(sec);
+      (slot ? '' : '<button id="exec-todo-fold" type="button" aria-label="collapse notes"></button>');
+    host.insertBefore(sec, host.firstChild);
+    if (!slot) wireFold(sec);
     listEl = sec.querySelector('#exec-todo-list');
     inputEl = sec.querySelector('#exec-todo-input');
     inputEl.addEventListener('keydown', function (e) {
@@ -177,4 +182,10 @@
     });
     loadTodos();
   };
+
+  function buildInSlot() {
+    if (document.getElementById('rd-notes')) window.execBuildTodos(null);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', buildInSlot);
+  else buildInSlot();
 })();

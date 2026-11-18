@@ -8,6 +8,8 @@ The reminders bar shows what is **inside a 30-day window** (plus any `pinned_rem
 
 `buildBooks()` had already solved it — when nothing is visible it creates an **empty chip** to host the button — and `buildReminders()` now does the same. A bar's `+N` must never be parented to content that may not exist.
 
+**Half-width calendar (2026-11-18).** Wai: "move the todo/quicknotes to the right of the calendar, should take up 1/2 of the row, calendar can grow in vertical length to accomodate all items within it, rotate "task things" (dots and pills) so that they are vertical to fit". The Exec todo list moved out of `/rd`'s panel into `#rd-notes`; the dots stood up and wrap. With every card now shown, `fitCalDots` and the hollow `.cal-more` ring were removed.
+
 ### Moved out of ARCHITECTURE.md (2026-10-15 pass)
 
 - **Grid lines.** At 1px they were lost against the scanlines; at 0.12 alpha with 1px rules the month lost its grid, so the weight lives in the border width (5px), not the alpha scale.

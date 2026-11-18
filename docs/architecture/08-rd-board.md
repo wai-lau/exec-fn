@@ -4,21 +4,20 @@ The board is `rd.json` in four columns (CLAUDE.md § *Terminology*). This sectio
 
 ### 8a. The grid
 
-Full-width Sunday-first grid of the CURRENT MONTH only, no weekday row, 4-6 rows (exactly the weeks the month spans). Out-of-month cells are blank but keep their weekend class.
+LEFT-HALF Sunday-first grid of the CURRENT MONTH only (the right half is the notes slot, 8i), no weekday row, 4-6 rows (exactly the weeks the month spans). Out-of-month cells are blank but keep their weekend class.
 
 - **The last column's missing right rule is keyed off a `.cal-eow` class** the builder sets from the day, never `:nth-child(7n)` (nth-child counts every child of `#rd-calendar`; a new first child shifts it).
 - Grid lines are 5px at `0.12` (per-cell right+bottom). `background-clip: padding-box` on `.cal-d` keeps a cell's wash off its own rules, so **`.cal-d.cw` must set `background-image`/`background-color`, NOT the `background` shorthand** (it resets every longhand and undoes the clip).
 - `.cal-d` needs **`min-width: 0`** or a busy day widens its `1fr` column.
 
-### 8b. Dots — one per card, sized by importance
+### 8b. Pills — one per card, sized by importance
 
-Each day is the zero-padded day number over a centred row of dots, one per card landing on that day (`scheduled_day`, else the `due_date` date part). Every dot is rendered, then `fitCalDots` decides how many fit.
+Each day is the zero-padded day number over upright pills, one per card landing on that day (`scheduled_day`, else the `due_date` date part). **Every card is shown**: the pills stand side by side, bottom-aligned, and WRAP, so a busy day makes its row (and the calendar, and `--cal-h`, and the board's top inset) taller. Upright since 2026-11-18, when the calendar went to half width — lying down, a half-width cell held one or two.
 
 - **Books and EXILED cards are excluded; archived cards count, but never after today** (a card finished EARLY would dot a day nothing happened on; a recurring card would double-book the future, since archiving clones the next occurrence).
 - **Archiving PRESERVES `scheduled_day`** (`_apply_patch_schedule`, `routes_api.py`): leaving hq clears it, except into archives, where the field is the only record of the day it happened. Inert elsewhere (`get_week_data` takes `column == "hq"`, the rollover takes `("rd", "hq")`, nudges need hq).
 - Colour = the card's category hue (`dotColor()`) at full opacity, except **Interfacing and Hobby**, two adjacent warms a 4px dot cannot separate: `_DOT_COLOR` gives Interfacing `--orange-hsl @1` and Hobby `--orange-glow-hsl @0.8` (split by VALUE as well as hue; both already in the palette baseline). The CARDS keep Coral.
-- **A dot is as wide as the card is important**: `dotUnits()` wisp 1 · idea 2 · plan 3 · commitment 4 (unknown → idea). A **reminder is forced to wisp** (same override as `cardStyle`; also catches gcal imports with `size: null`). A multi-unit dot is a stadium via `--radius-pill` (`--radius-round`'s 50% would draw an ellipse). Dots never shrink (`flex: 0 0 auto`).
-- A day with more dots than fit shows as many WHOLE dots as fit plus a trailing **hollow silver ring** (`.cal-more`, `--gray-hsl / 0.45`, one-unit diameter) — hued like nothing in the palette because it names no card. **`fitCalDots` measures the visible children's SPAN, not `scrollWidth`** (the row is `justify-content:center`, so overflow spills both sides).
+- **A pill is as TALL as the card is important**: `dotUnits()` wisp 1 · idea 2 · plan 3 · commitment 4 (unknown → idea). A **reminder is forced to wisp** (same override as `cardStyle`; also catches gcal imports with `size: null`). A multi-unit pill is a stadium via `--radius-pill` (`--radius-round`'s 50% would draw an ellipse). Pills never shrink (`flex: 0 0 auto`).
 - **A recurring card is projected forward two months** (`_RECUR_HORIZON_MONTHS`, `_advanceRecur` mirroring `helpers._advance_recurrence` incl. the month-end clamp). Only one occurrence is live (archiving clones the next). Archived cards are never projected.
 
 ### 8c. Three date markers, one weight
@@ -61,3 +60,6 @@ History: [ARCHAEOLOGY.md §8](../archaeology/08-rd-board.md).
 
 ---
 
+### 8i. The notes slot beside the calendar
+
+`#rd-notes` (fixed, `left: 50%`, `height: var(--cal-h)`) holds the Exec panel's scratch todo list on `/rd` instead of the panel. `exec-todos.js` builds into the slot at `DOMContentLoaded` whenever it exists; the panel's own later `execBuildTodos(panel)` then finds `#exec-todos` already built and adds nothing, so `/rd`'s panel has no list and `/hq`'s keeps it. No fold button in the slot. The list scrolls once it is taller than the calendar. Its overrides are two-id selectors in `rd.css` because `exec-bubble.css` is injected after it.
