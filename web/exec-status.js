@@ -187,7 +187,8 @@ function execStatusRender() {
   }
   const maxed = [five, seven].some((w) => w && w.pct >= 100);
   if (maxed && execStatusState.credits) add(execPill('cs-credits', 'c:$' + execStatusState.credits));
-  if (execStatusState.ctx) add(execText('cs-ctx', 'ctx:' + Math.min(100, Math.round((execStatusState.ctx / win) * 100)) + '%'));
+  // ctx always shows, as in the terminal: 0% until the conversation's first reply.
+  add(execText('cs-ctx', 'ctx:' + Math.min(100, Math.round(((execStatusState.ctx || 0) / win) * 100)) + '%'));
   if (execStatusState.base) add(execPill('cs-base', Math.round((execStatusState.base / win) * 100) + '%'));
   if (execStatusState.alts > 0) add(execText('cs-alts', 'alts:', String(execStatusState.alts)));
 }

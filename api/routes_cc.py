@@ -95,10 +95,12 @@ async def cc_conversation_title():
     })
 
 
-# The terminal status line's host-only figures, written each minute by the host
-# cron scripts/term-status.sh. Older than this and the session count is no
-# longer a fact (the cron stopped); the snooze is an expiry time, so it stays
-# true however old the file is.
+# Row 2 of Wai's terminal status line, written by that script itself
+# (~/.claude/statusline-command.sh) on every render: the session count, the
+# pace-cap snooze, the 5h/7d windows and credits. While it is fresh it is the
+# source -- the panel shows what the terminal shows. Older than this and only
+# the snooze (an expiry time) still holds; the windows fall back to the
+# sidecar's own fetch.
 _TERM_STATUS_FRESH_S = 180
 
 
@@ -112,19 +114,25 @@ def _term_status() -> dict:
     if isinstance(snooze, int) and snooze > time.time():
         out["snoozeUntil"] = snooze
     at = raw.get("at")
-    if isinstance(at, int) and time.time() - at < _TERM_STATUS_FRESH_S and isinstance(raw.get("alts"), int):
+    if not (isinstance(at, int) and time.time() - at < _TERM_STATUS_FRESH_S):
+        return out
+    if isinstance(raw.get("alts"), int):
         out["alts"] = raw["alts"]
+    for k in ("five_hour", "seven_day"):
+        if isinstance(raw.get(k), dict) and raw[k].get("pct") is not None:
+            out[k] = raw[k]
+    if "five_hour" in out or "seven_day" in out:
+        out["ok"] = True
+        out["credits"] = raw.get("credits")
     return out
 
 
 @protected.get("/api/cc/limits")
 async def cc_limits():
-    """The status bar's numbers: the subscription's usage windows and credits
-    (from the sidecar), plus the terminal's live session count and pace-cap
-    snooze (from the host, `_term_status`). Owner-only like the rest of /cc —
-    it reports how much of Wai's own plan is spent."""
-    # The host figures ride along even when the sidecar has no numbers: they
-    # do not depend on it.
+    """The status bar's numbers: row 2 of the terminal status line while the
+    terminal is writing it (`_term_status`), else the sidecar's own usage
+    windows and credits. Owner-only like the rest of /cc — it reports how
+    much of Wai's own plan is spent."""
     data = dict(await cc_client.limits())
     data.update(_term_status())
     return JSONResponse(data)
