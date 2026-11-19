@@ -17,7 +17,7 @@
     li.dataset.text = esc(item.text);
     var box = document.createElement('span');
     box.className = 'exec-todo-box';
-    box.textContent = item.done ? '[x]' : '[ ]';
+    box.textContent = item.done ? '\u25A0' : '\u25A1';
     if (item.done) li.classList.add('done');
     var txt = document.createElement('span');
     txt.className = 'exec-todo-text';
@@ -89,7 +89,7 @@
     var done = !li.classList.contains('done');
     function show(d) {
       li.classList.toggle('done', d);
-      box.textContent = d ? '[x]' : '[ ]';
+      box.textContent = d ? '\u25A0' : '\u25A1';
     }
     show(done);
     fetch('/api/todos/' + encodeURIComponent(li.dataset.id), {
@@ -173,13 +173,13 @@
     var sec = document.createElement('div');
     sec.id = 'exec-todos';
     // The add row sits UNDER the list, right above the divider, and reads as the
-    // next empty row: it starts with the same `[ ]` box the rows do (a label, so
+    // next empty row: it starts with the same empty-square box the rows do (a label, so
     // tapping it focuses the input), and typed text begins after it, in the
     // rows' text column, instead of under the box.
     sec.innerHTML =
       '<ul id="exec-todo-list"></ul>' +
       '<div id="exec-todo-add">' +
-        '<label class="exec-todo-box" for="exec-todo-input">[ ]</label>' +
+        '<label class="exec-todo-box" for="exec-todo-input">\u25A1</label>' +
         '<input id="exec-todo-input" type="text" autocomplete="off" ' +
           'autocorrect="off" autocapitalize="off" spellcheck="false" ' +
           'placeholder="add a note...">' +

@@ -11,12 +11,12 @@ body { overflow: hidden !important; background: transparent !important; }
 :root { --bars-h: calc(var(--books-bar-h, 0px) + var(--rem-bar-h, 0px) + var(--date-h, 0px)); }
 
 /* Date bar (rd-date.js), the last of the stack, right over the calendar.
-   Its height (--date-h) is part of --bars-h above. Equal padding top and
-   bottom on a one-unit line box, so the space above the text matches below. */
+   Its height (--date-h) is part of --bars-h above. One-unit line box; the
+   top padding is a step more than the bottom (Wai: a slight space above). */
 .rd-date {
   position: fixed; z-index: 19; left: 0; width: 50%;
   top: calc(var(--books-bar-h, 0px) + var(--rem-bar-h, 0px));
-  padding: var(--space-1-5) var(--space-5);
+  padding: var(--space-2-5) var(--space-5) var(--space-1-5);
   border-right: 1px solid hsl(var(--green-hsl) / 0.12);
   border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
   background: rgba(0,0,0,0.2);
@@ -385,11 +385,8 @@ body { overflow: hidden !important; background: transparent !important; }
 
   /* The notes are half the phone's width; at the panel's --fs-sm a todo
      wrapped every few words. The bars' size reads as one band with them.
-     Dense rows too: single-step lines. The [ ] box shrinks by transform
-     (2xs is the smallest type step); its freed width is the gap. */
+     Dense rows too: single-step lines. */
   #rd-notes .exec-todo, #rd-notes #exec-todo-add, #rd-notes #exec-todo-input { font-size: var(--fs-2xs); line-height: var(--lh-none); }
-  #rd-notes .exec-todo { gap: 0; }
-  #rd-notes .exec-todo-box { display: inline-block; transform: scale(0.7); transform-origin: left center; }
 }
 
 /* Desktop: one 620px-wide card per row left most of each column empty. Wrap
