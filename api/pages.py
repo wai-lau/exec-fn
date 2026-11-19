@@ -26,7 +26,10 @@ _FONT_PRELOAD = (
 # Site favicon (matches web/index.html, used by login + the in-shell pages).
 # Injected into the pages built from their own HTML (graph) so they show
 # the same icon. /recruiter keeps its own ✦; /nightfall keeps its game hack.png.
-_FAVICON = '<link rel="icon" type="image/png" href="/favicon.png?v=7">'
+# The SVG is Exec's pink skullgirl (web/exec-skull.svg); favicon.png is a 512px
+# render of it, kept for the PNG users (iOS/manifest, /spire + /noodle home).
+_FAVICON = ('<link rel="icon" type="image/svg+xml" href="/exec-skull.svg?v=1">'
+            '<link rel="icon" type="image/png" href="/favicon.png?v=7">')
 
 # CRT ambient stack markup — the four fixed fx layers (see .cyber-* in
 # chrome.css). Shared by every page builder (_render_page, landing, graph) so the
