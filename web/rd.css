@@ -13,7 +13,7 @@ body { overflow: hidden !important; background: transparent !important; }
 .rd-reminders, .hq-books {
   display: none; position: fixed; left: 0; width: 50%;
   border-right: 1px solid hsl(var(--green-hsl) / 0.12);
-  height: auto; max-height: 90px;
+  height: auto; /* max-height = exactly 3 chips, set by rd.js _capBar */
   flex-direction: column; align-items: stretch;
   padding: 0; gap: 0; overflow: hidden auto;
   scrollbar-width: none; touch-action: pan-y; -webkit-overflow-scrolling: touch;
@@ -395,6 +395,10 @@ body { overflow: hidden !important; background: transparent !important; }
 @media (width <= 600px) {
   #rd-calendar { font-size: var(--fs-xl); }
   .cal-d { padding: var(--space-1) 0; }
+
+  /* The notes are half the phone's width; at the panel's --fs-sm a todo
+     wrapped every few words. The bars' size reads as one band with them. */
+  #rd-notes .exec-todo, #rd-notes #exec-todo-add, #rd-notes #exec-todo-input { font-size: var(--fs-2xs); }
 }
 
 /* Desktop: one 620px-wide card per row left most of each column empty. Wrap

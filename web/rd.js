@@ -221,9 +221,27 @@ function _remChipHtml(c) {
   return `<div class="rem-item" data-id="${c.id}" style="color:${color};background:${bg};border:1px solid ${border}">${title}${date}</div>`;
 }
 
+// Both bars show exactly BAR_ROWS chips and scroll for the rest. A fixed
+// max-height clipped a 4th chip part-way (books and reminders differ in chip
+// height), so the cap is measured: the 4th chip's top edge, relative to the
+// bar's content box, plus the borders when the page's reset makes it border-box.
+const BAR_ROWS = 3;
+function _capBar(bar) {
+  bar.style.maxHeight = 'none';
+  const next = bar.children[BAR_ROWS];
+  if (!next) return;
+  const cs = getComputedStyle(bar);
+  const rows = next.getBoundingClientRect().top - bar.getBoundingClientRect().top - bar.clientTop;
+  const borders = cs.boxSizing === 'border-box'
+    ? parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth) : 0;
+  bar.style.maxHeight = (rows + borders) + 'px';
+}
+
 function _syncRemH() {
   const bar = document.getElementById('reminders-bar');
-  if (bar) document.documentElement.style.setProperty('--rem-bar-h', bar.offsetHeight + 'px');
+  if (!bar) return;
+  _capBar(bar);
+  document.documentElement.style.setProperty('--rem-bar-h', bar.offsetHeight + 'px');
 }
 
 function buildReminders() {
@@ -286,7 +304,9 @@ function showRemOverflow() {
 
 function _syncBooksH() {
   const bar = document.getElementById('books-bar');
-  if (bar) document.documentElement.style.setProperty('--books-bar-h', bar.offsetHeight + 'px');
+  if (!bar) return;
+  _capBar(bar);
+  document.documentElement.style.setProperty('--books-bar-h', bar.offsetHeight + 'px');
 }
 
 // books with real progress (current_page>0 and total_pages>0) show on the bar;
