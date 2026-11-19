@@ -127,18 +127,6 @@ function buildCalendar() {
     }
     html += _calCellHtml(new Date(y, mo, dom), dots, todayMs);
   }
-  // Month number as a big faint watermark BEHIND the grid (see .cal-mark) --
-  // it takes no space, so it can be there always without costing a row and
-  // without resizing the calendar mid-swipe.
-  //
-  // Arrows point the way BACK to the present month: a past month reads "08 >>"
-  // (go forward to reach today), a future one "<< 10". The present month points
-  // INWARD, "> 09 <" -- you are here, both ways lead away. Direction alone
-  // carries it, so no year is shown: a month is only ambiguous once you are 12+
-  // away, which is further than this is meant to be dragged.
-  const mm = String(mo + 1).padStart(2, '0');
-  const markEl = document.getElementById('cal-mark');
-  if (markEl) markEl.textContent = calOffset === 0 ? `> ${mm} <` : calOffset < 0 ? `${mm} >>` : `<< ${mm}`;
   el.innerHTML = html;
   packCalDots();
   wireCalendarDrops();

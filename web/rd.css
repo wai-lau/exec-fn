@@ -8,7 +8,23 @@ body { overflow: hidden !important; background: transparent !important; }
    the page down to the calendar's bottom edge, is the notes (#rd-notes).
    --bars-h = the stack's height; each bar's own height is measured in rd.js
    (0 while it is hidden). */
-:root { --bars-h: calc(var(--books-bar-h, 0px) + var(--rem-bar-h, 0px)); }
+:root { --bars-h: calc(var(--books-bar-h, 0px) + var(--rem-bar-h, 0px) + var(--date-h, 0px)); }
+
+/* Date bar (rd-date.js), the last of the stack, right over the calendar.
+   Its height (--date-h) is part of --bars-h above. Equal padding top and
+   bottom on a one-unit line box, so the space above the text matches below. */
+.rd-date {
+  position: fixed; z-index: 19; left: 0; width: 50%;
+  top: calc(var(--books-bar-h, 0px) + var(--rem-bar-h, 0px));
+  padding: var(--space-1-5) var(--space-5);
+  border-right: 1px solid hsl(var(--green-hsl) / 0.12);
+  border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
+  background: rgba(0,0,0,0.2);
+  font-family: var(--font-bit); font-size: var(--fs-2xs); font-weight: var(--fw-bold);
+  line-height: var(--lh-none); text-align: center;
+  color: hsl(var(--green-hsl) / 0.8);
+  white-space: nowrap; overflow: hidden;
+}
 
 .rd-reminders, .hq-books {
   display: none; position: fixed; left: 0; width: 50%;
@@ -234,8 +250,8 @@ body { overflow: hidden !important; background: transparent !important; }
 
 /* Last column draws no right rule (it would dangle off the grid's edge). Keyed
    off a class the builder sets from the DAY, not :nth-child(7n): nth-child
-   counts EVERY child of #rd-calendar, so adding the .cal-mark watermark as the
-   first child shifted the count by one and silently moved this to Friday --
+   counts EVERY child of #rd-calendar, so any extra child (a month watermark
+   once lived there) shifts the count and silently moves this to Friday --
    which is how the Friday/Saturday hairline went missing. */
 .cal-d.cal-eow { border-right: none; }
 
@@ -308,40 +324,6 @@ body { overflow: hidden !important; background: transparent !important; }
 /* Today is always gold (marigold, the now-clock's colour), date and box.
    After the weekend + holiday rules so it wins on source order. */
 .cal-d.today .cal-n { color: hsl(var(--orange-hsl) / 1); }
-
-/* Which month you are looking at, as a big number behind the grid — glowing,
-   and UNDER the CRT stack so the scanlines and phosphor run across it and it
-   reads as part of the screen rather than as something laid on top.
-
-   It is a sibling of #rd-calendar, not a child, and that is load-bearing:
-   #rd-calendar is position:fixed WITH a z-index, so it opens its own stacking
-   context and a negative-z child of it can only ever sink behind its own
-   content, never behind the page's own layers. As a fixed sibling at -2 it
-   lands behind the board and above the page background — and the cyber-* stack
-   is at --z-modal above everything here, so it runs across this too.
-
-   Being fixed also means it takes no space and cannot change --cal-h, so
-   sizing it FROM --cal-h has no feedback loop. It tracks the calendar's band
-   by reading the same bar-height vars the calendar anchors to. */
-.cal-mark {
-  position: fixed; z-index: -2;
-  top: var(--bars-h);
-  left: 0; right: 50%; height: var(--cal-h, 0);
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-mono); font-weight: var(--fw-bold);
-  font-size: min(var(--cal-h, 200px), 13vw);
-  line-height: var(--lh-none);
-  color: hsl(var(--green-hsl) / 0.12);
-  text-shadow: 0 0 24px hsl(var(--green-hsl) / 0.12), 0 0 8px hsl(var(--green-hsl) / 0.12);
-
-  /* Defocused, not just faint: a plain filter blur, NOT a backdrop-filter —
-     it reads only this element's own pixels, so there is no viewport readback
-     and nothing under it animates it. The mark never moves, so the compositor
-     blurs it once and caches. */
-  filter: blur(var(--blur-xs));
-  pointer-events: none;
-  white-space: nowrap;
-}
 
 /* One pill per card on the day. A pill's LENGTH is the card's importance --
    wisp 1 ... commitment 4 grid cells (dotUnits) -- so a day shows its weight,

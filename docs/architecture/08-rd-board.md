@@ -24,7 +24,7 @@ Each day is the zero-padded day number over its pills, one per card landing on t
 
 Every date sits at alpha `0.8` so only the HUE carries meaning: green weekday, **cyan weekend** (`.cal-d.we .cal-n`), **pink Québec statutory holiday** (`.cal-d.hol .cal-n`, source-ordered after the weekend rule so a holiday on a weekend wins).
 
-The 7 days from today (`.cal-d.cw`) wash the cell green as TWO stacked `0.12` `linear-gradient`s (~0.23 composite): green's scale jumps 0.12→0.45, which was a solid block, so the stack buys a middle step with both alphas on-scale. **Today** draws a bright 1px box as a `::after` overlay (`position:absolute; inset:0`), NOT a border (a border override would replace that cell's 5px rules and shift the line).
+Every cell OUTSIDE the 7 days from today (`.cal-d:not(.cw)`, blank out-of-month cells included) washes green as TWO stacked `0.12` `linear-gradient`s (~0.23 composite); the live week stays dark, the open window in a lit month (flipped 2026-11-19; it used to be the week that was lit). Green's scale jumps 0.12→0.45, which was a solid block, so the stack buys a middle step with both alphas on-scale. **Today is always gold**: marigold date (`.cal-d.today .cal-n`, after the weekend + holiday rules so it wins) and a marigold 1px box as a `::after` overlay (`position:absolute; inset:0`), NOT a border (a border override would replace that cell's 5px rules and shift the line).
 
 ### 8d. Holidays are computed, not tabulated
 
@@ -40,17 +40,17 @@ The 7 days from today (`.cal-d.cw`) wash the cell green as TWO stacked `0.12` `l
 - The POST fires only AFTER the board's `save()` resolves (`rd.js` chains `flushCalDrop`); concurrently the save (stale `column`) could land last and undo the hq promotion.
 - The reminders bar is excluded from the drop group (`put:` accepts only `#col-*`): its `onRemove` reads any exit as "no longer a reminder".
 
-### 8f. Paging months, and the watermark
+### 8f. Paging months
 
-**Drag (mouse) or swipe (touch) sideways to page months** (`wireCalendarSwipe`; one month per gesture past a 45px threshold; drag right = previous). `calOffset` is never persisted, so a load ALWAYS opens on the present month. The watermark text: past month `08 >>`, future `<< 10`, present `> 09 <`. today/this-week classes key off the REAL today.
-
-The month shows as a big glowing number behind the grid (`#cal-mark`, class `.cal-mark`: `0.12` fill + `text-shadow` glow, `filter: blur(var(--blur-xs))`, sized `min(var(--cal-h), 26vw)`). **It is a fixed SIBLING of `#rd-calendar` at `z-index:-2`, load-bearing**: `#rd-calendar` is `position:fixed` with a z-index (its own stacking context), so a negative-z child could only sink behind its own content, never behind the page's layers; as a sibling it sits under the CRT stack and above the page background. Fixed, it takes no row and cannot change `--cal-h`, so sizing it from `--cal-h` has no feedback loop.
+**Drag (mouse) or swipe (touch) sideways to page months** (`wireCalendarSwipe`; one month per gesture past a 45px threshold; drag right = previous). `calOffset` is never persisted, so a load ALWAYS opens on the present month. today/this-week classes key off the REAL today. The month-number watermark behind the grid was removed 2026-11-19 (Wai's call), so a paged month carries no month label.
 
 **Gesture rules** (same as the landing wheel and `exec-zoom.js`): `user-select: none` (a drag off a text selection fires native `dragstart`, which swallows the pointer stream), `touch-action: none`, pointermove/up on **window** with NO `setPointerCapture` (stepping rebuilds the children mid-gesture). A month with a different row count changes `--cal-h`, and `.rd-board`'s top inset follows. Cells are otherwise inert.
 
 ### 8g. Bar heights are observed, not measured once
 
-`--cal-h` rides in `.rd-board`'s top inset with `--rem-bar-h`/`--books-bar-h`; a **`ResizeObserver`** (`rd.js`) keeps all three live, because no resize event fires when the bit webfont reflows the chips (same idiom as `--nav-h`). `/rd`'s `.card.plain` opaque `color-mix` fill stays (matching `/hq`) so nothing behind the board bleeds through a card.
+`--cal-h` rides in `.rd-board`'s top inset with `--bars-h` (= `--books-bar-h` + `--rem-bar-h` + `--date-h`); a **`ResizeObserver`** keeps them live (`rd.js`; `rd-date.js` for its own bar), because no resize event fires when the bit webfont reflows the chips (same idiom as `--nav-h`). `/rd`'s `.card.plain` opaque `color-mix` fill stays (matching `/hq`) so nothing behind the board bleeds through a card.
+
+**Each bar shows exactly 3 chips and scrolls for the rest**: `_capBar` (`rd.js`) sets `max-height` to the 4th chip's top edge, measured, because a fixed height clipped a 4th chip part-way. **The date bar** (`#rd-date`, `web/rd-date.js`) sits last in the stack, right over the calendar: today in English, bold, centred, equal padding on a one-unit line box (ink measured 11/10 device px above/below at 3x). It takes the longest of three formats that fits (`Thursday, November 19` → `Thu, November 19` → `Thu, Nov 19`) and turns over at midnight.
 
 ### 8h. The `+N` overflow needs a host, and the bar can be empty
 
