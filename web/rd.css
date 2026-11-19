@@ -273,7 +273,7 @@ body { overflow: hidden !important; background: transparent !important; }
   content: '';
   position: absolute;
   inset: 0;
-  border: 1px solid hsl(var(--green-hsl) / 0.8);
+  border: 1px solid hsl(var(--orange-hsl) / 1); /* gold: see .cal-d.today .cal-n */
   pointer-events: none;
 }
 
@@ -303,6 +303,10 @@ body { overflow: hidden !important; background: transparent !important; }
    so a holiday that lands on a weekend wins on source order. Pink 0.8 outranks
    the weekend's 0.45 in weight too — a holiday is the louder fact. */
 .cal-d.hol .cal-n { color: hsl(var(--pink-hsl) / 0.8); }
+
+/* Today is always gold (marigold, the now-clock's colour), date and box.
+   After the weekend + holiday rules so it wins on source order. */
+.cal-d.today .cal-n { color: hsl(var(--orange-hsl) / 1); }
 
 /* Which month you are looking at, as a big number behind the grid — glowing,
    and UNDER the CRT stack so the scanlines and phosphor run across it and it
@@ -397,8 +401,12 @@ body { overflow: hidden !important; background: transparent !important; }
   .cal-d { padding: var(--space-1) 0; }
 
   /* The notes are half the phone's width; at the panel's --fs-sm a todo
-     wrapped every few words. The bars' size reads as one band with them. */
-  #rd-notes .exec-todo, #rd-notes #exec-todo-add, #rd-notes #exec-todo-input { font-size: var(--fs-2xs); }
+     wrapped every few words. The bars' size reads as one band with them.
+     Dense rows too: single-step lines. The [ ] box shrinks by transform
+     (2xs is the smallest type step); its freed width is the gap. */
+  #rd-notes .exec-todo, #rd-notes #exec-todo-add, #rd-notes #exec-todo-input { font-size: var(--fs-2xs); line-height: var(--lh-none); }
+  #rd-notes .exec-todo { gap: 0; }
+  #rd-notes .exec-todo-box { display: inline-block; transform: scale(0.7); transform-origin: left center; }
 }
 
 /* Desktop: one 620px-wide card per row left most of each column empty. Wrap
