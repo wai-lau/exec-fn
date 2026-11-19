@@ -286,15 +286,14 @@ body { overflow: hidden !important; background: transparent !important; }
    there is no date there to colour. */
 .cal-d.we .cal-n { color: hsl(var(--cyan-hsl) / 0.8); }
 
-/* Every dated day OUTSIDE the 7 from today carries the phosphor wash; the
-   live week stays dark, so it reads as the open window in a lit month (Wai
-   flipped it 2026-11-19). Blank out-of-month cells have no data-day and stay
-   dark too.
+/* Every cell OUTSIDE the 7 from today carries the phosphor wash, blank
+   out-of-month cells included; the live week stays dark, so it reads as the
+   open window in a lit month (Wai flipped it 2026-11-19).
 
    background-image, not the `background` shorthand: the shorthand resets every
    background-* longhand, which would silently undo .cal-d's padding-box clip
    and put the wash back onto this cell's own grid rules. */
-.cal-d[data-day]:not(.cw) {
+.cal-d:not(.cw) {
   background-image:
     linear-gradient(hsl(var(--green-hsl) / 0.12), hsl(var(--green-hsl) / 0.12)),
     linear-gradient(hsl(var(--green-hsl) / 0.12), hsl(var(--green-hsl) / 0.12));
