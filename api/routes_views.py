@@ -54,11 +54,12 @@ _LANDING_SCRIPT = '<script src="/crt-lite.js?v=2"></script><script src="/landing
 
 # Landing nav icons ordered by icon hue: recruiter 36° (Sentinel orange "file"
 # tile) -> security 36° (same orange, with a blue secondary that leans it
-# toward what follows) -> graph 171° (teal) ->
+# toward what follows) -> tv 57° (yellow Sonar
+# tile) -> graph 171° (teal) ->
 # nightfall 194° (cyan) -> printer 206° (blue bitman tile) -> ui 226° (blue) ->
 # mtg 261° (purple) -> tarot 351° (pink). aspira (the green Tower sprite, ~150°)
 # sits between security and graph. (hosaka left the landing 2026-11-10: owner-only.)
-_LANDING_HUE_ORDER = ["recruiter", "security", "aspira", "graph", "nightfall", "noodle", "printer", "ui", "mtg", "tarot"]
+_LANDING_HUE_ORDER = ["recruiter", "security", "tv", "aspira", "graph", "nightfall", "noodle", "printer", "ui", "mtg", "tarot"]
 
 # The name each section goes by, shown under its nav code. Not the code and not
 # a sentence -- the thing's own title. One per _LANDING_HUE_ORDER section.
@@ -73,6 +74,7 @@ _LANDING_BLURBS = {
     "security": "Crawlers",
     "noodle": "noodle",
     "aspira": "The Spire",
+    "tv": "Broadcast",
 }
 
 # One plain line under each title saying what the thing actually is.
@@ -87,6 +89,7 @@ _LANDING_DESCS = {
     "security": "Someone's watching.",
     "noodle": "Find a time everyone can make.",
     "aspira": "Inspired by Flash games of another time.",
+    "tv": "Media server on the home PC.",
 }
 _RECRUITER_LINK = '<link rel="stylesheet" href="/recruiter.css?v=29">'
 

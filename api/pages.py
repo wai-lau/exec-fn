@@ -67,10 +67,10 @@ _APPLE_WEBAPP_META = (
     '<link rel="manifest" href="/manifest.webmanifest?v=1">'
 )
 
-_NAV_LINKS = ["rd", "hq", "debug", "security", "graph", "ui", "nightfall", "aspira", "mtg", "tarot", "hosaka", "printer", "noodle", "recruiter"]
-_NAV_HREFS = {"rd": "/rd", "hq": "/hq", "debug": "/debug", "security": "/security", "graph": "/graph", "ui": "/UI", "nightfall": "/nightfall", "aspira": "/spire", "mtg": "/mtg", "tarot": "/tarot", "hosaka": "/hosaka", "printer": "/printer", "noodle": "/noodle", "recruiter": "/recruiter"}
+_NAV_LINKS = ["rd", "hq", "debug", "security", "graph", "ui", "nightfall", "aspira", "mtg", "tarot", "hosaka", "printer", "noodle", "tv", "recruiter"]
+_NAV_HREFS = {"rd": "/rd", "hq": "/hq", "debug": "/debug", "security": "/security", "graph": "/graph", "ui": "/UI", "nightfall": "/nightfall", "aspira": "/spire", "mtg": "/mtg", "tarot": "/tarot", "hosaka": "/hosaka", "printer": "/printer", "noodle": "/noodle", "tv": "https://tv.wai-lau.net", "recruiter": "/recruiter"}
 
-_GUEST_NAV_LINKS = ["security", "graph", "nightfall", "aspira", "mtg", "tarot", "printer", "ui", "noodle", "recruiter"]
+_GUEST_NAV_LINKS = ["security", "graph", "nightfall", "aspira", "mtg", "tarot", "printer", "ui", "noodle", "tv", "recruiter"]
 
 def _nav_icon(name: str, alt: str) -> str:
     """One nav icon, as the outline SVG in web/icons/ rather than the 27x27 PNG
@@ -102,6 +102,8 @@ _NAV_ICONS = {
     "printer":     _nav_icon("printer", "printer"),
     # The seeker was /cc's until that page folded into the Exec panel (2026-09-29).
     "noodle":      _nav_icon("seeker", "noodle"),
+    # tv.wai-lau.net: Jellyfin on the home PC, its own nginx site (2026-11-20).
+    "tv":          _nav_icon("sonar", "tv"),
     "recruiter":   _nav_icon("data-file", "recruiter"),
 }
 
@@ -113,7 +115,7 @@ _NAV_ICONS = {
 _NAV_LABELS = {
     "rd": "R&D", "hq": "HQ",
     "debug": "DBG", "security": "BOT", "graph": "GPH", "ui": "UIX",
-    "nightfall": "12AM", "aspira": "SPR", "mtg": "MTG", "tarot": "TRT", "hosaka": "HSK", "printer": "3DP", "noodle": "NDL", "recruiter": "CV",
+    "nightfall": "12AM", "aspira": "SPR", "mtg": "MTG", "tarot": "TRT", "hosaka": "HSK", "printer": "3DP", "noodle": "NDL", "tv": "TV", "recruiter": "CV",
 }
 
 
