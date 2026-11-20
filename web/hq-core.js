@@ -322,3 +322,15 @@ function assignLanes(items, getStart, getEnd) {
   });
 }
 
+// A row card's notes are the one part that shrinks (hq.css), so on a short
+// card they can be squeezed below one line and paint a sliver over the due
+// time. CSS cannot drop an item that does not fit, so measure: under one full
+// line, hide it.
+function hideCutNotes() {
+  document.querySelectorAll('.hq-list-row .hq-card-notes').forEach(el => {
+    el.style.visibility = '';
+    const line = parseFloat(getComputedStyle(el).lineHeight) || el.scrollHeight;
+    if (el.clientHeight + 1 < line) el.style.visibility = 'hidden';
+  });
+}
+window.addEventListener('resize', hideCutNotes);

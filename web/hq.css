@@ -294,16 +294,20 @@ body.hq-dragging .hq-unschedule.drag-over {
 .hq-list-row .hq-card-title,
 .hq-list-row .hq-card-notes { font-size: var(--fs-2xs); }
 
-/* A long title shrinks and clamps before it can push the due line out of the
-   card (a six-line title did, 2026-10-06). */
+/* A long title clamps at 4 lines before it can push the due line out of the
+   card (a six-line title did, 2026-10-06). It does NOT flex-shrink: shrunk, the
+   box cut the title mid-line with no ellipsis and the notes drew over the cut
+   line (2026-11-20, "some titles dont even show up"). Hyphens so a word wider
+   than a phone card breaks with a hyphen, not as "insulat|ion". */
 .hq-list-row .hq-card-title {
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4;
-  overflow: hidden; flex: 0 1 auto; min-height: 0;
+  overflow: hidden; flex: 0 0 auto; hyphens: auto;
 }
 
-/* Notes get ONE line here and give way first: the card is the row's height, so
-   anything that does not fit is clipped, never drawn over the due line. */
-.hq-list-row .hq-card-notes { -webkit-line-clamp: 1; flex: 0 1 auto; min-height: 0; }
+/* Notes get ONE line here and give way first (they alone shrink): the card is
+   the row's height, so anything that does not fit is clipped, never drawn
+   over the title or the due line. */
+.hq-list-row .hq-card-notes { -webkit-line-clamp: 1; flex: 0 1 auto; min-height: 0; overflow: hidden; }
 
 /* due date at the card bottom, IN FLOW (margin-top:auto), not absolutely
    positioned: pinned out of flow it sat on top of the notes (2026-10-06). */

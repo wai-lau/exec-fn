@@ -20,11 +20,15 @@
   font-display: swap;
 }
 
+/* BitLight maps the curly quotes, en/em dash and ellipsis to EMPTY glyphs
+   (width, no outline), so "J\2019vlyn" drew as "J vlyn". The range leaves
+   those code points out, so they fall back to the next font in the stack. */
 @font-face {
   font-family: BitLight;
   src: url('/fonts/bitlight.1fe0875b.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
+  unicode-range: U+0000-2012, U+2015-2017, U+201A-201B, U+201E-2025, U+2027-10FFFF;
 }
 
 @font-face {
