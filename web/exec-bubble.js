@@ -24,7 +24,6 @@
       loadStyles(function () {
         buildBubble();
         buildPanel();
-        if (window.execBuildTodos) execBuildTodos(panel);
         // The status bar goes at the bottom, under the input bar.
         execStatusMount(panel);
         wireInput();

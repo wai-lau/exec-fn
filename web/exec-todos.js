@@ -1,12 +1,11 @@
-// Exec scratch todo list — the top of the exec panel, or beside the calendar on /rd.
+// Exec scratch todo list — beside the calendar on /rd only (never in the panel).
 // Server-persisted (exec_todos.json) and SEPARATE from rd.json cards. The
 // checkbox marks an item done (struck through, still there; tap again to undo);
-// the 4:30 morning run is what removes it. Built by exec-bubble.js after the
-// panel exists (window.execBuildTodos(panel)); shares the panel's global scope.
+// the 4:30 morning run is what removes it. Built at page load into #rd-notes.
 (function () {
   'use strict';
 
-  var listEl, inputEl, newestFirst = false;
+  var listEl, inputEl;
 
   function esc(s) { return s == null ? '' : String(s); }
 
@@ -114,12 +113,9 @@
     })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (item) {
-        if (item && newestFirst) {
+        if (item) {
           listEl.insertBefore(renderItem(item), listEl.firstChild);
           listEl.scrollTop = 0;
-        } else if (item) {
-          listEl.appendChild(renderItem(item));
-          listEl.scrollTop = listEl.scrollHeight;
         } else if (!inputEl.value) {
           inputEl.value = text;
         }
@@ -135,7 +131,7 @@
       .then(function (data) {
         listEl.innerHTML = '';
         var items = (data.items || []).slice();
-        if (newestFirst) items.reverse();
+        items.reverse();
         items.forEach(function (item) {
           listEl.appendChild(renderItem(item));
         });
@@ -143,39 +139,17 @@
       .catch(function () {});
   }
 
-  // The fold sits ON the divider. Collapsed hides the list and the add row,
-  // leaving only the line and the chevron; the choice persists per browser.
-  var FOLD_KEY = 'exec.todos.folded';
-  function wireFold(sec) {
-    var btn = sec.querySelector('#exec-todo-fold');
-    function set(folded) {
-      sec.classList.toggle('folded', folded);
-      btn.setAttribute('aria-label', folded ? 'expand notes' : 'collapse notes');
-      try { localStorage.setItem(FOLD_KEY, folded ? '1' : '0'); } catch (_) {}
-    }
-    var start = false;
-    try { start = localStorage.getItem(FOLD_KEY) === '1'; } catch (_) {}
-    set(start);
-    btn.addEventListener('click', function () { set(!sec.classList.contains('folded')); });
-  }
-
-  // On /rd the list lives beside the calendar (#rd-notes), not in the panel:
-  // it is built there at page load, and the panel's later call finds it
-  // already built and adds nothing. The slot is always open, so no fold.
-  window.execBuildTodos = function (panel) {
-    var slot = document.getElementById('rd-notes');
-    var host = slot || panel;
-    // /rd's add row leads the list, so a new note lands right under it and
-    // pushes the older ones down: newest first there. The panel's add row
-    // trails its list, so it stays oldest first, new notes at the bottom.
-    newestFirst = !!slot;
-    if (!host || document.getElementById('exec-todos')) return;
+  // The list lives only beside the calendar on /rd (#rd-notes); the Exec
+  // panel carries none (Wai, 2026-11-20: "don't want the todos on the exec
+  // chat on any page"). Add row leads the list, so newest first.
+  function build(slot) {
+    if (document.getElementById('exec-todos')) return;
     var sec = document.createElement('div');
     sec.id = 'exec-todos';
-    // The add row sits UNDER the list, right above the divider, and reads as the
-    // next empty row: it starts with the same empty-square box the rows do (a label, so
-    // tapping it focuses the input), and typed text begins after it, in the
-    // rows' text column, instead of under the box.
+    // The add row (moved above the list by rd.css) reads as the next empty
+    // row: it starts with the same empty-square box the rows do (a label, so
+    // tapping it focuses the input), and typed text begins in the rows' text
+    // column, instead of under the box.
     sec.innerHTML =
       '<ul id="exec-todo-list"></ul>' +
       '<div id="exec-todo-add">' +
@@ -183,20 +157,19 @@
         '<input id="exec-todo-input" type="text" autocomplete="off" ' +
           'autocorrect="off" autocapitalize="off" spellcheck="false" ' +
           'placeholder="add a note...">' +
-      '</div>' +
-      (slot ? '' : '<button id="exec-todo-fold" type="button" aria-label="collapse notes"></button>');
-    host.insertBefore(sec, host.firstChild);
-    if (!slot) wireFold(sec);
+      '</div>';
+    slot.insertBefore(sec, slot.firstChild);
     listEl = sec.querySelector('#exec-todo-list');
     inputEl = sec.querySelector('#exec-todo-input');
     inputEl.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); addTodo(inputEl.value); }
     });
     loadTodos();
-  };
+  }
 
   function buildInSlot() {
-    if (document.getElementById('rd-notes')) window.execBuildTodos(null);
+    var slot = document.getElementById('rd-notes');
+    if (slot) build(slot);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', buildInSlot);
   else buildInSlot();

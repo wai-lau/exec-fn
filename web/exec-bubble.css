@@ -109,42 +109,8 @@ body:has(#exec-panel.open) #exec-bubble { display: none; }
    panel owns is where it sits in the composer row. */
 #exec-mute { padding-left: var(--space-2); margin-left: var(--space-2-5); }
 
-/* ── todo list (panel top) ─────────────────────────────────────────────────
-   Sizes to content, capped at half the panel; the list scrolls past the cap.
-   flex-grow 0 so the chat below keeps every row the todos don't need. */
-#exec-todos {
-  flex: 0 1 auto; max-height: 50%; min-height: 0;
-  display: flex; flex-direction: column;
-  border-bottom: 1px solid hsl(var(--green-hsl) / 0.45);
-  position: relative; z-index: 1;
-}
-
-/* Collapse toggle, centred ON the divider: a ringed chevron sitting on the
-   line. The solid ground hides the line inside the ring. */
-#exec-todo-fold {
-  position: absolute; left: 50%; bottom: 0; transform: translate(-50%, 50%);
-  width: var(--space-8); height: var(--space-8); padding: 0;
-  display: flex; align-items: center; justify-content: center;
-  background: hsl(var(--bg-hsl) / 1); cursor: pointer;
-  border: 2px solid hsl(var(--green-hsl) / 0.8); border-radius: 50%;
-  transition: border-color 0.15s;
-}
-
-#exec-todo-fold:hover { border-color: hsl(var(--green-hsl) / 1); }
-
-#exec-todo-fold::before {
-  content: ""; display: inline-block; width: var(--space-2-5); height: var(--space-2-5);
-  border-right: 2px solid hsl(var(--green-hsl) / 0.8);
-  border-bottom: 2px solid hsl(var(--green-hsl) / 0.8);
-  transform: translateY(25%) rotate(-135deg); /* up: fold away */
-  transition: border-color 0.15s;
-}
-#exec-todo-fold:hover::before { border-color: hsl(var(--green-hsl) / 1); }
-
-#exec-todos.folded #exec-todo-fold::before { transform: translateY(-25%) rotate(45deg); }
-
-#exec-todos.folded #exec-todo-list,
-#exec-todos.folded #exec-todo-add { display: none; }
+/* ── todo list (/rd's #rd-notes only; the panel has none) ───────────────── */
+#exec-todos { display: flex; flex-direction: column; min-height: 0; }
 
 #exec-todo-list {
   flex: 0 1 auto; min-height: 0; overflow-y: auto;
