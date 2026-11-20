@@ -1,7 +1,9 @@
 <!doctype html>
 <!-- nginx serves this itself (error_page 502 504) while the app restarts - a deploy, a --reload swap. Self-contained on
      purpose: the app that serves chrome.css is the thing that is down. Colours mirror chrome.css's palette tokens
-     (--bg-hsl, --green-hsl, --orange-hsl); it polls / and reloads the page the moment the app answers again. -->
+     (--bg-hsl, --green-hsl, --orange-hsl); it polls / and reloads the page the moment the app answers again.
+     tv.wai-lau.net (/etc/nginx/sites-available/tv) serves this same file when the home PC running Jellyfin is off or
+     the tunnel is down: on that host the words change and it polls slower, since the outage can last hours. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -33,16 +35,23 @@
 </head>
 <body>
 <main>
-  <div class="t">wai-lau.net</div>
-  <div class="line">booting up</div>
+  <div class="t" id="t">wai-lau.net</div>
+  <div class="line" id="line">booting up</div>
   <div class="bar"><i></i></div>
-  <div class="note">back in a few seconds - this page reloads itself</div>
+  <div class="note" id="note">back in a few seconds - this page reloads itself</div>
 </main>
 <script>
+  var tv = /^tv\./.test(location.hostname), wait = tv ? 10000 : 2000;
+  if (tv) {
+    document.title = "tv.wai-lau.net · offline";
+    document.getElementById("t").textContent = "tv.wai-lau.net";
+    document.getElementById("line").textContent = "tv is offline";
+    document.getElementById("note").textContent = "the home computer is off or asleep - this page reloads when it's back";
+  }
   (function poll() {
     fetch("/", { method: "HEAD", cache: "no-store" })
-      .then(function (r) { if (r.status < 500) location.reload(); else setTimeout(poll, 2000); })
-      .catch(function () { setTimeout(poll, 2000); });
+      .then(function (r) { if (r.status < 500) location.reload(); else setTimeout(poll, wait); })
+      .catch(function () { setTimeout(poll, wait); });
   })();
 </script>
 </body>
