@@ -2,18 +2,6 @@
 <link rel="stylesheet" href="/crt-dim.css?v=1">
 <link rel="stylesheet" href="/rd.css?v=32">
 
-<div id="reminders-bar" class="rd-reminders"></div>
-
-<div class="rem-ov-modal" id="rem-overflow-modal" onclick="if(event.target===this)this.style.display='none'">
-  <div class="rem-ov-box">
-    <div class="rem-ov-hdr">
-      <span>upcoming reminders</span>
-      <button class="rem-ov-close" onclick="document.getElementById('rem-overflow-modal').style.display='none'">&times;</button>
-    </div>
-    <div class="rem-ov-list" id="rem-overflow-list"></div>
-  </div>
-</div>
-
 <div class="hq-books" id="books-bar"></div>
 <div class="book-ov-modal" id="book-overflow-modal" onclick="if(event.target===this)this.style.display='none'">
   <div class="book-ov-box">
@@ -27,6 +15,19 @@
 
 <div id="rd-date" class="rd-date"></div>
 <div id="rd-calendar"></div>
+
+<div id="reminders-bar" class="rd-reminders"></div>
+
+<div class="rem-ov-modal" id="rem-overflow-modal" onclick="if(event.target===this)this.style.display='none'">
+  <div class="rem-ov-box">
+    <div class="rem-ov-hdr">
+      <span>upcoming reminders</span>
+      <button class="rem-ov-close" onclick="document.getElementById('rem-overflow-modal').style.display='none'">&times;</button>
+    </div>
+    <div class="rem-ov-list" id="rem-overflow-list"></div>
+  </div>
+</div>
+
 <div id="rd-notes"></div>
 
 <div class="rd-board" id="board">

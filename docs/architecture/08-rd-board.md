@@ -1,10 +1,10 @@
 ## 8. `/rd` — the board and its month calendar
 
-The board is `rd.json` in four columns (CLAUDE.md § *Terminology*). This section is the **month calendar** under the reminders/books bars — `#rd-calendar`, built by `web/rd-calendar.js` (split from rd.js for the 500-line cap; same global scope, loaded before it). Dot colour/size helpers (`dotColor`, `dotUnits`) are in `web/card-style.js`.
+The board is `rd.json` in four columns (CLAUDE.md § *Terminology*). This section is the **month calendar** between the books + date bars and the reminders bar — `#rd-calendar`, built by `web/rd-calendar.js` (split from rd.js for the 500-line cap; same global scope, loaded before it). Dot colour/size helpers (`dotColor`, `dotUnits`) are in `web/card-style.js`.
 
 ### 8a. The grid
 
-LEFT-HALF Sunday-first grid (under the books bar, then the reminders bar, both left-half too; their summed height is `--bars-h` in rd.css) of the CURRENT MONTH only (the right half is the notes slot, 8i), no weekday row, 4-6 rows (exactly the weeks the month spans). Out-of-month cells are blank but keep their weekend class.
+LEFT-HALF Sunday-first grid (stack, top to bottom since 2026-11-20: books bar, date bar, calendar, reminders bar, all left-half; the calendar starts at `--cal-top` = books + date, reminders at `--cal-top + --cal-h`, and `--bars-h` = every bar, so the board sits at `--bars-h + --cal-h`) of the CURRENT MONTH only (the right half is the notes slot, 8i), no weekday row, 4-6 rows (exactly the weeks the month spans). Out-of-month cells are blank but keep their weekend class.
 
 - **The last column's missing right rule is keyed off a `.cal-eow` class** the builder sets from the day, never `:nth-child(7n)` (nth-child counts every child of `#rd-calendar`; a new first child shifts it).
 - Grid lines are 5px at `0.12` (per-cell right+bottom). `background-clip: padding-box` on `.cal-d` keeps a cell's wash off its own rules, so **`.cal-d.cw` must set `background-image`/`background-color`, NOT the `background` shorthand** (it resets every longhand and undoes the clip).
@@ -50,7 +50,7 @@ Every cell OUTSIDE the 7 days from today (`.cal-d:not(.cw)`, blank out-of-month 
 
 `--cal-h` rides in `.rd-board`'s top inset with `--bars-h` (= `--books-bar-h` + `--rem-bar-h` + `--date-h`); a **`ResizeObserver`** keeps them live (`rd.js`; `rd-date.js` for its own bar), because no resize event fires when the bit webfont reflows the chips (same idiom as `--nav-h`). `/rd`'s `.card.plain` opaque `color-mix` fill stays (matching `/hq`) so nothing behind the board bleeds through a card.
 
-**Each bar shows exactly 3 chips and scrolls for the rest**: `_capBar` (`rd.js`) sets `max-height` to the 4th chip's top edge, measured, because a fixed height clipped a 4th chip part-way. **The date bar** (`#rd-date`, `web/rd-date.js`) sits last in the stack, right over the calendar: today in English, bold, centred, equal padding on a one-unit line box (ink measured 11/10 device px above/below at 3x). It takes the longest of three formats that fits (`Thursday, November 19` → `Thu, November 19` → `Thu, Nov 19`) and turns over at midnight.
+**Each bar shows exactly 3 chips and scrolls for the rest**: `_capBar` (`rd.js`) sets `max-height` to the 4th chip's top edge, measured, because a fixed height clipped a 4th chip part-way. **The date bar** (`#rd-date`, `web/rd-date.js`) sits under the books, right over the calendar: today in English, bold, centred, equal padding on a one-unit line box (ink measured 11/10 device px above/below at 3x). It takes the longest of three formats that fits (`Thursday, November 19` → `Thu, November 19` → `Thu, Nov 19`) and turns over at midnight.
 
 ### 8h. The `+N` overflow needs a host, and the bar can be empty
 
@@ -62,4 +62,4 @@ History: [ARCHAEOLOGY.md §8](../archaeology/08-rd-board.md).
 
 ### 8i. The notes slot beside the calendar
 
-`#rd-notes` (fixed, `top: 0`, `left: 50%`, `height: calc(var(--bars-h) + var(--cal-h))`, so it runs from the top of the page to the calendar's bottom edge) holds the scratch todo list — its only home since 2026-11-20 (the Exec panel has none on any page). `exec-todos.js` builds into the slot at `DOMContentLoaded` and does nothing on a page without one. The add row leads (`order: -1`), so the list is NEWEST FIRST: a new note lands under the add row and pushes the rest down. Display order only; `exec_todos.json` keeps insertion order. The list scrolls once it is taller than the calendar. Its overrides are two-id selectors in `rd.css` because `exec-bubble.css` is injected after it.
+`#rd-notes` (fixed, `top: 0`, `left: 50%`, `height: calc(var(--bars-h) + var(--cal-h))`, so it runs from the top of the page to the reminders' bottom edge) holds the scratch todo list — its only home since 2026-11-20 (the Exec panel has none on any page). `exec-todos.js` builds into the slot at `DOMContentLoaded` and does nothing on a page without one. The add row leads (`order: -1`), so the list is NEWEST FIRST: a new note lands under the add row and pushes the rest down. Display order only; `exec_todos.json` keeps insertion order. The list scrolls once it is taller than the calendar. Its overrides are two-id selectors in `rd.css` because `exec-bubble.css` is injected after it.

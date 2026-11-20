@@ -3,19 +3,24 @@ body { overflow: hidden !important; background: transparent !important; }
 
 /* The reduced-strength CRT stack this page rides under is crt-dim.css. */
 
-/* ── top bars: books over reminders, both in the left half ────────────────
-   identical chrome; only anchoring differs. The right half, from the top of
-   the page down to the calendar's bottom edge, is the notes (#rd-notes).
-   --bars-h = the stack's height; each bar's own height is measured in rd.js
-   (0 while it is hidden). */
-:root { --bars-h: calc(var(--books-bar-h, 0px) + var(--rem-bar-h, 0px) + var(--date-h, 0px)); }
+/* ── left-half stack: books, date, calendar, reminders (top to bottom) ──────
+   Books and reminders share chrome; only anchoring differs. Wai, 2026-11-20:
+   "books above cal, reminders below". The right half, from the top of the
+   page down to the bottom of the reminders, is the notes (#rd-notes).
+   --cal-top = where the calendar starts; --bars-h = every bar in the stack
+   (the calendar's own --cal-h is added where needed). Each bar's height is
+   measured in rd.js / rd-date.js (0 while it is hidden). */
+:root {
+  --cal-top: calc(var(--books-bar-h, 0px) + var(--date-h, 0px));
+  --bars-h: calc(var(--cal-top) + var(--rem-bar-h, 0px));
+}
 
-/* Date bar (rd-date.js), the last of the stack, right over the calendar.
-   Its height (--date-h) is part of --bars-h above. One-unit line box; the
+/* Date bar (rd-date.js), under the books, right over the calendar.
+   Its height (--date-h) is part of --cal-top above. One-unit line box; the
    top padding is a step more than the bottom (Wai: a slight space above). */
 .rd-date {
   position: fixed; z-index: 19; left: 0; width: 50%;
-  top: calc(var(--books-bar-h, 0px) + var(--rem-bar-h, 0px));
+  top: var(--books-bar-h, 0);
   padding: var(--space-2-5) var(--space-5) var(--space-1-5);
   border-right: 1px solid hsl(var(--green-hsl) / 0.12);
   border-bottom: 1px solid hsl(var(--green-hsl) / 0.12);
@@ -41,7 +46,7 @@ body { overflow: hidden !important; background: transparent !important; }
    calendar and the notes (#rd-notes border-left). offsetHeight counts it, so
    --books-bar-h already includes it. */
 .hq-books     { top: 0; z-index: 18; border-bottom-width: 5px; }
-.rd-reminders { top: var(--books-bar-h, 0); z-index: 19; }
+.rd-reminders { top: calc(var(--cal-top) + var(--cal-h, 0px)); z-index: 19; }
 .rd-reminders::-webkit-scrollbar, .hq-books::-webkit-scrollbar { display: none; }
 .has-reminders .rd-reminders { display: flex; }
 .has-books .hq-books { display: flex; }
@@ -184,13 +189,13 @@ body { overflow: hidden !important; background: transparent !important; }
 .card.search-hide { display: none; }
 
 /* ── minimal month calendar ────────────────────────────────────────────────
-   The current month under the reminders/books bars, above the board. Sunday
+   The current month under the books + date bars, over the reminders. Sunday
    -first, no weekday guide row, and 4-6 rows depending on how the month falls
    (JS emits exactly the weeks it needs — never a spare row).
    Inert by design (pointer-events:none) — it is a glance, not a control. */
 #rd-calendar {
   position: fixed; z-index: var(--z-raised);
-  top: var(--bars-h);
+  top: var(--cal-top);
 
   /* Left half of the row; the notes take the right half (#rd-notes). */
   left: 0; right: 50%;
@@ -360,9 +365,9 @@ body { overflow: hidden !important; background: transparent !important; }
 }
 
 /* ── notes (right half of the calendar row) ──────────────────────────────────
-   The Exec panel's todo list, mounted here on /rd instead of in the panel
-   (exec-todos.js picks this slot when it exists). From the top of the page to
-   the calendar's bottom edge, whatever the bars and the month need; the list
+   The scratch todo list's only home (exec-todos.js builds into this slot;
+   the Exec panel has none). From the top of the page to
+   the reminders' bottom edge, whatever the bars and the month need; the list
    scrolls past that. The 5px rules match
    the calendar grid, so the two halves read as one band. Two-id selectors so
    they outrank exec-bubble.css, which is injected after this sheet. */
@@ -379,7 +384,7 @@ body { overflow: hidden !important; background: transparent !important; }
 #rd-notes #exec-todos { flex: 1 1 auto; max-height: none; border-bottom: none; padding-top: var(--space-2); }
 #rd-notes #exec-todo-list { flex: 0 1 auto; padding: 0 var(--space-2); }
 
-/* The add row leads here (the panel keeps it under the list, by its divider). */
+/* The add row leads, so the newest note sits right under it. */
 #rd-notes #exec-todo-add { order: -1; padding: var(--space-0-5) var(--space-2) var(--space-2); }
 
 /* Phone: the bars + calendar took 321px of 932 (and of 700 on a small phone)
