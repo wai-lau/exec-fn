@@ -79,3 +79,4 @@ web/noodle-demo.mp4
 
 # eslint temp dirs from the pre-commit hook (created + deleted per run)
 /.eslint-tmp-*/
+OPEN-QUESTIONS.md
