@@ -194,7 +194,13 @@ body { overflow: hidden !important; background: transparent !important; }
 
   /* Left half of the row; the notes take the right half (#rd-notes). */
   left: 0; right: 50%;
-  display: grid; grid-template-columns: repeat(7, 1fr);
+
+  /* Six tracks of X and a last one of X - 5px. Every cell but Saturday's
+     carries its own 5px right rule inside its track (.cal-eow drops it; the
+     notes' border-left is the rule there, outside the grid), so equal 1fr
+     tracks left Saturday 5px wider than the rest. X = (W + 5px) / 7. */
+  display: grid;
+  grid-template-columns: repeat(6, calc((100% + 5px) / 7)) calc((100% + 5px) / 7 - 5px);
 
   /* Drag/swipe sideways to page through months (wireCalendarSwipe). The cells
      themselves are still inert -- nothing here is clickable, the whole band is
