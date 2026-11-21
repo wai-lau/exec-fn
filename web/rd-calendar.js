@@ -128,7 +128,8 @@ function buildCalendar() {
     html += _calCellHtml(new Date(y, mo, dom), dots, todayMs);
   }
   el.innerHTML = html;
-  packCalDots();
+  // rd-split.js fits the date + pill size to the cell, then packs (desktop)
+  if (typeof rdFitCalendar === 'function') rdFitCalendar(); else packCalDots();
   wireCalendarDrops();
   _syncCalH();
 }

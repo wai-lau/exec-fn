@@ -1,0 +1,51 @@
+/* ── desktop pane splitters (rd-split.js) ──────────────────────────────────
+   Three panes on /rd: the left stack (books, date, calendar, reminders), the
+   notes to its right, the board under both. On desktop two handles move the
+   lines between them: a vertical one riding the notes' 5px left rule, and a
+   horizontal one just under the band. Below 1000px they do not exist and the
+   page keeps its content-sized layout. */
+
+.rd-split-v, .rd-split-h { display: none; }
+
+@media (width >= 1000px) {
+  .rd-split-v, .rd-split-h {
+    display: block; position: fixed; z-index: var(--z-sticky);
+    background: transparent; touch-action: none;
+    transition: background-color 0.15s;
+  }
+
+  .rd-split-v {
+    top: 0; left: var(--rd-split-x, 50%); width: 5px;
+    height: calc(var(--bars-h) + var(--cal-h, 0px));
+    cursor: col-resize;
+  }
+
+  .rd-split-h {
+    top: calc(var(--bars-h) + var(--cal-h, 0px)); left: 0; right: 0;
+    height: var(--space-2);
+    cursor: row-resize;
+  }
+
+  .rd-split-v:hover, .rd-split-h:hover,
+  .rd-split-v.active, .rd-split-h.active { background: hsl(var(--green-hsl) / 0.45); }
+
+  /* While dragging: no text selection, and the resize cursor everywhere. */
+  body.rd-resizing { user-select: none; }
+  body.rd-resizing.rd-resizing-x * { cursor: col-resize !important; }
+  body.rd-resizing.rd-resizing-y * { cursor: row-resize !important; }
+
+  /* A set band height: the calendar takes what the bars leave, its rows share
+     it equally, and each day centres in its cell. The date size and the pill
+     size are fitted to the cell by rdFitCalendar. */
+  html.rd-top-fixed #rd-calendar {
+    height: calc(var(--rd-top-h) - var(--bars-h));
+    grid-auto-rows: minmax(0, 1fr);
+  }
+
+  html.rd-top-fixed .cal-d {
+    display: flex; flex-direction: column; justify-content: center;
+    overflow: hidden;
+  }
+
+  html.rd-split-on .cal-dots { --cal-dot: var(--cal-dot-fit, 4px); }
+}

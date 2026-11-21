@@ -19,7 +19,7 @@ body { overflow: hidden !important; background: transparent !important; }
    Its height (--date-h) is part of --cal-top above. One-unit line box; the
    top padding is a step more than the bottom (Wai: a slight space above). */
 .rd-date {
-  position: fixed; z-index: 19; left: 0; width: 50%;
+  position: fixed; z-index: 19; left: 0; width: var(--rd-split-x, 50%);
   top: var(--books-bar-h, 0);
   padding: var(--space-2-5) var(--space-5) var(--space-1-5);
   border-right: 1px solid hsl(var(--green-hsl) / 0.12);
@@ -32,7 +32,7 @@ body { overflow: hidden !important; background: transparent !important; }
 }
 
 .rd-reminders, .hq-books {
-  display: none; position: fixed; left: 0; width: 50%;
+  display: none; position: fixed; left: 0; width: var(--rd-split-x, 50%);
   border-right: 1px solid hsl(var(--green-hsl) / 0.12);
   height: auto; /* max-height = exactly 3 chips, set by rd.js _capBar */
   flex-direction: column; align-items: stretch;
@@ -197,8 +197,9 @@ body { overflow: hidden !important; background: transparent !important; }
   position: fixed; z-index: var(--z-raised);
   top: var(--cal-top);
 
-  /* Left half of the row; the notes take the right half (#rd-notes). */
-  left: 0; right: 50%;
+  /* Left half of the row; the notes take the right half (#rd-notes).
+     --rd-split-x moves the line on desktop (rd-split.js). */
+  left: 0; right: calc(100% - var(--rd-split-x, 50%));
 
   /* Six tracks of X and a last one of X - 5px. Every cell but Saturday's
      carries its own 5px right rule inside its track (.cal-eow drops it; the
@@ -374,7 +375,7 @@ body { overflow: hidden !important; background: transparent !important; }
 #rd-notes {
   position: fixed; z-index: var(--z-raised);
   top: 0;
-  left: 50%; right: 0; height: calc(var(--bars-h) + var(--cal-h, 0px));
+  left: var(--rd-split-x, 50%); right: 0; height: calc(var(--bars-h) + var(--cal-h, 0px));
   box-sizing: border-box;
   display: flex; flex-direction: column;
   border-left: 5px solid hsl(var(--green-hsl) / 0.12);

@@ -143,6 +143,7 @@ every `§N` reference still resolves here, then one click to the file.
 - [8g. Bar heights are observed, not measured once](docs/architecture/08-rd-board.md#8g-bar-heights-are-observed-not-measured-once)
 - [8h. The `+N` overflow needs a host, and the bar can be empty](docs/architecture/08-rd-board.md#8h-the-n-overflow-needs-a-host-and-the-bar-can-be-empty)
 - [8i. The notes slot beside the calendar](docs/architecture/08-rd-board.md#8i-the-notes-slot-beside-the-calendar)
+- [8j. Desktop splitters and the fitted calendar](docs/architecture/08-rd-board.md#8j-desktop-splitters-and-the-fitted-calendar)
 
 ## 9. The landing page — a ferris wheel, not a list
 
