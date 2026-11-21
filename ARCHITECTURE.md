@@ -135,7 +135,7 @@ every `§N` reference still resolves here, then one click to the file.
 → [`docs/architecture/08-rd-board.md`](docs/architecture/08-rd-board.md)
 
 - [8a. The grid](docs/architecture/08-rd-board.md#8a-the-grid)
-- [8b. Pills — one per card, sized by importance](docs/architecture/08-rd-board.md#8b-pills--one-per-card-sized-by-importance)
+- [8b. Pills — one per card, length = duration, brightness = importance](docs/architecture/08-rd-board.md#8b-pills--one-per-card-length--duration-brightness--importance)
 - [8c. Three date markers, one weight](docs/architecture/08-rd-board.md#8c-three-date-markers-one-weight)
 - [8d. Holidays are computed, not tabulated](docs/architecture/08-rd-board.md#8d-holidays-are-computed-not-tabulated)
 - [8e. Drag a card onto a day to schedule it](docs/architecture/08-rd-board.md#8e-drag-a-card-onto-a-day-to-schedule-it)

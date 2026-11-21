@@ -92,21 +92,33 @@ function dotColor(c) {
   return _DOT_COLOR[cat] || `var(--card-${cat}-text)`;
 }
 
-/* Calendar dot LENGTH, in circle-widths: the card's importance (`size`), not
-   its duration -- estimated_time is a separate field and never feeds this. One
-   circle for a wisp up to four for a commitment, so a day reads its WEIGHT at a
-   glance instead of just how many cards landed on it. An unset/unknown size
-   falls back to `idea`, the schema default for a new card.
-
-   A reminder is forced to wisp whatever its `size` says -- the same override
-   cardStyle applies, for the same reason: a reminder is a note that a day
-   exists, not work to be done, so it must never outweigh a real card on the
-   day it sits on. This also catches gcal-imported reminders, which carry
-   size: null and would otherwise fall through to the `idea` default. */
-const _DOT_UNITS = {wisp: 1, idea: 2, plan: 3, commitment: 4};
+/* Calendar dot LENGTH, in circle-widths: the card's DURATION (estimated_time,
+   total minutes), in four named steps (Wai, 2026-11-21: "just have 4 steps of
+   sizes: task, process, project, titan"):
+     task    under 15 min   1
+     process 15 min - 1h    2
+     project over 1h        3
+     titan   over 5h        4
+   No estimate counts as a task. A reminder stays one circle whatever its
+   estimate: it is a note that a day exists, not work. Importance moved to the
+   dot's brightness (dotImportance). */
 function dotUnits(c) {
-  if (c.is_reminder) return _DOT_UNITS.wisp;
-  return _DOT_UNITS[c.size] || _DOT_UNITS.idea;
+  if (c.is_reminder) return 1;
+  const m = Number(c.estimated_time) || 0;
+  if (m > 300) return 4;
+  if (m > 60) return 3;
+  if (m >= 15) return 2;
+  return 1;
+}
+
+/* Calendar dot BRIGHTNESS: the card's importance (`size`), drawn as the pill's
+   opacity in rd.css (.cal-dots i[data-imp]) -- the more important, the brighter.
+   Unknown size -> idea (the schema default); a reminder is always wisp, the
+   same override cardStyle applies. */
+const _DOT_IMPORTANCE = ['wisp', 'idea', 'plan', 'commitment'];
+function dotImportance(c) {
+  if (c.is_reminder) return 'wisp';
+  return _DOT_IMPORTANCE.includes(c.size) ? c.size : 'idea';
 }
 
 /* Book progress-bar colors — category hue at the standard track/fill alphas

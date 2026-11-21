@@ -337,9 +337,10 @@ body { overflow: hidden !important; background: transparent !important; }
    After the weekend + holiday rules so it wins on source order. */
 .cal-d.today .cal-n { color: hsl(var(--orange-hsl) / 1); }
 
-/* One pill per card on the day. A pill's LENGTH is the card's importance --
-   wisp 1 ... commitment 4 grid cells (dotUnits) -- so a day shows its weight,
-   not just its count.
+/* One pill per card on the day. A pill's LENGTH is the card's duration --
+   task 1, process 2, project 3, titan 4 grid cells (dotUnits) -- and its
+   BRIGHTNESS is the card's importance (dotImportance, the rules after
+   .cal-dots i), so a day shows how long and how much, not just how many.
 
    The row is a grid of --cal-dot squares with --space-1 gutters, and a pill of
    length L spans L cells, lying down or standing up. packCalDots (rd-calendar.js)
@@ -364,6 +365,13 @@ body { overflow: hidden !important; background: transparent !important; }
   border-radius: var(--radius-pill);
   background: hsl(var(--green-hsl) / 1);
 }
+
+/* Importance as brightness: a wisp is a faint dot, a commitment is full
+   strength. opacity, not the colour's alpha, so every category hue takes the
+   same four steps without adding (colour, alpha) pairs to the palette. */
+.cal-dots i[data-imp="wisp"] { opacity: 0.45; }
+.cal-dots i[data-imp="idea"] { opacity: 0.6; }
+.cal-dots i[data-imp="plan"] { opacity: 0.8; }
 
 /* ── notes (right half of the calendar row) ──────────────────────────────────
    The scratch todo list's only home (exec-todos.js builds into this slot;

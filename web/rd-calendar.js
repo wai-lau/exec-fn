@@ -1,7 +1,7 @@
 // R&D month calendar: the grid under the reminders/books bars, its dots, and
 // the drag/swipe month paging. Same global scope as rd.js (loaded before it via
 // <script>, not modules) -- it reads `cards` and calls esc()/dotColor()/
-// dotUnits(), and rd.js calls buildCalendar()/wireCalendarSwipe()/_syncCalH().
+// dotUnits()/dotImportance(), and rd.js calls buildCalendar()/wireCalendarSwipe()/_syncCalH().
 // Split out of rd.js to keep both files under the 500-line cap.
 // One month at a time, Sunday-first, so the grid is 4-6 rows depending on how
 // the month falls. Cells are inert -- no hover, no click -- but the band itself
@@ -24,9 +24,9 @@ function _isoLocal(d) {
 // clones the next occurrence as its own card, so the series was represented
 // twice from then on.
 //
-// Each value carries the dot's colour (category hue) AND
-// its length in circle-widths (importance), so the day reads as both a mix of
-// what's on it and how heavy it is -- not just how much.
+// Each value carries the dot's colour (category hue), its length in
+// circle-widths (duration) and its brightness (importance), so the day reads
+// as a mix of what's on it, how long it runs and how much it matters.
 // A recurring card exists as exactly ONE live occurrence -- archiving it is what
 // clones the next -- so the months ahead read empty even though a weekly series
 // will land in them every week. Project each LIVE recurring card forward from
@@ -63,7 +63,7 @@ function calDots() {
     const day = c.scheduled_day || (c.due_date ? c.due_date.slice(0, 10) : null);
     if (!day) return;
     if (c.column === 'archives' && day > today) return;
-    const dot = {color: dotColor(c), units: dotUnits(c)};
+    const dot = {color: dotColor(c), units: dotUnits(c), imp: dotImportance(c)};
     (m[day] = m[day] || []).push(dot);
     if (!c.recur_type || c.column === 'archives') return;
     const [yy, mm, dd] = day.split('-').map(Number);
@@ -94,7 +94,7 @@ function _calCellHtml(d, dots, todayMs) {
   // out-of-month padding cells deliberately have none.
   return `<div class="${cls.join(' ')}" data-day="${_isoLocal(d)}">
     <div class="cal-n">${String(d.getDate()).padStart(2, '0')}</div>
-    <div class="cal-dots">${day.map(d => `<i data-u="${d.units}" style="background:${d.color}"></i>`).join('')}</div>
+    <div class="cal-dots">${day.map(d => `<i data-u="${d.units}" data-imp="${d.imp}" style="background:${d.color}"></i>`).join('')}</div>
   </div>`;
 }
 
