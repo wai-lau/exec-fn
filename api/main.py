@@ -20,6 +20,7 @@ import app_paths  # FIRST: puts apps/*/api on sys.path (submodule apps)
 from nudge_loop import _run_nudge_loop
 from routes_graph import run_graph_warm_loop
 from discord_bot import _run_discord_bot
+from phone_push import report_error, run_phone_push
 from tarot.openings_loop import run_openings_loop
 from routers import public, protected, guest_protected
 from security_headers import SecurityHeadersMiddleware
@@ -82,6 +83,8 @@ async def _lifespan(app: FastAPI):
     # Discord bridge — DMs nudges/monitor comments to Wai's phone and answers
     # DMs back. No-op unless DISCORD_BOT_TOKEN + DISCORD_USER_ID are set.
     discord_task = asyncio.create_task(_run_discord_bot())
+    # Phone notifications via Wai's ntfy server (phone_push.py). No-op unless NTFY_URL + NTFY_TOKEN.
+    phone_task = asyncio.create_task(run_phone_push())
     # Nightly (05:45 ET): probe the reader's voice and top the pre-generated
     # /tarot openings back up. In-process for the same reason as the nudge loop
     # -- a baked cron line would need an image rebuild to change.
@@ -90,6 +93,7 @@ async def _lifespan(app: FastAPI):
     nudge_task.cancel()
     graph_warm_task.cancel()
     discord_task.cancel()
+    phone_task.cancel()
     tarot_task.cancel()
 
 
@@ -164,6 +168,13 @@ class CacheControlMiddleware:
 # old decorator order): it stamps the final response headers last.
 app.add_middleware(CacheControlMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)   # HSTS, framing, nosniff (security_headers.py)
+
+
+@app.exception_handler(Exception)
+async def unhandled_error_handler(request: Request, exc: Exception):
+    """A 500 for the browser as before, and a grouped, capped alert to Wai's phone."""
+    report_error(request.method, request.url.path, exc)
+    return JSONResponse({"detail": "Internal Server Error"}, status_code=500)
 
 
 @app.exception_handler(401)
