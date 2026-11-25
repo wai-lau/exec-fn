@@ -25,7 +25,7 @@ import time
 import wave
 from pathlib import Path
 
-from tts_routing import TTS_UPSTREAM
+from tts_routing import PIPER_UPSTREAM, TTS_UPSTREAM, pick_upstream
 
 SAMPLE_RATE = 24000   # upstream PCM rate (float32 mono), see hosaka-audio.js
 
@@ -55,7 +55,8 @@ async def synthesize(text: str, voice: str, backend: str, timeout: float = SYNTH
     chunks: list[bytes] = []
     try:
         async with asyncio.timeout(timeout):
-            async with websockets.connect(f"ws://{TTS_UPSTREAM}/v1/audio/stream", max_size=None) as up:
+            url = pick_upstream({"voice": voice, "backend": backend}, TTS_UPSTREAM, PIPER_UPSTREAM)
+            async with websockets.connect(f"ws://{url}/v1/audio/stream", max_size=None) as up:
                 await up.send(json.dumps({
                     "input": text, "backend": backend, "voice": voice, "params": {"speed": 1.0},
                 }))

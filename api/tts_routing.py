@@ -16,11 +16,19 @@ TTS_UPSTREAM = os.environ.get("TTS_UPSTREAM", "172.17.0.1:8123")
 PIPER_UPSTREAM = os.environ.get("TTS_PIPER_UPSTREAM", "hosaka-piper:8123")
 
 
+# Voices the droplet's piper serves. Matched by NAME as well as by backend, so
+# a request that names glados but carries no (or a wrong) backend still never
+# reaches the home box -- Wai, 2026-11-25: "never send glados requests to home
+# box, always use server for glados". The home box advertises glados too.
+PIPER_VOICES = frozenset({"glados"})
+
+
 def pick_upstream(req, home: str, piper: str) -> str:
-    """Route one utterance to its backend's upstream. Glados (backend "piper")
-    is served by the always-on droplet container; every other backend goes to
-    the home GPU box over the SSH tunnel. A non-dict request defaults home."""
-    if isinstance(req, dict) and req.get("backend") == "piper":
+    """Route one utterance to its backend's upstream. Glados (backend "piper",
+    or voice "glados" whatever the backend says) is served by the always-on
+    droplet container; every other voice goes to the home GPU box over the SSH
+    tunnel. A non-dict request defaults home."""
+    if isinstance(req, dict) and (req.get("backend") == "piper" or req.get("voice") in PIPER_VOICES):
         return piper
     return home
 

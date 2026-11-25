@@ -71,3 +71,9 @@ def test_died_mid_utterance_isolates_per_upstream():
     # the home box dying mid-utterance must not speak for the live piper stream
     assert died_mid_utterance(conns, busy, "home:1", home) is True
     assert died_mid_utterance(conns, busy, "piper:1", piper) is False
+
+
+def test_pick_upstream_glados_goes_to_piper_whatever_the_backend_says():
+    # Wai, 2026-11-25: glados never goes to the home box.
+    assert pick_upstream({"voice": "glados"}, "home:1", "piper:1") == "piper:1"
+    assert pick_upstream({"voice": "glados", "backend": "kokoro"}, "home:1", "piper:1") == "piper:1"
