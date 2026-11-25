@@ -26,7 +26,7 @@ SPACE = {"--space-px": 1, "--space-0-5": 2, "--space-1": 3, "--space-1-5": 4,
 RADIUS = {"--radius-1": 2, "--radius-2": 4, "--radius-3": 6, "--radius-4": 8}
 FS = {"--fs-2xs": 0.6, "--fs-sm": 0.72, "--fs-xl": 1.0, "--fs-3xl": 1.7}
 FW = {"--fw-normal": 400, "--fw-bold": 700}
-LH = {"--lh-none": 1.0, "--lh-tight": 1.2, "--lh-snug": 1.35, "--lh-normal": 1.45,
+LH = {"--lh-none": 1.0, "--lh-dense": 1.1, "--lh-tight": 1.2, "--lh-snug": 1.35, "--lh-normal": 1.45,
       "--lh-relaxed": 1.6, "--lh-loose": 1.7}
 TRACK = {"--tracking-tight": -0.01, "--tracking-wide": 0.05, "--tracking-wider": 0.08,
          "--tracking-x": 0.1, "--tracking-widest": 0.12, "--tracking-caps": 0.15,
