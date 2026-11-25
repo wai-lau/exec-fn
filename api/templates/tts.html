@@ -13,18 +13,17 @@
     </div>
   </div>
   <div id="tts-cb">
-    <div class="tts-group">clone knobs (chatterbox)
-      <button type="button" id="tts-info" class="tts-info" aria-expanded="false" aria-label="show knob descriptions">i</button></div>
+    <div class="tts-group">clone knobs (chatterbox)</div>
     <div class="tts-knobs">
-      <label class="tts-knob"><span class="tts-kname">intensity</span>
+      <label class="tts-knob" for="tts-exaggeration"><span class="tts-kname">intensity<button type="button" class="tts-info" aria-expanded="false" aria-label="what intensity does">i</button></span>
         <input type="range" id="tts-exaggeration" min="0" max="2" step="0.05" value="0.85">
         <span class="tts-kval" id="tts-exaggeration-val"></span>
         <span class="tts-kdesc">how dramatic the delivery is. low = flat, restrained; high = theatrical. above ~1 gets hammy.</span></label>
-      <label class="tts-knob"><span class="tts-kname">guidance</span>
+      <label class="tts-knob" for="tts-cfg_weight"><span class="tts-kname">guidance<button type="button" class="tts-info" aria-expanded="false" aria-label="what guidance does">i</button></span>
         <input type="range" id="tts-cfg_weight" min="0" max="1" step="0.05" value="0.75">
         <span class="tts-kval" id="tts-cfg_weight-val"></span>
         <span class="tts-kdesc">how tightly it sticks to the voice. low = looser, slower; high = faithful but stiff.</span></label>
-      <label class="tts-knob"><span class="tts-kname">randomness</span>
+      <label class="tts-knob" for="tts-temperature"><span class="tts-kname">randomness<button type="button" class="tts-info" aria-expanded="false" aria-label="what randomness does">i</button></span>
         <input type="range" id="tts-temperature" min="0.1" max="2" step="0.05" value="0.15">
         <span class="tts-kval" id="tts-temperature-val"></span>
         <span class="tts-kdesc">sampling spread take-to-take. low = consistent, samey; high = varied, spontaneous, less stable.</span></label>
@@ -33,12 +32,14 @@
 
   <div class="tts-group">playback</div>
   <div class="tts-knobs">
-    <label class="tts-knob"><span class="tts-kname">speed</span>
+    <label class="tts-knob" for="tts-speed"><span class="tts-kname">speed<button type="button" class="tts-info" aria-expanded="false" aria-label="what speed does">i</button></span>
       <input type="range" id="tts-speed" min="0.5" max="2" step="0.05" value="1.1">
-      <span class="tts-kval" id="tts-speed-val"></span></label>
-    <label class="tts-knob"><span class="tts-kname">volume</span>
+      <span class="tts-kval" id="tts-speed-val"></span>
+      <span class="tts-kdesc">how fast it talks. 1 = natural pace; charlie tops out at 1.1 before it degrades.</span></label>
+    <label class="tts-knob" for="tts-volume"><span class="tts-kname">volume<button type="button" class="tts-info" aria-expanded="false" aria-label="what volume does">i</button></span>
       <input type="range" id="tts-volume" min="0" max="5" step="0.1" value="1.0">
-      <span class="tts-kval" id="tts-volume-val"></span></label>
+      <span class="tts-kval" id="tts-volume-val"></span>
+      <span class="tts-kdesc">loudness. 1 = each voice levelled to the same safe peak; higher is louder and may clip.</span></label>
   </div>
 
   <textarea id="tts-text" placeholder="Type something to speak...">Hi, so, there's a project that I've been working on that I really want to talk to you about. --- Project Hosaka! ---

@@ -57,3 +57,20 @@ def test_lomo_with_users_needs_confirm():
 def test_effective_mode_lomo_with_dead_tts_reads_idle():
     assert effective_mode("lomo", tts_live=False) == "idle"
     assert effective_mode("lomo", tts_live=True) == "lomo"
+
+
+def test_switch_to_action_the_box_lacks_raises_unsupported(monkeypatch):
+    # The box is up but has no such route (lomo before it learns it): that is
+    # not `gone` -- reporting gone lit nomo as if the click had switched it off.
+    import asyncio
+
+    import httpx
+    import pytest
+
+    import gpu_mode_client
+
+    real = httpx.AsyncClient
+    transport = httpx.MockTransport(lambda req: httpx.Response(404, json={"detail": "Not Found"}))
+    monkeypatch.setattr(gpu_mode_client.httpx, "AsyncClient", lambda **kw: real(transport=transport, **kw))
+    with pytest.raises(gpu_mode_client.UnsupportedMode):
+        asyncio.run(gpu_mode_client.switch_mode("box", "t", "lomo"))

@@ -89,6 +89,11 @@
         if (confirm(n + ' user(s) streaming -- switch anyway?')) return post(action, true);
         return; // cancelled
       }
+      if (r.status === 501) { // box is up but lacks this action (lomo, for now)
+        alert(action + ' is not on the home computer yet -- nothing changed');
+        await refresh();
+        return;
+      }
       if (!r.ok) { await load(); return; }
       render((await r.json()).mode);
     }

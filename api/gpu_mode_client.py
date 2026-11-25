@@ -59,15 +59,25 @@ async def fetch_mode(upstream: str, token: str) -> str:
         return "gone"
 
 
+class UnsupportedMode(Exception):
+    """The home box answered but has no endpoint for this action (404) -- e.g.
+    lomo before the box learns it. Not `gone`: the box is up and unchanged."""
+
+
 async def switch_mode(upstream: str, token: str, action: str) -> str:
-    """Run an action; return the resulting mode, or 'gone' on failure."""
+    """Run an action; return the resulting mode, or 'gone' on failure. Raises
+    UnsupportedMode when the box is reachable but lacks the action."""
     try:
         async with httpx.AsyncClient(timeout=15) as client:
             r = await client.post(
                 f"http://{upstream}/{action}",
                 headers={"Authorization": f"Bearer {token}"},
             )
+            if r.status_code == 404:
+                raise UnsupportedMode(action)
             r.raise_for_status()
             return r.json()["mode"]
+    except UnsupportedMode:
+        raise
     except Exception:
         return "gone"

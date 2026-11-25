@@ -17,7 +17,7 @@ from fastapi import HTTPException, Request, WebSocket
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
 from auth import GUEST_SESSION_TOKEN, SESSION_TOKEN
-from gpu_mode_client import (GPU_MODE_TOKEN, GPU_MODE_UPSTREAM, effective_mode, fetch_mode,
+from gpu_mode_client import (GPU_MODE_TOKEN, GPU_MODE_UPSTREAM, UnsupportedMode, effective_mode, fetch_mode,
                              needs_user_confirm, switch_mode)
 from pages import _render_page, _tmpl
 from routers import guest_protected, protected, public
@@ -121,7 +121,13 @@ async def gpu_mode_post(request: Request):
         raise HTTPException(status_code=400, detail="bad action")
     if needs_user_confirm(action, len(_audio_conns), force):
         raise HTTPException(status_code=409, detail={"detail": "active_users", "count": len(_audio_conns)})
-    mode = await switch_mode(GPU_MODE_UPSTREAM, GPU_MODE_TOKEN, action)
+    try:
+        mode = await switch_mode(GPU_MODE_UPSTREAM, GPU_MODE_TOKEN, action)
+    except UnsupportedMode:
+        # The box is up and unchanged; it just has no such action yet (lomo
+        # before the home box grows /lomo). Say so -- reporting `gone` lit the
+        # strip's nomo, which read as the click having switched it off.
+        raise HTTPException(status_code=501, detail={"detail": "unsupported", "action": action})
     global _homo_until
     _homo_until = time.monotonic() + _HOMO_GRACE_S if mode in ("homo", "lomo") else 0.0
     await _broadcast_mode(mode)  # live-sync the other open /hosaka pages

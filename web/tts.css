@@ -122,6 +122,7 @@
   letter-spacing: var(--tracking-mega);
   text-transform: uppercase;
   margin-top: var(--space-2);
+  font-weight: var(--fw-bold);
 }
 
 .tts-knobs {
@@ -155,7 +156,7 @@
   line-height: var(--lh-snug);
   color: hsl(var(--green-hsl) / 0.45);
   margin-top: -0.1rem;
-  display: none; /* until the (i) button opens them -- see #tts-cb.show-desc */
+  display: none; /* until its (i) button opens it -- see .tts-knob.show-desc */
 }
 
 .tts-knob input[type="range"] {
@@ -194,18 +195,18 @@
   );
 }
 
-/* Knob descriptions stay hidden until the (i) button opens them, so the
+/* Each knob's description stays hidden until its own (i) opens it, so the
    sliders, text box, Speak row and scope fit above the nav. Open, the column
    may outgrow a short screen, so it scrolls. */
-#tts-cb.show-desc .tts-kdesc {
+.tts-knob.show-desc .tts-kdesc {
   display: block;
 }
 
-.tts:has(#tts-cb.show-desc) {
+.tts:has(.tts-knob.show-desc) {
   overflow-y: auto;
 }
 
-/* (i): a small circled letter beside the group label, not a filled button. */
+/* (i): a small circled letter after the slider name, not a filled button. */
 .tts .tts-info {
   display: inline-grid;
   place-items: center;
