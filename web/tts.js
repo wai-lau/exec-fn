@@ -318,6 +318,11 @@ window.addEventListener("DOMContentLoaded", () => {
   wave.start(); // always-on scope -- flat baseline until audio plays
   checkHealth(); // before the cosmetics -- Speak must never wait on them
   mountPresence();
+  const info = $("tts-info"); // (i) shows/hides the knob descriptions
+  info.addEventListener("click", () => {
+    const on = $("tts-cb").classList.toggle("show-desc");
+    info.setAttribute("aria-expanded", String(on));
+  });
   setInterval(checkHealth, 15000);
   $("tts-speak").addEventListener("click", () => {
     player.unlock(); // synchronous, in-gesture -- the iOS audio unlock

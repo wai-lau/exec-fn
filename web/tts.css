@@ -151,6 +151,7 @@
   line-height: var(--lh-snug);
   color: hsl(var(--green-hsl) / 0.45);
   margin-top: -0.1rem;
+  display: none; /* until the (i) button opens them -- see #tts-cb.show-desc */
 }
 
 .tts-knob input[type="range"] {
@@ -161,7 +162,7 @@
   accent-color: hsl(var(--green-hsl));
 }
 
-/* Scrolling playback scope between the Speak row and the clone knobs. Always
+/* Scrolling playback scope under the Speak row, last in the column. Always
    present -- idle it shows the flat baseline; while speaking it scrolls a live
    trace. The `color` here is read by tts.js as the canvas stroke (keeps the hue
    in CSS). */
@@ -171,11 +172,13 @@
   /* span the column width. NOT 100vw full-bleed: .tts now clips overflow (both
      axes) to kill the page scrollbar, so a viewport-wide scope would be clipped
      on wide screens (column is max 620px). Keep it inside the column. The
-     negative vertical margin cancels the .tts column gap so the scope butts
-     against the Speak row above and the knobs below. */
+     negative top margin cancels the .tts column gap so the scope butts against
+     the Speak row above. It shrinks (down to 3rem) before anything spills
+     under the nav on a short screen. */
   width: 100%;
-  margin: -0.7rem 0;
-  height: 136px;
+  margin-top: -0.7rem;
+  flex: 0 1 136px;
+  min-height: 3rem;
   color: hsl(var(--green-hsl) / 0.8);
 
   /* baseline down the middle (persists when the scope is empty) */
@@ -185,6 +188,43 @@
     hsl(var(--green-hsl) / 0.45) calc(50% + 0.5px),
     transparent calc(50% + 0.5px)
   );
+}
+
+/* Knob descriptions stay hidden until the (i) button opens them, so the
+   sliders, text box, Speak row and scope fit above the nav. Open, the column
+   may outgrow a short screen, so it scrolls. */
+#tts-cb.show-desc .tts-kdesc {
+  display: block;
+}
+
+.tts:has(#tts-cb.show-desc) {
+  overflow-y: auto;
+}
+
+/* (i): a small circled letter beside the group label, not a filled button. */
+.tts .tts-info {
+  display: inline-grid;
+  place-items: center;
+  width: 1.4em;
+  height: 1.4em;
+  margin-left: var(--space-2);
+  padding: 0;
+  border-radius: 50%;
+  font-size: var(--fs-sm);
+  font-style: italic;
+  letter-spacing: 0;
+  text-transform: none;
+  line-height: var(--lh-none);
+  vertical-align: middle;
+  color: hsl(var(--green-hsl) / 0.8);
+  background: none;
+  border: 1px solid hsl(var(--green-hsl) / 0.45);
+}
+
+.tts .tts-info:hover,
+.tts .tts-info[aria-expanded="true"] {
+  color: hsl(var(--bg-hsl));
+  background: hsl(var(--green-hsl) / 0.8);
 }
 
 #tts-cb {
