@@ -14,7 +14,12 @@ import httpx
 GPU_MODE_UPSTREAM = os.environ.get("GPU_MODE_UPSTREAM", "172.17.0.1:8124")
 GPU_MODE_TOKEN = os.environ.get("GPU_MODE_TOKEN", "")
 
-_STOP_HOSAKA = {"emo", "idle"}  # actions that kill hosaka-server -> guard them
+# Actions that stop or restart hosaka-server -> guard them. lomo (kokoro +
+# glados only, chatterbox unloaded) restarts it, so it cuts listeners too.
+_STOP_HOSAKA = {"emo", "idle", "lomo"}
+
+# The modes a TTS-serving claim is checked against reality (see effective_mode).
+_SERVING = {"homo", "lomo"}
 
 
 def effective_mode(reported: str, tts_live: bool) -> str:
@@ -26,17 +31,17 @@ def effective_mode(reported: str, tts_live: bool) -> str:
     stopped serving a byte, and the strip lights the homo segment over a dead
     backend. Nothing is running, so the honest reading is `idle`.
 
-    Only homo is second-guessed. `emo`/`idle` mean hosaka-server is deliberately
+    Only the serving modes (homo, lomo) are second-guessed. `emo`/`idle` mean hosaka-server is deliberately
     stopped -- a failing TTS probe is the EXPECTED state there, not a
     contradiction -- and `gone` (box unreachable) already says everything."""
-    if reported == "homo" and not tts_live:
+    if reported in _SERVING and not tts_live:
         return "idle"
     return reported
 
 
 def needs_user_confirm(action: str, presence_count: int, force: bool) -> bool:
     """True iff this switch would cut off connected users and the caller has not
-    already confirmed. homo (which starts hosaka) never needs it."""
+    already confirmed. homo (which only adds voices) never needs it."""
     return action in _STOP_HOSAKA and presence_count > 0 and not force
 
 

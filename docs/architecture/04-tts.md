@@ -27,12 +27,20 @@ Client-side belts (a frame can also be lost browser↔droplet): `hosaka-audio.js
 
 ### 4b-ii. GPU-mode owner control
 
-`GET`/`POST /api/hosaka/mode` and `GET /api/hosaka/mode/stream` are on **`protected`** (owner-only; guests must never flip the GPU). They proxy the home-box `gpu-mode` service at `GPU_MODE_UPSTREAM` (default `172.17.0.1:8124`, over the same tunnel) with `Authorization: Bearer $GPU_MODE_TOKEN` (must match the home box's token; read from the environment, empty by default). GET returns `homo`/`emo`/`idle`/`gone` (`gone` = box unreachable). POST `{"action": "homo"|"emo"|"idle", "force"?: bool}` (else 400).
+`GET`/`POST /api/hosaka/mode` and `GET /api/hosaka/mode/stream` are on **`protected`** (owner-only; guests must never flip the GPU). They proxy the home-box `gpu-mode` service at `GPU_MODE_UPSTREAM` (default `172.17.0.1:8124`, over the same tunnel) with `Authorization: Bearer $GPU_MODE_TOKEN` (must match the home box's token; read from the environment, empty by default). GET returns `homo`/`lomo`/`emo`/`idle`/`gone` (`gone` = box unreachable). POST `{"action": "homo"|"lomo"|"emo"|"idle", "force"?: bool}` (else 400). **`lomo` (added 2026-11-25) needs a `/lomo` endpoint on the home-box service**, which only has `/homo` `/emo` `/idle` as of that day; until it lands, a lomo switch reads back `gone`.
 
-- **Kill-switch guard**: `emo` and `idle` stop hosaka-server and cut active listeners. `needs_user_confirm` checks `_audio_conns` (every open `/ws/hosaka` socket — incl. `/tarot` and Exec voice, not just `/hosaka`-page `_presence`) and returns `409 {detail:"active_users", count}` unless `force`. `homo` never needs confirmation.
-- **Reported mode is corrected against reality**: the box's `/mode` is its *intent* and outlives the truth (hosaka-server dies, box still says `homo`). `_current_mode()` probes `/mode` and `_live(TTS_UPSTREAM)` concurrently and `gpu_mode_client.effective_mode` reports `idle` for a claimed `homo` with no live TTS. Only `homo` is second-guessed (under `emo`/`idle` a failing probe is expected; `gone` says it all). A `homo` switch sets a 90s grace (`_HOMO_GRACE_S`) assuming live, since models must load before `/v1/voices` answers.
+- **Kill-switch guard**: `emo` and `idle` stop hosaka-server, `lomo` restarts it without chatterbox; all three and cut active listeners. `needs_user_confirm` checks `_audio_conns` (every open `/ws/hosaka` socket — incl. `/tarot` and Exec voice, not just `/hosaka`-page `_presence`) and returns `409 {detail:"active_users", count}` unless `force`. `homo` never needs confirmation.
+- **Reported mode is corrected against reality**: the box's `/mode` is its *intent* and outlives the truth (hosaka-server dies, box still says `homo`). `_current_mode()` probes `/mode` and `_live(TTS_UPSTREAM)` concurrently and `gpu_mode_client.effective_mode` reports `idle` for a claimed `homo`/`lomo` with no live TTS. Only those two are second-guessed (under `emo`/`idle` a failing probe is expected; `gone` says it all). A `homo` or `lomo` switch sets a 90s grace (`_HOMO_GRACE_S`) assuming live, since models must load before `/v1/voices` answers.
 - **Live sync**: a POST pushes instantly to `_mode_subscribers`; changes made at the home box (watchdog restart, another device) never touch that queue, so the SSE stream's keepalive tick doubles as a poll of the real mode (`_MODE_POLL_S` = 15s) and emits on change; unchanged → a `: keepalive` comment.
-- **UI**: owner-only `#gpu-mode` strip on `/hosaka` (`web/gpu-mode.{css,js}`): emo / **down** / homo. The middle button is LABELLED `down` but its `data-mode` is still `idle` (the action the box accepts). `idle`/`down` (hosaka-server deliberately stopped) differs from `gone` (box unreachable). Guests get 401, strip hidden.
+- **UI**: owner-only `#gpu-mode` strip on `/hosaka` (`web/gpu-mode.{css,js}`), low to high (Wai, 2026-11-25):
+
+  | Button | Sends | Home computer | Voices |
+  |--------|-------|---------------|--------|
+  | nomo | `idle` | off | glados only |
+  | lomo | `lomo` | on, busy | nicole + glados |
+  | homo | `homo` | on | all |
+
+  `nomo` is LABELLED `nomo` but sends `idle` (the action the box accepts). `emo` left the strip; a reported `emo` or `gone` lights `nomo`, since only glados speaks under either (`gone` also disables the strip — nothing can switch an unreachable box). Guests get 401, strip hidden.
 
 ### 4c. Three consumers of one audio core — and one narrator above it
 

@@ -34,7 +34,7 @@ _mode_subscribers: list[asyncio.Queue] = []
 # _mode_subscribers, which only carries switches made through this app.
 _MODE_POLL_S = 15
 
-# After a homo switch the box still has to load models before /v1/voices
+# After a homo (or lomo) switch the box still has to load models before /v1/voices
 # answers. Without a grace the next poll reads "homo but no TTS" and reports
 # idle, so the strip flips to idle and back the moment loading finishes. Assume
 # live for this long after a homo switch instead of flapping.
@@ -107,7 +107,7 @@ async def _current_mode() -> str:
 
 @protected.get("/api/hosaka/mode")
 async def gpu_mode_get():
-    """Current GPU mode (homo/emo/idle), or 'gone' if the home box is
+    """Current GPU mode (homo/lomo/emo/idle), or 'gone' if the home box is
     unreachable. Owner-only: guests never see the control."""
     return JSONResponse({"mode": await _current_mode()})
 
@@ -117,13 +117,13 @@ async def gpu_mode_post(request: Request):
     body = await request.json()
     action = body.get("action")
     force = bool(body.get("force"))
-    if action not in ("homo", "emo", "idle"):
+    if action not in ("homo", "lomo", "emo", "idle"):
         raise HTTPException(status_code=400, detail="bad action")
     if needs_user_confirm(action, len(_audio_conns), force):
         raise HTTPException(status_code=409, detail={"detail": "active_users", "count": len(_audio_conns)})
     mode = await switch_mode(GPU_MODE_UPSTREAM, GPU_MODE_TOKEN, action)
     global _homo_until
-    _homo_until = time.monotonic() + _HOMO_GRACE_S if mode == "homo" else 0.0
+    _homo_until = time.monotonic() + _HOMO_GRACE_S if mode in ("homo", "lomo") else 0.0
     await _broadcast_mode(mode)  # live-sync the other open /hosaka pages
     return JSONResponse({"mode": mode})
 

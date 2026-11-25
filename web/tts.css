@@ -50,6 +50,7 @@
 /* GPU-mode strip pinned to the right edge of the row (swapped with the count). */
 .tts-presence-row #gpu-mode {
   margin-left: auto;
+  flex-shrink: 0; /* the strip never clips; the count gives way instead */
 }
 
 /* Live connected-users count, top-left of the page. Defaults to 0 so the line
@@ -62,6 +63,9 @@
   color: hsl(var(--green-hsl) / 0.45);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis; /* a narrow phone cuts the count, not the GPU strip */
 }
 
 /* Speak button + voice selector share one line. */

@@ -47,3 +47,13 @@ def test_effective_mode_does_not_second_guess_stopped_modes():
 def test_effective_mode_leaves_gone_alone():
     # the box itself is unreachable; that already says everything
     assert effective_mode("gone", tts_live=False) == "gone"
+
+
+def test_lomo_with_users_needs_confirm():
+    # lomo restarts hosaka-server with chatterbox unloaded -- it cuts listeners.
+    assert needs_user_confirm("lomo", presence_count=1, force=False) is True
+
+
+def test_effective_mode_lomo_with_dead_tts_reads_idle():
+    assert effective_mode("lomo", tts_live=False) == "idle"
+    assert effective_mode("lomo", tts_live=True) == "lomo"

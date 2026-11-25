@@ -1,12 +1,12 @@
-// GPU-mode control (owner-only) for /hosaka. The home GPU box
-// runs EITHER hosaka TTS (homo) or is freed for other work (idle/emo).
-// NOTE: `idle` is shown to the user as "down" -- the label changed, the WIRE
-// value did not. data-mode is the action the home box accepts, so renaming it
-// would break the switch; only the button text differs.
-// (emo / idle); this segmented strip flips between them. Both pages hit the same
-// backend (/api/hosaka/mode), so the control is shared state across them. GET
-// 401 for guests keeps the strip hidden. Loaded on both pages; keys off the
-// #gpu-mode element, so it's a no-op on any page that lacks it.
+// GPU-mode control (owner-only) for /hosaka. Three buttons, low to high:
+//   nomo -- home computer off, only glados (the droplet's piper) speaks
+//   lomo -- home computer on but busy: nicole (kokoro) + glados
+//   homo -- home computer on, every voice
+// NOTE: `nomo` sends the WIRE value `idle` -- data-mode is the action the home
+// box accepts, so only the button text differs. The box can also report `emo`
+// (hosaka stopped, GPU lent out) or the app `gone` (box unreachable); both leave
+// glados alone, so both light `nomo`. GET 401 for guests keeps the strip hidden.
+// Keys off the #gpu-mode element, so it's a no-op on any page that lacks it.
 'use strict';
 
 (function () {
@@ -15,11 +15,16 @@
     if (!el) return;
     const buttons = Array.from(el.querySelectorAll('.gpu-mode-btn'));
 
+    // Reported mode -> the button it lights. emo and gone have no button of
+    // their own: only glados speaks under either, which is what `nomo` means.
+    const LIT = { emo: 'idle', gone: 'idle' };
+
     function render(mode) {
       el.hidden = false;
       el.classList.toggle('gone', mode === 'gone');
+      const lit = LIT[mode] || mode;
       for (const b of buttons) {
-        const isActive = b.dataset.mode === mode;
+        const isActive = b.dataset.mode === lit;
         b.classList.toggle('active', isActive);
         // active button + gone state are non-interactive; others clickable
         b.disabled = isActive || mode === 'gone';
