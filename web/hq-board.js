@@ -306,6 +306,7 @@ function buildBoard() {
   // build the today timeline (drop target + blocks)
   const todayCards = (weekData.days[today] || []).filter(c => !c.is_reminder && !c.is_book);
   buildSchedule(todayCards);
+  hideCutNotes();
 }
 
 function initSortable(days) {
