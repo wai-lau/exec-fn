@@ -29,8 +29,8 @@ body { overflow: hidden !important; background: transparent !important; }
 /* side columns pack three days — shrink chrome to fit (day-name font +
    header padding stay the same as the today column so titles align) */
 .hq-colgroup.small .hq-list { padding: var(--space-1-5) var(--space-2) var(--space-5); }
-.hq-colgroup.small .hq-card { padding: var(--space-1-5) var(--space-2-5); margin-bottom: var(--space-1-5); }
-.hq-colgroup.small .hq-card-title { font-size: var(--fs-sm); line-height: var(--lh-snug); margin-bottom: 0; }
+.hq-colgroup.small .hq-card { padding: var(--space-1) var(--space-2); margin-bottom: var(--space-1-5); }
+.hq-colgroup.small .hq-card-title { font-size: var(--fs-sm); line-height: var(--lh-tight); margin-bottom: 0; }
 .hq-colgroup.small .hq-card-meta { font-size: var(--fs-2xs); margin-top: var(--space-0-5); }
 .hq-col.weekend { background: transparent; }
 .hq-col.weekend .hq-day-name { color: hsl(var(--cyan-hsl) / 1); }
@@ -56,7 +56,7 @@ body { overflow: hidden !important; background: transparent !important; }
 }
 
 .hq-card {
-  border-radius: var(--radius-2); padding: var(--space-2-5) var(--space-3); margin-bottom: var(--space-1-5);
+  border-radius: var(--radius-2); padding: var(--space-1) var(--space-2); margin-bottom: var(--space-1-5);
   cursor: grab; user-select: none; font-family: var(--font-mono); font-weight: var(--fw-normal);
   border: 1px solid transparent; position: relative;
   overflow: hidden; box-sizing: border-box;
@@ -66,10 +66,10 @@ body { overflow: hidden !important; background: transparent !important; }
 .hq-card:active { cursor: grabbing; }
 .hq-card:hover { filter: brightness(1.1); }
 .hq-card.plain { background: color-mix(in srgb, hsl(var(--green-hsl)) 12%, hsl(var(--bg-hsl))); border-color: hsl(var(--green-hsl) / 0.12); }
-.hq-card-title { font-family: var(--font-mono); font-weight: var(--fw-bold); font-size: var(--fs-sm); line-height: var(--lh-snug); overflow-wrap: break-word; margin-bottom: var(--space-0-5); }
-.hq-card-meta { font-size: var(--fs-2xs); opacity: 0.5; margin-top: var(--space-1); display: flex; justify-content: space-between; gap: var(--space-1-5); }
+.hq-card-title { font-family: var(--font-mono); font-weight: var(--fw-bold); font-size: var(--fs-sm); line-height: var(--lh-tight); overflow-wrap: break-word; margin-bottom: 0; }
+.hq-card-meta { font-size: var(--fs-2xs); opacity: 0.5; margin-top: var(--space-0-5); display: flex; justify-content: space-between; gap: var(--space-1-5); }
 
-.hq-card-notes { font-size: var(--fs-sm); opacity: 0.88; margin-top: var(--space-1-5); line-height: var(--lh-snug); overflow-wrap: break-word;
+.hq-card-notes { font-size: var(--fs-sm); opacity: 0.88; margin-top: var(--space-0-5); line-height: var(--lh-tight); overflow-wrap: break-word;
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 
 /* overdue = a chip on the page background, so it reads on ANY card fill (bare
@@ -119,16 +119,16 @@ body.hq-dragging .hq-unschedule.drag-over {
 
 .dir-block {
   position: absolute; left: 3px; right: 3px; box-sizing: border-box;
-  border-radius: var(--radius-2); padding: var(--space-2) var(--space-2-5) var(--space-4);
+  border-radius: var(--radius-2); padding: var(--space-1) var(--space-2) var(--space-2-5);
   cursor: grab; user-select: none; font-family: var(--font-mono); font-weight: var(--fw-normal);
   border: 1px solid transparent; overflow: hidden; display: flex; flex-direction: column;
   z-index: 3;
 }
 .dir-block:active { cursor: grabbing; }
 .dir-block.plain { background: color-mix(in srgb, hsl(var(--green-hsl)) 12%, hsl(var(--bg-hsl))); border-color: hsl(var(--green-hsl) / 0.12); }
-.dir-block-title { font-family: var(--font-mono); font-weight: var(--fw-bold); font-size: var(--fs-sm); line-height: var(--lh-snug); margin-bottom: var(--space-0-5); overflow-wrap: break-word; }
+.dir-block-title { font-family: var(--font-mono); font-weight: var(--fw-bold); font-size: var(--fs-sm); line-height: var(--lh-tight); margin-bottom: 0; overflow-wrap: break-word; }
 .dir-block-meta { font-size: var(--fs-2xs); opacity: 0.45; margin-top: var(--space-0-5); display: flex; gap: var(--space-2-5); }
-.dir-block-notes { font-size: var(--fs-sm); opacity: 0.88; margin-top: var(--space-1-5); line-height: var(--lh-snug); flex: 1; overflow: hidden; }
+.dir-block-notes { font-size: var(--fs-sm); opacity: 0.88; margin-top: var(--space-0-5); line-height: var(--lh-tight); flex: 1; overflow: hidden; }
 
 /* resize grip: bottom-right corner of the card, same size on blocks + sub-steps */
 .dir-resize, .dir-sub-resize {
@@ -207,7 +207,7 @@ body.hq-dragging .hq-unschedule.drag-over {
 .dir-spine-title {
   writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg);
   font-family: var(--font-mono); font-weight: var(--fw-bold);
-  font-size: var(--fs-2xs); line-height: var(--lh-snug); letter-spacing: var(--tracking-wide);
+  font-size: var(--fs-2xs); line-height: var(--lh-tight); letter-spacing: var(--tracking-wide);
   white-space: normal; overflow: hidden; max-height: 100%;   /* wraps to 2 vertical columns in the 28px spine */
 }
 
@@ -217,7 +217,7 @@ body.hq-dragging .hq-unschedule.drag-over {
 
 .dir-sub {
   position: absolute; box-sizing: border-box; border-radius: var(--radius-2);
-  border: 1px solid transparent; padding: var(--space-1) var(--space-2) var(--space-2-5); overflow: hidden;
+  border: 1px solid transparent; padding: var(--space-0-5) var(--space-1-5) var(--space-2); overflow: hidden;
   cursor: grab; user-select: none; display: flex; flex-direction: column;
   z-index: 4; box-shadow: -3px 0 5px rgba(0,0,0,0.3);
 }
@@ -236,7 +236,7 @@ body.hq-dragging .hq-unschedule.drag-over {
   cursor: pointer; opacity: 0.5;
 }
 .dir-sub-del:hover { opacity: 1; }
-.dir-sub-title { font-family: var(--font-mono); font-weight: var(--fw-bold); font-size: var(--fs-2xs); line-height: var(--lh-snug); overflow-wrap: break-word; }
+.dir-sub-title { font-family: var(--font-mono); font-weight: var(--fw-bold); font-size: var(--fs-2xs); line-height: var(--lh-tight); overflow-wrap: break-word; }
 .dir-sub-meta { font-size: var(--fs-2xs); opacity: 0.6; margin-top: var(--space-px); white-space: nowrap; }
 
 /* .dir-sub-resize styled with .dir-resize above (bottom-right grip) */
@@ -279,14 +279,15 @@ body.hq-dragging .hq-unschedule.drag-over {
   display: flex; flex-direction: row; overflow: auto hidden; min-width: 0;
 
   /* tight left pad = small gap to the day-label spine on its right */
-  padding: var(--space-2) var(--space-2-5) var(--space-2) var(--space-0-5);
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-0-5);
   gap: var(--space-1-5); align-items: stretch;
 }
 
 /* basis = 1/3 of the row's content box so ≥3 cards are always visible; the cap
-   lets wider screens fit more, the rest scroll horizontally */
+   lets wider screens fit more, the rest scroll horizontally (cap 150 -> 180px,
+   1.2x, 2026-11-25) */
 .hq-list-row .hq-card {
-  flex: 0 0 calc((100% - var(--space-1-5) * 2) / 3); max-width: 150px;
+  flex: 0 0 calc((100% - var(--space-1-5) * 2) / 3); max-width: 180px;
   min-width: 0; height: 100%; margin: 0;
 }
 
@@ -312,7 +313,7 @@ body.hq-dragging .hq-unschedule.drag-over {
 /* due date at the card bottom, IN FLOW (margin-top:auto), not absolutely
    positioned: pinned out of flow it sat on top of the notes (2026-10-06). */
 .hq-list-row .hq-card-meta {
-  order: 1; margin-top: auto; padding-top: var(--space-1); flex-shrink: 0;
+  order: 1; margin-top: auto; padding-top: var(--space-0-5); flex-shrink: 0;
 }
 
 .hq-list-row .hq-due {
