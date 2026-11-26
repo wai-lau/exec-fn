@@ -31,7 +31,8 @@
   min-height: 2.5rem;
   resize: none; /* no manual resize -- it owns the leftover height */
   box-sizing: border-box;
-  font-size: var(--fs-sm); /* a touch smaller than the rest of the UI */
+  font-size: var(--fs-2xs); /* smaller than the rest of the UI (owner, 2026-11-26) */
+  line-height: var(--lh-tight);
 }
 
 .tts select {
