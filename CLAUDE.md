@@ -218,7 +218,7 @@ File split, the jump table and the gutter rules: **ARCHITECTURE.md §18**.
 | DELETE | `/api/gamesave/{slot}` | Nightfall save slot delete (guest-or-full) — deletes the CALLER's own slot only. |
 | GET | `/api/hosaka/voices` | Owner-only. Proxies the TTS upstream's `/v1/voices` list (empty list on upstream error). |
 | GET | `/api/hosaka/health` | Guest-or-full. Probes the TTS upstream → `{ok:true}` or 503 `{ok:false,detail}`. Liveness = a real response (the reverse-tunnel port stays bound when the home server is down). `/hosaka` polls it to show "TTS server offline". |
-| GET/POST | `/api/hosaka/mode` | **Owner-only.** GET → `homo`/`emo`/`idle`/`gone`, corrected against reality (claimed `homo` with no live TTS → `idle`; 90s grace after a switch). POST `{action, force?}`; 409 if it would cut off users. **ARCHITECTURE.md §4b-ii**. |
+| GET/POST | `/api/hosaka/mode` | **Owner-only.** GET → `homo`/`lomo`/`unavailable` (box emo/idle read lomo; dead TTS or unreachable box → `unavailable`; 90s grace after a switch). POST `{action: homo|lomo, force?}`; 409 if it would cut off users. **ARCHITECTURE.md §4b-ii**. |
 | GET | `/api/hosaka/mode/stream` | **Owner-only** SSE: `{mode}` on every switch + a 15s poll of the real mode. |
 | WS | `/ws/hosaka` | TTS audio proxy; closes 1008 without a `session`/`guest_session` cookie. **Every utterance is guaranteed a terminal frame** (synthesized error if upstream dies mid-utterance). **ARCHITECTURE.md §4d**. |
 | WS | `/ws/hosaka/presence` | Presence count; same cookie gate; server broadcasts the TOTAL, each client subtracts its own socket. |

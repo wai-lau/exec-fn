@@ -27,12 +27,12 @@
   border-radius: 0;
 }
 
-.gpu-mode .gpu-mode-btn:first-child {
+.gpu-mode .gpu-mode-btn:first-of-type {
   border-left-width: 1px;
   border-radius: var(--radius-3) 0 0 var(--radius-3);
 }
 
-.gpu-mode .gpu-mode-btn:last-child {
+.gpu-mode .gpu-mode-btn:last-of-type {
   border-radius: 0 var(--radius-3) var(--radius-3) 0;
 }
 
@@ -54,8 +54,14 @@
   cursor: default;
 }
 
-/* Gone: home box unreachable -- dim the whole strip, cursor signals unresponsive. */
-.gpu-mode.gone .gpu-mode-btn {
+/* Unavailable: home box off or its TTS down. Replaces the buttons (gpu-mode.js
+   hides them); dimmed like a dead control. No `display` here, so the UA
+   [hidden] rule still hides it while a mode is lit. */
+.gpu-mode .gpu-mode-unavailable {
+  padding: var(--space-0-5) var(--space-3);
+  color: hsl(var(--green-hsl) / 0.8);
+  border: 1px solid hsl(var(--green-hsl) / 0.45);
+  border-radius: var(--radius-3);
   opacity: 0.45;
   cursor: not-allowed;
 }

@@ -140,7 +140,7 @@ def test_protected_json_api_loads_with_admin(client, admin_headers):
 def test_hosaka_mode_route_authed(client, admin_headers):
     r = client.get("/api/hosaka/mode", headers=admin_headers)
     assert r.status_code == 200
-    assert r.json()["mode"] in {"homo", "lomo", "emo", "idle", "gone"}
+    assert r.json()["mode"] in {"homo", "lomo", "unavailable"}
 
 
 def test_hosaka_mode_route_requires_auth(client):

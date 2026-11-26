@@ -1,11 +1,9 @@
-// GPU-mode control (owner-only) for /hosaka. Three buttons, low to high:
-//   nomo -- home computer off, only glados (the droplet's piper) speaks
+// GPU-mode control (owner-only) for /hosaka. Two buttons (Wai, 2026-11-26):
 //   lomo -- home computer on but busy: nicole (kokoro) + glados
-//   homo -- home computer on, every voice
-// NOTE: `nomo` sends the WIRE value `idle` -- data-mode is the action the home
-// box accepts, so only the button text differs. The box can also report `emo`
-// (hosaka stopped, GPU lent out) or the app `gone` (box unreachable); both leave
-// glados alone, so both light `nomo`. GET 401 for guests keeps the strip hidden.
+//   homo -- home computer on, every voice (adds charlie)
+// The server reports only homo, lomo or `unavailable` (home box unreachable or
+// its TTS not answering); unavailable replaces the buttons with that word.
+// GET 401 for guests keeps the strip hidden.
 // Keys off the #gpu-mode element, so it's a no-op on any page that lacks it.
 'use strict';
 
@@ -14,20 +12,17 @@
     const el = document.getElementById('gpu-mode');
     if (!el) return;
     const buttons = Array.from(el.querySelectorAll('.gpu-mode-btn'));
-
-    // Reported mode -> the button it lights. emo and gone have no button of
-    // their own: only glados speaks under either, which is what `nomo` means.
-    const LIT = { emo: 'idle', gone: 'idle' };
+    const unavail = el.querySelector('.gpu-mode-unavailable');
 
     function render(mode) {
       el.hidden = false;
-      el.classList.toggle('gone', mode === 'gone');
-      const lit = LIT[mode] || mode;
+      const down = mode !== 'homo' && mode !== 'lomo';
+      unavail.hidden = !down;
       for (const b of buttons) {
-        const isActive = b.dataset.mode === lit;
+        const isActive = b.dataset.mode === mode;
+        b.hidden = down;
         b.classList.toggle('active', isActive);
-        // active button + gone state are non-interactive; others clickable
-        b.disabled = isActive || mode === 'gone';
+        b.disabled = isActive; // the lit button is not clickable
       }
     }
 
@@ -89,7 +84,7 @@
         if (confirm(n + ' user(s) streaming -- switch anyway?')) return post(action, true);
         return; // cancelled
       }
-      if (r.status === 501) { // box is up but lacks this action (lomo, for now)
+      if (r.status === 501) { // box is up but lacks this action
         alert(action + ' is not on the home computer yet -- nothing changed');
         await refresh();
         return;

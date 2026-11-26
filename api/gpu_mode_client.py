@@ -14,35 +14,29 @@ import httpx
 GPU_MODE_UPSTREAM = os.environ.get("GPU_MODE_UPSTREAM", "172.17.0.1:8124")
 GPU_MODE_TOKEN = os.environ.get("GPU_MODE_TOKEN", "")
 
-# Actions that stop or restart hosaka-server -> guard them. lomo (kokoro +
-# glados only, chatterbox unloaded) restarts it, so it cuts listeners too.
-_STOP_HOSAKA = {"emo", "idle", "lomo"}
-
-# The modes a TTS-serving claim is checked against reality (see effective_mode).
-_SERVING = {"homo", "lomo"}
+# The two actions the strip offers (Wai, 2026-11-26: "the toggle only has two
+# modes, lomo and homo"). The home box keeps emo/idle for its own shell use.
+ACTIONS = ("homo", "lomo")
 
 
 def effective_mode(reported: str, tts_live: bool) -> str:
-    """The mode to actually REPORT, given what the box claims and whether its TTS
-    is really answering.
+    """The mode to show: `homo`, `lomo` or `unavailable`.
 
-    `/mode` reports the home box's own intent, which outlives reality: when
-    hosaka-server dies or wedges, the box goes on saying "homo" long after it
-    stopped serving a byte, and the strip lights the homo segment over a dead
-    backend. Nothing is running, so the honest reading is `idle`.
-
-    Only the serving modes (homo, lomo) are second-guessed. `emo`/`idle` mean hosaka-server is deliberately
-    stopped -- a failing TTS probe is the EXPECTED state there, not a
-    contradiction -- and `gone` (box unreachable) already says everything."""
-    if reported in _SERVING and not tts_live:
-        return "idle"
-    return reported
+    nicole is always on at the home box, so every box mode but homo serves
+    nicole + glados without Charlie, which is what lomo means: emo and idle read
+    as lomo. `/mode` reports the box's INTENT, which outlives reality (the
+    server dies, the box still says homo), so a box whose TTS is not answering,
+    or that is not reachable at all (`gone`), reads `unavailable`."""
+    if reported == "gone" or not tts_live:
+        return "unavailable"
+    return "homo" if reported == "homo" else "lomo"
 
 
 def needs_user_confirm(action: str, presence_count: int, force: bool) -> bool:
     """True iff this switch would cut off connected users and the caller has not
-    already confirmed. homo (which only adds voices) never needs it."""
-    return action in _STOP_HOSAKA and presence_count > 0 and not force
+    already confirmed. Both actions restart hosaka-server (homo loads Charlie,
+    lomo drops it), so both cut every open stream for the restart."""
+    return action in ACTIONS and presence_count > 0 and not force
 
 
 async def fetch_mode(upstream: str, token: str) -> str:
