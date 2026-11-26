@@ -126,6 +126,17 @@
   font-weight: var(--fw-bold);
 }
 
+/* Space under each knob block: 14px, between the old 18px under the clone
+   knobs (12px column gap + the group title's 6px margin) and 12px under
+   playback (owner, 2026-11-26). Column gap 12px + 2px on either side. */
+.tts > .tts-group {
+  margin-top: var(--space-0-5);
+}
+
+.tts > .tts-knobs + textarea {
+  margin-top: var(--space-0-5);
+}
+
 .tts-knobs {
   display: flex;
   flex-direction: column;
