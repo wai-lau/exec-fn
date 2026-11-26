@@ -5,7 +5,8 @@ Two things go to the phone (Wai, 2026-11-24: "I'm thinking Exec should send me n
 
 - Every exec-bubble comment (nudges and monitor comments), topic NTFY_TOPIC (default `exec`),
   read off the same fan-out the Discord bridge uses, so no nudge or monitor site changes.
-- Unhandled server errors, topic `errors`: grouped to at most one alert per route every
+- Unhandled server errors, topic `errors` through the fixer (sent to `intake` tagged `to-errors`;
+  Wai's notify repo, fixer/listen.py, tries a fix and sends it on): grouped to at most one alert per route every
   ERROR_GROUP_S, and no more than ERROR_DAY_MAX error alerts a day buzz the phone (the iPhone
   relay allows 250 wake-ups a day for everything), so a burst can't use them up.
 
@@ -67,7 +68,7 @@ def report_error(method: str, route: str, exc: BaseException) -> None:
     text = f"{method} {route}: {type(exc).__name__}: {str(exc)[:300]}"
     try:
         asyncio.get_running_loop().create_task(
-            send("errors", text, title="Exec error", priority="high", tags="warning", click=SITE))
+            send("intake", text, title="Exec error", priority="high", tags="warning,to-errors", click=SITE))
     except RuntimeError:
         pass  # no running loop: nowhere to send from
 
